@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: territoire-db
+    restart: always
+    environment:
+      POSTGRES_DB: territoire
+      POSTGRES_USER: territoire_user
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - territoire-db-data:/var/lib/postgresql/data
+
+volumes:
+  territoire-db-data:

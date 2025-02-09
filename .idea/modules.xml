@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Territoire.iml" filepath="$PROJECT_DIR$/Territoire.iml" />
+      <module fileurl="file://$PROJECT_DIR$/territoire-back/territoire-back.iml" filepath="$PROJECT_DIR$/territoire-back/territoire-back.iml" />
+      <module fileurl="file://$PROJECT_DIR$/territoire-front/territoire-front.iml" filepath="$PROJECT_DIR$/territoire-front/territoire-front.iml" />
+    </modules>
+  </component>
+</project>

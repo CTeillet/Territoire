@@ -1,0 +1,25 @@
+package com.teillet.territoire.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.UUID;
+
+@Entity
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Person {
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private UUID id;
+
+	private String firstName;
+	private String lastName;
+	@Column(nullable = true)
+	private String phoneNumber;
+	@Column(nullable = true)
+	private String email;
+}
