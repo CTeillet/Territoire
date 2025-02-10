@@ -1,4 +1,5 @@
-import {BookUser, Building, Calendar, ChartBar, Contact, Inbox, Search, Send, Settings} from "lucide-react"
+"use client";
+import {Building, ChartBar, Contact, Settings} from "lucide-react"
 
 import {
     Sidebar,
@@ -10,54 +11,64 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import {usePathname} from "next/navigation";
 
 // Menu items.
 const items = [
     {
         title: "Dashboard",
-        url: "#",
+        url: "/",
         icon: ChartBar,
     },
     {
         title: "Territoires",
-        url: "#",
+        url: "/territoires",
         icon: Building,
     },
     {
         title: "Personnes",
-        url: "#",
+        url: "/personnes",
         icon: Contact,
     },
-    // {
-    //     title: "Affectations",
-    //     url: "#",
-    //     icon: Send,
-    // },
     {
-        title: "Settings",
-        url: "#",
+        title: "Paramètres",
+        url: "/parametres",
         icon: Settings,
     },
 ]
 
 export function AppSidebar() {
+    const pathname = usePathname(); // Récupération du chemin actuel
+
     return (
         <Sidebar>
             <SidebarContent className={"bg-gray-300"}>
                 <SidebarGroup className={"mt-5 ml-5"}>
-                    <SidebarGroupLabel className={"text-2xl"}>Gestion Territoire</SidebarGroupLabel>
+                    <SidebarGroupLabel className={"text-2xl text-primary"}>Gestion Territoire</SidebarGroupLabel>
                     <SidebarGroupContent className={"mt-10"}>
                         <SidebarMenu>
-                            {items.map((item) => (
-                                <SidebarMenuItem key={item.title} className={"mb-3"}>
-                                    <SidebarMenuButton asChild>
-                                        <a href={item.url}>
-                                            <item.icon />
-                                            <span>{item.title}</span>
-                                        </a>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
+                            {items.map((item) => {
+                                const isActive = pathname === item.url; // Vérifie si c'est la page active
+
+                                return (
+                                    <SidebarMenuItem
+                                        key={item.title}
+                                        className="mb-3"
+                                    >
+                                        <SidebarMenuButton asChild>
+                                            <a
+                                                href={item.url}
+                                                className={`flex items-center space-x-2 p-2 rounded-lg 
+                                                    ${isActive ? "bg-gray-400 text-primary font-bold" : ""}`}
+                                            >
+
+                                                <item.icon />
+                                                <span>{item.title}</span>
+                                            </a>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                );
+                            })}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>

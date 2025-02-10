@@ -4,4 +4,9 @@ export interface Person {
     lastName: string;
     email: string | null;
     phoneNumber: string | null;
+
+}
+
+export function personToString(person: Person):string {
+    return `${person.firstName} ${person.lastName}`;
 }
