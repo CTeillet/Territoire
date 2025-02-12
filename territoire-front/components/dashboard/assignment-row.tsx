@@ -4,7 +4,7 @@ import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
 import {Assignment} from "@/models/assignment";
 import {personToString} from "@/models/person";
-import {Building} from "lucide-react";
+import {Eye} from "lucide-react";
 
 const getBadgeColor = (status: boolean) => {
     if (status) {
@@ -27,7 +27,7 @@ export const AssignmentRow: React.FC<Assignment>  = (assignment: Assignment ) =>
         <TableCell className="text-center">{(assignment.returnDate !== null) ? Intl.DateTimeFormat().format(assignment.returnDate) : "N/A"}</TableCell>
         <TableCell className="text-center">{personToString(assignment.person)}</TableCell>
         <TableCell className="text-center">
-            <Button><Building/></Button>
+            <Button><Eye/></Button>
         </TableCell>
     </TableRow>
 );
