@@ -8,7 +8,10 @@
     "css": "app/globals.css",
     "baseColor": "neutral",
     "cssVariables": true,
-    "prefix": ""
+    "prefix": "",
+    "plugins": [
+
+    ]
   },
   "aliases": {
     "components": "@/components",

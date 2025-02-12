@@ -1,25 +1,32 @@
 import React from "react";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../ui/card";
 import {CartesianGrid, Line, LineChart, XAxis} from "recharts";
-import {ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart";
+import {
+    ChartConfig,
+    ChartContainer,
+    ChartLegend,
+    ChartLegendContent,
+    ChartTooltip,
+    ChartTooltipContent
+} from "@/components/ui/chart";
 
 
 export const StatisticsChart: React.FC = () => {
     const chartConfig = {
         available: {
-            label: "Available",
+            label: "Disponible",
             color: "hsl(var(--chart-1))",
         },
         assigned: {
-            label: "Assigned",
+            label: "Assigné",
             color: "hsl(var(--chart-2))",
         },
         pending: {
-            label: "Pending",
+            label: "En attente",
             color: "hsl(var(--chart-3))",
         },
         late: {
-            label: "Late",
+            label: "Retard",
             color: "hsl(var(--chart-4))",
         },
     } satisfies ChartConfig;
@@ -51,7 +58,9 @@ export const StatisticsChart: React.FC = () => {
                             tickMargin={10}
                             tickFormatter={(value) => value + " sem."}
                         />
-                        <ChartTooltip cursor={false} content={<ChartTooltipContent/>}/>
+                        <ChartTooltip content={<ChartTooltipContent hideLabel={true}/>}/>
+                        <ChartLegend content={<ChartLegendContent />} />
+
                         <Line
                             dataKey="available"
                             type="monotone"

@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 export const StatCard: React.FC<StatCardProps> =  ({ title, count }: { title: string; count: number }) => (
     <Card className="p-4 text-center">

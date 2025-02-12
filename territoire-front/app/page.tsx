@@ -18,7 +18,6 @@ const Dashboard = () => {
             {id: "3", status: "PENDING", lastModifiedDate: new Date("2023-06-15"), name: "03"},
             {id: "4", status: "LATE", lastModifiedDate: new Date("2023-06-15"), name: "04"},
         ]);
-
         setAssignments([
             {
                 id: "1",

@@ -1,7 +1,7 @@
 import React from "react";
 import {Card, CardHeader, CardTitle} from "../ui/card";
 import {Table, TableBody, TableCaption, TableCell, TableHeader, TableRow} from "../ui/table";
-import {AssignmentRow} from "@/components/dashboard/AssignmentRow";
+import {AssignmentRow} from "@/components/dashboard/assignment-row";
 import {Assignment} from "@/models/assignment";
 
 export const TerritoriesTable: React.FC<{ assignments: Assignment[] }> = ({ assignments }) => (
@@ -9,17 +9,17 @@ export const TerritoriesTable: React.FC<{ assignments: Assignment[] }> = ({ assi
         <CardHeader>
             <CardTitle>Actualités des territoires</CardTitle>
         </CardHeader>
-        <Table className="rounded-sm">
+        <Table className="rounded-sm w-full text-center">
             <TableCaption></TableCaption>
             <TableHeader>
                 <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Statut</TableCell>
-                    <TableCell>Date Attribution</TableCell>
-                    <TableCell>Date Attendu</TableCell>
-                    <TableCell>Date Rendu</TableCell>
-                    <TableCell>Personne</TableCell>
-                    <TableCell>Actions</TableCell>
+                    <TableCell className="text-center">#</TableCell>
+                    <TableCell className="text-center">Statut</TableCell>
+                    <TableCell className="text-center">Date Attribution</TableCell>
+                    <TableCell className="text-center">Date Attendu</TableCell>
+                    <TableCell className="text-center">Date Rendu</TableCell>
+                    <TableCell className="text-center">Personne</TableCell>
+                    <TableCell className="text-center">Actions</TableCell>
                 </TableRow>
             </TableHeader>
             <TableBody>

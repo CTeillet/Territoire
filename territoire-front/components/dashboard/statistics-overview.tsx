@@ -1,4 +1,4 @@
-import {StatCard} from "@/components/dashboard/StatCard";
+import {StatCard} from "@/components/dashboard/stat-card";
 import React from "react";
 import {Territory} from "@/models/territory";
 
