@@ -18,7 +18,7 @@ const AssignmentRow: React.FC<Assignment> = (assignment: Assignment) => (
     <TableRow>
         <TableCell className="text-center">{assignment.territory.name}</TableCell>
         <TableCell className="flex justify-center">
-            <Badge className={`${getBadgeColor(assignment.returnDate === null)} text-white px-2 py-1 rounded`}>
+            <Badge className={`${getBadgeColor(assignment.returnDate === null)} text-white px-2 py-1 rounded w-full `}>
                 {assignment.returnDate === null ? "ATTRIBUÉ" : "RENDUE"}
             </Badge>
         </TableCell>
