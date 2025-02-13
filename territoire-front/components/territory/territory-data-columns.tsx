@@ -8,7 +8,7 @@ import {
     TerritoryDataActionButtons
 } from "@/components/territory/territory-data-action-buttons";
 
-const PERSONS_MOCK = [
+export const PERSONS_MOCK = [
     {
         id: "550e8400-e29b-41d4-a716-446655440000",
         firstName: "Jean",
@@ -88,7 +88,7 @@ export const territoryDataColumns: ColumnDef<Territory>[] = [
     },
 ]
 
-const getBadgeColor = (status: TerritoryStatus) => {
+export const getBadgeColor = (status: TerritoryStatus) => {
     switch (status) {
         case "AVAILABLE":
             return "bg-purple-500";  // 🟣 Violet

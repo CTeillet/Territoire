@@ -5,7 +5,8 @@ import {
     ColumnFiltersState,
     flexRender,
     getCoreRowModel,
-    getFilteredRowModel, getPaginationRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
     getSortedRowModel,
     SortingState,
     useReactTable,
@@ -60,36 +61,41 @@ export function DataTable<TData, TValue>({
     })
 
     return (
-        <div>
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
+        <div className="w-full overflow-hidden rounded-lg shadow-lg border border-gray-200">
+            <div className="overflow-x-auto">
+                <Table className="w-full border-collapse">
+                    {/* En-tête de la table */}
+                    <TableHeader className="bg-gray-100 border-b-2 border-gray-300">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => {
-                                    return (
-                                        <TableHead  className={"text-center"} key={header.id}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                        </TableHead>
-                                    )
-                                })}
+                                {headerGroup.headers.map((header) => (
+                                    <TableHead
+                                        key={header.id}
+                                        className="px-4 py-3 text-center text-gray-700 font-semibold uppercase tracking-wider"
+                                    >
+                                        {header.isPlaceholder
+                                            ? null
+                                            : flexRender(header.column.columnDef.header, header.getContext())}
+                                    </TableHead>
+                                ))}
                             </TableRow>
                         ))}
                     </TableHeader>
+
+                    {/* Corps de la table */}
                     <TableBody>
                         {table.getRowModel().rows?.length ? (
                             table.getRowModel().rows.map((row) => (
                                 <TableRow
                                     key={row.id}
+                                    className="odd:bg-gray-50 hover:bg-gray-100 transition"
                                     data-state={row.getIsSelected() && "selected"}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell  className={"text-center"}  key={cell.id}>
+                                        <TableCell
+                                            key={cell.id}
+                                            className="px-4 py-3 text-center text-gray-700 border-b"
+                                        >
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
@@ -97,16 +103,17 @@ export function DataTable<TData, TValue>({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
+                                <TableCell colSpan={columns.length} className="h-24 text-center text-gray-500">
+                                    Aucun résultat.
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                 </Table>
             </div>
-            <DataTablePagination table={table} />
 
+            {/* Pagination en bas */}
+            <DataTablePagination table={table} />
         </div>
-    )
+    );
 }
