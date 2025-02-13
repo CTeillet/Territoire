@@ -14,3 +14,7 @@ export interface Territory {
 export type TerritoryFeature = Feature<Polygon, Territory>;
 
 export type TerritoryCollection = FeatureCollection<Polygon, Territory>;
+
+export function convertToTerritories(collection: TerritoryCollection): Territory[]  {
+    return collection.features.map(feature => feature.properties);
+}
