@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic";
 import React, {useMemo} from "react";
-import {TerritoryCollection} from "@/models/territory";
+import {TerritoryCollection, TerritoryFeature} from "@/models/territory";
 import {TerritoryCollectionProps} from "@/models/territory-props";
-import {STATUS_TRANSLATIONS} from "@/models/territory-status";
+import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
 import {renderToString} from "react-dom/server";
 import {getBadgeColor, PERSONS_MOCK} from "@/components/territory/territory-data-columns";
 import {TerritoryDataActionButtons} from "@/components/territory/territory-data-action-buttons";
@@ -18,12 +18,12 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({geoJsonData}) => {
     const center = useMemo(() => calculateCenter(geoJsonData), [geoJsonData]);
 
     return (
-        <MapContainer center={center} zoom={14} style={{height: "500px", width: "100%", zIndex: 0}}>
+        <MapContainer center={center} zoom={14} style={{ height: "500px", width: "100%", zIndex: 0 }}>
             <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; OpenStreetMap contributors'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+                attribution='Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
             />
-            <GeoJSON onEachFeature={onEachFeature} data={geoJsonData}/>
+            <GeoJSON onEachFeature={onEachFeature} data={geoJsonData} style={territoryStyle} />
         </MapContainer>
     );
 };
@@ -59,7 +59,7 @@ const calculateCenter = (geoJsonData: TerritoryCollection): [number, number] => 
     return count > 0 ? [sumLat / count, sumLng / count] : [0, 0];
 };
 
-const onEachFeature = (feature: any, layer: any) => {
+const onEachFeature = (feature:  TerritoryFeature, layer: any) => {
     if (feature.properties) {
         const {id, name, status} = feature.properties;
         const html = renderToString(
@@ -79,4 +79,38 @@ const onEachFeature = (feature: any, layer: any) => {
     }
 };
 
+const territoryStyle = (feature: any) => {
+    console.log(feature);
+    const badgeColor = getBadgeColorTerritory(feature.properties.status);
+    console.log(badgeColor);
+    return {
+        fillColor: badgeColor,
+        color: badgeColor, // Bordure noire pour le contraste
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.6 // Opacité du remplissage
+    };
+};
+
+export const getBadgeColorTerritory = (status: TerritoryStatus) => {
+    switch (status) {
+        case "AVAILABLE":
+            return "#9333ea";  // 🟣 Violet (bg-purple-500)
+        case "ASSIGNED":
+            return "#f97316";  // 🟠 Orange (bg-orange-500)
+        case "LATE":
+            return "#ec4899";  // 🔴 Rose (bg-pink-500)
+        case "PENDING":
+            return "#92400e";  // 🟤 Brun (bg-amber-700)
+        default:
+            return "#6b7280";  // ⚫ Gris (bg-gray-500)
+    }
+};
+
+
 export default TerritoryMap;
+
+//esri
+// var Esri_WorldStreetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+//     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+// });
