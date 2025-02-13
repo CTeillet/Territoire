@@ -80,9 +80,7 @@ const onEachFeature = (feature:  TerritoryFeature, layer: any) => {
 };
 
 const territoryStyle = (feature: any) => {
-    console.log(feature);
     const badgeColor = getBadgeColorTerritory(feature.properties.status);
-    console.log(badgeColor);
     return {
         fillColor: badgeColor,
         color: badgeColor, // Bordure noire pour le contraste

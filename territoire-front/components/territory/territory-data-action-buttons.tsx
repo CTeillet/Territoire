@@ -15,8 +15,10 @@ export function TerritoryDataActionButtons({id, people}: TerritoryDataActionButt
 
     const handleAssign = (personId: string | null, newPerson?: { firstName: string; lastName: string }) => {
         if (personId) {
+            //TODO  Assigner le territoire à la personne existante
             console.log(`Assignation du territoire ${id} à la personne existante ${personId}`);
         } else if (newPerson?.firstName && newPerson?.lastName) {
+            //TODO Créer une nouvelle personne et assigner le territoire
             console.log(`Création et assignation à ${newPerson.firstName} ${newPerson.lastName}`);
         }
     };
