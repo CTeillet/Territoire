@@ -3,14 +3,39 @@ import {Territory} from "@/models/territory";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
 import {Badge} from "@/components/ui/badge";
 import React from "react";
-import {Button} from "@/components/ui/button";
-import {Eye, FileInput, FileOutput} from "lucide-react";
-import Link from "next/link";
 import {DataTableColumnHeader} from "@/components/territory/territory-data-header";
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
+import {
+    TerritoryDataActionButtons
+} from "@/components/territory/territory-data-action-buttons";
 
+const PERSONS_MOCK = [
+    {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        firstName: "Jean",
+        lastName: "Dupont",
+        email: "jean.dupont@example.com",
+        phoneNumber: "0612345678",
+    },
+    {
+        id: "550e8400-e29b-41d4-a716-446655440001",
+        firstName: "Marie",
+        lastName: "Curie",
+        email: "marie.curie@example.com",
+    },
+    {
+        id: "550e8400-e29b-41d4-a716-446655440002",
+        firstName: "Albert",
+        lastName: "Einstein",
+        phoneNumber: "0698765432",
+    },
+    {
+        id: "550e8400-e29b-41d4-a716-446655440003",
+        firstName: "Yves",
+        lastName: "Montant",
+    },
+];
 
-export const columns: ColumnDef<Territory>[] = [
+export const territoryDataColumns: ColumnDef<Territory>[] = [
     {
         id: "id",
         accessorKey: "id",
@@ -57,44 +82,9 @@ export const columns: ColumnDef<Territory>[] = [
         accessorKey: "actions",
         header: "Actions",
         cell: ({row}) => {
-            return (
-                <TooltipProvider>
-                    <div className={"flex justify-center space-x-2"}>
-                        {/* Bouton Voir */}
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Link href={`/territoires/${row.getValue("id")}`}>
-                                    <Button className="bg-gray-500 hover:bg-gray-600 text-white">
-                                        <Eye />
-                                    </Button>
-                                </Link>
-                            </TooltipTrigger>
-                            <TooltipContent>Voir les détails</TooltipContent>
-                        </Tooltip>
+            return <TerritoryDataActionButtons id={row.getValue("id")} people={PERSONS_MOCK} />
+        },
 
-                        {/* Bouton Importer (Bleu) */}
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-                                    <FileInput />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Retour du territoire dans le stock</TooltipContent>
-                        </Tooltip>
-
-                        {/* Bouton Exporter (Vert) */}
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button className="bg-green-500 hover:bg-green-600 text-white">
-                                    <FileOutput />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Assignation du territoire</TooltipContent>
-                        </Tooltip>
-                    </div>
-                </TooltipProvider>
-            )
-        }
     },
 ]
 

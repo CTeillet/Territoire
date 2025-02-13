@@ -15,7 +15,7 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({ geoJsonData }) => {
     const center = useMemo(() => calculateCenter(geoJsonData), [geoJsonData]);
 
     return (
-        <MapContainer center={center} zoom={14} style={{ height: "500px", width: "100%" }}>
+        <MapContainer center={center} zoom={14} style={{ height: "500px", width: "100%", zIndex: 0 }}>
             <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; OpenStreetMap contributors'

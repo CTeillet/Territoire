@@ -5,7 +5,7 @@ import "leaflet/dist/leaflet.css";
 import {convertToTerritories, TerritoryCollection} from "@/models/territory";
 import TerritoryMap from "@/components/territory/territory-map";
 import {DataTable} from "@/components/territory/territory-data-table";
-import {columns} from "@/components/territory/columns";
+import {territoryDataColumns} from "@/components/territory/territory-data-columns";
 
 const mockGeoJsonData: TerritoryCollection = {
     type: "FeatureCollection",
@@ -117,7 +117,7 @@ const TerritoryPage = () => {
             ) : (
                 <>
                     {geoJsonData && <TerritoryMap geoJsonData={geoJsonData} />}
-                    {geoJsonData && <DataTable columns={columns} data={convertToTerritories(geoJsonData)} />}
+                    {geoJsonData && <DataTable columns={territoryDataColumns} data={convertToTerritories(geoJsonData)} />}
                 </>
             )}
         </div>
