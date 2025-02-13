@@ -19,14 +19,14 @@ export const columns: ColumnDef<Territory>[] = [
         id: "name",
         accessorKey: "name",
         header: ({column}) => {
-            return (<DataTableColumnHeader column={column} title="Name"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title="Name"/>)
         },
         enableColumnFilter: true,
     }, {
         id: "city",
         accessorKey: "city",
         header: ({column}) => {
-            return (<DataTableColumnHeader column={column} title="Ville"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title="Ville"/>)
         },
         enableColumnFilter: true,
     },
@@ -34,12 +34,16 @@ export const columns: ColumnDef<Territory>[] = [
         id: "status",
         accessorKey: "status",
         header: ({column}) => {
-            return (<DataTableColumnHeader column={column} title="Statut"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title="Statut"/>)
         },
         cell: ({row}) => {
-            return <Badge className={`${getBadgeColor(row.getValue("status"))} text-white px-2 py-1 rounded`}>
-                {STATUS_TRANSLATIONS[row.getValue("status") as keyof typeof STATUS_TRANSLATIONS]}
-            </Badge>
+            return (
+                <div className="flex justify-center">
+                    <Badge className={`${getBadgeColor(row.getValue("status"))} text-white px-2 py-1 rounded`}>
+                        {STATUS_TRANSLATIONS[row.getValue("status") as keyof typeof STATUS_TRANSLATIONS]}
+                    </Badge>
+                </div>
+            )
         },
         enableColumnFilter: true,
         filterFn: (row, columnId, filterValue) => {
