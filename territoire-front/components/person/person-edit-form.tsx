@@ -1,4 +1,5 @@
 import {Card, CardContent} from "@/components/ui/card";
+import {PersonEditFormProps} from "@/models/person-edit-form-props";
 
 const PersonEditForm = ({ formData, onChange }: PersonEditFormProps) => {
     return (

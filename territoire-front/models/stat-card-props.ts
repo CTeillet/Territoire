@@ -1,4 +1,4 @@
-interface StatCardProps {
+export interface StatCardProps {
     title: string;
     count: number;
 }

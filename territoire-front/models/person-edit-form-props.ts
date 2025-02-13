@@ -1,4 +1,6 @@
-interface PersonEditFormProps {
+import React from "react";
+
+export interface PersonEditFormProps {
     formData: {
         firstName: string;
         lastName: string;

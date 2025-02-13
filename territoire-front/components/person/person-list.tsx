@@ -2,6 +2,7 @@
 
 import { Person } from "@/models/person";
 import PersonCard from "./person-card";
+import React from "react";
 
 interface PersonListProps {
     persons: Person[];
