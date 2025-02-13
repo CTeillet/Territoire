@@ -13,15 +13,15 @@ const Dashboard = () => {
 
     useEffect(() => {
         setTerritories([
-            {id: "1", status: "AVAILABLE", lastModifiedDate: null, name: "01"},
-            {id: "2", status: "ASSIGNED", lastModifiedDate: new Date("2023-10-01"), name: "02"},
-            {id: "3", status: "PENDING", lastModifiedDate: new Date("2023-06-15"), name: "03"},
-            {id: "4", status: "LATE", lastModifiedDate: new Date("2023-06-15"), name: "04"},
+            {id: "1", status: "AVAILABLE", lastModifiedDate: null, name: "01", city: ""},
+            {id: "2", status: "ASSIGNED", lastModifiedDate: new Date("2023-10-01"), name: "02", city: ""},
+            {id: "3", status: "PENDING", lastModifiedDate: new Date("2023-06-15"), name: "03", city: ""},
+            {id: "4", status: "LATE", lastModifiedDate: new Date("2023-06-15"), name: "04", city: ""},
         ]);
         setAssignments([
             {
                 id: "1",
-                territory: {id: "1", status: "ASSIGNED", lastModifiedDate: null, name: "01"},
+                territory: {id: "1", status: "ASSIGNED", lastModifiedDate: null, name: "01", city: ""},
                 assignmentDate: new Date("2023-06-15"),
                 dueDate: new Date("2023-06-15"),
                 returnDate: null,
@@ -29,7 +29,7 @@ const Dashboard = () => {
             },
             {
                 id: "2",
-                territory: {id: "2", status: "PENDING", lastModifiedDate: null, name: "02"},
+                territory: {id: "2", status: "PENDING", lastModifiedDate: null, name: "02", city: ""},
                 assignmentDate: new Date("2023-06-15"),
                 dueDate: new Date("2023-06-15"),
                 returnDate: new Date("2023-09-15"),
@@ -37,7 +37,7 @@ const Dashboard = () => {
             },
             {
                 id: "3",
-                territory: {id: "3", status: "ASSIGNED", lastModifiedDate: null, name: "03"},
+                territory: {id: "3", status: "ASSIGNED", lastModifiedDate: null, name: "03", city: ""},
                 assignmentDate: new Date("2023-06-15"),
                 dueDate: new Date("2023-06-15"),
                 returnDate: new Date("2023-09-15"),

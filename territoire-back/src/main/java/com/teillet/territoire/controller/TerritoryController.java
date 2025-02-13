@@ -17,7 +17,7 @@ import java.util.List;
 class TerritoryController {
 	private final TerritoryService territoryService;
 
-	@GetMapping
+	@GetMapping("/geojson")
 	public String getAllTerritories() throws IOException {
 		List<Territory> territories = territoryService.getAllTerritories();
 		return GeoJsonUtils.convertToGeoJSON(territories);

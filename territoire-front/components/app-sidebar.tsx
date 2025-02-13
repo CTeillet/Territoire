@@ -48,7 +48,7 @@ export function AppSidebar() {
                     <SidebarGroupContent className={"mt-10"}>
                         <SidebarMenu>
                             {items.map((item) => {
-                                const isActive = pathname === item.url; // Vérifie si c'est la page active
+                                const isActive = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
 
                                 return (
                                     <SidebarMenuItem
