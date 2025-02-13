@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Eye, FileInput, FileOutput } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {useState} from "react";
+import {Download, Eye, Upload} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import Link from "next/link";
 import AssignTerritoryDialog from "@/components/territory/assign-territory-dialog";
 
@@ -10,7 +10,7 @@ interface TerritoryDataActionButtonsProps {
     people: { id: string; firstName: string; lastName: string }[];
 }
 
-export function TerritoryDataActionButtons({ id, people }: TerritoryDataActionButtonsProps) {
+export function TerritoryDataActionButtons({id, people}: TerritoryDataActionButtonsProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const handleAssign = (personId: string | null, newPerson?: { firstName: string; lastName: string }) => {
@@ -29,7 +29,7 @@ export function TerritoryDataActionButtons({ id, people }: TerritoryDataActionBu
                     <TooltipTrigger asChild>
                         <Link href={`/territoires/${id}`}>
                             <Button className="bg-gray-500 hover:bg-gray-600 text-white">
-                                <Eye />
+                                <Eye/>
                             </Button>
                         </Link>
                     </TooltipTrigger>
@@ -40,7 +40,7 @@ export function TerritoryDataActionButtons({ id, people }: TerritoryDataActionBu
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-                            <FileInput />
+                            <Download/>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>Retour du territoire dans le stock</TooltipContent>
@@ -53,7 +53,7 @@ export function TerritoryDataActionButtons({ id, people }: TerritoryDataActionBu
                             className="bg-green-500 hover:bg-green-600 text-white"
                             onClick={() => setIsDialogOpen(true)}
                         >
-                            <FileOutput />
+                            <Upload/>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>Assignation du territoire</TooltipContent>

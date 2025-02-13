@@ -27,7 +27,7 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({ isOpen, o
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="z-20] ">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Assigner une personne au territoire</DialogTitle>
                 </DialogHeader>
