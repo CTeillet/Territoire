@@ -4,6 +4,9 @@ import React from "react";
 import Link from "next/link";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
 import {Badge} from "@/components/ui/badge";
+import {TableCell, TableRow} from "@/components/ui/table";
+import {Eye} from "lucide-react";
+import {Button} from "@/components/ui/button";
 
 
 const getBadgeColor = (status: TerritoryStatus) => {
@@ -22,22 +25,27 @@ const getBadgeColor = (status: TerritoryStatus) => {
     }
 };
 
-const TerritoryRow: React.FC<TerritoryFeatureProps> = ({ feature }: { feature: TerritoryFeature }) => {
+const TerritoryRow: React.FC<TerritoryFeatureProps> = ({feature}: { feature: TerritoryFeature }) => {
     return (
-        <tr className="text-center">
-            <td className="border border-gray-300 p-2">{feature.properties.name}</td>
-            <td className="border border-gray-300 p-2">{feature.properties.city}</td>
-            <td className="border border-gray-300 p-2">
+        <TableRow className="border-b border-gray-300">
+            <TableCell className="text-center">
+                {feature.properties.name}
+            </TableCell>
+            <TableCell className="text-center">
+                {feature.properties.city}
+            </TableCell>
+            <TableCell className="text-center">
                 <Badge className={`${getBadgeColor(feature.properties.status)} text-white px-2 py-1 rounded`}>
                     {STATUS_TRANSLATIONS[feature.properties.status]}
                 </Badge>
-            </td>
-            <td className="border border-gray-300 p-2">
-                <Link href={`/territoires/${feature.properties.id}`} className="text-blue-500">
-                    Voir
+            </TableCell>
+            <TableCell className="text-center">
+                <Link href={`/territoires/${feature.properties.id}`}>
+                    <Button><Eye/></Button>
                 </Link>
-            </td>
-        </tr>
+
+            </TableCell>
+        </TableRow>
     );
 };
 

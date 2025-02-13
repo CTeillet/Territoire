@@ -1,10 +1,10 @@
 import React from "react";
 import {Card, CardHeader, CardTitle} from "../ui/card";
 import {Table, TableBody, TableCaption, TableCell, TableHeader, TableRow} from "../ui/table";
-import {AssignmentRow} from "@/components/dashboard/assignment-row";
 import {Assignment} from "@/models/assignment";
+import AssignmentRow from "@/components/dashboard/assignment-row";
 
-export const TerritoriesTable: React.FC<{ assignments: Assignment[] }> = ({ assignments }) => (
+export const AssignmentsTable: React.FC<{ assignments: Assignment[] }> = ({ assignments }) => (
     <Card>
         <CardHeader>
             <CardTitle>Actualités des territoires</CardTitle>
