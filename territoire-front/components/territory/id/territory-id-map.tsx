@@ -45,7 +45,7 @@ const TerritoryMap = ({ territory }: { territory: Territory }) => {
     }, [territory.geojson, bounds, concaveHullCoords.length]);
 
     return (
-        <MapContainer ref={mapRef} bounds={bounds} style={{ height: "500px", width: "100%" }} className={"mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm"}>
+        <MapContainer ref={mapRef} bounds={bounds} style={{ height: "500px", width: "100%", zIndex: 0 }} className={"mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm"}>
             <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
                 attribution='&copy; OpenStreetMap contributors'
@@ -53,14 +53,14 @@ const TerritoryMap = ({ territory }: { territory: Territory }) => {
 
             <LayersControl position="topright">
                 {/* Layer des Blocks */}
-                <LayersControl.Overlay name="Blocks (BLOCK)" checked>
+                <LayersControl.Overlay name="Patés" checked>
                     <LayerGroup>
                         <GeoJSON data={blockFeatures} style={{ color: "blue" }} />
                     </LayerGroup>
                 </LayersControl.Overlay>
 
                 {/* Layer du Concave Hull */}
-                <LayersControl.Overlay name="Total Area (CONCAVE_HULL)" checked>
+                <LayersControl.Overlay name="Territoire" checked>
                     <LayerGroup>
                         <GeoJSON data={concaveHullFeature} style={{ color: "red", weight: 2, fillOpacity: 0.1 }} />
                     </LayerGroup>

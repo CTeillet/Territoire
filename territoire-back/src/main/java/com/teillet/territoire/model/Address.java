@@ -19,7 +19,7 @@ public class Address {
 
 	private String number;
 
-	private String postalCode;
+	private String zipCode;
 
 	private String city;
 

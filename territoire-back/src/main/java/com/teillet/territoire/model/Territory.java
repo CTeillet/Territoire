@@ -29,6 +29,7 @@ public class Territory {
 	private LocalDate lastModifiedDate;
 
 	private String city;
+	private String note;
 
 	@ElementCollection
 	@Column(name = "block", columnDefinition = "geometry(Polygon, 4326)")

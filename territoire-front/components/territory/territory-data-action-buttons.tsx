@@ -1,24 +1,23 @@
 "use client";
 
-import {useState} from "react";
-import {Download, Eye, Upload} from "lucide-react";
-import {Button} from "@/components/ui/button";
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
-import Link from "next/link";
+import { useState } from "react";
+import { Download, Eye, Upload } from "lucide-react";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import AssignTerritoryDialog from "@/components/territory/assign-territory-dialog";
-import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import ReturnConfirmationDialog from "@/components/territory/return-confirmation-dialog";
+import ActionButton from "@/components/territory/action-button";
 
 interface TerritoryDataActionButtonsProps {
-    id: string;
+    id?: string;
     people: { id: string; firstName: string; lastName: string }[];
 }
 
-export function TerritoryDataActionButtons({id, people}: TerritoryDataActionButtonsProps) {
+export function TerritoryDataActionButtons({ id, people }: TerritoryDataActionButtonsProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
 
     // Fonction pour gérer l'assignation d'un territoire
-    const handleAssign = (personId : string | null) => {
+    const handleAssign = (personId: string | null) => {
         console.log(`Territoire ${id} assigné à la personne ${personId}`);
         setIsDialogOpen(false);
     };
@@ -31,44 +30,29 @@ export function TerritoryDataActionButtons({id, people}: TerritoryDataActionButt
 
     return (
         <TooltipProvider>
-            <div className="flex justify-center space-x-2">
-                {/* Bouton Voir */}
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Link href={`/territoires/${id}`}>
-                            <Button className="bg-gray-500 hover:bg-gray-600 text-white">
-                                <Eye />
-                            </Button>
-                        </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>Voir les détails</TooltipContent>
-                </Tooltip>
+            <div className={`flex space-x-2 ${id ? "justify-center" : ""}`}>
+                {id && (
+                    <ActionButton
+                        icon={Eye}
+                        tooltip="Voir les détails"
+                        href={`/territoires/${id}`}
+                        className="bg-gray-500 hover:bg-gray-600 text-white"
+                    />
+                )}
 
-                {/* Bouton Importer (Retour) */}
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            className="bg-blue-500 hover:bg-blue-600 text-white"
-                            onClick={() => setIsReturnDialogOpen(true)}
-                        >
-                            <Download />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Retour du territoire dans le stock</TooltipContent>
-                </Tooltip>
+                <ActionButton
+                    icon={Download}
+                    tooltip="Retour du territoire dans le stock"
+                    onClick={() => setIsReturnDialogOpen(true)}
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                />
 
-                {/* Bouton Exporter (Assignation) */}
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                            onClick={() => setIsDialogOpen(true)}
-                        >
-                            <Upload />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Assignation du territoire</TooltipContent>
-                </Tooltip>
+                <ActionButton
+                    icon={Upload}
+                    tooltip="Assignation du territoire"
+                    onClick={() => setIsDialogOpen(true)}
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                />
 
                 {/* Fenêtre de dialogue d'assignation */}
                 <AssignTerritoryDialog
@@ -79,23 +63,11 @@ export function TerritoryDataActionButtons({id, people}: TerritoryDataActionButt
                 />
 
                 {/* Fenêtre de dialogue de confirmation de retour */}
-                <Dialog open={isReturnDialogOpen} onOpenChange={setIsReturnDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Confirmer le retour</DialogTitle>
-                        </DialogHeader>
-                        <p>Êtes-vous sûr de vouloir retourner ce territoire dans le stock ?</p>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsReturnDialogOpen(false)}>Annuler</Button>
-                            <Button
-                                className="bg-blue-500 hover:bg-blue-600 text-white"
-                                onClick={handleReturn}
-                            >
-                                Confirmer
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <ReturnConfirmationDialog
+                    isOpen={isReturnDialogOpen}
+                    onClose={() => setIsReturnDialogOpen(false)}
+                    onConfirm={handleReturn}
+                />
             </div>
         </TooltipProvider>
     );

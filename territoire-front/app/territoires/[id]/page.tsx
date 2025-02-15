@@ -16,6 +16,7 @@ const mockTerritory: Territory = {
     "status": "ASSIGNED",
     "lastModifiedDate": new Date("2025-02-15T21:17:01.565842Z"),
     "city": "Juvisy sur Orge",
+    "note": "Territoire attribué à Alice Johnson pour une durée de 5 jours.",
     "addressNotToDo": [
         {
             "id": "b4f8e5e7-9f6d-4b3d-9c5f-0d3e1c7e9b4f",
@@ -360,6 +361,7 @@ const TerritoryPage = () => {
                 city={territory.city}
                 status={territory.status}
                 lastModifiedDate={territory.lastModifiedDate}
+                note={territory.note}
             />
 
             {/* Map */}

@@ -12,6 +12,7 @@ export interface Territory {
     addressNotToDo?: Address[] | null;
     assignments?: Assignment[] | null;
     geojson: FeatureCollection<Polygon, {type: PolygonType}>;
+    note?: string | null;
 }
 
 type PolygonType = "BLOCK" | "CONCAVE_HULL";
