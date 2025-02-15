@@ -35,11 +35,11 @@ const PersonsPage = () => {
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        const fetchPersons = async () => {
+        const fetchPersons = () => {
             setTimeout(() => {
                 setPersons(PERSONS_MOCK);
                 setLoading(false);
-            }, 500);
+            });
         };
 
         fetchPersons();

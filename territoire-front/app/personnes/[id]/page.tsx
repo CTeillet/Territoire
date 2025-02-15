@@ -49,7 +49,7 @@ const PersonDetail = () => {
 
     useEffect(() => {
         // Simule un appel API
-        const fetchPerson = async () => {
+        const fetchPerson = () => {
             setTimeout(() => {
                 const foundPerson = MOCK_PERSONS.find((p) => p.id === id);
                 if (foundPerson) {
@@ -62,7 +62,7 @@ const PersonDetail = () => {
                     });
                 }
                 setLoading(false);
-            }, 500);
+            });
         };
 
         fetchPerson();

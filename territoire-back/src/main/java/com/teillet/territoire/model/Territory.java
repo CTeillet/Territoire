@@ -40,4 +40,7 @@ public class Territory {
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
 	List<Address> addressNotToDo;
+
+	@OneToMany(mappedBy = "territory", orphanRemoval = true)
+	private List<Assignment> assignments = new ArrayList<>();
 }

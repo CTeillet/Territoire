@@ -1,6 +1,7 @@
 import {TerritoryStatus} from "@/models/territory-status";
 import {Address} from "@/models/address";
 import {Feature, FeatureCollection, Polygon} from "geojson";
+import {Assignment} from "@/models/assignment";
 
 export interface Territory {
     id: string;
@@ -9,7 +10,11 @@ export interface Territory {
     lastModifiedDate: Date | null;
     city: string;
     addressNotToDo?: Address[] | null;
+    assignments?: Assignment[] | null;
+    geojson: FeatureCollection<Polygon, {type: PolygonType}>;
 }
+
+type PolygonType = "BLOCK" | "CONCAVE_HULL";
 
 export type TerritoryFeature = Feature<Polygon, Territory>;
 

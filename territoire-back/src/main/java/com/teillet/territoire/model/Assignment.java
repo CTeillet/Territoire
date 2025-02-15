@@ -18,15 +18,15 @@ public class Assignment {
 	private UUID id;
 
 	@ManyToOne
-	@JoinColumn(name = "territory_id")
-	private Territory territory;
-
-	@ManyToOne
 	@JoinColumn(name = "person_id")
 	private Person person;
 
 	private LocalDate assignmentDate;
 	private LocalDate dueDate;
-	@Column(nullable = true)
 	private LocalDate returnDate;
+
+	@ManyToOne
+	@JoinColumn(name = "territory_id")
+	private Territory territory;
+
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import {useState} from "react";
 import {Download, Eye, Upload} from "lucide-react";
 import {Button} from "@/components/ui/button";
@@ -16,7 +18,7 @@ export function TerritoryDataActionButtons({id, people}: TerritoryDataActionButt
     const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
 
     // Fonction pour gérer l'assignation d'un territoire
-    const handleAssign = (personId) => {
+    const handleAssign = (personId : string | null) => {
         console.log(`Territoire ${id} assigné à la personne ${personId}`);
         setIsDialogOpen(false);
     };

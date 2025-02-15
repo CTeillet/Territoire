@@ -1,3 +1,5 @@
+"use client";
+
 import {ColumnDef} from "@tanstack/react-table"
 import {Territory} from "@/models/territory";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";

@@ -5,6 +5,7 @@ import {Badge} from "@/components/ui/badge";
 import {Assignment} from "@/models/assignment";
 import {personToString} from "@/models/person";
 import {Eye} from "lucide-react";
+import Link from "next/link";
 
 const getBadgeColor = (status: boolean) => {
     if (status) {
@@ -16,7 +17,7 @@ const getBadgeColor = (status: boolean) => {
 
 const AssignmentRow: React.FC<Assignment> = (assignment: Assignment) => (
     <TableRow>
-        <TableCell className="text-center">{assignment.territory.name}</TableCell>
+        <TableCell className="text-center">{assignment.territory?.name}</TableCell>
         <TableCell className="flex justify-center">
             <Badge className={`${getBadgeColor(assignment.returnDate === null)} text-white px-2 py-1 rounded w-full `}>
                 {assignment.returnDate === null ? "ATTRIBUÉ" : "RENDUE"}
@@ -29,7 +30,9 @@ const AssignmentRow: React.FC<Assignment> = (assignment: Assignment) => (
             className="text-center">{(assignment.returnDate !== null) ? Intl.DateTimeFormat().format(assignment.returnDate) : "N/A"}</TableCell>
         <TableCell className="text-center">{personToString(assignment.person)}</TableCell>
         <TableCell className="text-center">
-            <Button><Eye/></Button>
+            <Link href={`/territoires/${assignment.territory?.id}`}>
+                <Button><Eye/></Button>
+            </Link>
         </TableCell>
     </TableRow>
 );

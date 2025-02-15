@@ -1,7 +1,13 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import {Ban, Edit, Save, Undo2} from "lucide-react";
-import {PersonActionsProps} from "@/models/person-action-props";
+
+interface PersonActionsProps {
+    editing: boolean;
+    onEdit: () => void;
+    onSave: () => void;
+    onCancel: () => void;
+}
 
 const PersonActions = ({ editing, onEdit, onSave, onCancel }: PersonActionsProps) => {
     return (

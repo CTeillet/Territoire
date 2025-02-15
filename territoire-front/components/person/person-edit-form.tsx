@@ -1,5 +1,15 @@
 import {Card, CardContent} from "@/components/ui/card";
-import {PersonEditFormProps} from "@/models/person-edit-form-props";
+import React from "react";
+
+interface PersonEditFormProps {
+    formData: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        phoneNumber: string;
+    };
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
 
 const PersonEditForm = ({ formData, onChange }: PersonEditFormProps) => {
     return (
