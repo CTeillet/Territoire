@@ -5,9 +5,9 @@ import React, {useMemo} from "react";
 import {TerritoryCollection, TerritoryFeature} from "@/models/territory";
 import {TerritoryCollectionProps} from "@/models/territory-props";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
-import {renderToString} from "react-dom/server";
 import {getBadgeColor, PERSONS_MOCK} from "@/components/territory/territory-data-columns";
 import {TerritoryDataActionButtons} from "@/components/territory/territory-data-action-buttons";
+import {createRoot} from "react-dom/client";
 
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), {ssr: false});
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), {ssr: false});
@@ -61,21 +61,43 @@ const calculateCenter = (geoJsonData: TerritoryCollection): [number, number] => 
 
 const onEachFeature = (feature:  TerritoryFeature, layer: any) => {
     if (feature.properties) {
-        const {id, name, status} = feature.properties;
-        const html = renderToString(
-            <>
-                <div className={"text-center"}>
-                    <h2 className={"text-lg font-bold"}>{name}</h2>
-                </div>
-                <div className={"flex justify-center mt-2 mb-5"}>
-                    <span className={`${getBadgeColor(status)} text-white px-2 py-1 rounded w-full text-center`}>
-                        {STATUS_TRANSLATIONS[status] || status}
-                    </span>
-                </div>
-                <TerritoryDataActionButtons id={id} people={PERSONS_MOCK}/>
-            </>
-        );
-        layer.bindPopup(`${html}`);
+        const { id, name, status } = feature.properties;
+
+        // Créer un conteneur pour la popup
+        const container = document.createElement("div");
+
+        // Ajouter du contenu statique (nom + statut)
+        container.innerHTML = `
+            <div class="text-center">
+                <h2 class="text-lg font-bold">${name}</h2>
+            </div>
+            <div class="flex justify-center mt-2 mb-5">
+                <span class="${getBadgeColor(status)} text-white px-2 py-1 rounded w-full text-center">
+                    ${STATUS_TRANSLATIONS[status] || status}
+                </span>
+            </div>
+            <div id="react-popup-${id}"></div>  <!-- Un div spécifique pour React -->
+        `;
+
+        // Lier la popup au layer
+        layer.bindPopup(container);
+
+        // Attendre que la popup s'affiche avant d'insérer React
+        layer.on("popupopen", (e: any) => {
+            const popup = e.popup; // Récupérer l'instance de la popup Leaflet
+            const reactContainer = document.getElementById(`react-popup-${id}`);
+
+            if (reactContainer) {
+                createRoot(reactContainer).render(
+                    <TerritoryDataActionButtons id={id} people={PERSONS_MOCK} />
+                );
+
+                // Attendre la fin du rendu React pour mettre à jour la taille de la popup
+                setTimeout(() => {
+                    popup.update(); // Recalcule la taille de la popup après le rendu de React
+                }, 100);
+            }
+        });
     }
 };
 
@@ -105,10 +127,4 @@ export const getBadgeColorTerritory = (status: TerritoryStatus) => {
     }
 };
 
-
 export default TerritoryMap;
-
-//esri
-// var Esri_WorldStreetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-//     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
-// });
