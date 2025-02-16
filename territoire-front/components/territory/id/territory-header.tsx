@@ -1,11 +1,11 @@
 import { Badge } from "@/components/ui/badge";
-
-import { CalendarIcon, MapPinIcon, CheckCircleIcon } from "lucide-react";
-import {getBadgeColor, PERSONS_MOCK} from "@/components/territory/territory-data-columns";
-import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
-import {TerritoryDataActionButtons} from "@/components/territory/territory-data-action-buttons";
-import {useEffect, useState} from "react";
-import {Person} from "@/models/person"; // Icônes
+import { CalendarIcon, CheckCircleIcon, CheckIcon, EditIcon, MapPinIcon, XIcon } from "lucide-react";
+import { getBadgeColor, PERSONS_MOCK } from "@/components/territory/territory-data-columns";
+import { STATUS_TRANSLATIONS, TerritoryStatus } from "@/models/territory-status";
+import { TerritoryDataActionButtons } from "@/components/territory/territory-data-action-buttons";
+import { useEffect, useState } from "react";
+import { Person } from "@/models/person";
+import { Input } from "@/components/ui/input";
 
 interface TerritoryHeaderProps {
     name: string;
@@ -18,6 +18,18 @@ interface TerritoryHeaderProps {
 const TerritoryHeader = ({ name, city, status, lastModifiedDate, note }: TerritoryHeaderProps) => {
     const [persons, setPersons] = useState<Person[]>([]);
 
+    // États principaux (valeurs validées)
+    const [editableName, setEditableName] = useState<string>(name);
+    const [editableCity, setEditableCity] = useState<string>(city);
+    const [editableNote, setEditableNote] = useState<string>(note ?? "");
+
+    // États temporaires pour l'édition
+    const [tempName, setTempName] = useState<string>(name);
+    const [tempCity, setTempCity] = useState<string>(city);
+    const [tempNote, setTempNote] = useState<string>(note ?? "");
+
+    const [isEditing, setIsEditing] = useState<boolean>(false);
+
     useEffect(() => {
         const fetchPersons = () => {
             setTimeout(() => {
@@ -28,16 +40,84 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note }: Territo
         fetchPersons();
     }, []);
 
+    // Sauvegarde des modifications
+    const handleSave = () => {
+        setEditableName(tempName);
+        setEditableCity(tempCity);
+        setEditableNote(tempNote);
+        setIsEditing(false);
+        console.log("Données mises à jour :", { tempName, tempCity, tempNote });
+    };
+
+    // Annulation des modifications (on remet les valeurs validées)
+    const handleCancel = () => {
+        setTempName(editableName);
+        setTempCity(editableCity);
+        setTempNote(editableNote);
+        setIsEditing(false);
+    };
+
     return (
         <div className="mb-4 p-6 max-w-4xl mx-auto bg-gray-100 rounded-lg shadow-lg">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center mb-5">
-                <CheckCircleIcon className="mr-2 text-blue-500" /> {name}
-            </h1>
+            {/* Ligne contenant le nom et le bouton d'édition */}
+            <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center">
+                    <CheckCircleIcon className="mr-2 text-blue-500" />
+                    {isEditing ? (
+                        <Input
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            className="w-full"
+                        />
+                    ) : (
+                        <h1 className="text-3xl font-bold text-gray-900">{editableName}</h1>
+                    )}
+                </div>
 
-            <p className="text-gray-700 flex items-center mb-2">
-                <MapPinIcon className="mr-2 text-red-500" /> <span className="font-semibold mr-2">Ville : </span> {city}
-            </p>
+                {/* Boutons d'édition et de validation */}
+                <div className="flex items-center space-x-2">
+                    {isEditing ? (
+                        <>
+                            <button
+                                className="bg-green-500 p-2 rounded-full hover:bg-green-600 transition"
+                                onClick={handleSave}
+                            >
+                                <CheckIcon className="w-5 h-5 text-white" />
+                            </button>
+                            <button
+                                className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition"
+                                onClick={handleCancel}
+                            >
+                                <XIcon className="w-5 h-5 text-white" />
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            className="bg-gray-300 p-2 rounded-full hover:bg-gray-400 transition"
+                            onClick={() => setIsEditing(true)}
+                        >
+                            <EditIcon className="w-5 h-5 text-gray-800" />
+                        </button>
+                    )}
+                </div>
+            </div>
 
+            {/* Ville modifiable */}
+            <div className="text-gray-700 flex items-center mb-2">
+                <MapPinIcon className="mr-2 text-red-500" />
+                <span className="font-semibold mr-2">Ville :</span>
+                {isEditing ? (
+                    <Input
+                        value={tempCity}
+                        onChange={(e) => setTempCity(e.target.value)}
+                        className="w-full"
+                    />
+                ) : (
+                    <span>{editableCity}</span>
+                )}
+            </div>
+
+            {/* Statut */}
             <p className="text-gray-700 flex items-center mb-2">
                 <span className="font-semibold">🗂 Statut :</span>
                 <Badge className={`${getBadgeColor(status)} text-white px-2 py-1 rounded ml-2`}>
@@ -45,6 +125,7 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note }: Territo
                 </Badge>
             </p>
 
+            {/* Dernière modification */}
             {lastModifiedDate && (
                 <p className="text-gray-500 flex items-center mb-1">
                     <CalendarIcon className="mr-2 text-gray-500" /> ⏳ Dernière modification :{" "}
@@ -52,17 +133,30 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note }: Territo
                 </p>
             )}
 
-            <div className={"mt-6"}>
-                {note && note.trim() !== "" && (
-                    <div className="mt-4 p-3 border-l-4 border-blue-500 bg-blue-50 rounded">
-                        <h3 className="text-lg font-semibold">Note :</h3>
-                        <p className="text-gray-800">{note}</p>
-                    </div>
-                )}
+            {/* Note modifiable */}
+            <div className="mt-6">
+                <div className="mt-4 p-3 border-l-4 border-blue-500 bg-blue-50 rounded">
+                    <h3 className="text-lg font-semibold">Note :</h3>
+
+                    {isEditing ? (
+                        <div className="flex items-center space-x-2">
+                            <Input
+                                value={tempNote}
+                                onChange={(e) => setTempNote(e.target.value)}
+                                className="w-full"
+                            />
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <p className="text-gray-700">{editableNote || "Aucune note"}</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className={"mt-6"}>
-                <TerritoryDataActionButtons people={persons}/>
+            {/* Actions */}
+            <div className="mt-6">
+                <TerritoryDataActionButtons people={persons} />
             </div>
         </div>
     );

@@ -7,6 +7,9 @@ import AssignmentsList from "@/components/territory/id/assignments-list";
 import AddressNotToDoList from "@/components/territory/id/address-not-to-do-list";
 import TerritoryHeader from "@/components/territory/id/territory-header";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import {Button} from "@/components/ui/button";
+import {ChevronLeft} from "lucide-react";
 
 const TerritoryIdMap = dynamic(() => import("@/components/territory/id/territory-id-map"));
 
@@ -355,6 +358,13 @@ const TerritoryPage = () => {
 
     return (
         <div className="p-6">
+            {/* Bouton pour revenir à la liste des territoires */}
+            <Link href="/territoires">
+                <Button variant="outline" className="flex items-center gap-2 mb-5">
+                    <ChevronLeft className="w-5 h-5" />
+                    Retour
+                </Button>
+            </Link>
 
             <TerritoryHeader
                 name={territory.name}
