@@ -59,7 +59,8 @@ const mockTerritory: Territory = {
             {
                 "type": "Feature",
                 "properties": {
-                    "type": "BLOCK"
+                    "type": "BLOCK",
+                    "id": "1"
                 },
                 "geometry": {
                     "type": "Polygon",
@@ -100,7 +101,8 @@ const mockTerritory: Territory = {
             {
                 "type": "Feature",
                 "properties": {
-                    "type": "BLOCK"
+                    "type": "BLOCK",
+                    "id": "2"
                 },
                 "geometry": {
                     "type": "Polygon",
@@ -129,7 +131,8 @@ const mockTerritory: Territory = {
             {
                 "type": "Feature",
                 "properties": {
-                    "type": "BLOCK"
+                    "type": "BLOCK",
+                    "id": "3"
                 },
                 "geometry": {
                     "type": "Polygon",
@@ -162,7 +165,8 @@ const mockTerritory: Territory = {
             {
                 "type": "Feature",
                 "properties": {
-                    "type": "BLOCK"
+                    "type": "BLOCK",
+                    "id": "4"
                 },
                 "geometry": {
                     "type": "Polygon",
@@ -199,7 +203,8 @@ const mockTerritory: Territory = {
             {
                 "type": "Feature",
                 "properties": {
-                    "type": "BLOCK"
+                    "type": "BLOCK",
+                    "id": "5"
                 },
                 "geometry": {
                     "type": "Polygon",
@@ -236,7 +241,8 @@ const mockTerritory: Territory = {
             {
                 "type": "Feature",
                 "properties": {
-                    "type": "BLOCK"
+                    "type": "BLOCK",
+                    "id": "6"
                 },
                 "geometry": {
                     "type": "Polygon",
@@ -269,7 +275,8 @@ const mockTerritory: Territory = {
             {
                 "type": "Feature",
                 "properties": {
-                    "type": "BLOCK"
+                    "type": "BLOCK",
+                    "id": "7"
                 },
                 "geometry": {
                     "type": "Polygon",

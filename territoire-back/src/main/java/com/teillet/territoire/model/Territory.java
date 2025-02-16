@@ -31,10 +31,8 @@ public class Territory {
 	private String city;
 	private String note;
 
-	@ElementCollection
-	@Column(name = "block", columnDefinition = "geometry(Polygon, 4326)")
-	@CollectionTable(name = "territory_polygon", joinColumns = @JoinColumn(name = "owner_id"))
-	private List<Polygon> blocks = new ArrayList<>();
+	@OneToMany(mappedBy = "territory", orphanRemoval = true)
+	private List<Block> blocks = new ArrayList<>();
 
 	@Column(name = "concave_hull", columnDefinition = "geometry(Polygon, 4326)")
 	private Polygon concaveHull;

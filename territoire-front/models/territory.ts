@@ -3,6 +3,11 @@ import {Address} from "@/models/address";
 import {Feature, FeatureCollection, Polygon} from "geojson";
 import {Assignment} from "@/models/assignment";
 
+export interface PolygonProperties {
+    type: PolygonType;
+    id?: string | null;
+}
+
 export interface Territory {
     id: string;
     name: string;
@@ -11,7 +16,7 @@ export interface Territory {
     city: string;
     addressNotToDo?: Address[] | null;
     assignments?: Assignment[] | null;
-    geojson: FeatureCollection<Polygon, {type: PolygonType}>;
+    geojson: FeatureCollection<Polygon, PolygonProperties>;
     note?: string | null;
 }
 
