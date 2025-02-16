@@ -53,7 +53,7 @@ const TerritoryMap = ({ territory }: { territory: Territory }) => {
 
             <LayersControl position="topright">
                 {/* Layer des Blocks */}
-                <LayersControl.Overlay name="Patés" checked>
+                <LayersControl.Overlay name="Pâtés" checked>
                     <LayerGroup>
                         <GeoJSON data={blockFeatures} style={{ color: "blue" }} />
                     </LayerGroup>
