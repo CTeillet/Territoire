@@ -104,17 +104,19 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note }: Territo
 
             {/* Ville modifiable */}
             <div className="text-gray-700 flex items-center mb-2">
-                <MapPinIcon className="mr-2 text-red-500" />
-                <span className="font-semibold mr-2">Ville :</span>
-                {isEditing ? (
-                    <Input
-                        value={tempCity}
-                        onChange={(e) => setTempCity(e.target.value)}
-                        className="w-full"
-                    />
-                ) : (
-                    <span>{editableCity}</span>
-                )}
+                <MapPinIcon className="mr-2 text-red-500 flex-shrink-0" />
+                <span className="font-semibold mr-2 flex-shrink-0">Ville :</span>
+                <div className="flex-grow min-w-0">
+                    {isEditing ? (
+                        <Input
+                            value={tempCity}
+                            onChange={(e) => setTempCity(e.target.value)}
+                            className="w-full"
+                        />
+                    ) : (
+                        <span className="truncate">{editableCity}</span>
+                    )}
+                </div>
             </div>
 
             {/* Statut */}
