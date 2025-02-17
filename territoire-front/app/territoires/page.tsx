@@ -18,7 +18,11 @@ const mockGeoJsonData: TerritoryCollection = {
                 status: "AVAILABLE",
                 lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
                 city: "Juvisy sur Orge",
-                addressNotToDo: []
+                addressNotToDo: [],
+                geojson: {
+                    type: "FeatureCollection",
+                    features: []
+                }
             },
             geometry: {
                 type: "Polygon",
@@ -35,7 +39,11 @@ const mockGeoJsonData: TerritoryCollection = {
                 status: "ASSIGNED",
                 lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
                 city: "Juvisy sur Orge",
-                addressNotToDo: []
+                addressNotToDo: [],
+                geojson: {
+                    type: "FeatureCollection",
+                    features: []
+                }
             },
             geometry: {
                 type: "Polygon",
@@ -51,7 +59,11 @@ const mockGeoJsonData: TerritoryCollection = {
                 status: "AVAILABLE",
                 lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
                 city: "Juvisy sur Orge",
-                addressNotToDo: []
+                addressNotToDo: [],
+                geojson: {
+                    type: "FeatureCollection",
+                    features: []
+                }
             },
             geometry: {
                 type: "Polygon",
@@ -67,7 +79,11 @@ const mockGeoJsonData: TerritoryCollection = {
                 status: "ASSIGNED",
                 lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
                 city: "Juvisy sur Orge",
-                addressNotToDo: []
+                addressNotToDo: [],
+                geojson: {
+                    type: "FeatureCollection",
+                    features: []
+                }
             },
             geometry: {
                 type: "Polygon",
@@ -83,7 +99,11 @@ const mockGeoJsonData: TerritoryCollection = {
                 status: "AVAILABLE",
                 lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
                 city: "Juvisy sur Orge",
-                addressNotToDo: []
+                addressNotToDo: [],
+                geojson: {
+                    type: "FeatureCollection",
+                    features: []
+                }
             },
             geometry: {
                 type: "Polygon",

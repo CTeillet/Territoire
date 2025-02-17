@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { TileLayer, GeoJSON, LayersControl, LayerGroup, MapContainer } from "react-leaflet";
+import {useEffect, useMemo, useRef, useState} from "react";
+import {GeoJSON, LayerGroup, LayersControl, MapContainer, TileLayer} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { LatLngBoundsExpression, Map } from "leaflet";
-import { Territory } from "@/models/territory";
-import { FeatureCollection, Polygon, Feature } from "geojson";
+import {LatLng, LatLngBoundsExpression, Layer, LeafletEvent, Map} from "leaflet";
+import {Territory} from "@/models/territory";
+import {Feature, FeatureCollection, GeoJsonProperties, Polygon} from "geojson";
+import {GeomanControl} from "@/components/territory/id/geoman-controls";
 
-const TerritoryMap = ({ territory }: { territory: Territory }) => {
+interface GeomanCreateEvent extends LeafletEvent {
+    layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
+}
+
+const TerritoryMap = ({territory}: { territory: Territory }) => {
     const mapRef = useRef<Map | null>(null);
     const [blockFeatures, setBlockFeatures] = useState<FeatureCollection>({
         type: "FeatureCollection",
-        features: territory.geojson.features.filter((feature) => feature.properties.type === "BLOCK"),
+        features: territory.geojson?.features.filter((feature) => feature.properties.type === "BLOCK"),
     });
-    const [geoJsonKey, setGeoJsonKey] = useState(0); // Force le re-render en changeant la clé
+    const [geoJsonKey, setGeoJsonKey] = useState(0);
 
     const concaveHullFeature: FeatureCollection<Polygon> = {
         type: "FeatureCollection",
@@ -40,6 +45,12 @@ const TerritoryMap = ({ territory }: { territory: Territory }) => {
         }
     }, [territory.geojson, bounds, concaveHullCoords.length]);
 
+    const handleMapCreated = (map: Map) => {
+        mapRef.current = map;
+        console.log("Map initialized", map);
+        map.on("pm:create", handleCreate);
+    };
+
     const handleDeleteBlock = (blockId: string) => {
         setBlockFeatures((prev) => ({
             ...prev,
@@ -48,7 +59,35 @@ const TerritoryMap = ({ territory }: { territory: Territory }) => {
         setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
     };
 
-    const onEachBlock = (feature: Feature, layer: L.Layer) => {
+    const handleCreate = (e: GeomanCreateEvent) => {
+        const {layer} = e;
+
+        console.log("Yo", e);
+        if (!layer.getLatLngs) return;
+
+        const newPolygon: Feature<Polygon, GeoJsonProperties> = {
+            type: "Feature",
+            properties: {
+                id: new Date().getTime().toString(),
+            },
+            geometry: {
+                type: "Polygon",
+                coordinates: [layer.getLatLngs()[0].map((latlng: LatLng) => [latlng.lng, latlng.lat])],
+            },
+        };
+
+        setBlockFeatures((prev) => ({
+            ...prev,
+            features: [...prev.features, newPolygon],
+        }));
+
+        setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
+
+        // Supprimer immédiatement le polygone du layer d'édition
+        layer.remove();
+    };
+
+    const onEachBlock = (feature: Feature, layer: Layer) => {
         if (!feature.properties) return;
 
         layer.bindPopup(
@@ -72,7 +111,12 @@ const TerritoryMap = ({ territory }: { territory: Territory }) => {
     };
 
     return (
-        <MapContainer ref={mapRef} bounds={bounds} style={{ height: "500px", width: "100%", zIndex: 0 }} className="mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+        <MapContainer
+            // @ts-expect-error ce code marche parfaitement alors que le type est incorrect
+            whenReady={(event: LeafletEvent) => handleMapCreated(event.target as Map)}
+            ref={mapRef} bounds={bounds} style={{height: "500px", width: "100%", zIndex: 0}}
+            className="mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm"
+        >
             <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
                 attribution="&copy; OpenStreetMap contributors"
@@ -81,16 +125,18 @@ const TerritoryMap = ({ territory }: { territory: Territory }) => {
             <LayersControl position="topright">
                 <LayersControl.Overlay name="Pâtés" checked>
                     <LayerGroup key={geoJsonKey}>
-                        <GeoJSON data={blockFeatures} style={{ color: "blue" }} onEachFeature={onEachBlock} />
+                        <GeoJSON data={blockFeatures} style={{color: "blue"}} onEachFeature={onEachBlock}/>
                     </LayerGroup>
                 </LayersControl.Overlay>
 
                 <LayersControl.Overlay name="Territoire" checked>
                     <LayerGroup>
-                        <GeoJSON data={concaveHullFeature} style={{ color: "red", weight: 2, fillOpacity: 0.1 }} />
+                        <GeoJSON data={concaveHullFeature} style={{color: "red", weight: 2, fillOpacity: 0.1}}/>
                     </LayerGroup>
                 </LayersControl.Overlay>
             </LayersControl>
+
+            <GeomanControl position="topleft" oneBlock/>
         </MapContainer>
     );
 };

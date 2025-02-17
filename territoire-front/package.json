@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "^2.18.3",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-menubar": "^1.1.6",
@@ -24,7 +25,7 @@
     "next": "15.2.0-canary.47",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-leaflet": "5.0.0-rc.2",
+    "react-leaflet": "^5.0.0-rc.2",
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7"

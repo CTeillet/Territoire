@@ -11,8 +11,9 @@ import Link from "next/link";
 import {Button} from "@/components/ui/button";
 import {ChevronLeft} from "lucide-react";
 
-const TerritoryIdMap = dynamic(() => import("@/components/territory/id/territory-id-map"));
-
+const TerritoryIdMap = dynamic(() => import("@/components/territory/id/territory-id-map"), {
+    ssr: false,
+});
 const mockTerritory: Territory = {
     "id": "1161b57b-ffe0-43e0-afc5-1ff42bb381c3",
     "name": "JP1",
