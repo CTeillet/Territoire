@@ -5,11 +5,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {Person} from "@/models/person";
 
 interface AssignTerritoryDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    people: { id: string; firstName: string; lastName: string }[];
+    people: Person[];
     onAssign: (personId: string | null, newPerson?: { firstName: string; lastName: string }) => void;
 }
 
@@ -51,7 +52,7 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({ isOpen, o
                     <SelectContent>
                         <SelectItem value="none">Aucune personne</SelectItem> {/* Option pour ne rien sélectionner */}
                         {people.map((person) => (
-                            <SelectItem key={person.id} value={person.id}>
+                            <SelectItem key={person.id} value={person.id==null?"":person.id}>
                                 {person.firstName} {person.lastName}
                             </SelectItem>
                         ))}

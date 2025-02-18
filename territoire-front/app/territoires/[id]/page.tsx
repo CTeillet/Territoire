@@ -40,7 +40,8 @@ const mockTerritory: Territory = {
             },
             "assignmentDate": new Date("2024-01-01"),
             "dueDate": new Date("2024-01-05"),
-            "returnDate": null
+            "returnDate": null,
+            territory: {id: "1", status: "AVAILABLE", lastModifiedDate: null, name: "01", city: "", geojson: {type: "FeatureCollection", features: []}}
         },
         {
             "id": "d4a0ca26-52e7-4905-b6fd-tydtydtyudyutyu",
@@ -51,7 +52,8 @@ const mockTerritory: Territory = {
             },
             "assignmentDate": new Date("2024-01-01"),
             "dueDate": new Date("2024-01-05"),
-            "returnDate": new Date("2024-01-05")
+            "returnDate": new Date("2024-01-05"),
+            territory: {id: "2", status: "ASSIGNED", lastModifiedDate: new Date("2023-10-01"), name: "02", city: "", geojson: {type: "FeatureCollection", features: []}}
         }
     ],
     "geojson": {
@@ -380,6 +382,7 @@ const TerritoryPage = () => {
                 status={territory.status}
                 lastModifiedDate={territory.lastModifiedDate}
                 note={territory.note}
+                territoryId={territory.id}
             />
 
             {/* Map */}

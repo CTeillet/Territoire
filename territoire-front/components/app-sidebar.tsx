@@ -12,6 +12,7 @@ import {
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import {usePathname} from "next/navigation";
+import Image from "next/image";
 
 // Menu items.
 const items = [
@@ -43,8 +44,16 @@ export function AppSidebar() {
     return (
         <Sidebar>
             <SidebarContent className={"bg-gray-300"}>
-                <SidebarGroup className={"mt-5 ml-5"}>
-                    <SidebarGroupLabel className={"text-2xl text-primary"}>Gestion Territoire</SidebarGroupLabel>
+                <SidebarGroup className={"mt-5"}>
+                    <SidebarGroupLabel className="flex justify-center"> {/* Centrage */}
+                        <Image
+                            src="/images/logo-complet.svg"
+                            alt="Logo de l'application"
+                            width={100}
+                            height={100}
+                            className="w-24 h-auto block mx-auto" // Centrage parfait
+                        />
+                    </SidebarGroupLabel>
                     <SidebarGroupContent className={"mt-10"}>
                         <SidebarMenu>
                             {items.map((item) => {

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Person } from "@/models/person";
 import PersonList from "@/components/person/person-list";
+import PlusButton from "@/components/shared/plus-button";
+import CreatePersonDialog from "@/components/person/create-person-dialog";
 
 const PERSONS_MOCK = [
     {
@@ -33,6 +35,7 @@ const PERSONS_MOCK = [
 const PersonsPage = () => {
     const [persons, setPersons] = useState<Person[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
 
     useEffect(() => {
         const fetchPersons = () => {
@@ -45,6 +48,16 @@ const PersonsPage = () => {
         fetchPersons();
     }, []);
 
+    const handleAddPerson: React.MouseEventHandler<HTMLButtonElement> = () => {
+        setCreateDialogOpen(true);
+    };
+
+    const handleCreatePerson = (person: Person) => {
+        console.log("Nouvelle personne ajoutée :", person);
+        // Ici, tu peux envoyer les données à ton backend
+        //TODO : envoyer les données à ton backend
+    };
+
     return (
         <div className="p-6 space-y-6">
             <h1 className="text-3xl font-bold">Liste des Personnes</h1>
@@ -53,6 +66,14 @@ const PersonsPage = () => {
             ) : (
                 <PersonList persons={persons} />
             )}
+            <div className="flex justify-end mt-4">
+                <PlusButton onClick={handleAddPerson} />
+            </div>
+            <CreatePersonDialog
+                isOpen={isCreateDialogOpen}
+                onOpenChange={setCreateDialogOpen}
+                onCreate={handleCreatePerson}
+            />
         </div>
     );
 };

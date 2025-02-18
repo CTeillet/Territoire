@@ -3,7 +3,7 @@ import {Person} from "@/models/person";
 
 export interface Assignment {
     id: string;
-    territory?: Territory;
+    territory: Territory;
     person: Person;
     assignmentDate: Date;
     dueDate: Date;

@@ -2,12 +2,13 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, CheckCircleIcon, CheckIcon, EditIcon, MapPinIcon, XIcon } from "lucide-react";
 import { getBadgeColor, PERSONS_MOCK } from "@/components/territory/territory-data-columns";
 import { STATUS_TRANSLATIONS, TerritoryStatus } from "@/models/territory-status";
-import { TerritoryDataActionButtons } from "@/components/territory/territory-data-action-buttons";
+import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import { useEffect, useState } from "react";
 import { Person } from "@/models/person";
 import { Input } from "@/components/ui/input";
 
 interface TerritoryHeaderProps {
+    territoryId: string;
     name: string;
     city: string;
     status: TerritoryStatus;
@@ -15,7 +16,7 @@ interface TerritoryHeaderProps {
     note?: string | null;
 }
 
-const TerritoryHeader = ({ name, city, status, lastModifiedDate, note }: TerritoryHeaderProps) => {
+const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territoryId }: TerritoryHeaderProps) => {
     const [persons, setPersons] = useState<Person[]>([]);
 
     // États principaux (valeurs validées)
@@ -46,6 +47,7 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note }: Territo
         setEditableCity(tempCity);
         setEditableNote(tempNote);
         setIsEditing(false);
+        //TODO : appeler l'API pour mettre à jour les données
         console.log("Données mises à jour :", { tempName, tempCity, tempNote });
     };
 
@@ -158,7 +160,7 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note }: Territo
 
             {/* Actions */}
             <div className="mt-6">
-                <TerritoryDataActionButtons people={persons} />
+                <TerritoryDataActionButtons people={persons} id={territoryId} showDetails={false} status={status}/>
             </div>
         </div>
     );

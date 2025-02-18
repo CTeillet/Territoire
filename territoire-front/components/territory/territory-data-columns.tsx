@@ -8,7 +8,7 @@ import React from "react";
 import {DataTableColumnHeader} from "@/components/territory/territory-data-header";
 import {
     TerritoryDataActionButtons
-} from "@/components/territory/territory-data-action-buttons";
+} from "@/components/shared/territory-data-action-buttons";
 
 export const PERSONS_MOCK = [
     {
@@ -77,14 +77,13 @@ export const territoryDataColumns: ColumnDef<Territory>[] = [
         filterFn: (row, columnId, filterValue) => {
             return filterValue === "" || row.getValue(columnId) === filterValue;
         },
-
     },
     {
         id: "actions",
         accessorKey: "actions",
         header: "Actions",
         cell: ({row}) => {
-            return <TerritoryDataActionButtons id={row.getValue("id")} people={PERSONS_MOCK} />
+            return <TerritoryDataActionButtons id={row.getValue("id")} people={PERSONS_MOCK} status={row.original.status}/>
         },
 
     },

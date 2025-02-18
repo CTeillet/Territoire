@@ -30,5 +30,4 @@ const PersonCard: React.FC<PersonCardProps> = ({ person }) => {
     );
 };
 
-
 export default PersonCard;

@@ -5,7 +5,7 @@ import React, {useMemo} from "react";
 import {TerritoryCollection, TerritoryFeature} from "@/models/territory";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
 import {getBadgeColor, PERSONS_MOCK} from "@/components/territory/territory-data-columns";
-import {TerritoryDataActionButtons} from "@/components/territory/territory-data-action-buttons";
+import {TerritoryDataActionButtons} from "@/components/shared/territory-data-action-buttons";
 import {createRoot} from "react-dom/client";
 import {Layer, PathOptions, PopupEvent} from "leaflet";
 import {Feature, Geometry} from "geojson";
@@ -94,7 +94,7 @@ const onEachFeature = (feature:  TerritoryFeature, layer: Layer) => {
 
             if (reactContainer) {
                 createRoot(reactContainer).render(
-                    <TerritoryDataActionButtons id={id} people={PERSONS_MOCK} />
+                    <TerritoryDataActionButtons id={id} people={PERSONS_MOCK} status={status}/>
                 );
 
                 // Attendre la fin du rendu React pour mettre à jour la taille du popup

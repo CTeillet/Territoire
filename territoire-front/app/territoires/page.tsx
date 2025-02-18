@@ -6,6 +6,11 @@ import {convertToTerritories, TerritoryCollection} from "@/models/territory";
 import TerritoryMap from "@/components/territory/territory-map";
 import {DataTable} from "@/components/territory/territory-data-table";
 import {territoryDataColumns} from "@/components/territory/territory-data-columns";
+import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
+import {useRouter} from "next/navigation";
+import {Plus} from "lucide-react";
 
 const mockGeoJsonData: TerritoryCollection = {
     type: "FeatureCollection",
@@ -117,6 +122,10 @@ const mockGeoJsonData: TerritoryCollection = {
 const TerritoryPage = () => {
     const [geoJsonData, setGeoJsonData] = useState<TerritoryCollection | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [territoryName, setTerritoryName] = useState("");
+
+    const router = useRouter(); // Initialisation du router
 
     useEffect(() => {
         const fetchMockData = () => {
@@ -129,6 +138,22 @@ const TerritoryPage = () => {
         fetchMockData();
     }, []);
 
+    const handleAddTerritory = () => {
+        setIsDialogOpen(true);
+    };
+
+    const handleCreateTerritory = () => {
+        if (!territoryName.trim()) return; // Empêcher la création si le champ est vide
+
+        console.log("Nouveau territoire créé :", territoryName);
+        setIsDialogOpen(false);
+        setTerritoryName(""); // Réinitialisation du champ après validation
+        //TODO : appel API pour créer un territoire
+        const id = Math.random().toString(36).substr(2, 9); // Génère un ID aléatoire
+        router.push(`/territoires/${id}`);
+    };
+
+
     return (
         <div className="flex flex-col gap-4 p-4">
             <h1 className="text-xl font-bold">Territoires</h1>
@@ -138,8 +163,41 @@ const TerritoryPage = () => {
                 <>
                     {geoJsonData && <TerritoryMap geoJsonData={geoJsonData} />}
                     {geoJsonData && <DataTable columns={territoryDataColumns} data={convertToTerritories(geoJsonData)} />}
+                    <div className="flex justify-end mt-4">
+                        <button
+                            onClick={handleAddTerritory}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600"
+                        >
+                            <Plus/>
+                        </button>
+                    </div>
                 </>
             )}
+
+
+            {/* Boîte de dialogue pour la création d'un territoire */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Créer un nouveau territoire</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <label className="block text-sm font-medium">Nom du territoire</label>
+                        <Input
+                            type="text"
+                            value={territoryName}
+                            onChange={(e) => setTerritoryName(e.target.value)}
+                            placeholder="Ex: Territory 6"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
+                        <Button onClick={handleCreateTerritory} className="bg-green-500 hover:bg-green-600 text-white">
+                            Créer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
