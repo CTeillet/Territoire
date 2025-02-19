@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,8 @@ public class TerritoryService {
 	}
 
 	public Territory saveTerritory(Territory territory) {
+		territory.setStatus(TerritoryStatus.AVAILABLE);
+		territory.setLastModifiedDate(LocalDate.now());
 		return territoryRepository.save(territory);
 	}
 
@@ -51,5 +54,9 @@ public class TerritoryService {
 		for (Territory territory : pendingTerritories) {
 			updateTerritoryStatus(territory, TerritoryStatus.AVAILABLE);
 		}
+	}
+
+	public Territory getTerritory(UUID id) {
+		return territoryRepository.getTerritoriesById(id);
 	}
 }

@@ -12,7 +12,7 @@ interface TerritoryHeaderProps {
     name: string;
     city: string;
     status: TerritoryStatus;
-    lastModifiedDate: Date | null;
+    lastModifiedDate: string | null;
     note?: string | null;
 }
 
@@ -133,7 +133,7 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
             {lastModifiedDate && (
                 <p className="text-gray-500 flex items-center mb-1">
                     <CalendarIcon className="mr-2 text-gray-500" /> ⏳ Dernière modification :{" "}
-                    {new Date(lastModifiedDate).toLocaleDateString()}
+                    {lastModifiedDate}
                 </p>
             )}
 

@@ -12,7 +12,7 @@ export interface Territory {
     id: string;
     name: string;
     status: TerritoryStatus;
-    lastModifiedDate: Date | null;
+    lastModifiedDate: string | null;
     city: string;
     addressNotToDo?: Address[] | null;
     assignments?: Assignment[] | null;

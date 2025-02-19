@@ -4,15 +4,14 @@ import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.service.TerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/territories")
+@RequestMapping("/api/territoires")
 @RequiredArgsConstructor
 class TerritoryController {
 	private final TerritoryService territoryService;
@@ -21,5 +20,15 @@ class TerritoryController {
 	public String getAllTerritories() throws IOException {
 		List<Territory> territories = territoryService.getAllTerritories();
 		return GeoJsonUtils.convertToGeoJSON(territories);
+	}
+
+	@PostMapping
+	public Territory createTerritory(@RequestBody Territory territory) {
+		return territoryService.saveTerritory(territory);
+	}
+
+	@GetMapping("{id}")
+	public Territory getTerritory(@PathVariable UUID id) {
+		return territoryService.getTerritory(id);
 	}
 }

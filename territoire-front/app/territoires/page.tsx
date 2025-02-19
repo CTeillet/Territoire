@@ -1,179 +1,74 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import "leaflet/dist/leaflet.css";
-import {convertToTerritories, TerritoryCollection} from "@/models/territory";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "@/store/store";
+import { fetchTerritories, addTerritory } from "@/store/slices/territory-slice";
 import TerritoryMap from "@/components/territory/territory-map";
-import {DataTable} from "@/components/territory/territory-data-table";
-import {territoryDataColumns} from "@/components/territory/territory-data-columns";
-import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
-import {useRouter} from "next/navigation";
-import {Plus} from "lucide-react";
-
-const mockGeoJsonData: TerritoryCollection = {
-    type: "FeatureCollection",
-    features: [
-        {
-            type: "Feature",
-            properties: {
-                id: "1",
-                name: "Territory 1",
-                status: "AVAILABLE",
-                lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
-                city: "Juvisy sur Orge",
-                addressNotToDo: [],
-                geojson: {
-                    type: "FeatureCollection",
-                    features: []
-                }
-            },
-            geometry: {
-                type: "Polygon",
-                coordinates: [[[2.3603239, 48.6933831], [2.3608281, 48.6931494], [2.3610212, 48.6933193],
-                    [2.3655059, 48.693723], [2.3659458, 48.6942258], [2.3614397, 48.6945303],
-                    [2.3603239, 48.6933831]]]
-            }
-        },
-        {
-            type: "Feature",
-            properties: {
-                id: "2",
-                name: "Territory 2",
-                status: "ASSIGNED",
-                lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
-                city: "Juvisy sur Orge",
-                addressNotToDo: [],
-                geojson: {
-                    type: "FeatureCollection",
-                    features: []
-                }
-            },
-            geometry: {
-                type: "Polygon",
-                coordinates: [[[2.3654329, 48.6936768], [2.3635982, 48.6934926], [2.3647891, 48.6929898],
-                    [2.3654329, 48.6936768]]]
-            }
-        },
-        {
-            type: "Feature",
-            properties: {
-                id: "3",
-                name: "Territory 3",
-                status: "AVAILABLE",
-                lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
-                city: "Juvisy sur Orge",
-                addressNotToDo: [],
-                geojson: {
-                    type: "FeatureCollection",
-                    features: []
-                }
-            },
-            geometry: {
-                type: "Polygon",
-                coordinates: [[[2.3647891, 48.6929898], [2.3634909, 48.6934856], [2.3620533, 48.6933439],
-                    [2.3642205, 48.6924516], [2.3647891, 48.6929898]]]
-            }
-        },
-        {
-            type: "Feature",
-            properties: {
-                id: "4",
-                name: "Territory 4",
-                status: "ASSIGNED",
-                lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
-                city: "Juvisy sur Orge",
-                addressNotToDo: [],
-                geojson: {
-                    type: "FeatureCollection",
-                    features: []
-                }
-            },
-            geometry: {
-                type: "Polygon",
-                coordinates: [[[2.3609053, 48.6931315], [2.3635017, 48.6919629], [2.3641239, 48.6924303],
-                    [2.3619031, 48.6933297], [2.3611091, 48.6932802], [2.3609053, 48.6931315]]]
-            }
-        },
-        {
-            type: "Feature",
-            properties: {
-                id: "5",
-                name: "Territory 5",
-                status: "AVAILABLE",
-                lastModifiedDate: new Date("2024-02-12T12:00:00Z"),
-                city: "Juvisy sur Orge",
-                addressNotToDo: [],
-                geojson: {
-                    type: "FeatureCollection",
-                    features: []
-                }
-            },
-            geometry: {
-                type: "Polygon",
-                coordinates: [[[2.3615088, 48.6945797], [2.3625602, 48.6945088], [2.3638906, 48.6959323],
-                    [2.3632683, 48.696428], [2.3620237, 48.6950966], [2.3615088, 48.6945797]]]
-            }
-        }
-    ]
-};
+import { DataTable } from "@/components/territory/territory-data-table";
+import { territoryDataColumns } from "@/components/territory/territory-data-columns";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 const TerritoryPage = () => {
-    const [geoJsonData, setGeoJsonData] = useState<TerritoryCollection | null>(null);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch<AppDispatch>();
+
+    // Sélection des territoires en GeoJSON
+    const { territoriesGeojson, loading } = useSelector((state: RootState) => state.territories);
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [territoryName, setTerritoryName] = useState("");
+    const [isCreating, setIsCreating] = useState(false);
 
-    const router = useRouter(); // Initialisation du router
-
+    // Chargement initial des territoires
     useEffect(() => {
-        const fetchMockData = () => {
-            setTimeout(() => {
-                setGeoJsonData(mockGeoJsonData);
-                setLoading(false);
-            }, 2000); // Simule un délai de 2 secondes
-        };
+        dispatch(fetchTerritories());
+    }, [dispatch]);
 
-        fetchMockData();
-    }, []);
+    // Ajout d'un territoire
+    const handleCreateTerritory = async () => {
+        if (!territoryName.trim() || isCreating) return;
 
-    const handleAddTerritory = () => {
-        setIsDialogOpen(true);
+        setIsCreating(true);
+        try {
+            await dispatch(addTerritory({ name: territoryName })).unwrap();
+            setIsDialogOpen(false);
+            setTerritoryName("");
+            dispatch(fetchTerritories()); // Recharge la liste après ajout
+        } catch (error) {
+            console.error("Erreur lors de la création du territoire :", error);
+        } finally {
+            setIsCreating(false);
+        }
     };
-
-    const handleCreateTerritory = () => {
-        if (!territoryName.trim()) return; // Empêcher la création si le champ est vide
-
-        console.log("Nouveau territoire créé :", territoryName);
-        setIsDialogOpen(false);
-        setTerritoryName(""); // Réinitialisation du champ après validation
-        //TODO : appel API pour créer un territoire
-        const id = Math.random().toString(36).substr(2, 9); // Génère un ID aléatoire
-        router.push(`/territoires/${id}`);
-    };
-
 
     return (
         <div className="flex flex-col gap-4 p-4">
             <h1 className="text-xl font-bold">Territoires</h1>
+
             {loading ? (
                 <p>Chargement des territoires...</p>
             ) : (
                 <>
-                    {geoJsonData && <TerritoryMap geoJsonData={geoJsonData} />}
-                    {geoJsonData && <DataTable columns={territoryDataColumns} data={convertToTerritories(geoJsonData)} />}
+                    {/* Affichage de la carte avec les territoires en GeoJSON */}
+                    {territoriesGeojson && <TerritoryMap geoJsonData={territoriesGeojson} />}
+
+                    {/* Tableau des territoires */}
+                    {territoriesGeojson && <DataTable columns={territoryDataColumns} data={territoriesGeojson.features.map(f => f.properties)} />}
+
                     <div className="flex justify-end mt-4">
                         <button
-                            onClick={handleAddTerritory}
+                            onClick={() => setIsDialogOpen(true)}
                             className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600"
                         >
-                            <Plus/>
+                            <Plus />
                         </button>
                     </div>
                 </>
             )}
-
 
             {/* Boîte de dialogue pour la création d'un territoire */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -192,8 +87,8 @@ const TerritoryPage = () => {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-                        <Button onClick={handleCreateTerritory} className="bg-green-500 hover:bg-green-600 text-white">
-                            Créer
+                        <Button onClick={handleCreateTerritory} className="bg-green-500 hover:bg-green-600 text-white" disabled={isCreating}>
+                            {isCreating ? "Création..." : "Créer"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

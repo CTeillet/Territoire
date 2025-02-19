@@ -40,7 +40,8 @@ const calculateCenter = (geoJsonData: TerritoryCollection): [number, number] => 
     let sumLng = 0;
     let count = 0;
 
-    geoJsonData.features.forEach((feature) => {
+
+    geoJsonData.features.filter(value => value.geometry).forEach((feature) => {
         if (feature.geometry.type === "Polygon") {
             // Un seul ensemble de coordonnées pour un Polygone
             feature.geometry.coordinates[0].forEach(([lng, lat]) => {

@@ -11,23 +11,27 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class PersonService {
+public class PersonService implements IPersonService{
 	private final PersonRepository personRepository;
 
+	@Override
 	public List<Person> getAllPersons() {
 		return personRepository.findAll();
 	}
 
+	@Override
 	public Person createPerson(Person person) {
 		return personRepository.save(person);
 	}
 
 	@Transactional
+	@Override
 	public void deletePerson(UUID id) {
 		personRepository.deletePersonById(id);
 	}
 
 	@Transactional
+	@Override
 	public Person modifyPerson(UUID id, Person person) {
 		return personRepository.save(person);
 	}

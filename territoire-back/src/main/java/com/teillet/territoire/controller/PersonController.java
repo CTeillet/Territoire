@@ -1,7 +1,7 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.model.Person;
-import com.teillet.territoire.service.PersonService;
+import com.teillet.territoire.service.IPersonService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,7 +12,7 @@ import java.util.UUID;
 @RequestMapping("/api/personnes")
 @RequiredArgsConstructor
 class PersonController {
-	private final PersonService personService;
+	private final IPersonService personService;
 
 	@GetMapping
 	public List<Person> getAllPersons() {

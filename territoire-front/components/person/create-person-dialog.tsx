@@ -37,6 +37,7 @@ const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({ isOpen, onOpenC
                 onOpenChange(false); // Fermer le modal après création réussie
                 setPerson({ firstName: "", lastName: "", email: "", phoneNumber: "" }); // Réinitialiser le formulaire
             } catch (error) {
+                console.log(error);
                 toast({
                     title: "Erreur",
                     description: "Échec de l'ajout de la personne. Veuillez réessayer.",

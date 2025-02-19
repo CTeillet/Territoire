@@ -1,10 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import personReducer from './slices/person-slice';
+import territoryReducer from './slices/territory-slice';
 
 export const store = configureStore({
     reducer: {
         persons: personReducer,
+        territories: territoryReducer,
     },
 });
 
