@@ -2,29 +2,46 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {Person} from "@/models/person";
+import { Person } from "@/models/person";
+import { useToast } from "@/hooks/use-toast"; // Pour afficher une notification
 
 type CreatePersonDialogProps = {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    onCreate: (person: Person) => void;
+    onCreate: (person: Person) => Promise<void>; // Modification pour attendre la réponse du serveur
+    isLoading: boolean; // Ajout pour suivre l'état de création
 };
 
-const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({ isOpen, onOpenChange, onCreate }) => {
+const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({ isOpen, onOpenChange, onCreate, isLoading }) => {
     const [person, setPerson] = useState({ firstName: "", lastName: "", email: "", phoneNumber: "" });
+    const { toast } = useToast(); // Hook pour afficher les notifications
 
     const isFormValid = person.firstName.trim() !== "" && person.lastName.trim() !== "";
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (isFormValid) {
-            onCreate({
-                id: null,
-                firstName: person.firstName.trim(),
-                lastName: person.lastName.trim(),
-                email: person.email.trim() || undefined,
-                phoneNumber: person.phoneNumber.trim() || undefined,
-            });
-            onOpenChange(false); // Fermer le dialog après création
+            try {
+                await onCreate({
+                    id: null, // L'ID sera généré par le backend
+                    firstName: person.firstName.trim(),
+                    lastName: person.lastName.trim(),
+                    email: person.email.trim() || undefined,
+                    phoneNumber: person.phoneNumber.trim() || undefined,
+                });
+
+                toast({
+                    title: "Succès",
+                    description: "La personne a bien été ajoutée !",
+                });
+
+                onOpenChange(false); // Fermer le modal après création réussie
+                setPerson({ firstName: "", lastName: "", email: "", phoneNumber: "" }); // Réinitialiser le formulaire
+            } catch (error) {
+                toast({
+                    title: "Erreur",
+                    description: "Échec de l'ajout de la personne. Veuillez réessayer.",
+                });
+            }
         }
     };
 
@@ -63,11 +80,11 @@ const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({ isOpen, onOpenC
 
                 {/* Bouton de validation */}
                 <Button
-                    className={`w-full mt-4 ${isFormValid ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-400 cursor-not-allowed"}`}
+                    className="w-full mt-4"
                     onClick={handleCreate}
-                    disabled={!isFormValid}
+                    disabled={!isFormValid || isLoading} // Désactiver si le formulaire est invalide ou si l'API est en attente
                 >
-                    Ajouter la personne
+                    {isLoading ? "Ajout en cours..." : "Ajouter la personne"}
                 </Button>
             </DialogContent>
         </Dialog>

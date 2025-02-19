@@ -1,61 +1,30 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Person } from "@/models/person";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { fetchPersons, createPerson } from "@/store/slices/person-slice";
 import PersonList from "@/components/person/person-list";
 import PlusButton from "@/components/shared/plus-button";
 import CreatePersonDialog from "@/components/person/create-person-dialog";
+import { Person } from "@/models/person";
 
-const PERSONS_MOCK = [
-    {
-        id: "550e8400-e29b-41d4-a716-446655440000",
-        firstName: "Jean",
-        lastName: "Dupont",
-        email: "jean.dupont@example.com",
-        phoneNumber: "0612345678",
-    },
-    {
-        id: "550e8400-e29b-41d4-a716-446655440001",
-        firstName: "Marie",
-        lastName: "Curie",
-        email: "marie.curie@example.com",
-    },
-    {
-        id: "550e8400-e29b-41d4-a716-446655440002",
-        firstName: "Albert",
-        lastName: "Einstein",
-        phoneNumber: "0698765432",
-    },
-    {
-        id: "550e8400-e29b-41d4-a716-446655440003",
-        firstName: "Yves",
-        lastName: "Montant",
-    },
-];
 const PersonsPage = () => {
-    const [persons, setPersons] = useState<Person[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
+    const dispatch = useAppDispatch();
+    const { persons, loading, creating } = useAppSelector(state => state.persons);
     const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
 
+    // Charger les personnes au montage
     useEffect(() => {
-        const fetchPersons = () => {
-            setTimeout(() => {
-                setPersons(PERSONS_MOCK);
-                setLoading(false);
-            });
-        };
-
-        fetchPersons();
-    }, []);
+        dispatch(fetchPersons());
+    }, [dispatch]);
 
     const handleAddPerson: React.MouseEventHandler<HTMLButtonElement> = () => {
         setCreateDialogOpen(true);
     };
 
-    const handleCreatePerson = (person: Person) => {
-        console.log("Nouvelle personne ajoutée :", person);
-        // Ici, tu peux envoyer les données à ton backend
-        //TODO : envoyer les données à ton backend
+    const handleCreatePerson = async (person: Person) => {
+        await dispatch(createPerson(person)); // Attend la réponse du backend
+        setCreateDialogOpen(false); // Ferme le dialogue si tout s'est bien passé
     };
 
     return (
@@ -73,6 +42,7 @@ const PersonsPage = () => {
                 isOpen={isCreateDialogOpen}
                 onOpenChange={setCreateDialogOpen}
                 onCreate={handleCreatePerson}
+                isLoading={creating} // Ajout de l'état de création
             />
         </div>
     );
