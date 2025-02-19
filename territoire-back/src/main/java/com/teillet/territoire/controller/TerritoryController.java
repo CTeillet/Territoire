@@ -1,5 +1,9 @@
 package com.teillet.territoire.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.teillet.territoire.dto.TerritoryDto;
+import com.teillet.territoire.mapper.TerritoryMapper;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
@@ -28,7 +32,9 @@ class TerritoryController {
 	}
 
 	@GetMapping("{id}")
-	public Territory getTerritory(@PathVariable UUID id) {
-		return territoryService.getTerritory(id);
+	public TerritoryDto getTerritory(@PathVariable UUID id) throws IOException {
+		Territory territory = territoryService.getTerritory(id);
+		TerritoryDto dto = TerritoryMapper.toDto(territory);
+		return dto;
 	}
 }

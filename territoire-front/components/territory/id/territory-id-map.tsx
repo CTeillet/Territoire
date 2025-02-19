@@ -4,30 +4,44 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {GeoJSON, LayerGroup, LayersControl, MapContainer, TileLayer} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import {LatLng, LatLngBoundsExpression, Layer, LeafletEvent, Map} from "leaflet";
-import {Territory} from "@/models/territory";
-import {Feature, FeatureCollection, GeoJsonProperties, Polygon} from "geojson";
+import {PolygonProperties, Territory} from "@/models/territory";
+import {Feature, FeatureCollection, Polygon} from "geojson";
 import {GeomanControl} from "@/components/territory/id/geoman-controls";
+import {useDispatch} from "react-redux";
+import {fetchTerritoryById} from "@/store/slices/territory-slice";
 
 interface GeomanCreateEvent extends LeafletEvent {
     layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
 }
 
+const defaultCenter: LatLngBoundsExpression = [[48.695874, 2.367055], [48.695874, 2.367055]];
+
+
 const TerritoryMap = ({territory}: { territory: Territory }) => {
     const mapRef = useRef<Map | null>(null);
+    const dispatch = useDispatch();
+    const [geoJsonData, setGeoJsonData] = useState<FeatureCollection<Polygon, PolygonProperties> | null>(null);
+
     const [blockFeatures, setBlockFeatures] = useState<FeatureCollection>({
         type: "FeatureCollection",
-        features: territory.geojson?.features.filter((feature) => feature.properties.type === "BLOCK"),
+        features: geoJsonData?.features?.filter((feature) => feature.properties.type === "BLOCK") || [],
     });
+
     const [geoJsonKey, setGeoJsonKey] = useState(0);
 
-    const concaveHullFeature: FeatureCollection<Polygon> = {
+    const concaveHullFeature = useMemo(() => ({
         type: "FeatureCollection",
-        features: territory.geojson.features.filter((feature) => feature.properties.type === "CONCAVE_HULL"),
-    };
+        features: geoJsonData?.features?.filter((feature) => feature.properties.type === "CONCAVE_HULL") || [],
+    }), [geoJsonData?.features]);
 
-    const concaveHullCoords = concaveHullFeature.features.flatMap((feature) =>
-        feature.geometry.coordinates[0].map(([lng, lat]) => [lat, lng])
-    );
+    const concaveHullCoords = useMemo(() => {
+        if (concaveHullFeature.features.length > 0) {
+            return concaveHullFeature.features.flatMap((feature) =>
+                feature.geometry.coordinates[0].map(([lng, lat]) => [lat, lng])
+            );
+        }
+        return [];
+    }, [concaveHullFeature]);
 
     const bounds: LatLngBoundsExpression = useMemo(() => {
         if (concaveHullCoords.length > 0) {
@@ -36,8 +50,20 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
                 [Math.max(...concaveHullCoords.map(coord => coord[0])), Math.max(...concaveHullCoords.map(coord => coord[1]))]
             ];
         }
-        return [[0, 0], [0, 0]];
+        return defaultCenter; // Utilisation des coordonnées par défaut
     }, [concaveHullCoords]);
+
+    useEffect(() => {
+        if (territory?.geojson) {
+            try {
+                const parsedGeoJson = JSON.parse(territory.geojson) as FeatureCollection<Polygon, PolygonProperties>;
+                setGeoJsonData(parsedGeoJson);
+                console.log("✅ Conversion réussie de geojson :", parsedGeoJson);
+            } catch (error) {
+                console.error("❌ Erreur lors de la conversion de `geojson` :", error);
+            }
+        }
+    }, [territory.geojson]);
 
     useEffect(() => {
         if (mapRef.current && concaveHullCoords.length > 0) {
@@ -45,43 +71,72 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
         }
     }, [territory.geojson, bounds, concaveHullCoords.length]);
 
+    useEffect(() => {
+        const testJson: FeatureCollection = JSON.parse(territory.geojson as string) as FeatureCollection<Polygon, PolygonProperties>;
+
+        if (testJson) {
+            setBlockFeatures({
+                type: "FeatureCollection",
+                features: testJson.features.filter((feature) => feature.properties?.type === "BLOCK"),
+            });
+        }
+    }, [territory.geojson]);
+
     const handleMapCreated = (map: Map) => {
         mapRef.current = map;
-        console.log("Map initialized", map);
         map.on("pm:create", handleCreate);
     };
 
-    const handleDeleteBlock = (blockId: string) => {
-        setBlockFeatures((prev) => ({
-            ...prev,
-            features: prev.features.filter((feature) => feature.properties?.id !== blockId),
-        }));
-        setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
+    const handleDeleteBlock = async (blockId: string) => {
+        try {
+            const response = await fetch(`/api/territories/${territory.id}/blocks/${blockId}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                throw new Error("Erreur lors de la suppression du block");
+            }
+
+            console.log(`✅ Block supprimé: ${blockId}`);
+
+            // Rafraîchir le territoire dans Redux pour récupérer la mise à jour
+            dispatch(fetchTerritoryById(territory.id));
+            setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
+        } catch (error) {
+            console.error("❌ Erreur lors de la suppression du bloc :", error);
+        }
     };
 
-    const handleCreate = (e: GeomanCreateEvent) => {
-        const {layer} = e;
 
-        console.log("Yo", e);
+    const handleCreate = async (e: GeomanCreateEvent) => {
+        const { layer } = e;
         if (!layer.getLatLngs) return;
 
-        const newPolygon: Feature<Polygon, GeoJsonProperties> = {
-            type: "Feature",
-            properties: {
-                id: new Date().getTime().toString(),
-            },
-            geometry: {
-                type: "Polygon",
-                coordinates: [layer.getLatLngs()[0].map((latlng: LatLng) => [latlng.lng, latlng.lat])],
-            },
+        // Création de l'objet GeoJSON
+        const newPolygon = {
+            coordinates: [layer.getLatLngs()[0].map((latlng: LatLng) => [latlng.lng, latlng.lat])],
         };
 
-        setBlockFeatures((prev) => ({
-            ...prev,
-            features: [...prev.features, newPolygon],
-        }));
+        try {
+            // Envoi au backend
+            const response = await fetch(`/api/territories/${territory.id}/blocks`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newPolygon),
+            });
 
-        setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
+            if (!response.ok) {
+                console.log("response",response)
+                throw new Error("Erreur lors de l'ajout du block");
+            }
+
+            // Rafraîchir le territoire dans Redux
+            dispatch(fetchTerritoryById(territory.id));
+            setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
+
+        } catch (error) {
+            console.error("Erreur lors de l'ajout du bloc:", error);
+        }
 
         // Supprimer immédiatement le polygone du layer d'édition
         layer.remove();
@@ -123,17 +178,18 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
             />
 
             <LayersControl position="topright">
+                <LayersControl.Overlay name="Territoire" checked>
+                    <LayerGroup>
+                        <GeoJSON data={concaveHullFeature} style={{color: "red", weight: 2, fillOpacity: 0.1}}/>
+                    </LayerGroup>
+                </LayersControl.Overlay>
+
                 <LayersControl.Overlay name="Pâtés" checked>
                     <LayerGroup key={geoJsonKey}>
                         <GeoJSON data={blockFeatures} style={{color: "blue"}} onEachFeature={onEachBlock}/>
                     </LayerGroup>
                 </LayersControl.Overlay>
 
-                <LayersControl.Overlay name="Territoire" checked>
-                    <LayerGroup>
-                        <GeoJSON data={concaveHullFeature} style={{color: "red", weight: 2, fillOpacity: 0.1}}/>
-                    </LayerGroup>
-                </LayersControl.Overlay>
             </LayersControl>
 
             <GeomanControl position="topleft" oneBlock/>

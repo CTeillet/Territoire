@@ -17,4 +17,7 @@ public interface ITerritoryService {
 	void updateTerritoryStatus(Territory territory, TerritoryStatus newStatus);
 
 	Territory getTerritory(UUID id);
+
+	@Transactional
+	Territory updateConcaveHull(UUID territoryId);
 }

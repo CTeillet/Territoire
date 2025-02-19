@@ -7,6 +7,7 @@ import com.teillet.territoire.repository.StatusHistoryRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TerritoryService implements ITerritoryService{
 	private final TerritoryRepository territoryRepository;
 	private final StatusHistoryRepository statusHistoryRepository;
@@ -65,6 +67,22 @@ public class TerritoryService implements ITerritoryService{
 
 	@Override
 	public Territory getTerritory(UUID id) {
-		return territoryRepository.getTerritoriesById(id);
+		return territoryRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
+	}
+
+	@Transactional
+	@Override
+	public Territory updateConcaveHull(UUID territoryId) {
+		log.info("Début : Mise à jour de la concave hull");
+
+		log.info("Mise à jour de la concave hull du territoire {}", territoryId);
+		territoryRepository.updateConcaveHullTerritory(territoryId);
+
+		log.info("Récupération du territoire mis à jour");
+		Territory result = getTerritory(territoryId);
+
+		log.info("Fin : Mise à jour de la concave hull");
+		return result;
 	}
 }

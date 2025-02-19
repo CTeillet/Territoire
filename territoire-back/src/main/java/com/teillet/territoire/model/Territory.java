@@ -1,5 +1,6 @@
 package com.teillet.territoire.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.teillet.territoire.enums.TerritoryStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -32,6 +33,7 @@ public class Territory {
 	private String note;
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
+	@JsonManagedReference
 	private List<Block> blocks = new ArrayList<>();
 
 	@Column(name = "concave_hull", columnDefinition = "geometry(Polygon, 4326)")

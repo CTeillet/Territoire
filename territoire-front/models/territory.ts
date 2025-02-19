@@ -16,7 +16,7 @@ export interface Territory {
     city: string;
     addressNotToDo?: Address[] | null;
     assignments?: Assignment[] | null;
-    geojson: FeatureCollection<Polygon, PolygonProperties>;
+    geojson: string;
     note?: string | null;
 }
 

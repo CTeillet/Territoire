@@ -1,5 +1,6 @@
 package com.teillet.territoire.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.locationtech.jts.geom.Polygon;
@@ -22,6 +23,7 @@ public class Block {
 
 	@ManyToOne
 	@JoinColumn(name = "territory_id")
+	@JsonBackReference
 	private Territory territory;
 
 }

@@ -32,6 +32,7 @@ export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
 );
 
 
+
 // Thunk pour ajouter un territoire via l'API
 export const addTerritory = createAsyncThunk(
     "territories/add",
