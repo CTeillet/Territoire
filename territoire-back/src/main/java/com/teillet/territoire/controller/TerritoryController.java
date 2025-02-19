@@ -1,7 +1,7 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.model.Territory;
-import com.teillet.territoire.service.TerritoryService;
+import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +14,7 @@ import java.util.UUID;
 @RequestMapping("/api/territoires")
 @RequiredArgsConstructor
 class TerritoryController {
-	private final TerritoryService territoryService;
+	private final ITerritoryService territoryService;
 
 	@GetMapping("/geojson")
 	public String getAllTerritories() throws IOException {

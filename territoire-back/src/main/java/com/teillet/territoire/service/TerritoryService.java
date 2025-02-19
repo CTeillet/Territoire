@@ -5,6 +5,7 @@ import com.teillet.territoire.model.StatusHistory;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.StatusHistoryRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -15,20 +16,25 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class TerritoryService {
+public class TerritoryService implements ITerritoryService{
 	private final TerritoryRepository territoryRepository;
 	private final StatusHistoryRepository statusHistoryRepository;
 
+	@Override
 	public List<Territory> getAllTerritories() {
 		return territoryRepository.findAll();
 	}
 
+	@Transactional
+	@Override
 	public Territory saveTerritory(Territory territory) {
 		territory.setStatus(TerritoryStatus.AVAILABLE);
 		territory.setLastModifiedDate(LocalDate.now());
 		return territoryRepository.save(territory);
 	}
 
+	@Transactional
+	@Override
 	public void updateTerritoryStatus(Territory territory, TerritoryStatus newStatus) {
 		TerritoryStatus previousStatus = territory.getStatus();
 		territory.setStatus(newStatus);
@@ -45,6 +51,7 @@ public class TerritoryService {
 	}
 
 	@Scheduled(cron = "0 0 0 * * *")
+	@Transactional
 	public void releasePendingTerritories() {
 		LocalDate thresholdDate = LocalDate.now().minusMonths(4);
 		List<Territory> pendingTerritories = territoryRepository.findAll().stream()
@@ -56,6 +63,7 @@ public class TerritoryService {
 		}
 	}
 
+	@Override
 	public Territory getTerritory(UUID id) {
 		return territoryRepository.getTerritoriesById(id);
 	}
