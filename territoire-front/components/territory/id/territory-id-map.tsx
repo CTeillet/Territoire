@@ -9,6 +9,7 @@ import {Feature, FeatureCollection, Polygon} from "geojson";
 import {GeomanControl} from "@/components/territory/id/geoman-controls";
 import {fetchTerritoryById} from "@/store/slices/territory-slice";
 import {useAppDispatch} from "@/store/store";
+import {authFetch} from "@/utils/auth-fetch";
 
 interface GeomanCreateEvent extends LeafletEvent {
     layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
@@ -94,7 +95,7 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
     };
 
     const handleDeleteBlock = async (blockId: string) => {
-        const response = await fetch(`/api/territories/${territory.id}/blocks/${blockId}`, {
+        const response = await authFetch(`/api/territories/${territory.id}/blocks/${blockId}`, {
             method: "DELETE",
         });
 
@@ -120,7 +121,7 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
             coordinates: [layer.getLatLngs()[0].map((latlng: LatLng) => [latlng.lng, latlng.lat])],
         };
 
-        const response = await fetch(`/api/territories/${territory.id}/blocks`, {
+        const response = await authFetch(`/api/territories/${territory.id}/blocks`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newPolygon),

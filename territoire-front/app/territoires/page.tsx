@@ -12,21 +12,41 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 
 const TerritoryPage = () => {
     const dispatch = useDispatch<AppDispatch>();
+    const { isAuthenticated } = useAuth();
+    const router = useRouter();
 
-    // Sélection des territoires en GeoJSON
+    // Empêche le SSR pour éviter l'erreur d'hydration
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true); // On attend le chargement côté client
+    }, []);
+
+    useEffect(() => {
+        if (isClient && !isAuthenticated) {
+            router.push("/login");
+        }
+    }, [isClient, isAuthenticated, router]);
+
+    // Toujours exécuter les hooks Redux avant tout conditionnement
     const { territoriesGeojson, loading } = useSelector((state: RootState) => state.territories);
 
+    // État local pour la gestion du dialogue de création
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [territoryName, setTerritoryName] = useState("");
     const [isCreating, setIsCreating] = useState(false);
 
     // Chargement initial des territoires
     useEffect(() => {
-        dispatch(fetchTerritories());
-    }, [dispatch]);
+        if (isAuthenticated) {
+            dispatch(fetchTerritories());
+        }
+    }, [dispatch, isAuthenticated]);
 
     // Ajout d'un territoire
     const handleCreateTerritory = async () => {
@@ -44,6 +64,9 @@ const TerritoryPage = () => {
             setIsCreating(false);
         }
     };
+
+    // Empêche l'affichage tant que le client n'est pas chargé (évite hydration error)
+    if (!isClient) return null;
 
     return (
         <div className="flex flex-col gap-4 p-4">

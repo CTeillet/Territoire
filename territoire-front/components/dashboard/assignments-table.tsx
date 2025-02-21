@@ -3,6 +3,7 @@ import {Card, CardHeader, CardTitle} from "../ui/card";
 import {Table, TableBody, TableCaption, TableCell, TableHeader, TableRow} from "../ui/table";
 import {Assignment} from "@/models/assignment";
 import AssignmentRow from "@/components/dashboard/assignment-row";
+import {authFetch} from "@/utils/auth-fetch";
 
 export const AssignmentsTable: React.FC = () => {
     const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -12,7 +13,7 @@ export const AssignmentsTable: React.FC = () => {
     useEffect(() => {
         const fetchAssignments = async () => {
             try {
-                const response = await fetch("/api/attributions/dernieres");
+                const response = await authFetch("/api/attributions/dernieres");
 
                 // 🔹 Vérifie si la requête à échouer et retourne immédiatement une erreur
                 if (!response.ok) {

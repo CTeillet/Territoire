@@ -1,5 +1,6 @@
 import {createAsyncThunk, createSlice} from '@reduxjs/toolkit';
 import {Person} from "@/models/person";
+import {authFetch} from "@/utils/auth-fetch";
 
 const BASE_URL = "/api/personnes";
 
@@ -26,7 +27,7 @@ const initialState: PersonState = {
 export const fetchPersons = createAsyncThunk(
     "persons/fetchPersons",
     async (_, { rejectWithValue }) => {
-        const response = await fetch(BASE_URL);
+        const response = await authFetch(BASE_URL);
 
         // 🔹 Retourner immédiatement `rejectWithValue` au lieu de `throw`
         if (!response.ok) {
@@ -45,7 +46,7 @@ export const fetchPersons = createAsyncThunk(
 export const createPerson = createAsyncThunk<Person, Person | { firstName: string; lastName: string }>(
     "persons/createPerson",
     async (newPerson: Person | { firstName: string; lastName: string }, { rejectWithValue }) => {
-        const response = await fetch(BASE_URL, {
+        const response = await authFetch(BASE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newPerson),
@@ -69,7 +70,7 @@ export const createPerson = createAsyncThunk<Person, Person | { firstName: strin
 export const deletePerson = createAsyncThunk(
     "persons/deletePerson",
     async (id: string, { rejectWithValue }) => {
-        const response = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
+        const response = await authFetch(`${BASE_URL}/${id}`, { method: "DELETE" });
 
         // 🔹 Vérifie si la requête a échoué et retourne immédiatement `rejectWithValue`
         if (!response.ok) {
@@ -84,7 +85,7 @@ export const deletePerson = createAsyncThunk(
 export const updatePerson = createAsyncThunk(
     "persons/updatePerson",
     async (updatedPerson: Person, { rejectWithValue }) => {
-        const response = await fetch(`${BASE_URL}/${updatedPerson.id}`, {
+        const response = await authFetch(`${BASE_URL}/${updatedPerson.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(updatedPerson),

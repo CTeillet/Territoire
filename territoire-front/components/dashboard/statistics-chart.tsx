@@ -10,6 +10,7 @@ import {
     ChartTooltipContent
 } from "@/components/ui/chart";
 import {TerritoryStatusHistoryDto} from "@/models/territory-status-history";
+import {authFetch} from "@/utils/auth-fetch";
 
 export const StatisticsChart: React.FC = () => {
     const [chartData, setChartData] = useState<TerritoryStatusHistoryDto[]>([]);
@@ -18,7 +19,7 @@ export const StatisticsChart: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch("/api/territoires/statistiques");
+                const response = await authFetch("/api/territoires/statistiques");
                 const data: TerritoryStatusHistoryDto[] = await response.json();
 
                 setChartData(data); // On garde la structure attendue

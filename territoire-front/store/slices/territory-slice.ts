@@ -2,6 +2,7 @@ import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import {Territory, TerritoryCollection} from "@/models/territory";
 import {format} from "date-fns";
 import {Assignment} from "@/models/assignment";
+import {authFetch} from "@/utils/auth-fetch";
 
 type TerritoryState = {
     territoriesGeojson: TerritoryCollection | null,
@@ -20,10 +21,13 @@ const initialState: TerritoryState = {
     error: null
 };
 
+const BASE_URL = `/api/territoires`;
+
+
 export const returnTerritory = createAsyncThunk(
     "territories/returnTerritory",
     async (territoryId: string, { rejectWithValue }) => {
-        const response = await fetch(`/api/territoires/${territoryId}/retour`, {
+        const response = await authFetch(`${BASE_URL}/${territoryId}/retour`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
         });
@@ -43,7 +47,7 @@ export const returnTerritory = createAsyncThunk(
 export const assignTerritory = createAsyncThunk(
     "territories/assignTerritory",
     async ({ territoryId, personId }: { territoryId: string; personId: string }, { rejectWithValue }) => {
-        const response = await fetch(`/api/territoires/${territoryId}/attribuer/${personId}`, {
+        const response = await authFetch(`${BASE_URL}/${territoryId}/attribuer/${personId}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
         });
@@ -63,7 +67,7 @@ export const assignTerritory = createAsyncThunk(
 export const deleteTerritory = createAsyncThunk(
     "territories/deleteTerritory",
     async (territoryId: string, { rejectWithValue }) => {
-        const response = await fetch(`/api/territoires/${territoryId}`, { method: "DELETE" });
+        const response = await authFetch(`${BASE_URL}/${territoryId}`, { method: "DELETE" });
 
         if (!response.ok) {
             return rejectWithValue("Erreur lors de la suppression du territoire");
@@ -76,7 +80,7 @@ export const deleteTerritory = createAsyncThunk(
 export const updateTerritory = createAsyncThunk(
     "territories/updateTerritory",
     async (updatedTerritory: Partial<Territory>, { rejectWithValue }) => {
-        const response = await fetch(`/api/territoires/${updatedTerritory.id}`, {
+        const response = await authFetch(`${BASE_URL}/${updatedTerritory.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -101,7 +105,7 @@ export const updateTerritory = createAsyncThunk(
 export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
     "territories/fetchGeoJson",
     async (_, { rejectWithValue }) => {
-        const response = await fetch("/api/territoires/geojson");
+        const response = await authFetch(`${BASE_URL}/geojson`);
 
         if (!response.ok) {
             return rejectWithValue("Erreur lors de la récupération des territoires (GeoJSON)");
@@ -118,7 +122,7 @@ export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
 export const addTerritory = createAsyncThunk(
     "territories/add",
     async ({ name }: { name: string }, { rejectWithValue }) => {
-        const response = await fetch("/api/territoires", {
+        const response = await authFetch(`${BASE_URL}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
@@ -139,7 +143,7 @@ export const addTerritory = createAsyncThunk(
 export const fetchTerritoryById = createAsyncThunk<Territory, string>(
     "territories/fetchById",
     async (id, { rejectWithValue }) => {
-        const response = await fetch(`/api/territoires/${id}`);
+        const response = await authFetch(`${BASE_URL}/${id}`);
 
         if (!response.ok) {
             return rejectWithValue("Erreur lors de la récupération du territoire");
