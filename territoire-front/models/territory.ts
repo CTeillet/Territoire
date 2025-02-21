@@ -21,7 +21,7 @@ export interface Territory {
 }
 
 export interface SimplifiedTerritory {
-    id: string;
+    territoryId: string;
     name: string;
     status: TerritoryStatus;
 }

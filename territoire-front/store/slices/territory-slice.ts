@@ -230,24 +230,23 @@ const territorySlice = createSlice({
             .addCase(assignTerritory.fulfilled, (state, action) => {
                 state.loading = false;
                 const assignment = action.payload;
-                console.log(assignment);
-                console.log(state.territoriesGeojson);
 
-                // if (!state.territoriesGeojson || !assignment || !assignment.territory.id) {
-                //     console.error("❌ Problème : l'assignation ou le territoireId est undefined", assignment);
-                //     return;
-                // }
+
+                if (!state.territoriesGeojson || !assignment || !assignment.territory.territoryId) {
+                    console.error("❌ Problème : l'assignation ou le territoireId est undefined", assignment);
+                    return;
+                }
 
                 // ✅ Recherche du territoire correspondant dans `FeatureCollection`
                 const feature = state.territoriesGeojson?.features.find(
-                    (f) => f.properties.id === assignment.territory.id
+                    (f) => f.properties.id === assignment.territory.territoryId
                 );
 
                 if (feature) {
                     feature.properties.status = "ASSIGNED";
                     feature.properties.assignments = [assignment]; // Remplace l'assignation existante par la nouvelle
                 } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${assignment.territory.id}`);
+                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${assignment.territory.territoryId}`);
                 }
             })
             .addCase(assignTerritory.rejected, (state, action) => {
