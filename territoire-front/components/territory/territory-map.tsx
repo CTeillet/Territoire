@@ -42,7 +42,6 @@ const calculateCenter = (geoJsonData: TerritoryCollection): [number, number] => 
     let sumLng = 0;
     let count = 0;
 
-    console.log(geoJsonData)
     geoJsonData.features.filter(value => value.geometry).forEach((feature) => {
         if (feature.geometry.coordinates.length == 0) return;
 
