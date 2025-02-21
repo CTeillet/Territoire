@@ -43,7 +43,6 @@ public class PersonService implements IPersonService {
 		return personRepository.save(person);
 	}
 
-	@Transactional
 	@Override
 	public Person getPerson(UUID personId) {
 		return personRepository.findById(personId)

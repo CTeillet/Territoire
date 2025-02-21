@@ -1,10 +1,13 @@
 package com.teillet.territoire.service;
 
+import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.enums.TerritoryStatus;
+import com.teillet.territoire.mapper.AssignmentMapper;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,7 +26,7 @@ public class AssignmentService implements IAssignmentService {
 
 	@Transactional
 	@Override
-	public Assignment assignTerritory(UUID territoryId, UUID personId) {
+	public AssignmentDto assignTerritory(UUID territoryId, UUID personId) {
 		Person person = personService.getPerson(personId);
 		Territory territory = territoryService.getTerritory(territoryId);
 		if (territory.getStatus() != TerritoryStatus.AVAILABLE) {
@@ -38,16 +41,21 @@ public class AssignmentService implements IAssignmentService {
 				.build();
 
 		territoryService.updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
-		return assignmentRepository.save(assignment);
+		return AssignmentMapper.toDto(assignmentRepository.save(assignment));
 	}
 
 	@Transactional
 	@Override
-	public void returnTerritory(Assignment assignment) {
+	public AssignmentDto returnTerritory(UUID territoryId) {
+		// Récupérer l'assignation en cours pour ce territoire
+		Assignment assignment = assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)
+				.orElseThrow(() -> new EntityNotFoundException("Aucune assignation active trouvée pour ce territoire"));
+
 		assignment.setReturnDate(LocalDate.now());
 		assignmentRepository.save(assignment);
-
 		territoryService.updateTerritoryStatus(assignment.getTerritory(), TerritoryStatus.PENDING);
+		Assignment resultAssignment = getAssignment(assignment.getId());
+		return AssignmentMapper.toDto(resultAssignment);
 	}
 
 	@Scheduled(cron = "0 0 0 * * *")
@@ -60,5 +68,11 @@ public class AssignmentService implements IAssignmentService {
 			territory.setStatus(TerritoryStatus.LATE);
 			territoryService.saveTerritory(territory);
 		}
+	}
+
+	@Override
+	public Assignment getAssignment(UUID assignmentId) {
+		return assignmentRepository.findById(assignmentId)
+				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
 	}
 }

@@ -10,7 +10,7 @@ import { TerritoryStatus } from "@/models/territory-status";
 import { useDispatch, useSelector } from "react-redux";
 import {createPerson, fetchPersons } from "@/store/slices/person-slice";
 import { RootState } from "@/store/store";
-import {assignTerritory} from "@/store/slices/territory-slice";
+import {assignTerritory, returnTerritory} from "@/store/slices/territory-slice";
 
 interface TerritoryDataActionButtonsProps {
     territoryId: string;
@@ -61,10 +61,14 @@ export function TerritoryDataActionButtons({ territoryId, status, showDetails = 
 
 
     // 🔹 Fonction pour gérer le retour du territoire
-    const handleReturn = () => {
-        console.log(`Territoire ${territoryId} retourné dans le stock`);
+    const handleReturn = async () => {
+        try {
+            await dispatch(returnTerritory(territoryId)).unwrap();
+            console.log(`✅ Territoire ${territoryId} retourné avec succès`);
+        } catch (error) {
+            console.error("❌ Erreur lors du retour du territoire :", error);
+        }
         setIsReturnDialogOpen(false);
-        // TODO : Appeler l'API pour retourner le territoire
     };
 
     return (

@@ -3,8 +3,6 @@ package com.teillet.territoire.controller;
 import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
-import com.teillet.territoire.mapper.AssignmentMapper;
-import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.ITerritoryService;
@@ -76,7 +74,11 @@ class TerritoryController {
 	public AssignmentDto assignTerritory(
 			@PathVariable UUID territoryId,
 			@PathVariable UUID personId) {
-		Assignment assignment = assignmentService.assignTerritory(territoryId, personId);
-		return AssignmentMapper.toDto(assignment);
+		return assignmentService.assignTerritory(territoryId, personId);
+	}
+
+	@PostMapping("/{territoryId}/retour")
+	public AssignmentDto returnTerritory(@PathVariable UUID territoryId) {
+		return assignmentService.returnTerritory(territoryId);
 	}
 }
