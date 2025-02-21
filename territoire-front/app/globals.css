@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/*---break---*/
+@custom-variant dark (&:is(.dark *));
 
 @tailwind utilities;
 @plugin "tailwindcss-animate";
@@ -112,7 +114,6 @@
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar: var(--sidebar);
 }
-
 
 @layer base {
     * {
