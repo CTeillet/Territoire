@@ -5,6 +5,7 @@ import com.teillet.territoire.dto.UpdateTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.mapper.TerritoryMapper;
 import com.teillet.territoire.model.Territory;
+import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.BlockRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import jakarta.transaction.Transactional;
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class TerritoryService implements ITerritoryService {
 	private final TerritoryRepository territoryRepository;
 	private final BlockRepository blockRepository;
+	private final AssignmentRepository assignmentRepository;
 
 	@Override
 	public List<Territory> getAllTerritories() {
@@ -105,6 +107,8 @@ public class TerritoryService implements ITerritoryService {
 	public void deleteTerritory(UUID territoryId) {
 		log.info("Suppression des pâtés appartenant au territoire {}", territoryId);
 		blockRepository.deleteBlockByTerritory_Id(territoryId);
+		log.info("Suppression des attributions appartenant au territoire {}", territoryId);
+		assignmentRepository.deleteByTerritory_Id(territoryId);
 		log.info("Suppression du territoire {}", territoryId);
 		territoryRepository.deleteById(territoryId);
 	}

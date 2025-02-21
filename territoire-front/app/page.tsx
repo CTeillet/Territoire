@@ -1,7 +1,6 @@
 "use client";
 
 import React, {useEffect, useState} from "react";
-import {Territory} from "@/models/territory";
 import {AssignmentsTable} from "@/components/dashboard/assignments-table";
 import {StatisticsChart} from "@/components/dashboard/statistics-chart";
 import {StatisticsOverview} from "@/components/dashboard/statistics-overview";
@@ -33,25 +32,17 @@ const MOCK_ASSIGNMENTS: Assignment[] = [
         person: {id: "1", firstName: "John", lastName: "Doe", email: "", phoneNumber: ""}
     }
 ];
-const MOCK_TERRITORIES: Territory[] = [
-    {id: "1", status: "AVAILABLE", lastModifiedDate: null, name: "01", city: "", geojson: {type: "FeatureCollection", features: []}},
-    {id: "2", status: "ASSIGNED", lastModifiedDate: new Date("2023-10-01"), name: "02", city: "", geojson: {type: "FeatureCollection", features: []}},
-    {id: "3", status: "PENDING", lastModifiedDate: new Date("2023-06-15"), name: "03", city: "", geojson: {type: "FeatureCollection", features: []}},
-    {id: "4", status: "LATE", lastModifiedDate: new Date("2023-06-15"), name: "04", city: "", geojson: {type: "FeatureCollection", features: []}},
-];
 const Dashboard = () => {
-    const [territories, setTerritories] = useState<Territory[]>([]);
     const [assignments, setAssignments] = useState<Assignment[]>([]);
 
     useEffect(() => {
-        setTerritories(MOCK_TERRITORIES);
         setAssignments(MOCK_ASSIGNMENTS)
     }, []);
 
     return (
         <div className="p-6 space-y-6">
             <h1 className="text-3xl font-bold">Dashboard des Territoires</h1>
-            <StatisticsOverview territories={territories} />
+            <StatisticsOverview/>
             <AssignmentsTable assignments={assignments} />
             <StatisticsChart/>
         </div>

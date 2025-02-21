@@ -1,12 +1,24 @@
 import StatCard from "@/components/dashboard/stat-card";
-import React from "react";
-import {Territory} from "@/models/territory";
+import React, {useEffect} from "react";
+import {useDispatch, useSelector} from "react-redux";
+import {RootState} from "@/store/store";
+import {fetchTerritories} from "@/store/slices/territory-slice";
 
-export const StatisticsOverview: React.FC<{ territories: Territory[] }> = ({ territories }) => (
-    <div className="grid grid-cols-2 gap-4">
-        <StatCard title="Territoires disponibles" count={territories.filter(t => t.status === "AVAILABLE").length} />
-        <StatCard title="Territoires en retard" count={territories.filter(t => t.status === "LATE").length} />
-        <StatCard title="Territoires en attente" count={territories.filter(t => t.status === "PENDING").length} />
-        <StatCard title="Territoires en circulation" count={territories.filter(t => t.status === "ASSIGNED").length} />
-    </div>
-);
+export const StatisticsOverview: React.FC = () => {
+    const dispatch = useDispatch();
+    const territories = useSelector((state: RootState) => state.territories.territoriesGeojson);
+
+    useEffect(() => {
+        if (!territories) {
+            dispatch(fetchTerritories())
+        }
+    }, [dispatch, territories]);
+    return (
+        <div className="grid grid-cols-2 gap-4">
+            <StatCard title="Territoires disponibles" count={territories?.features.filter(f => f.properties.status === "AVAILABLE").length || 0} />
+            <StatCard title="Territoires en retard" count={territories?.features.filter(f => f.properties.status === "LATE").length || 0} />
+            <StatCard title="Territoires en attente" count={territories?.features.filter(f => f.properties.status === "PENDING").length || 0} />
+            <StatCard title="Territoires en circulation" count={territories?.features.filter(f => f.properties.status === "ASSIGNED").length || 0} />
+        </div>
+    );
+};
