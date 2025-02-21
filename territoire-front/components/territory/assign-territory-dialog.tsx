@@ -24,7 +24,7 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({ isOpen, o
     const handleAssign = () => {
         if (isFormValid) {
             onAssign(selectedPerson, newPerson);
-            onOpenChange(false); // Fermer le dialog après assignation
+            onOpenChange(false);
         }
     };
 

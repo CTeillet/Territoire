@@ -20,6 +20,12 @@ export interface Territory {
     note?: string | null;
 }
 
+export interface SimplifiedTerritory {
+    id: string;
+    name: string;
+    status: TerritoryStatus;
+}
+
 type PolygonType = "BLOCK" | "CONCAVE_HULL";
 
 export type TerritoryFeature = Feature<Polygon, Territory>;

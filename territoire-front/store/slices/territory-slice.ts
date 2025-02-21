@@ -1,6 +1,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import {Territory, TerritoryCollection} from "@/models/territory";
 import { format } from "date-fns";
+import {Assignment} from "@/models/assignment";
 
 type TerritoryState = {
     territoriesGeojson: TerritoryCollection | null,
@@ -18,6 +19,29 @@ const initialState: TerritoryState = {
     updating: false,
     error: null
 };
+
+
+// ✅ Action asynchrone pour assigner un territoire
+export const assignTerritory = createAsyncThunk(
+    "territories/assignTerritory",
+    async ({ territoryId, personId }: { territoryId: string; personId: string }, { rejectWithValue }) => {
+        try {
+            const response = await fetch(`/api/territoires/${territoryId}/attribuer/${personId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+
+            if (!response.ok) {
+                throw new Error("Erreur lors de l'assignation du territoire");
+            }
+
+            const assignment: Assignment = await response.json();
+            return assignment; // On retourne l'objet Assignment récupéré depuis le backend
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
 
 export const deleteTerritory = createAsyncThunk(
     "territories/deleteTerritory",
@@ -198,6 +222,37 @@ const territorySlice = createSlice({
                 if (state.selectedTerritory?.id === action.payload) {
                     state.selectedTerritory = null; // Supprime du state sélectionné si c'était lui
                 }
+            })
+
+            .addCase(assignTerritory.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(assignTerritory.fulfilled, (state, action) => {
+                state.loading = false;
+                const assignment = action.payload;
+                console.log(assignment);
+                console.log(state.territoriesGeojson);
+
+                // if (!state.territoriesGeojson || !assignment || !assignment.territory.id) {
+                //     console.error("❌ Problème : l'assignation ou le territoireId est undefined", assignment);
+                //     return;
+                // }
+
+                // ✅ Recherche du territoire correspondant dans `FeatureCollection`
+                const feature = state.territoriesGeojson?.features.find(
+                    (f) => f.properties.id === assignment.territory.id
+                );
+
+                if (feature) {
+                    feature.properties.status = "ASSIGNED";
+                    feature.properties.assignments = [assignment]; // Remplace l'assignation existante par la nouvelle
+                } else {
+                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${assignment.territory.id}`);
+                }
+            })
+            .addCase(assignTerritory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
             });
     },
 });

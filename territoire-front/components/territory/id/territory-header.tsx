@@ -150,7 +150,7 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
 
             {/* Actions */}
             <div className="mt-6 flex space-x-2 justify-start">
-                <TerritoryDataActionButtons id={territoryId} showDetails={false} status={status} />
+                <TerritoryDataActionButtons territoryId={territoryId} showDetails={false} status={status} />
             </div>
         </div>
     );

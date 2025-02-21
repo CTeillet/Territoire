@@ -4,10 +4,8 @@ import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.mapper.TerritoryMapper;
-import com.teillet.territoire.model.StatusHistory;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.BlockRepository;
-import com.teillet.territoire.repository.StatusHistoryRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +23,6 @@ import java.util.UUID;
 @Slf4j
 public class TerritoryService implements ITerritoryService {
 	private final TerritoryRepository territoryRepository;
-	private final StatusHistoryRepository statusHistoryRepository;
 	private final BlockRepository blockRepository;
 
 	@Override
@@ -44,18 +41,9 @@ public class TerritoryService implements ITerritoryService {
 	@Transactional
 	@Override
 	public void updateTerritoryStatus(Territory territory, TerritoryStatus newStatus) {
-		TerritoryStatus previousStatus = territory.getStatus();
 		territory.setStatus(newStatus);
 		territory.setLastModifiedDate(LocalDate.now());
 		territoryRepository.save(territory);
-
-		StatusHistory history = StatusHistory.builder()
-				.territory(territory)
-				.previousStatus(previousStatus)
-				.newStatus(newStatus)
-				.changeDate(LocalDate.now())
-				.build();
-		statusHistoryRepository.save(history);
 	}
 
 	@Scheduled(cron = "0 0 0 * * *")

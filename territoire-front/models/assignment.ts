@@ -1,9 +1,9 @@
-import {Territory} from "@/models/territory";
 import {Person} from "@/models/person";
+import {SimplifiedTerritory} from "@/models/territory";
 
 export interface Assignment {
     id: string;
-    territory: Territory;
+    territory: SimplifiedTerritory;
     person: Person;
     assignmentDate: Date;
     dueDate: Date;

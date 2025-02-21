@@ -8,16 +8,17 @@ import ReturnConfirmationDialog from "@/components/territory/return-confirmation
 import ActionButton from "@/components/shared/action-button";
 import { TerritoryStatus } from "@/models/territory-status";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchPersons } from "@/store/slices/person-slice";
+import {createPerson, fetchPersons } from "@/store/slices/person-slice";
 import { RootState } from "@/store/store";
+import {assignTerritory} from "@/store/slices/territory-slice";
 
 interface TerritoryDataActionButtonsProps {
-    id: string;
+    territoryId: string;
     showDetails?: boolean;
     status: TerritoryStatus;
 }
 
-export function TerritoryDataActionButtons({ id, status, showDetails = true }: TerritoryDataActionButtonsProps) {
+export function TerritoryDataActionButtons({ territoryId, status, showDetails = true }: TerritoryDataActionButtonsProps) {
     const dispatch = useDispatch();
 
     // ✅ Récupération des personnes depuis Redux
@@ -35,27 +36,45 @@ export function TerritoryDataActionButtons({ id, status, showDetails = true }: T
     }, [dispatch]);
 
     // 🔹 Fonction pour gérer l'assignation d'un territoire
-    const handleAssign = (personId: string | null) => {
-        console.log(`Territoire ${id} assigné à la personne ${personId}`);
+    const handleAssign = async (selectedPersonId: string | null, newPerson: { firstName: string; lastName: string }) => {
+        try {
+            let personId = selectedPersonId;
+
+            // 🚀 Si une nouvelle personne est créée, on attend la réponse du back
+            if (!selectedPersonId) {
+                const createdPerson = await dispatch(createPerson(newPerson)).unwrap();
+                personId = createdPerson.id;
+                console.log(`✅ Nouvelle personne créée: ${createdPerson.firstName} ${createdPerson.lastName}`);
+            }
+
+            // 🚀 Maintenant qu'on a une personne valide, on assigne le territoire
+            if (personId) {
+                await dispatch(assignTerritory({ territoryId: territoryId, personId })).unwrap();
+                console.log(`✅ Territoire ${territoryId} attribué à la personne ${personId}`);
+            }
+        } catch (error) {
+            console.error("❌ Erreur lors de l'assignation :", error);
+        }
+
         setIsDialogOpen(false);
-        // TODO : Appeler l'API pour assigner le territoire
     };
+
 
     // 🔹 Fonction pour gérer le retour du territoire
     const handleReturn = () => {
-        console.log(`Territoire ${id} retourné dans le stock`);
+        console.log(`Territoire ${territoryId} retourné dans le stock`);
         setIsReturnDialogOpen(false);
         // TODO : Appeler l'API pour retourner le territoire
     };
 
     return (
         <TooltipProvider>
-            <div className={`flex space-x-2 ${id ? "justify-center" : ""}`}>
+            <div className={`flex space-x-2 ${territoryId ? "justify-center" : ""}`}>
                 {showDetails && (
                     <ActionButton
                         icon={Eye}
                         tooltip="Voir les détails"
-                        href={`/territoires/${id}`}
+                        href={`/territoires/${territoryId}`}
                         className="bg-gray-500 hover:bg-gray-600 text-white"
                     />
                 )}

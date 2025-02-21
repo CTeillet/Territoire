@@ -5,21 +5,27 @@ import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class AssignmentService {
+public class AssignmentService implements IAssignmentService {
 	private final AssignmentRepository assignmentRepository;
 	private final TerritoryService territoryService;
+	private final IPersonService personService;
 
-
-	public Assignment assignTerritory(Territory territory, Person person) {
+	@Transactional
+	@Override
+	public Assignment assignTerritory(UUID territoryId, UUID personId) {
+		Person person = personService.getPerson(personId);
+		Territory territory = territoryService.getTerritory(territoryId);
 		if (territory.getStatus() != TerritoryStatus.AVAILABLE) {
 			throw new IllegalStateException("Territory is not available");
 		}
@@ -35,6 +41,8 @@ public class AssignmentService {
 		return assignmentRepository.save(assignment);
 	}
 
+	@Transactional
+	@Override
 	public void returnTerritory(Assignment assignment) {
 		assignment.setReturnDate(LocalDate.now());
 		assignmentRepository.save(assignment);

@@ -16,4 +16,7 @@ public interface IPersonService {
 
 	@Transactional
 	Person modifyPerson(UUID id, Person person);
+
+	@Transactional
+	Person getPerson(UUID personId);
 }

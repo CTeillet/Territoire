@@ -27,7 +27,7 @@ const AssignmentRow: React.FC<Assignment> = (assignment: Assignment) => (
             className="text-center">{(assignment.returnDate !== null) ? Intl.DateTimeFormat().format(assignment.returnDate) : "N/A"}</TableCell>
         <TableCell className="text-center">{personToString(assignment.person)}</TableCell>
         <TableCell className="text-center">
-            <TerritoryDataActionButtons id={assignment.territory.id} status={assignment.territory.status}/>
+            <TerritoryDataActionButtons territoryId={assignment.territory.id} status={assignment.territory.status}/>
         </TableCell>
     </TableRow>
 );

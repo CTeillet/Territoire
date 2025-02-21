@@ -1,8 +1,12 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
+import com.teillet.territoire.mapper.AssignmentMapper;
+import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Territory;
+import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,7 @@ import java.util.UUID;
 @Slf4j
 class TerritoryController {
 	private final ITerritoryService territoryService;
+	private final IAssignmentService assignmentService;
 
 	@GetMapping("/geojson")
 	public String getAllTerritories() throws IOException {
@@ -42,28 +47,36 @@ class TerritoryController {
 		return createdTerritory;
 	}
 
-	@GetMapping("{id}")
-	public TerritoryDto getTerritory(@PathVariable UUID id) throws IOException {
-		log.info("Début : Récupération du territoire {}", id);
+	@GetMapping("{territoryId}")
+	public TerritoryDto getTerritory(@PathVariable UUID territoryId) throws IOException {
+		log.info("Début : Récupération du territoire {}", territoryId);
 		log.info("Appel au service getTerritory");
-		TerritoryDto territory = territoryService.getTerritoryDto(id);
+		TerritoryDto territory = territoryService.getTerritoryDto(territoryId);
 		log.info("Fin : Récupération du territoire");
 		return territory;
 	}
 
-	@PutMapping("{id}")
-	public TerritoryDto modifyTerritory(@PathVariable UUID id, @RequestBody UpdateTerritoryDto updateDto) throws IOException {
-		log.info("Début : Modification du territoire, id {} : {}", id, updateDto);
+	@PutMapping("{territoryId}")
+	public TerritoryDto modifyTerritory(@PathVariable UUID territoryId, @RequestBody UpdateTerritoryDto updateDto) throws IOException {
+		log.info("Début : Modification du territoire, id {} : {}", territoryId, updateDto);
 		log.info("Appel au service updateTerritory");
-		TerritoryDto updatedTerritory = territoryService.updateTerritory(id, updateDto);
+		TerritoryDto updatedTerritory = territoryService.updateTerritory(territoryId, updateDto);
 		log.info("Fin : Modification du territoire");
 		return updatedTerritory;
 	}
 
-	@DeleteMapping("{id}")
-	public void deleteTerritory(@PathVariable UUID id) {
-		log.info("Début : Suppression Territoire : {}", id);
-		territoryService.deleteTerritory(id);
+	@DeleteMapping("{territoryId}")
+	public void deleteTerritory(@PathVariable UUID territoryId) {
+		log.info("Début : Suppression Territoire : {}", territoryId);
+		territoryService.deleteTerritory(territoryId);
 		log.info("Fin : Suppression Territoire");
+	}
+
+	@PostMapping("/{territoryId}/attribuer/{personId}")
+	public AssignmentDto assignTerritory(
+			@PathVariable UUID territoryId,
+			@PathVariable UUID personId) {
+		Assignment assignment = assignmentService.assignTerritory(territoryId, personId);
+		return AssignmentMapper.toDto(assignment);
 	}
 }

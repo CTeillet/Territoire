@@ -42,4 +42,11 @@ public class PersonService implements IPersonService {
 		System.out.println("Updating person in DB for id: " + id);
 		return personRepository.save(person);
 	}
+
+	@Transactional
+	@Override
+	public Person getPerson(UUID personId) {
+		return personRepository.findById(personId)
+				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
+	}
 }

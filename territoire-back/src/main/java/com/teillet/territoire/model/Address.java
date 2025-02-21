@@ -1,5 +1,6 @@
 package com.teillet.territoire.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,6 +26,7 @@ public class Address {
 
 	@ManyToOne
 	@JoinColumn(name = "territory_id")
+	@JsonBackReference
 	private Territory territory;
 
 }

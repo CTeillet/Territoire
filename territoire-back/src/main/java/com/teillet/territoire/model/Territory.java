@@ -40,8 +40,10 @@ public class Territory {
 	private Polygon concaveHull;
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
+	@JsonManagedReference
 	List<Address> addressNotToDo;
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
+	@JsonManagedReference
 	private List<Assignment> assignments = new ArrayList<>();
 }

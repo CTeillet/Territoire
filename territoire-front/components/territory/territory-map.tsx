@@ -98,7 +98,7 @@ const onEachFeature = (feature:  TerritoryFeature, layer: Layer) => {
 
             if (reactContainer) {
                 createRoot(reactContainer).render(
-                    <TerritoryDataActionButtons id={id} status={status}/>
+                    <TerritoryDataActionButtons territoryId={id} status={status}/>
                 );
 
                 // Attendre la fin du rendu React pour mettre à jour la taille du popup
