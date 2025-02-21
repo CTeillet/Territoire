@@ -1,11 +1,11 @@
 import StatCard from "@/components/dashboard/stat-card";
 import React, {useEffect} from "react";
-import {useDispatch, useSelector} from "react-redux";
-import {RootState} from "@/store/store";
+import {useSelector} from "react-redux";
+import {RootState, useAppDispatch} from "@/store/store";
 import {fetchTerritories} from "@/store/slices/territory-slice";
 
 export const StatisticsOverview: React.FC = () => {
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
     const territories = useSelector((state: RootState) => state.territories.territoriesGeojson);
 
     useEffect(() => {

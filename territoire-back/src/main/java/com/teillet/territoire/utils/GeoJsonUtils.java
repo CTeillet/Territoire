@@ -110,14 +110,14 @@ public class GeoJsonUtils {
 		}
 
 		// Extraction des coordonnées
-		List<List<Double>> firstRing = blockDTO.getCoordinates().get(0); // On prend le premier anneau (extérieur)
+		List<List<Double>> firstRing = blockDTO.getCoordinates().getFirst(); // On prend le premier anneau (extérieur).
 		List<Coordinate> coordinateList = firstRing.stream()
-				.map(coord -> new Coordinate(coord.get(0), coord.get(1))) // lng, lat -> Coordinate
+				.map(coord -> new Coordinate(coord.getFirst(), coord.get(1))) // lng, lat -> Coordinate
 				.collect(Collectors.toList());
 
 		// Vérification : Ajouter le premier point à la fin si nécessaire
-		if (!coordinateList.get(0).equals(coordinateList.get(coordinateList.size() - 1))) {
-			coordinateList.add(coordinateList.get(0)); // Ajoute le premier point à la fin
+		if (!coordinateList.getFirst().equals(coordinateList.getLast())) {
+			coordinateList.add(coordinateList.getFirst()); // Ajoute le premier point à la fin
 		}
 
 		// Conversion en tableau pour JTS

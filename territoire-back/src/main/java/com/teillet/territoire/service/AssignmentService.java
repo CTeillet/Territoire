@@ -75,4 +75,10 @@ public class AssignmentService implements IAssignmentService {
 		return assignmentRepository.findById(assignmentId)
 				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
 	}
+
+	@Override
+	public List<AssignmentDto> getLastAssignments() {
+		List<Assignment> assignmentsByAssignmentDateAfterOrReturnDateAfter = assignmentRepository.findAssignmentsByAssignmentDateAfterOrReturnDateAfter(LocalDate.now().minusDays(7), LocalDate.now().minusDays(7));
+		return assignmentsByAssignmentDateAfterOrReturnDateAfter.stream().map(AssignmentMapper::toDto).toList();
+	}
 }

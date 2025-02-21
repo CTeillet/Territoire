@@ -16,4 +16,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 	Optional<Assignment> findByReturnDateNullAndTerritory_Id(UUID id);
 
 	void deleteByTerritory_Id(UUID territoryId);
+
+	List<Assignment> findAssignmentsByAssignmentDateAfterOrReturnDateAfter(LocalDate assignmentDateAfter, LocalDate returnDateAfter);
 }

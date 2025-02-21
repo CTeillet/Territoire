@@ -24,67 +24,85 @@ const initialState: PersonState = {
 
 // 🔹 Thunk pour récupérer les personnes
 export const fetchPersons = createAsyncThunk(
-    'persons/fetchPersons',
-    async (_, {rejectWithValue}) => {
+    "persons/fetchPersons",
+    async (_, { rejectWithValue }) => {
+        const response = await fetch(BASE_URL);
+
+        // 🔹 Retourner immédiatement `rejectWithValue` au lieu de `throw`
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de la récupération des personnes");
+        }
+
         try {
-            const response = await fetch(BASE_URL);
-            if (!response.ok) throw new Error("Erreur lors de la récupération des personnes");
             return await response.json();
-        } catch (error: any) {
-            return rejectWithValue(error.message);
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
 
 // 🔹 Thunk pour créer une personne
-export const createPerson = createAsyncThunk(
+export const createPerson = createAsyncThunk<Person, Person | { firstName: string; lastName: string }>(
     "persons/createPerson",
-    async (newPerson: Person, {rejectWithValue}) => {
+    async (newPerson: Person | { firstName: string; lastName: string }, { rejectWithValue }) => {
+        const response = await fetch(BASE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newPerson),
+        });
+
+        // 🔹 Vérifie si la requête à échouer et retourne immédiatement `rejectWithValue`
+        if (!response.ok) {
+            return rejectWithValue("Échec de la création");
+        }
+
         try {
-            const response = await fetch(BASE_URL, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(newPerson),
-            });
-            if (!response.ok) throw new Error("Échec de la création");
             return await response.json(); // Retourne la personne créée
-        } catch (error: any) {
-            return rejectWithValue(error.message);
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
 
+
 // 🔹 Thunk pour supprimer une personne
 export const deletePerson = createAsyncThunk(
     "persons/deletePerson",
-    async (id: string, {rejectWithValue}) => {
-        try {
-            const response = await fetch(`${BASE_URL}/${id}`, {method: "DELETE"});
-            if (!response.ok) throw new Error("Échec de la suppression");
-            return id;
-        } catch (error: any) {
-            return rejectWithValue(error.message);
+    async (id: string, { rejectWithValue }) => {
+        const response = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
+
+        // 🔹 Vérifie si la requête a échoué et retourne immédiatement `rejectWithValue`
+        if (!response.ok) {
+            return rejectWithValue("Échec de la suppression");
         }
+
+        return id; // ✅ Retourne l'ID si la suppression a réussi
     }
 );
 
 // 🔹 Thunk pour modifier une personne
 export const updatePerson = createAsyncThunk(
     "persons/updatePerson",
-    async (updatedPerson: Person, {rejectWithValue}) => {
+    async (updatedPerson: Person, { rejectWithValue }) => {
+        const response = await fetch(`${BASE_URL}/${updatedPerson.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedPerson),
+        });
+
+        // 🔹 Vérifie si la requête à échouer et retourne immédiatement `rejectWithValue`
+        if (!response.ok) {
+            return rejectWithValue("Échec de la mise à jour");
+        }
+
         try {
-            const response = await fetch(`${BASE_URL}/${updatedPerson.id}`, {
-                method: "PUT",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(updatedPerson),
-            });
-            if (!response.ok) throw new Error("Échec de la mise à jour");
             return await response.json(); // Retourne la personne mise à jour
-        } catch (error: any) {
-            return rejectWithValue(error.message);
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
+
 
 const personSlice = createSlice({
     name: 'persons',
@@ -143,7 +161,7 @@ const personSlice = createSlice({
                 state.updating = false;
                 const index = state.persons.findIndex(p => p.id === action.payload.id);
                 if (index !== -1) {
-                    state.persons[index] = action.payload; // Met à jour la personne dans le state
+                    state.persons[index] = action.payload; // Met à jour la personne dans le store
                 }
             })
             .addCase(updatePerson.rejected, (state, action) => {

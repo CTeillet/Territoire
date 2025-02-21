@@ -23,45 +23,39 @@ const initialState: TerritoryState = {
 export const returnTerritory = createAsyncThunk(
     "territories/returnTerritory",
     async (territoryId: string, { rejectWithValue }) => {
+        const response = await fetch(`/api/territoires/${territoryId}/retour`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) {
+            return rejectWithValue(await response.text() || "Erreur lors du retour du territoire");
+        }
+
         try {
-            const response = await fetch(`/api/territoires/${territoryId}/retour`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(await response.text() || "Erreur lors du retour du territoire");
-            }
-
-
-             // On récupère l'`Assignment` mis à jour
             return await response.json();
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
 
-// ✅ Action asynchrone pour assigner un territoire
 export const assignTerritory = createAsyncThunk(
     "territories/assignTerritory",
     async ({ territoryId, personId }: { territoryId: string; personId: string }, { rejectWithValue }) => {
+        const response = await fetch(`/api/territoires/${territoryId}/attribuer/${personId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de l'assignation du territoire");
+        }
+
         try {
-            const response = await fetch(`/api/territoires/${territoryId}/attribuer/${personId}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            });
-
-            if (!response.ok) {
-                throw new Error("Erreur lors de l'assignation du territoire");
-            }
-
-            const assignment: Assignment = await response.json();
-            return assignment; // On retourne l'objet Assignment récupéré depuis le backend
-        } catch (error: any) {
-            return rejectWithValue(error.message);
+            return await response.json() as Assignment;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
@@ -69,92 +63,96 @@ export const assignTerritory = createAsyncThunk(
 export const deleteTerritory = createAsyncThunk(
     "territories/deleteTerritory",
     async (territoryId: string, { rejectWithValue }) => {
-        try {
-            const response = await fetch(`/api/territoires/${territoryId}`, {
-                method: "DELETE",
-            });
+        const response = await fetch(`/api/territoires/${territoryId}`, { method: "DELETE" });
 
-            if (!response.ok) throw new Error("Erreur lors de la suppression du territoire");
-
-            return territoryId; // On retourne l'ID pour le supprimer du store
-        } catch (error: any) {
-            return rejectWithValue(error.message);
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de la suppression du territoire");
         }
+
+        return territoryId;
     }
 );
 
-
-// ✅ Action asynchrone pour mettre à jour un territoire
 export const updateTerritory = createAsyncThunk(
     "territories/updateTerritory",
-    async (updatedTerritory: Partial<Territory>, { rejectWithValue}) => {
+    async (updatedTerritory: Partial<Territory>, { rejectWithValue }) => {
+        const response = await fetch(`/api/territoires/${updatedTerritory.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: updatedTerritory.name,
+                city: updatedTerritory.city,
+                note: updatedTerritory.note,
+            }),
+        });
+
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de la mise à jour du territoire");
+        }
+
         try {
-            const response = await fetch(`/api/territoires/${updatedTerritory.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: updatedTerritory.name,
-                    city: updatedTerritory.city,
-                    note: updatedTerritory.note,
-                }),
-            });
-
-            if (!response.ok) throw new Error("Erreur lors de la mise à jour du territoire");
-
-            // ✅ Si la mise à jour réussit, on récupère le territoire à jour
             return await response.json();
-        } catch (error: any) {
-            return rejectWithValue(error.message);
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
 
-// Thunk pour récupérer les territoires depuis l'API en format GeoJSON
 export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
     "territories/fetchGeoJson",
-    async (_, {rejectWithValue}) => {
+    async (_, { rejectWithValue }) => {
+        const response = await fetch("/api/territoires/geojson");
+
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de la récupération des territoires (GeoJSON)");
+        }
+
         try {
-            const response = await fetch("/api/territoires/geojson");
-            if (!response.ok) throw new Error("Erreur lors de la récupération des territoires (GeoJSON)");
             return await response.json();
         } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Erreur inconnue");
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
 
-
-// Thunk pour ajouter un territoire via l'API
 export const addTerritory = createAsyncThunk(
     "territories/add",
-    async ({name}: { name: string }, {rejectWithValue}) => {
+    async ({ name }: { name: string }, { rejectWithValue }) => {
+        const response = await fetch("/api/territoires", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name }),
+        });
+
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de l'ajout du territoire");
+        }
+
         try {
-            const response = await fetch("/api/territoires", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({name}),
-            });
-            if (!response.ok) throw new Error("Erreur lors de l'ajout du territoire");
             return await response.json();
         } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Erreur inconnue");
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
 
-// Thunk pour récupérer un territoire par ID
 export const fetchTerritoryById = createAsyncThunk<Territory, string>(
     "territories/fetchById",
-    async (id, {rejectWithValue}) => {
+    async (id, { rejectWithValue }) => {
+        const response = await fetch(`/api/territoires/${id}`);
+
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de la récupération du territoire");
+        }
+
         try {
-            const response = await fetch(`/api/territoires/${id}`);
-            if (!response.ok) throw new Error("Erreur lors de la récupération du territoire");
             return await response.json();
         } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Erreur inconnue");
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
     }
 );
+
 
 const territorySlice = createSlice({
     name: "territories",
@@ -243,7 +241,7 @@ const territorySlice = createSlice({
                 }
 
                 if (state.selectedTerritory?.id === action.payload) {
-                    state.selectedTerritory = null; // Supprime du state sélectionné si c'était lui
+                    state.selectedTerritory = null; // Supprime du store sélectionné si c'était lui
                 }
             })
 

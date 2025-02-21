@@ -5,7 +5,7 @@ export interface Assignment {
     id: string;
     territory: SimplifiedTerritory;
     person: Person;
-    assignmentDate: Date;
-    dueDate: Date;
-    returnDate: Date | null;
+    assignmentDate: string;
+    dueDate: string;
+    returnDate: string | null;
 }

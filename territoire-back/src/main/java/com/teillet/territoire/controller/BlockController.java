@@ -4,7 +4,6 @@ import com.teillet.territoire.dto.BlockDto;
 import com.teillet.territoire.model.Block;
 import com.teillet.territoire.service.BlockService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;

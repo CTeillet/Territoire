@@ -1,11 +1,13 @@
 package com.teillet.territoire.repository;
 
+import com.teillet.territoire.dto.TerritoryStatisticsDto;
 import com.teillet.territoire.model.Territory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -22,5 +24,12 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
 			         group by territory_id)
 			where territory.id = :id;
 			""")
-	int updateConcaveHullTerritory(UUID id);
+	void updateConcaveHullTerritory(UUID id);
+
+	@Query(value = """
+        SELECT t.status AS status, COUNT(*) AS total
+        FROM Territory t
+        GROUP BY t.status
+    """)
+	List<TerritoryStatisticsDto> getCurrentTerritoryStats();
 }

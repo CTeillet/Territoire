@@ -11,7 +11,7 @@ interface AssignTerritoryDialogProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     people: Person[];
-    onAssign: (personId: string | null, newPerson?: { firstName: string; lastName: string }) => void;
+    onAssign: (personId: string | null, newPerson: { firstName: string; lastName: string }) => void;
 }
 
 const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({ isOpen, onOpenChange, people, onAssign }) => {

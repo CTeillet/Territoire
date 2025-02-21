@@ -7,10 +7,11 @@ import AssignTerritoryDialog from "@/components/territory/assign-territory-dialo
 import ReturnConfirmationDialog from "@/components/territory/return-confirmation-dialog";
 import ActionButton from "@/components/shared/action-button";
 import { TerritoryStatus } from "@/models/territory-status";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import {createPerson, fetchPersons } from "@/store/slices/person-slice";
-import { RootState } from "@/store/store";
+import {RootState, useAppDispatch} from "@/store/store";
 import {assignTerritory, returnTerritory} from "@/store/slices/territory-slice";
+import {Person} from "@/models/person";
 
 interface TerritoryDataActionButtonsProps {
     territoryId: string;
@@ -19,7 +20,7 @@ interface TerritoryDataActionButtonsProps {
 }
 
 export function TerritoryDataActionButtons({ territoryId, status, showDetails = true }: TerritoryDataActionButtonsProps) {
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
 
     // ✅ Récupération des personnes depuis Redux
     const { persons, loading, error } = useSelector((state: RootState) => state.persons);
@@ -40,14 +41,13 @@ export function TerritoryDataActionButtons({ territoryId, status, showDetails = 
         try {
             let personId = selectedPersonId;
 
-            // 🚀 Si une nouvelle personne est créée, on attend la réponse du back
+            // Si une nouvelle personne est créée, on attend la réponse du backend
             if (!selectedPersonId) {
-                const createdPerson = await dispatch(createPerson(newPerson)).unwrap();
+                const createdPerson: Person = await dispatch(createPerson(newPerson)).unwrap();
                 personId = createdPerson.id;
                 console.log(`✅ Nouvelle personne créée: ${createdPerson.firstName} ${createdPerson.lastName}`);
             }
 
-            // 🚀 Maintenant qu'on a une personne valide, on assigne le territoire
             if (personId) {
                 await dispatch(assignTerritory({ territoryId: territoryId, personId })).unwrap();
                 console.log(`✅ Territoire ${territoryId} attribué à la personne ${personId}`);

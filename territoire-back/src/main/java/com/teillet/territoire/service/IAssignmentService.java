@@ -4,6 +4,7 @@ import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.model.Assignment;
 import jakarta.transaction.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface IAssignmentService {
@@ -14,4 +15,6 @@ public interface IAssignmentService {
 	AssignmentDto returnTerritory(UUID assignment);
 
 	Assignment getAssignment(UUID assignmentId);
+
+	List<AssignmentDto> getLastAssignments();
 }

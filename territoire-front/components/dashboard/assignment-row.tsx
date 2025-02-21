@@ -12,22 +12,23 @@ const getBadgeColor = (status: boolean) => {
         return "bg-blue-500";
     }
 };
+
 const AssignmentRow: React.FC<Assignment> = (assignment: Assignment) => (
     <TableRow>
         <TableCell className="text-center">{assignment.territory?.name}</TableCell>
-        <TableCell className="flex justify-center">
+        <TableCell >
             <Badge className={`${getBadgeColor(assignment.returnDate === null)} text-white px-2 py-1 rounded w-full `}>
-                {assignment.returnDate === null ? "ATTRIBUÉ" : "RENDUE"}
+                {assignment.returnDate === null ? "ATTRIBUÉ" : "RENDU"}
             </Badge>
         </TableCell>
-        <TableCell className="text-center">{Intl.DateTimeFormat().format(assignment.assignmentDate)}</TableCell>
+        <TableCell className="text-center">{assignment.assignmentDate}</TableCell>
         <TableCell
-            className="text-center">{(assignment.dueDate !== null) ? Intl.DateTimeFormat().format(assignment.dueDate) : "N/A"}</TableCell>
+            className="text-center">{(assignment.dueDate !== null) ? assignment.dueDate : "N/A"}</TableCell>
         <TableCell
-            className="text-center">{(assignment.returnDate !== null) ? Intl.DateTimeFormat().format(assignment.returnDate) : "N/A"}</TableCell>
+            className="text-center">{(assignment.returnDate !== null) ? assignment.returnDate : "N/A"}</TableCell>
         <TableCell className="text-center">{personToString(assignment.person)}</TableCell>
-        <TableCell className="text-center">
-            <TerritoryDataActionButtons territoryId={assignment.territory.id} status={assignment.territory.status}/>
+        <TableCell >
+            <TerritoryDataActionButtons territoryId={assignment.territory.territoryId} status={assignment.territory.status}/>
         </TableCell>
     </TableRow>
 );

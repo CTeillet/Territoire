@@ -7,8 +7,8 @@ import {LatLng, LatLngBoundsExpression, Layer, LeafletEvent, Map} from "leaflet"
 import {PolygonProperties, Territory} from "@/models/territory";
 import {Feature, FeatureCollection, Polygon} from "geojson";
 import {GeomanControl} from "@/components/territory/id/geoman-controls";
-import {useDispatch} from "react-redux";
 import {fetchTerritoryById} from "@/store/slices/territory-slice";
+import {useAppDispatch} from "@/store/store";
 
 interface GeomanCreateEvent extends LeafletEvent {
     layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
@@ -19,7 +19,7 @@ const defaultCenter: LatLngBoundsExpression = [[48.695874, 2.367055], [48.695874
 
 const TerritoryMap = ({territory}: { territory: Territory }) => {
     const mapRef = useRef<Map | null>(null);
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
     const [geoJsonData, setGeoJsonData] = useState<FeatureCollection<Polygon, PolygonProperties> | null>(null);
 
     const [blockFeatures, setBlockFeatures] = useState<FeatureCollection>({
@@ -29,10 +29,16 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
 
     const [geoJsonKey, setGeoJsonKey] = useState(0);
 
-    const concaveHullFeature = useMemo(() => ({
-        type: "FeatureCollection",
-        features: geoJsonData?.features?.filter((feature) => feature.properties.type === "CONCAVE_HULL") || [],
-    }), [geoJsonData?.features]);
+    const concaveHullFeature = useMemo(
+        () =>
+            ({
+                type: "FeatureCollection",
+                features: geoJsonData?.features?.filter(
+                    (feature) => feature.properties.type === "CONCAVE_HULL"
+                ) || [],
+            } as FeatureCollection<Polygon, PolygonProperties>), // 🔹 Ajout du cast explicite
+        [geoJsonData?.features]
+    );
 
     const concaveHullCoords = useMemo(() => {
         if (concaveHullFeature.features.length > 0) {
@@ -88,23 +94,20 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
     };
 
     const handleDeleteBlock = async (blockId: string) => {
-        try {
-            const response = await fetch(`/api/territories/${territory.id}/blocks/${blockId}`, {
-                method: "DELETE",
-            });
+        const response = await fetch(`/api/territories/${territory.id}/blocks/${blockId}`, {
+            method: "DELETE",
+        });
 
-            if (!response.ok) {
-                throw new Error("Erreur lors de la suppression du block");
-            }
-
-            console.log(`✅ Block supprimé: ${blockId}`);
-
-            // Rafraîchir le territoire dans Redux pour récupérer la mise à jour
-            dispatch(fetchTerritoryById(territory.id));
-            setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
-        } catch (error) {
-            console.error("❌ Erreur lors de la suppression du bloc :", error);
+        if (!response.ok) {
+            console.error("❌ Erreur lors de la suppression du bloc :", await response.text());
+            return;
         }
+
+        console.log(`✅ Block supprimé: ${blockId}`);
+
+        // Rafraîchir le territoire dans Redux pour récupérer la mise à jour
+        dispatch(fetchTerritoryById(territory.id));
+        setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
     };
 
 
@@ -117,30 +120,25 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
             coordinates: [layer.getLatLngs()[0].map((latlng: LatLng) => [latlng.lng, latlng.lat])],
         };
 
-        try {
-            // Envoi au backend
-            const response = await fetch(`/api/territories/${territory.id}/blocks`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(newPolygon),
-            });
+        const response = await fetch(`/api/territories/${territory.id}/blocks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newPolygon),
+        });
 
-            if (!response.ok) {
-                console.log("response",response)
-                throw new Error("Erreur lors de l'ajout du block");
-            }
-
-            // Rafraîchir le territoire dans Redux
-            dispatch(fetchTerritoryById(territory.id));
-            setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
-
-        } catch (error) {
-            console.error("Erreur lors de l'ajout du bloc:", error);
+        if (!response.ok) {
+            console.error("❌ Erreur lors de l'ajout du bloc :", await response.text());
+            return;
         }
+
+        // Rafraîchir le territoire dans Redux
+        dispatch(fetchTerritoryById(territory.id));
+        setGeoJsonKey((prevKey) => prevKey + 1); // Force le re-render
 
         // Supprimer immédiatement le polygone du layer d'édition
         layer.remove();
     };
+
 
     const onEachBlock = (feature: Feature, layer: Layer) => {
         if (!feature.properties) return;

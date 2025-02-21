@@ -93,7 +93,7 @@ const onEachFeature = (feature:  TerritoryFeature, layer: Layer) => {
 
         // Attendre que le popup s'affiche avant d'insérer React
         layer.on("popupopen", (e: PopupEvent) => {
-            const popup = e.popup; // Récupérer l'instance de le popup Leaflet
+            const popup = e.popup; // Récupérer l'instance des pop-up Leaflet
             const reactContainer = document.getElementById(`react-popup-${id}`);
 
             if (reactContainer) {
