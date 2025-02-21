@@ -1,11 +1,21 @@
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, CheckCircleIcon, CheckIcon, EditIcon, MapPinIcon, XIcon } from "lucide-react";
-import { getBadgeColor, PERSONS_MOCK } from "@/components/territory/territory-data-columns";
+import {CalendarIcon, CheckCircleIcon, CheckIcon, EditIcon, MapPinIcon, TrashIcon, XIcon} from "lucide-react";
+import { getBadgeColor } from "@/components/territory/territory-data-columns";
 import { STATUS_TRANSLATIONS, TerritoryStatus } from "@/models/territory-status";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
-import { useEffect, useState } from "react";
-import { Person } from "@/models/person";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import {useDispatch} from "react-redux";
+import {AppDispatch} from "@/store/store";
+import {deleteTerritory, updateTerritory} from "@/store/slices/territory-slice";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel,
+    AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
+import {useRouter} from "next/navigation";
 
 interface TerritoryHeaderProps {
     territoryId: string;
@@ -17,89 +27,85 @@ interface TerritoryHeaderProps {
 }
 
 const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territoryId }: TerritoryHeaderProps) => {
-    const [persons, setPersons] = useState<Person[]>([]);
+    const dispatch = useDispatch<AppDispatch>();
+    const router = useRouter();
 
-    // États principaux (valeurs validées)
-    const [editableName, setEditableName] = useState<string>(name);
-    const [editableCity, setEditableCity] = useState<string>(city);
-    const [editableNote, setEditableNote] = useState<string>(note ?? "");
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    // États temporaires pour l'édition
-    const [tempName, setTempName] = useState<string>(name);
-    const [tempCity, setTempCity] = useState<string>(city);
-    const [tempNote, setTempNote] = useState<string>(note ?? "");
-
-    const [isEditing, setIsEditing] = useState<boolean>(false);
-
-    useEffect(() => {
-        const fetchPersons = () => {
-            setTimeout(() => {
-                setPersons(PERSONS_MOCK);
-            });
-        };
-
-        fetchPersons();
-    }, []);
+    // États pour l'édition
+    const [tempName, setTempName] = useState(name);
+    const [tempCity, setTempCity] = useState(city);
+    const [tempNote, setTempNote] = useState(note ?? "");
+    const [isEditing, setIsEditing] = useState(false);
 
     // Sauvegarde des modifications
     const handleSave = () => {
-        setEditableName(tempName);
-        setEditableCity(tempCity);
-        setEditableNote(tempNote);
+        dispatch(updateTerritory({ id: territoryId, name: tempName, city: tempCity, note: tempNote }));
         setIsEditing(false);
-        //TODO : appeler l'API pour mettre à jour les données
-        console.log("Données mises à jour :", { tempName, tempCity, tempNote });
     };
 
-    // Annulation des modifications (on remet les valeurs validées)
-    const handleCancel = () => {
-        setTempName(editableName);
-        setTempCity(editableCity);
-        setTempNote(editableNote);
-        setIsEditing(false);
+    const handleDelete = () => {
+        dispatch(deleteTerritory(territoryId)).then((action) => {
+            if (deleteTerritory.fulfilled.match(action)) {
+                router.push("/territoires"); // ✅ Redirige après suppression réussie
+            }
+        });
     };
 
     return (
         <div className="mb-4 p-6 max-w-4xl mx-auto bg-gray-100 rounded-lg shadow-lg">
-            {/* Ligne contenant le nom et le bouton d'édition */}
+            {/* Nom et édition */}
             <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center">
                     <CheckCircleIcon className="mr-2 text-blue-500" />
                     {isEditing ? (
-                        <Input
-                            value={tempName}
-                            onChange={(e) => setTempName(e.target.value)}
-                            className="w-full"
-                        />
+                        <Input value={tempName} onChange={(e) => setTempName(e.target.value)} className="w-full" />
                     ) : (
-                        <h1 className="text-3xl font-bold text-gray-900">{editableName}</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">{name}</h1>
                     )}
                 </div>
 
-                {/* Boutons d'édition et de validation */}
+                {/* Boutons d'édition et validation */}
                 <div className="flex items-center space-x-2">
                     {isEditing ? (
                         <>
-                            <button
-                                className="bg-green-500 p-2 rounded-full hover:bg-green-600 transition"
-                                onClick={handleSave}
-                            >
+                            <button className="bg-green-500 p-2 rounded-full hover:bg-green-600 transition" onClick={handleSave}>
                                 <CheckIcon className="w-5 h-5 text-white" />
                             </button>
-                            <button
-                                className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition"
-                                onClick={handleCancel}
-                            >
+                            <button className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition" onClick={() => setIsEditing(false)}>
                                 <XIcon className="w-5 h-5 text-white" />
                             </button>
                         </>
                     ) : (
-                        <button
-                            className="bg-gray-300 p-2 rounded-full hover:bg-gray-400 transition"
-                            onClick={() => setIsEditing(true)}
-                        >
-                            <EditIcon className="w-5 h-5 text-gray-800" />
-                        </button>
+                        <>
+                            <button className="bg-gray-300 p-2 rounded-full hover:bg-gray-400 transition" onClick={() => setIsEditing(true)}>
+                                <EditIcon className="w-5 h-5 text-gray-800" />
+                            </button>
+                            <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                <AlertDialogTrigger asChild>
+                                    <button className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition">
+                                        <TrashIcon className="w-5 h-5 text-white" />
+                                    </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Supprimer ce territoire ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Cette action est irréversible. Le territoire sera définitivement supprimé.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={handleDelete}
+                                            className="bg-red-500 hover:bg-red-600 text-white"
+                                        >
+                                            Supprimer
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </>
                     )}
                 </div>
             </div>
@@ -110,13 +116,9 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
                 <span className="font-semibold mr-2 flex-shrink-0">Ville :</span>
                 <div className="flex-grow min-w-0">
                     {isEditing ? (
-                        <Input
-                            value={tempCity}
-                            onChange={(e) => setTempCity(e.target.value)}
-                            className="w-full"
-                        />
+                        <Input value={tempCity} onChange={(e) => setTempCity(e.target.value)} className="w-full" />
                     ) : (
-                        <span className="truncate">{editableCity}</span>
+                        <span className="truncate">{city}</span>
                     )}
                 </div>
             </div>
@@ -132,35 +134,23 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
             {/* Dernière modification */}
             {lastModifiedDate && (
                 <p className="text-gray-500 flex items-center mb-1">
-                    <CalendarIcon className="mr-2 text-gray-500" /> ⏳ Dernière modification :{" "}
-                    {lastModifiedDate}
+                    <CalendarIcon className="mr-2 text-gray-500" /> ⏳ Dernière modification : {lastModifiedDate}
                 </p>
             )}
 
             {/* Note modifiable */}
-            <div className="mt-6">
-                <div className="mt-4 p-3 border-l-4 border-blue-500 bg-blue-50 rounded">
-                    <h3 className="text-lg font-semibold">Note :</h3>
-
-                    {isEditing ? (
-                        <div className="flex items-center space-x-2">
-                            <Input
-                                value={tempNote}
-                                onChange={(e) => setTempNote(e.target.value)}
-                                className="w-full"
-                            />
-                        </div>
-                    ) : (
-                        <div className="relative">
-                            <p className="text-gray-700">{editableNote || "Aucune note"}</p>
-                        </div>
-                    )}
-                </div>
+            <div className="mt-6 p-3 border-l-4 border-blue-500 bg-blue-50 rounded">
+                <h3 className="text-lg font-semibold">Note :</h3>
+                {isEditing ? (
+                    <Input value={tempNote} onChange={(e) => setTempNote(e.target.value)} className="w-full" />
+                ) : (
+                    <p className="text-gray-700">{note || "Aucune note"}</p>
+                )}
             </div>
 
             {/* Actions */}
-            <div className="mt-6">
-                <TerritoryDataActionButtons people={persons} id={territoryId} showDetails={false} status={status}/>
+            <div className="mt-6 flex space-x-2 justify-start">
+                <TerritoryDataActionButtons id={territoryId} showDetails={false} status={status} />
             </div>
         </div>
     );

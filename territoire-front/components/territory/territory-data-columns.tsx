@@ -83,7 +83,7 @@ export const territoryDataColumns: ColumnDef<Territory>[] = [
         accessorKey: "actions",
         header: "Actions",
         cell: ({row}) => {
-            return <TerritoryDataActionButtons id={row.getValue("id")} people={PERSONS_MOCK} status={row.original.status}/>
+            return <TerritoryDataActionButtons id={row.getValue("id")} status={row.original.status}/>
         },
 
     },

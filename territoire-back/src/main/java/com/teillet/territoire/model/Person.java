@@ -18,8 +18,6 @@ public class Person {
 
 	private String firstName;
 	private String lastName;
-	@Column(nullable = true)
 	private String phoneNumber;
-	@Column(nullable = true)
 	private String email;
 }

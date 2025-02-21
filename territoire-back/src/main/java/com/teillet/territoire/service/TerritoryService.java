@@ -1,8 +1,12 @@
 package com.teillet.territoire.service;
 
+import com.teillet.territoire.dto.TerritoryDto;
+import com.teillet.territoire.dto.UpdateTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
+import com.teillet.territoire.mapper.TerritoryMapper;
 import com.teillet.territoire.model.StatusHistory;
 import com.teillet.territoire.model.Territory;
+import com.teillet.territoire.repository.BlockRepository;
 import com.teillet.territoire.repository.StatusHistoryRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import jakarta.transaction.Transactional;
@@ -11,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -18,9 +23,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class TerritoryService implements ITerritoryService{
+public class TerritoryService implements ITerritoryService {
 	private final TerritoryRepository territoryRepository;
 	private final StatusHistoryRepository statusHistoryRepository;
+	private final BlockRepository blockRepository;
 
 	@Override
 	public List<Territory> getAllTerritories() {
@@ -71,9 +77,16 @@ public class TerritoryService implements ITerritoryService{
 				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
 	}
 
+	@Override
+	public TerritoryDto getTerritoryDto(UUID id) throws IOException {
+		Territory territory = territoryRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
+		return TerritoryMapper.toDto(territory);
+	}
+
 	@Transactional
 	@Override
-	public Territory updateConcaveHull(UUID territoryId) {
+	public void updateConcaveHull(UUID territoryId) {
 		log.info("Début : Mise à jour de la concave hull");
 
 		log.info("Mise à jour de la concave hull du territoire {}", territoryId);
@@ -81,8 +94,30 @@ public class TerritoryService implements ITerritoryService{
 
 		log.info("Récupération du territoire mis à jour");
 		Territory result = getTerritory(territoryId);
+		result.setLastModifiedDate(LocalDate.now());
+		territoryRepository.save(result);
 
 		log.info("Fin : Mise à jour de la concave hull");
-		return result;
+	}
+
+	@Override
+	public TerritoryDto updateTerritory(UUID id, UpdateTerritoryDto updateDto) throws IOException {
+		Territory territory = getTerritory(id);
+		territory.setLastModifiedDate(LocalDate.now());
+		// ✅ Mise à jour des champs modifiables
+		territory.setName(updateDto.getName());
+		territory.setCity(updateDto.getCity());
+		territory.setNote(updateDto.getNote());
+
+		return TerritoryMapper.toDto(territoryRepository.save(territory));
+	}
+
+	@Override
+	@Transactional
+	public void deleteTerritory(UUID territoryId) {
+		log.info("Suppression des pâtés appartenant au territoire {}", territoryId);
+		blockRepository.deleteBlockByTerritory_Id(territoryId);
+		log.info("Suppression du territoire {}", territoryId);
+		territoryRepository.deleteById(territoryId);
 	}
 }

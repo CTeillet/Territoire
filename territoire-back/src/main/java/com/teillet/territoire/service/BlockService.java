@@ -46,9 +46,8 @@ public class BlockService {
 	}
 
 	@Transactional
-	public long removeBlockTerritory(UUID territoryId, UUID blockId){
-		long res = blockRepository.deleteByIdAndTerritory_Id(blockId, territoryId);
+	public void removeBlockTerritory(UUID territoryId, UUID blockId){
+		blockRepository.deleteByIdAndTerritory_Id(blockId, territoryId);
 		territoryService.updateConcaveHull(territoryId);
-		return res;
 	}
 }

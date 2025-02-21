@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import React, {useMemo} from "react";
 import {TerritoryCollection, TerritoryFeature} from "@/models/territory";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
-import {getBadgeColor, PERSONS_MOCK} from "@/components/territory/territory-data-columns";
+import {getBadgeColor} from "@/components/territory/territory-data-columns";
 import {TerritoryDataActionButtons} from "@/components/shared/territory-data-action-buttons";
 import {createRoot} from "react-dom/client";
 import {Layer, PathOptions, PopupEvent} from "leaflet";
@@ -13,6 +13,8 @@ import {Feature, Geometry} from "geojson";
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), {ssr: false});
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), {ssr: false});
 const GeoJSON = dynamic(() => import("react-leaflet").then((mod) => mod.GeoJSON), {ssr: false});
+
+const defaultCenter: [number, number]  = [48.695874, 2.367055];
 
 
 interface TerritoryCollectionProps {
@@ -34,14 +36,16 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({geoJsonData}) => {
 };
 
 const calculateCenter = (geoJsonData: TerritoryCollection): [number, number] => {
-    if (!geoJsonData || geoJsonData.features.length === 0) return [0, 0];
+    if (!geoJsonData || geoJsonData.features.length === 0 || geoJsonData.features.filter(value => value.geometry).length == 0) return defaultCenter;
 
     let sumLat = 0;
     let sumLng = 0;
     let count = 0;
 
-
+    console.log(geoJsonData)
     geoJsonData.features.filter(value => value.geometry).forEach((feature) => {
+        if (feature.geometry.coordinates.length == 0) return;
+
         if (feature.geometry.type === "Polygon") {
             // Un seul ensemble de coordonnées pour un Polygone
             feature.geometry.coordinates[0].forEach(([lng, lat]) => {
@@ -95,7 +99,7 @@ const onEachFeature = (feature:  TerritoryFeature, layer: Layer) => {
 
             if (reactContainer) {
                 createRoot(reactContainer).render(
-                    <TerritoryDataActionButtons id={id} people={PERSONS_MOCK} status={status}/>
+                    <TerritoryDataActionButtons id={id} status={status}/>
                 );
 
                 // Attendre la fin du rendu React pour mettre à jour la taille du popup
