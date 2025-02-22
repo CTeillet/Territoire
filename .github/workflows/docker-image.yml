@@ -23,13 +23,13 @@ jobs:
 
       - name: Build and Push Backend Image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/territoire-back:latest ./territoire-back
-          docker push ghcr.io/${{ github.repository_owner }}/territoire-back:latest
+          docker build -t ghcr.io/cteillet/territoire-back:latest ./territoire-back
+          docker push ghcr.io/cteillet/territoire-back:latest
 
       - name: Build and Push Frontend Image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/territoire-front:latest ./territoire-front
-          docker push ghcr.io/${{ github.repository_owner }}/territoire-front:latest
+          docker build -t ghcr.io/cteillet/territoire-front:latest ./territoire-front
+          docker push ghcr.io/cteillet/territoire-front:latest
 
   deploy:
     name: Deploy to VPS
@@ -57,7 +57,7 @@ jobs:
           password: ${{ secrets.VPS_SSH_PASSWORD }}
           script: |
             docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
-            docker pull ghcr.io/${{ github.repository_owner }}/territoire-back:latest
-            docker pull ghcr.io/${{ github.repository_owner }}/territoire-front:latest
+            docker pull ghcr.io/cteillet/territoire-back:latest
+            docker pull ghcr.io/cteillet/territoire-front:latest
             cd /home/${{ secrets.VPS_SSH_ID }}/territoire
             docker-compose up -d --force-recreate
