@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Copy docker-compose.yml to VPS
         uses: appleboy/scp-action@master
@@ -50,7 +50,7 @@ jobs:
           target: "/home/${{ secrets.VPS_SSH_ID }}/territoire/"
 
       - name: Connect to VPS and Deploy
-        uses: appleboy/ssh-action@v0.1.10
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_SSH_ID }}
@@ -60,4 +60,4 @@ jobs:
             docker pull ghcr.io/cteillet/territoire-back:latest
             docker pull ghcr.io/cteillet/territoire-front:latest
             cd /home/${{ secrets.VPS_SSH_ID }}/territoire
-            docker-compose up -d --force-recreate
+            docker compose up -d --force-recreate
