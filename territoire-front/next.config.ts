@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
         return [
             {
                 source: "/api/:path*", // Capture toutes les requêtes vers /api/*
-                destination: "http://localhost:8080/api/:path*", // Redirige vers ton backend Spring Boot
+                destination: "${process.env.API_URL}/api/:path*", // Redirige vers ton backend Spring Boot
             },
         ];
     },
