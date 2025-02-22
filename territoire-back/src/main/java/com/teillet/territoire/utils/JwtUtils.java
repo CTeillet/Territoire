@@ -5,16 +5,27 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import java.security.Key;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.Base64;
 import java.util.Date;
 
 @Component
-public class JwtUtil {
-	private static final String SECRET_KEY = "supersecretkeysupersecretkeysupersecretkey"; // À sécuriser
-	private static final long EXPIRATION_TIME = 86400000; // 24 heures
+public class JwtUtils {
+	private final long expirationTime;
 
-	private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+	private final Key key;
+
+	public JwtUtils(
+			@Value("${jwt.secret}") String secretKey,
+			@Value("${jwt.expiration}") long expirationTime
+	) {
+		// Décoder et sécuriser la clé secrète
+		byte[] keyBytes = Base64.getDecoder().decode(secretKey);
+		this.key = Keys.hmacShaKeyFor(keyBytes);
+		this.expirationTime = expirationTime;
+	}
 
 	/**
 	 * Génère un token JWT pour un utilisateur donné (email).
@@ -23,7 +34,7 @@ public class JwtUtil {
 		return Jwts.builder()
 				.setSubject(email) // L'email sera utilisé comme "identité"
 				.setIssuedAt(new Date()) // Date de création
-				.setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)) // Expiration
+				.setExpiration(new Date(System.currentTimeMillis() + expirationTime)) // Expiration
 				.signWith(key, SignatureAlgorithm.HS256) // Signature sécurisée avec la clé
 				.compact();
 	}

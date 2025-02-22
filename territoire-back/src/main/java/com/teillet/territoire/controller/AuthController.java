@@ -2,7 +2,7 @@ package com.teillet.territoire.controller;
 
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.service.UserService;
-import com.teillet.territoire.utils.JwtUtil;
+import com.teillet.territoire.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class AuthController {
 	private final UserService userService;
 	private final AuthenticationManager authenticationManager;
-	private final JwtUtil jwtUtil;
+	private final JwtUtils jwtUtils;
 
 	// 🔹 Endpoint de connexion (Login)
 	@PostMapping("/login")
@@ -33,7 +33,7 @@ public class AuthController {
 		}
 
 		User user = userService.findByEmail(email).orElseThrow();
-		String token = jwtUtil.generateToken(email);
+		String token = jwtUtils.generateToken(email);
 
 		return ResponseEntity.ok(Map.of("user", user, "token", token));
 	}
@@ -50,7 +50,7 @@ public class AuthController {
 		}
 
 		User user = userService.registerUser(email, password, username);
-		String token = jwtUtil.generateToken(email);
+		String token = jwtUtils.generateToken(email);
 
 		return ResponseEntity.ok(Map.of("user", user, "token", token));
 	}

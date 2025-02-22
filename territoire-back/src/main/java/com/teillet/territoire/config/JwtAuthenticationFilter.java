@@ -1,6 +1,6 @@
 package com.teillet.territoire.config;
 
-import com.teillet.territoire.utils.JwtUtil;
+import com.teillet.territoire.utils.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +20,7 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-	private final JwtUtil jwtUtil;
+	private final JwtUtils jwtUtils;
 	private final UserDetailsService userDetailsService; // Remplace UserService
 
 	@Override
@@ -35,12 +35,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		}
 
 		String token = authHeader.substring(7);
-		String email = jwtUtil.extractEmail(token);
+		String email = jwtUtils.extractEmail(token);
 
 		if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 			UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-			if (jwtUtil.validateToken(token)) {
+			if (jwtUtils.validateToken(token)) {
 				UsernamePasswordAuthenticationToken authToken =
 						new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
