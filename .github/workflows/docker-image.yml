@@ -56,7 +56,7 @@ jobs:
           username: ${{ secrets.VPS_SSH_ID }}
           password: ${{ secrets.VPS_SSH_PASSWORD }}
           script: |
-            docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
+            docker login ghcr.io -u cteillet --password ${{ secrets.GITHUB_TOKEN }}
             docker pull ghcr.io/cteillet/territoire-back:latest
             docker pull ghcr.io/cteillet/territoire-front:latest
             cd /home/${{ secrets.VPS_SSH_ID }}/territoire
