@@ -1,0 +1,59 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main  # Change selon ta branche principale
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and Push Backend Image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/territoire-back:latest ./territoire-back
+          docker push ghcr.io/${{ github.repository_owner }}/territoire/territoire-back:latest
+
+      - name: Build and Push Frontend Image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/territoire-front:latest ./territoire-front
+          docker push ghcr.io/${{ github.repository_owner }}/territoire/territoire-front:latest
+
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Copy docker-compose.yml to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_SSH_ID }}
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          source: "docker-compose.yml"
+          target: "/home/${{ secrets.VM_USER }}/territoire/"
+
+      - name: Connect to VPS and Deploy
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_SSH_ID }}
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          script: |
+            docker login ghcr.io -u ${{ github.actor }} --password ${{ secrets.GHCR_PAT }}
+            docker pull ghcr.io/${{ github.repository_owner }}/territoire-back:latest
+            docker pull ghcr.io/${{ github.repository_owner }}/territoire-front:latest
+            cd /home/${{ secrets.VM_USER }}/territoire
+            docker-compose up -d --force-recreate
