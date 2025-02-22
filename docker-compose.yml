@@ -26,6 +26,7 @@ services:
     ports:
       - "8080:8080"
 
+
   territoire-front:
     image: ghcr.io/cteillet/territoire/territoire-front:latest
     container_name: territoire-front
