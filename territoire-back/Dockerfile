@@ -6,6 +6,11 @@ WORKDIR /app
 # Copier les fichiers Maven pour le cache des dépendances
 COPY pom.xml mvnw ./
 COPY .mvn .mvn
+
+# Donner les droits d'exécution à mvnw
+RUN chmod +x mvnw
+
+# Télécharger les dépendances pour le cache Maven
 RUN ./mvnw dependency:go-offline
 
 # Copier le code source et compiler
