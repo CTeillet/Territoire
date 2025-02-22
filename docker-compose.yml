@@ -7,12 +7,35 @@ services:
     restart: always
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: territoire
     ports:
       - "5432:5432"
     volumes:
       - postgis_data:/var/lib/postgresql/data
+
+  territoire-back:
+    image: ghcr.io/cteillet/territoire/territoire-back:latest
+    container_name: territoire-back
+    restart: always
+    depends_on:
+      - postgis
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    ports:
+      - "8080:8080"
+
+  territoire-front:
+    image: ghcr.io/cteillet/territoire/territoire-front:latest
+    container_name: territoire-front
+    restart: always
+    depends_on:
+      - territoire-back
+    environment:
+      NEXT_PUBLIC_API_URL: http://territoire-back:8080
+    ports:
+      - "3000:3000"
 
 volumes:
   postgis_data:
