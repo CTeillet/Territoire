@@ -64,14 +64,14 @@ export const territoryDataColumns: ColumnDef<Territory>[] = [
 export const getBadgeColor = (status: TerritoryStatus) => {
     switch (status) {
         case "AVAILABLE":
-            return "bg-purple-500";  // 🟣 Violet
+            return "bg-purple-500"; // Reste inchangé
         case "ASSIGNED":
-            return "bg-orange-500";  // 🟠 Orange
+            return "bg-green-500"; // Jaune doré
         case "LATE":
-            return "bg-pink-500";    // 🔴 Rose
+            return "bg-pink-500"; // Reste inchangé
         case "PENDING":
-            return "bg-amber-700";   // 🟤 Brun
+            return "bg-blue-500"; // Bleu vif
         default:
-            return "bg-gray-500";    // ⚫ Gris
+            return "bg-gray-500";
     }
 };

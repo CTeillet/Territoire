@@ -136,11 +136,11 @@ export const getBadgeColorTerritory = (status: TerritoryStatus) => {
         case "AVAILABLE":
             return "#9333ea";
         case "ASSIGNED":
-            return "#f97316";
+            return "#22c55e";
         case "LATE":
             return "#ec4899";
         case "PENDING":
-            return "#92400e";
+            return "#0ea5e9";
         default:
             return "#6b7280";
     }
