@@ -13,7 +13,7 @@ services:
       - postgis_data:/var/lib/postgresql/data
 
   territoire-back:
-    image: ghcr.io/cteillet/territoire/territoire-back:latest
+    image: ghcr.io/cteillet/territoire-back:latest
     container_name: territoire-back
     restart: always
     depends_on:
@@ -26,7 +26,7 @@ services:
 
 
   territoire-front:
-    image: ghcr.io/cteillet/territoire/territoire-front:latest
+    image: ghcr.io/cteillet/territoire-front:latest
     container_name: territoire-front
     restart: always
     depends_on:
