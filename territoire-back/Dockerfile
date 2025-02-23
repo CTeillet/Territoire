@@ -30,6 +30,7 @@ EXPOSE 8080
 
 # Définir des variables d'environnement pour la configuration
 ENV JAVA_OPTS="-Xms256m -Xmx512m"
+ENV SPRING_PROFILES_ACTIVE=docker
 
 # Commande pour lancer l'application
 CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
