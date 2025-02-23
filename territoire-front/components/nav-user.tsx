@@ -1,18 +1,27 @@
-import {Avatar, AvatarFallback} from "@/components/ui/avatar";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarMenuButton } from "./ui/sidebar";
-import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
-import {ChevronsUpDown, LogOut} from "lucide-react";
-import {useDispatch, useSelector} from "react-redux";
-import {RootState} from "@/store/store";
-import {logout} from "@/store/slices/auth-slice";
-import {useRouter} from "next/navigation";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ChevronsUpDown, LogOut } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import { logout } from "@/store/slices/auth-slice";
+import { useRouter } from "next/navigation";
+
 function NavUser() {
+    const [mounted, setMounted] = useState(false);
     const user = useSelector((state: RootState) => state.auth.user);
     const dispatch = useDispatch();
     const router = useRouter();
 
-    // Vérifier si l'utilisateur est défini et connecté
-    if (!user || !user.username || !user.email) return null;
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Attendre que le composant soit monté avant d'afficher quoi que ce soit
+    if (!mounted || !user || !user.username || !user.email) return null;
 
     const handleLogout = () => {
         dispatch(logout());
