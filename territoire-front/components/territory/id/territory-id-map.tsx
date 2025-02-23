@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {GeoJSON, LayerGroup, LayersControl, MapContainer, TileLayer} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import {LatLng, LatLngBoundsExpression, Layer, LeafletEvent, Map} from "leaflet";
@@ -10,6 +10,8 @@ import {GeomanControl} from "@/components/territory/id/geoman-controls";
 import {fetchTerritoryById} from "@/store/slices/territory-slice";
 import {useAppDispatch} from "@/store/store";
 import {authFetch} from "@/utils/auth-fetch";
+import MapUpdater from "@/components/territory/map-updater";
+import {useSidebar} from "@/components/ui/sidebar";
 
 interface GeomanCreateEvent extends LeafletEvent {
     layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
@@ -21,6 +23,8 @@ const defaultCenter: LatLngBoundsExpression = [[48.695874, 2.367055], [48.695874
 const TerritoryMap = ({territory}: { territory: Territory }) => {
     const mapRef = useRef<Map | null>(null);
     const dispatch = useAppDispatch();
+    const sidebar = useSidebar();
+
     const [geoJsonData, setGeoJsonData] = useState<FeatureCollection<Polygon, PolygonProperties> | null>(null);
 
     const [blockFeatures, setBlockFeatures] = useState<FeatureCollection>({
@@ -171,6 +175,8 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
             ref={mapRef} bounds={bounds} style={{height: "500px", width: "100%", zIndex: 0}}
             className="mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm"
         >
+            <MapUpdater isSidebarOpen={sidebar.state === "expanded"} /> {/* Ajout pour gérer la sidebar */}
+
             <LayersControl position="topright">
                 {/* Fonds de carte sélectionnables */}
                 <LayersControl.BaseLayer name="Carte OpenStreetMap" checked>

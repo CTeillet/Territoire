@@ -23,6 +23,7 @@ const TerritoryPage = () => {
     // Empêche le SSR pour éviter l'erreur d'hydration
     const [isClient, setIsClient] = useState(false);
 
+
     useEffect(() => {
         setIsClient(true); // On attend le chargement côté client
     }, []);
@@ -77,7 +78,7 @@ const TerritoryPage = () => {
             ) : (
                 <>
                     {/* Affichage de la carte avec les territoires en GeoJSON */}
-                    {territoriesGeojson && <TerritoryMap geoJsonData={territoriesGeojson} />}
+                    {territoriesGeojson && <TerritoryMap geoJsonData={territoriesGeojson}/>}
 
                     {/* Tableau des territoires */}
                     {territoriesGeojson && <DataTable columns={territoryDataColumns} data={territoriesGeojson.features.map(f => f.properties)} />}

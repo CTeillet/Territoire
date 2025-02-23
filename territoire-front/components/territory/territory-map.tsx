@@ -11,6 +11,8 @@ import {Layer, PathOptions, PopupEvent} from "leaflet";
 import {Feature, Geometry} from "geojson";
 import {Provider} from "react-redux";
 import {store} from "@/store/store";
+import MapUpdater from "@/components/territory/map-updater";
+import {useSidebar} from "@/components/ui/sidebar";
 
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), {ssr: false});
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), {ssr: false});
@@ -25,9 +27,11 @@ interface TerritoryCollectionProps {
 
 const TerritoryMap: React.FC<TerritoryCollectionProps> = ({geoJsonData}) => {
     const center = useMemo(() => calculateCenter(geoJsonData), [geoJsonData]);
+    const sidebar = useSidebar();
 
     return (
         <MapContainer center={center} zoom={15} style={{ height: "500px", width: "100%", zIndex: 0 }}>
+            <MapUpdater isSidebarOpen={sidebar.state === "expanded"} /> {/* Ajout pour gérer la sidebar */}
             <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
                 attribution='Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
