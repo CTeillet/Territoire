@@ -9,6 +9,8 @@ import {TerritoryDataActionButtons} from "@/components/shared/territory-data-act
 import {createRoot} from "react-dom/client";
 import {Layer, PathOptions, PopupEvent} from "leaflet";
 import {Feature, Geometry} from "geojson";
+import {Provider} from "react-redux";
+import {store} from "@/store/store";
 
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), {ssr: false});
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), {ssr: false});
@@ -98,7 +100,11 @@ const onEachFeature = (feature:  TerritoryFeature, layer: Layer) => {
 
             if (reactContainer) {
                 createRoot(reactContainer).render(
+                    <Provider store={store}>
+
                     <TerritoryDataActionButtons territoryId={id} status={status}/>
+                    </Provider>
+
                 );
 
                 // Attendre la fin du rendu React pour mettre à jour la taille du popup
