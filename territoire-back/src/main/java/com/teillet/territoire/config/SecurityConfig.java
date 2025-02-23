@@ -23,11 +23,11 @@ public class SecurityConfig {
 	private final UserDetailsService userDetailsService; // Injecte UserDetailsService
 	private final PasswordEncoder passwordEncoder;
 
-
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
+				.cors(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/**").permitAll() // Permet l'authentification
 						.anyRequest().authenticated() // Protège toutes les autres routes
