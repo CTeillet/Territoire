@@ -41,7 +41,7 @@ public class Territory {
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
 	@JsonManagedReference
-	List<Address> addressNotToDo;
+	List<AddressNotToDo> addressesNotToDo;
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
 	@JsonManagedReference

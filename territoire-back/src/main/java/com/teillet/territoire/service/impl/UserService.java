@@ -1,5 +1,6 @@
-package com.teillet.territoire.service;
+package com.teillet.territoire.service.impl;
 
+import com.teillet.territoire.dto.RegisterRequest;
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +22,12 @@ public class UserService implements UserDetailsService {
 		return userRepository.findByEmail(email);
 	}
 
-	public User registerUser(String email, String password, String username) {
+	public User registerUser(RegisterRequest request) {
 		User user = new User();
-		user.setEmail(email);
-		user.setPassword(passwordEncoder.encode(password));
-		user.setUsername(username);
+		user.setEmail(request.getEmail());
+		user.setPassword(passwordEncoder.encode(request.getPassword()));
+		user.setUsername(request.getUsername());
+		user.setRole(request.getRole());
 		return userRepository.save(user);
 	}
 

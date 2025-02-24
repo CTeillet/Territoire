@@ -1,4 +1,4 @@
-package com.teillet.territoire.service;
+package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
@@ -8,6 +8,7 @@ import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.BlockRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
+import com.teillet.territoire.service.ITerritoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

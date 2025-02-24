@@ -1,0 +1,1 @@
+export type Role = "ADMIN" | "UTILISATEUR" | "GESTIONNAIRE" | "SUPERVISEUR"

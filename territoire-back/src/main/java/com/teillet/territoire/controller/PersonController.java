@@ -4,6 +4,7 @@ import com.teillet.territoire.model.Person;
 import com.teillet.territoire.service.IPersonService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ class PersonController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public Person createPerson(@RequestBody Person person) {
 		log.info("Début : Création personne : {}", person);
 		Person personCreated = personService.createPerson(person);
@@ -33,6 +35,7 @@ class PersonController {
 	}
 
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public void deletePerson(@PathVariable UUID id) {
 		log.info("Début : Suppression personne : {}", id);
 		personService.deletePerson(id);
@@ -40,6 +43,7 @@ class PersonController {
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public Person modifyPerson(@PathVariable UUID id, @RequestBody Person person) {
 		log.info("Début : Modification personne, id {} : {}", id, person);
 		Person modifiedPerson = personService.modifyPerson(id, person);

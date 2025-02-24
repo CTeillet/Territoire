@@ -17,6 +17,7 @@ import Image from "next/image";
 import NavUser from "@/components/nav-user";
 import {useSelector} from "react-redux";
 import {RootState} from "@/store/store";
+import React from "react";
 
 // Menu items.
 const items = [

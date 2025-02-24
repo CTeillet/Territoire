@@ -2,16 +2,19 @@ package com.teillet.territoire.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "address")
-public class Address {
+@Table(name = "address_not_to_do")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class AddressNotToDo {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private UUID id;
@@ -23,6 +26,8 @@ public class Address {
 	private String zipCode;
 
 	private String city;
+
+	private LocalDate date;
 
 	@ManyToOne
 	@JoinColumn(name = "territory_id")

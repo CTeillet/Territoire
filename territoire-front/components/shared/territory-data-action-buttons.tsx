@@ -21,6 +21,8 @@ interface TerritoryDataActionButtonsProps {
 
 export function TerritoryDataActionButtons({ territoryId, status, showDetails = true }: TerritoryDataActionButtonsProps) {
     const dispatch = useAppDispatch();
+    const user = useSelector((state: RootState) => state.auth.user);
+
 
     // ✅ Récupération des personnes depuis Redux
     const { persons, loading, error } = useSelector((state: RootState) => state.persons);
@@ -74,7 +76,7 @@ export function TerritoryDataActionButtons({ territoryId, status, showDetails = 
     return (
         <TooltipProvider>
             <div className={`flex space-x-2 ${territoryId ? "justify-center" : ""}`}>
-                {showDetails && (
+                {showDetails &&(
                     <ActionButton
                         icon={Eye}
                         tooltip="Voir les détails"
@@ -83,7 +85,7 @@ export function TerritoryDataActionButtons({ territoryId, status, showDetails = 
                     />
                 )}
 
-                {showReturn && (
+                {showReturn && (user?.role === "ADMIN" || user?.role === "SUPERVISEUR" || user?.role === "GESTIONNAIRE") && (
                     <ActionButton
                         icon={Download}
                         tooltip="Retour du territoire dans le stock"
@@ -92,7 +94,7 @@ export function TerritoryDataActionButtons({ territoryId, status, showDetails = 
                     />
                 )}
 
-                {showAssign && (
+                {showAssign && (user?.role === "ADMIN" || user?.role === "SUPERVISEUR" || user?.role === "GESTIONNAIRE") && (
                     <ActionButton
                         icon={Upload}
                         tooltip="Assignation du territoire"

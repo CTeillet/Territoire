@@ -3,6 +3,7 @@ import {Territory, TerritoryCollection} from "@/models/territory";
 import {format} from "date-fns";
 import {Assignment} from "@/models/assignment";
 import {authFetch} from "@/utils/auth-fetch";
+import {AddressNotToDoDto} from "@/models/AddressNotToDoDto";
 
 type TerritoryState = {
     territoriesGeojson: TerritoryCollection | null,
@@ -157,6 +158,70 @@ export const fetchTerritoryById = createAsyncThunk<Territory, string>(
     }
 );
 
+export const addAddressNotToVisit = createAsyncThunk(
+    "territories/addAddressNotToVisit",
+    async ({ territoryId, address }: { territoryId: string; address: AddressNotToDoDto }, { rejectWithValue }) => {
+        try {
+            const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(address),
+            });
+
+            if (!response.ok) {
+                return rejectWithValue(`Erreur lors de l'ajout de l'adresse : ${response.statusText}`);
+            }
+
+            return await response.json(); // Retourne l'adresse ajoutée
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const modifyAddressNotToVisit = createAsyncThunk(
+    "territories/modifyAddressNotToVisit",
+    async (
+        { territoryId, address, addressId }: { territoryId: string; address: AddressNotToDoDto; addressId: string },
+        { rejectWithValue }
+    ) => {
+        try {
+            const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter/${addressId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(address),
+            });
+
+            if (!response.ok) {
+                return rejectWithValue(`Erreur lors de la modification de l'adresse : ${response.statusText}`);
+            }
+
+            return await response.json(); // Retourne l'adresse modifiée
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const deleteAddressNotToVisit = createAsyncThunk(
+    "territories/deleteAddressNotToVisit",
+    async ({ territoryId, addressId }: { territoryId: string; addressId: string }, { rejectWithValue }) => {
+        try {
+            const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter/${addressId}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                return rejectWithValue(`Erreur lors de la suppression de l'adresse : ${response.statusText}`);
+            }
+
+            return { territoryId, addressId }; // Retourne les IDs pour modifier le state
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
 
 const territorySlice = createSlice({
     name: "territories",
@@ -190,8 +255,9 @@ const territorySlice = createSlice({
                             name: action.payload.name,
                             status: action.payload.status,
                             lastModifiedDate: new Date().toISOString(),
+                            assignments: [],
                             city: "",
-                            addressNotToDo: [],
+                            addressesNotToDo: [],
                             geojson: "",
                         },
                         geometry: {
@@ -211,6 +277,8 @@ const territorySlice = createSlice({
             })
             .addCase(fetchTerritoryById.fulfilled, (state, action) => {
                 state.selectedTerritory = action.payload;
+                console.log(" recuperation territoire", state.selectedTerritory.addressesNotToDo)
+                console.log(" recuperation territoire2", state.selectedTerritory)
                 state.loading = false;
             })
             .addCase(fetchTerritoryById.rejected, (state, action) => {
@@ -255,7 +323,6 @@ const territorySlice = createSlice({
             .addCase(assignTerritory.fulfilled, (state, action) => {
                 state.loading = false;
                 const assignment = action.payload;
-
 
                 if (!state.territoriesGeojson || !assignment || !assignment.territory.territoryId) {
                     console.error("❌ Problème : l'assignation ou le territoireId est undefined", assignment);
@@ -312,7 +379,61 @@ const territorySlice = createSlice({
             .addCase(returnTerritory.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
+            })
+
+
+            .addCase(addAddressNotToVisit.pending, (state) => {
+                state.updating = true;
+                state.error = null;
+            })
+            .addCase(addAddressNotToVisit.fulfilled, (state, action) => {
+                state.updating = false;
+                if (state.selectedTerritory) {
+                    state.selectedTerritory.addressesNotToDo.push(action.payload);
+                }
+            })
+            .addCase(addAddressNotToVisit.rejected, (state, action) => {
+                state.updating = false;
+                state.error = action.payload as string;
+            })
+
+            // Modification d'une adresse à ne pas visiter
+            .addCase(modifyAddressNotToVisit.pending, (state) => {
+                state.updating = true;
+                state.error = null;
+            })
+            .addCase(modifyAddressNotToVisit.fulfilled, (state, action) => {
+                state.updating = false;
+                if (state.selectedTerritory) {
+                    const index = state.selectedTerritory.addressesNotToDo.findIndex(addr => addr.id === action.payload.id);
+                    if (index !== -1) {
+                        state.selectedTerritory.addressesNotToDo[index] = action.payload;
+                    }
+                }
+            })
+            .addCase(modifyAddressNotToVisit.rejected, (state, action) => {
+                state.updating = false;
+                state.error = action.payload as string;
+            })
+
+            // Suppression d'une adresse à ne pas visiter
+            .addCase(deleteAddressNotToVisit.pending, (state) => {
+                state.updating = true;
+                state.error = null;
+            })
+            .addCase(deleteAddressNotToVisit.fulfilled, (state, action) => {
+                state.updating = false;
+                if (state.selectedTerritory) {
+                    state.selectedTerritory.addressesNotToDo = state.selectedTerritory.addressesNotToDo.filter(
+                        (addr) => addr.id !== action.payload.addressId
+                    );
+                }
+            })
+            .addCase(deleteAddressNotToVisit.rejected, (state, action) => {
+                state.updating = false;
+                state.error = action.payload as string;
             });
+
     },
 });
 

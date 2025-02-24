@@ -1,14 +1,18 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.dto.AddAddressNotToDoDto;
 import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
+import com.teillet.territoire.model.AddressNotToDo;
 import com.teillet.territoire.model.Territory;
+import com.teillet.territoire.service.IAddressNotToDoService;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -22,6 +26,7 @@ import java.util.UUID;
 class TerritoryController {
 	private final ITerritoryService territoryService;
 	private final IAssignmentService assignmentService;
+	private final IAddressNotToDoService addressNotToDoService;
 
 	@GetMapping("/geojson")
 	public String getAllTerritories() throws IOException {
@@ -38,6 +43,7 @@ class TerritoryController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public Territory createTerritory(@RequestBody Territory territory) {
 		log.info("Début : Création du territoire : {}", territory.getName());
 		Territory createdTerritory = territoryService.saveTerritory(territory);
@@ -55,6 +61,7 @@ class TerritoryController {
 	}
 
 	@PutMapping("{territoryId}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public TerritoryDto modifyTerritory(@PathVariable UUID territoryId, @RequestBody UpdateTerritoryDto updateDto) throws IOException {
 		log.info("Début : Modification du territoire, id {} : {}", territoryId, updateDto);
 		log.info("Appel au service updateTerritory");
@@ -64,6 +71,7 @@ class TerritoryController {
 	}
 
 	@DeleteMapping("{territoryId}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public void deleteTerritory(@PathVariable UUID territoryId) {
 		log.info("Début : Suppression Territoire : {}", territoryId);
 		territoryService.deleteTerritory(territoryId);
@@ -71,6 +79,7 @@ class TerritoryController {
 	}
 
 	@PostMapping("/{territoryId}/attribuer/{personId}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
 	public AssignmentDto assignTerritory(
 			@PathVariable UUID territoryId,
 			@PathVariable UUID personId) {
@@ -78,7 +87,25 @@ class TerritoryController {
 	}
 
 	@PostMapping("/{territoryId}/retour")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
 	public AssignmentDto returnTerritory(@PathVariable UUID territoryId) {
 		return assignmentService.returnTerritory(territoryId);
+	}
+
+	@PostMapping("/{territoryId}/adresses-a-ne-pas-visiter")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public AddressNotToDo addAddressNotToDo(@PathVariable UUID territoryId, @RequestBody AddAddressNotToDoDto addressNotToDoDto) {
+		return addressNotToDoService.saveAddressNotToDo(territoryId, addressNotToDoDto);
+	}
+
+	@PutMapping("/{territoryId}/adresses-a-ne-pas-visiter/{addressId}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public AddressNotToDo addAddressNotToDo(@PathVariable UUID territoryId, @PathVariable UUID addressId, @RequestBody AddAddressNotToDoDto addressNotToDoDto) {
+		return addressNotToDoService.updateAddressNotToDo(territoryId, addressId, addressNotToDoDto);
+	}
+	@DeleteMapping("/{territoryId}/adresses-a-ne-pas-visiter/{addressId}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public void deleteAddressNotToDo(@PathVariable UUID territoryId, @PathVariable UUID addressId) {
+		addressNotToDoService.deleteAddressNotToDo(territoryId, addressId);
 	}
 }

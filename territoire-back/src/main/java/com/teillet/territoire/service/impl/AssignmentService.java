@@ -1,4 +1,4 @@
-package com.teillet.territoire.service;
+package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.enums.TerritoryStatus;
@@ -7,6 +7,8 @@ import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
+import com.teillet.territoire.service.IAssignmentService;
+import com.teillet.territoire.service.IPersonService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

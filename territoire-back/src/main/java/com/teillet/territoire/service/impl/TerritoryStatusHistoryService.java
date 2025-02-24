@@ -1,4 +1,4 @@
-package com.teillet.territoire.service;
+package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.TerritoryStatisticsDto;
 import com.teillet.territoire.dto.TerritoryStatusHistoryDto;
@@ -6,6 +6,7 @@ import com.teillet.territoire.mapper.TerritoryStatusHistoryMapper;
 import com.teillet.territoire.model.TerritoryStatusHistory;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.repository.TerritoryStatusHistoryRepository;
+import com.teillet.territoire.service.ITerritoryStatusHistoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;

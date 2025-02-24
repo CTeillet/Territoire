@@ -1,7 +1,8 @@
-package com.teillet.territoire.service;
+package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.repository.PersonRepository;
+import com.teillet.territoire.service.IPersonService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

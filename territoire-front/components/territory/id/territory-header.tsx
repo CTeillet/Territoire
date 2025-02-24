@@ -5,8 +5,8 @@ import { STATUS_TRANSLATIONS, TerritoryStatus } from "@/models/territory-status"
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import {useDispatch} from "react-redux";
-import {AppDispatch} from "@/store/store";
+import {useDispatch, useSelector} from "react-redux";
+import {AppDispatch, RootState} from "@/store/store";
 import {deleteTerritory, updateTerritory} from "@/store/slices/territory-slice";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -29,6 +29,8 @@ interface TerritoryHeaderProps {
 const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territoryId }: TerritoryHeaderProps) => {
     const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
+    const user = useSelector((state: RootState) => state.auth.user);
+
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -66,48 +68,53 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
                 </div>
 
                 {/* Boutons d'édition et validation */}
-                <div className="flex items-center space-x-2">
-                    {isEditing ? (
-                        <>
-                            <button className="bg-green-500 p-2 rounded-full hover:bg-green-600 transition" onClick={handleSave}>
-                                <CheckIcon className="w-5 h-5 text-white" />
-                            </button>
-                            <button className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition" onClick={() => setIsEditing(false)}>
-                                <XIcon className="w-5 h-5 text-white" />
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button className="bg-gray-300 p-2 rounded-full hover:bg-gray-400 transition" onClick={() => setIsEditing(true)}>
-                                <EditIcon className="w-5 h-5 text-gray-800" />
-                            </button>
-                            <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                                <AlertDialogTrigger asChild>
-                                    <button className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition">
-                                        <TrashIcon className="w-5 h-5 text-white" />
+                {
+                    user?.role === "ADMIN" || user?.role === "SUPERVISEUR" ? (
+                        <div className="flex items-center space-x-2">
+                            {isEditing ? (
+                                <>
+                                    <button className="bg-green-500 p-2 rounded-full hover:bg-green-600 transition" onClick={handleSave}>
+                                        <CheckIcon className="w-5 h-5 text-white" />
                                     </button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Supprimer ce territoire ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Cette action est irréversible. Le territoire sera définitivement supprimé.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                        <AlertDialogAction
-                                            onClick={handleDelete}
-                                            className="bg-red-500 hover:bg-red-600 text-white"
-                                        >
-                                            Supprimer
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </>
-                    )}
-                </div>
+                                    <button className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition" onClick={() => setIsEditing(false)}>
+                                        <XIcon className="w-5 h-5 text-white" />
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button className="bg-gray-300 p-2 rounded-full hover:bg-gray-400 transition" onClick={() => setIsEditing(true)}>
+                                        <EditIcon className="w-5 h-5 text-gray-800" />
+                                    </button>
+                                    <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                        <AlertDialogTrigger asChild>
+                                            <button className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition">
+                                                <TrashIcon className="w-5 h-5 text-white" />
+                                            </button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Supprimer ce territoire ?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Cette action est irréversible. Le territoire sera définitivement supprimé.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={handleDelete}
+                                                    className="bg-red-500 hover:bg-red-600 text-white"
+                                                >
+                                                    Supprimer
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </>
+                            )}
+                        </div>
+                    ) : <></>
+                }
+
             </div>
 
             {/* Ville modifiable */}

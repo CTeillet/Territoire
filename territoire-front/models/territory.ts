@@ -1,5 +1,5 @@
 import {TerritoryStatus} from "@/models/territory-status";
-import {Address} from "@/models/address";
+import {AddressNotToDo} from "@/models/addressNotToDo";
 import {Feature, FeatureCollection, Polygon} from "geojson";
 import {Assignment} from "@/models/assignment";
 
@@ -14,8 +14,8 @@ export interface Territory {
     status: TerritoryStatus;
     lastModifiedDate: string | null;
     city: string;
-    addressNotToDo?: Address[] | null;
-    assignments?: Assignment[] | null;
+    addressesNotToDo: AddressNotToDo[];
+    assignments: Assignment[];
     geojson: string;
     note?: string | null;
 }

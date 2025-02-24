@@ -1,33 +1,33 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState, AppDispatch } from "@/store/store";
-import { fetchTerritoryById } from "@/store/slices/territory-slice";
+import React, {useEffect} from "react";
+import {useParams, useRouter} from "next/navigation";
+import {useDispatch, useSelector} from "react-redux";
+import {AppDispatch, RootState} from "@/store/store";
+import {fetchTerritoryById} from "@/store/slices/territory-slice";
 import TerritoryHeader from "@/components/territory/id/territory-header";
 import AssignmentsList from "@/components/territory/id/assignments-list";
 import AddressNotToDoList from "@/components/territory/id/address-not-to-do-list";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import {Button} from "@/components/ui/button";
+import {ChevronLeft} from "lucide-react";
+import {useAuth} from "@/hooks/use-auth";
 
 // Chargement dynamique de la carte (évite les erreurs SSR)
 const TerritoryIdMap = dynamic(
     () => import("@/components/territory/id/territory-id-map"),
-    { ssr: false }
+    {ssr: false}
 );
 
 const TerritoryPage = () => {
-    const { id } = useParams();
+    const {id} = useParams();
     const dispatch = useDispatch<AppDispatch>();
-    const { isAuthenticated } = useAuth();
+    const {isAuthenticated} = useAuth();
     const router = useRouter();
 
     // Toujours exécuter les hooks avant toute condition
-    const { selectedTerritory, loading } = useSelector(
+    const {selectedTerritory, loading} = useSelector(
         (state: RootState) => state.territories
     );
 
@@ -60,7 +60,7 @@ const TerritoryPage = () => {
             {/* Bouton pour revenir à la liste des territoires */}
             <Link href="/territoires">
                 <Button variant="outline" className="flex items-center gap-2 mb-5">
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-5 h-5"/>
                     Retour
                 </Button>
             </Link>
@@ -76,16 +76,14 @@ const TerritoryPage = () => {
             />
 
             {/* Carte du territoire */}
-            <TerritoryIdMap territory={selectedTerritory} />
+            <TerritoryIdMap territory={selectedTerritory}/>
 
             {/* Liste des adresses à ne pas visiter */}
-            {selectedTerritory.addressNotToDo &&
-                selectedTerritory.addressNotToDo.length > 0 && (
-                    <AddressNotToDoList addresses={selectedTerritory.addressNotToDo} />
-                )}
+            <AddressNotToDoList/>
+
 
             {/* Liste des attributions */}
-            <AssignmentsList assignments={selectedTerritory.assignments || []} />
+            <AssignmentsList assignments={selectedTerritory.assignments || []}/>
         </div>
     );
 };

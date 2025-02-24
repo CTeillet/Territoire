@@ -1,9 +1,11 @@
-package com.teillet.territoire.service;
+package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.BlockDto;
 import com.teillet.territoire.model.Block;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.BlockRepository;
+import com.teillet.territoire.service.IBlockService;
+import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -16,11 +18,12 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class BlockService {
+public class BlockService implements IBlockService {
 	private final ITerritoryService territoryService;
 	private final BlockRepository blockRepository;
 
 	@Transactional
+	@Override
 	public Block addBlockToTerritory(UUID territoryId, BlockDto blockDTO) {
 		log.info("Début : Ajout d'un pâté au territoire");
 		log.info("Récupération du territoire");
@@ -46,6 +49,7 @@ public class BlockService {
 	}
 
 	@Transactional
+	@Override
 	public void removeBlockTerritory(UUID territoryId, UUID blockId){
 		blockRepository.deleteByIdAndTerritory_Id(blockId, territoryId);
 		territoryService.updateConcaveHull(territoryId);

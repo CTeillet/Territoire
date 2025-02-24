@@ -1,6 +1,8 @@
-package com.teillet.territoire.utils;
+package com.teillet.territoire.service.impl;
 
 
+import com.teillet.territoire.model.User;
+import com.teillet.territoire.service.IJwtService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import java.security.Key;
@@ -12,12 +14,12 @@ import java.util.Base64;
 import java.util.Date;
 
 @Component
-public class JwtUtils {
+public class JwtService implements IJwtService {
 	private final long expirationTime;
 
 	private final Key key;
 
-	public JwtUtils(
+	public JwtService(
 			@Value("${jwt.secret}") String secretKey,
 			@Value("${jwt.expiration}") long expirationTime
 	) {
@@ -30,18 +32,21 @@ public class JwtUtils {
 	/**
 	 * Génère un token JWT pour un utilisateur donné (email).
 	 */
-	public String generateToken(String email) {
+	@Override
+	public String generateToken(User user) {
 		return Jwts.builder()
-				.setSubject(email) // L'email sera utilisé comme "identité"
-				.setIssuedAt(new Date()) // Date de création
-				.setExpiration(new Date(System.currentTimeMillis() + expirationTime)) // Expiration
-				.signWith(key, SignatureAlgorithm.HS256) // Signature sécurisée avec la clé
+				.setSubject(user.getEmail())
+				.claim("role", user.getRole().name())
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + expirationTime * 60 * 60 * 10)) // 10h
+				.signWith(key, SignatureAlgorithm.HS256)
 				.compact();
 	}
 
 	/**
 	 * Extrait l'email (subject) du token JWT.
 	 */
+	@Override
 	public String extractEmail(String token) {
 		try {
 			Claims claims = Jwts.parserBuilder()
@@ -61,6 +66,7 @@ public class JwtUtils {
 	/**
 	 * Vérifie si le token est valide.
 	 */
+	@Override
 	public boolean validateToken(String token) {
 		try {
 			Jwts.parserBuilder()

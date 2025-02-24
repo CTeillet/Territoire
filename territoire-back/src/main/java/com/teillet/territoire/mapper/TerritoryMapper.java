@@ -16,7 +16,7 @@ public class TerritoryMapper {
 		territoryDto.setStatus(territory.getStatus());
 		territoryDto.setLastModifiedDate(territory.getLastModifiedDate().toString());
 		territoryDto.setCity(territory.getCity());
-		territoryDto.setAddressNotToDo(new ArrayList<>(territory.getAddressNotToDo()));
+		territoryDto.setAddressesNotToDo(new ArrayList<>(territory.getAddressesNotToDo()));
 		territoryDto.setAssignments(new ArrayList<>(territory.getAssignments()));
 		territoryDto.setNote(territory.getNote());
 		territoryDto.setGeojson(convertToGeoJSON(territory.getBlocks(), territory.getConcaveHull()));
