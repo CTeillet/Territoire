@@ -12,6 +12,18 @@ services:
     volumes:
       - postgis_data:/var/lib/postgresql/data
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_container
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: teillet.corentin@gmail.com  # Remplace par ton email
+      PGADMIN_DEFAULT_PASSWORD: ${PG_ADMIN_PASSWORD}  # Défini dans ton fichier d'environnement
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgis
+
   territoire-back:
     image: ghcr.io/cteillet/territoire-back:latest
     container_name: territoire-back
