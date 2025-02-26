@@ -19,6 +19,11 @@ public class AssignmentController {
 
 	@GetMapping("/dernieres")
 	public List<AssignmentDto> getLastAssignments() {
-		return assignmentService.getLastAssignments();
+		log.info("Requête reçue : GET /api/attributions/dernieres");
+
+		List<AssignmentDto> assignments = assignmentService.getLastAssignments();
+
+		log.info("Réponse envoyée : {} attributions trouvées", assignments.size());
+		return assignments;
 	}
 }

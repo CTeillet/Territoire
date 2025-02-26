@@ -12,6 +12,7 @@ import com.teillet.territoire.service.IPersonService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AssignmentService implements IAssignmentService {
 	private final AssignmentRepository assignmentRepository;
 	private final TerritoryService territoryService;
@@ -80,7 +82,17 @@ public class AssignmentService implements IAssignmentService {
 
 	@Override
 	public List<AssignmentDto> getLastAssignments() {
-		List<Assignment> assignmentsByAssignmentDateAfterOrReturnDateAfter = assignmentRepository.findAssignmentsByAssignmentDateAfterOrReturnDateAfter(LocalDate.now().minusDays(7), LocalDate.now().minusDays(7));
-		return assignmentsByAssignmentDateAfterOrReturnDateAfter.stream().map(AssignmentMapper::toDto).toList();
+		log.debug("Début de récupération des dernières attributions");
+
+		List<Assignment> assignments = assignmentRepository.findAssignmentsByAssignmentDateAfterOrReturnDateAfter(LocalDate.now().minusDays(7), LocalDate.now().minusDays(7));
+
+		log.debug("Attributions récupérées : {}", assignments.size());
+
+		List<AssignmentDto> assignmentDtos = assignments.stream()
+				.map(AssignmentMapper::toDto)
+				.toList();
+
+		log.info("Conversion en DTO terminée : {} résultats", assignmentDtos.size());
+		return assignmentDtos;
 	}
 }
