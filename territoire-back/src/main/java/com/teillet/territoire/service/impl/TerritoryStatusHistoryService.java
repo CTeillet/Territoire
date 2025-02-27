@@ -1,6 +1,6 @@
 package com.teillet.territoire.service.impl;
 
-import com.teillet.territoire.dto.TerritoryStatisticsDto;
+import com.teillet.territoire.dto.TerritoryStatisticsProjection;
 import com.teillet.territoire.dto.TerritoryStatusHistoryDto;
 import com.teillet.territoire.mapper.TerritoryStatusHistoryMapper;
 import com.teillet.territoire.model.TerritoryStatusHistory;
@@ -23,13 +23,13 @@ public class TerritoryStatusHistoryService implements ITerritoryStatusHistorySer
 	@Scheduled(cron = "0 0 0 * * *") // Exécution chaque jour à minuit
 	@Transactional
 	public void recordDailyStatistics() {
-		List<TerritoryStatisticsDto> stats = territoryRepository.getCurrentTerritoryStats();
+		List<TerritoryStatisticsProjection> stats = territoryRepository.getCurrentTerritoryStats();
 
 		// Initialisation des valeurs par défaut
 		int available = 0, late = 0, pending = 0, assigned = 0;
 
 		// Parcours des résultats et assignation des valeurs
-		for (TerritoryStatisticsDto stat : stats) {
+		for (TerritoryStatisticsProjection stat : stats) {
 			switch (stat.getStatus()) {
 				case AVAILABLE -> available = stat.getTotal();
 				case LATE -> late = stat.getTotal();

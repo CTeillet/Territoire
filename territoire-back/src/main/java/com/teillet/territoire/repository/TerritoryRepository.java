@@ -1,6 +1,6 @@
 package com.teillet.territoire.repository;
 
-import com.teillet.territoire.dto.TerritoryStatisticsDto;
+import com.teillet.territoire.dto.TerritoryStatisticsProjection;
 import com.teillet.territoire.model.Territory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -31,5 +31,5 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
         FROM Territory t
         GROUP BY t.status
     """)
-	List<TerritoryStatisticsDto> getCurrentTerritoryStats();
+	List<TerritoryStatisticsProjection> getCurrentTerritoryStats();
 }
