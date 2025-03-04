@@ -99,38 +99,33 @@ public class ExcelExportService implements IExcelExportService {
 		Row row1 = sheet.createRow(startRow);
 		Row row2 = sheet.createRow(startRow + 1);
 
-		// "Terr. no" fusionné sur 2 lignes
-		Cell cell = row1.createCell(0);
-		cell.setCellValue("Terr. no");
-		cell.setCellStyle(headerStyle);
-		sheet.addMergedRegion(new CellRangeAddress(startRow, startRow + 1, 0, 0));
+		// Appliquer une hauteur plus grande aux lignes d'en-tête
+		row1.setHeightInPoints(25);
+		row2.setHeightInPoints(25);
 
-		// "Parcouru pour la dernière fois le*" fusionné sur 2 lignes
-		cell = row1.createCell(1);
-		cell.setCellValue("Parcouru pour la dernière fois le*");
-		cell.setCellStyle(headerStyle);
-		sheet.addMergedRegion(new CellRangeAddress(startRow, startRow + 1, 1, 1));
+		// "Terr. no" fusionné sur 2 lignes avec bordures
+		createStyledCell(sheet, row1, row2, 0, "Terr. no", headerStyle);
 
-		// Fusion des titres "Attribué à" sur 2 colonnes
+		// "Parcouru pour la dernière fois le*" fusionné sur 2 lignes avec retour à la ligne et bordures
+		CellStyle wrappedHeaderStyle = createWrappedHeaderStyle(sheet.getWorkbook());
+		createStyledCell(sheet, row1, row2, 1, "Parcouru pour la\ndernière fois le*", wrappedHeaderStyle);
+
+		// Fusion des titres "Attribué à" sur 2 colonnes avec bordures
 		int colStart = 2;
 		for (int i = 0; i < 4; i++) {
-			cell = row1.createCell(colStart);
-			cell.setCellValue("Attribué à");
-			cell.setCellStyle(headerStyle);
-			sheet.addMergedRegion(new CellRangeAddress(startRow, startRow, colStart, colStart + 1));
+			createStyledCell(sheet, row1, null, colStart, "Attribué à", headerStyle);
+			CellRangeAddress mergedRegion = new CellRangeAddress(startRow, startRow, colStart, colStart + 1);
+			sheet.addMergedRegion(mergedRegion);
+			applyBordersToMergedRegion(sheet, mergedRegion, headerStyle);
 
-			// Ajout des sous-colonnes
-			cell = row2.createCell(colStart);
-			cell.setCellValue("Attribué le");
-			cell.setCellStyle(headerStyle);
-
-			cell = row2.createCell(colStart + 1);
-			cell.setCellValue("Entièrement parcouru le");
-			cell.setCellStyle(headerStyle);
+			// Ajout des sous-colonnes avec bordures
+			createStyledCell(sheet, row2, null, colStart, "Attribué le", headerStyle);
+			createStyledCell(sheet, row2, null, colStart + 1, "Entièrement parcouru le", headerStyle);
 
 			colStart += 2;
 		}
 	}
+
 
 	private void createMergedCell(Sheet sheet, Row row1, Row row2, int col, String value, CellStyle style) {
 		Cell cell = row1.createCell(col);
@@ -174,4 +169,70 @@ public class ExcelExportService implements IExcelExportService {
 		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		return style;
 	}
+
+	private void createStyledCell(Sheet sheet, Row row1, Row row2, int col, String value, CellStyle style) {
+		Cell cell = row1.createCell(col);
+		cell.setCellValue(value);
+		cell.setCellStyle(style);
+		applyBorders(cell);
+
+		if (row2 != null) {
+			Cell cell2 = row2.createCell(col);
+			cell2.setCellStyle(style);
+			applyBorders(cell2);
+
+			// Fusionner verticalement
+			CellRangeAddress mergedRegion = new CellRangeAddress(row1.getRowNum(), row2.getRowNum(), col, col);
+			sheet.addMergedRegion(mergedRegion);
+
+			// Appliquer les bordures après fusion
+			applyBordersToMergedRegion(sheet, mergedRegion, style);
+		}
+	}
+
+
+	private void applyBorders(Cell cell) {
+		CellStyle style = cell.getCellStyle();
+		if (style == null) {
+			style = cell.getSheet().getWorkbook().createCellStyle();
+		}
+		style.setBorderTop(BorderStyle.THIN);
+		style.setBorderBottom(BorderStyle.THIN);
+		style.setBorderLeft(BorderStyle.THIN);
+		style.setBorderRight(BorderStyle.THIN);
+		cell.setCellStyle(style);
+	}
+
+
+	private CellStyle createWrappedHeaderStyle(Workbook workbook) {
+		CellStyle style = workbook.createCellStyle();
+		style.setAlignment(HorizontalAlignment.CENTER);
+		style.setVerticalAlignment(VerticalAlignment.CENTER);
+		style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		style.setWrapText(true); // Activation du retour à la ligne
+		style.setBorderTop(BorderStyle.THIN);
+		style.setBorderBottom(BorderStyle.THIN);
+		style.setBorderLeft(BorderStyle.THIN);
+		style.setBorderRight(BorderStyle.THIN);
+		return style;
+	}
+
+	private void applyBordersToMergedRegion(Sheet sheet, CellRangeAddress region, CellStyle borderStyle) {
+		for (int row = region.getFirstRow(); row <= region.getLastRow(); row++) {
+			Row sheetRow = sheet.getRow(row);
+			if (sheetRow == null) {
+				sheetRow = sheet.createRow(row);
+			}
+
+			for (int col = region.getFirstColumn(); col <= region.getLastColumn(); col++) {
+				Cell cell = sheetRow.getCell(col);
+				if (cell == null) {
+					cell = sheetRow.createCell(col);
+				}
+				cell.setCellStyle(borderStyle);
+			}
+		}
+	}
+
 }
