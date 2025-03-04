@@ -68,7 +68,7 @@ const TerritoryPage = () => {
             {/* Header du territoire */}
             <TerritoryHeader
                 name={selectedTerritory.name}
-                city={selectedTerritory.city}
+                city={selectedTerritory.city.name}
                 status={selectedTerritory.status}
                 lastModifiedDate={selectedTerritory.lastModifiedDate}
                 note={selectedTerritory.note}

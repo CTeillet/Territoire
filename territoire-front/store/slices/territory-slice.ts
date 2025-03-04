@@ -86,7 +86,6 @@ export const updateTerritory = createAsyncThunk(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name: updatedTerritory.name,
-                city: updatedTerritory.city,
                 note: updatedTerritory.note,
             }),
         });
@@ -122,11 +121,11 @@ export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
 
 export const addTerritory = createAsyncThunk(
     "territories/add",
-    async ({ name }: { name: string }, { rejectWithValue }) => {
+    async ({ name, cityId }: { name: string, cityId:string }, { rejectWithValue }) => {
         const response = await authFetch(`${BASE_URL}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name }),
+            body: JSON.stringify({ name: name, cityId:cityId }),
         });
 
         if (!response.ok) {
@@ -256,7 +255,10 @@ const territorySlice = createSlice({
                             status: action.payload.status,
                             lastModifiedDate: new Date().toISOString(),
                             assignments: [],
-                            city: "",
+                            city: {
+                                id: action.payload.city.id,
+                                name: action.payload.city.name,
+                            },
                             addressesNotToDo: [],
                             geojson: "",
                         },

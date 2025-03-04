@@ -7,6 +7,7 @@ import { login } from "@/store/slices/auth-slice";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {authFetch} from "@/utils/auth-fetch";
+import {Label} from "@/components/ui/label";
 
 const LoginPage = () => {
     const router = useRouter();
@@ -55,7 +56,7 @@ const LoginPage = () => {
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium">Email</label>
+                        <Label className="block text-sm font-medium">Email</Label>
                         <Input
                             type="email"
                             value={email}
@@ -64,7 +65,7 @@ const LoginPage = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium">Mot de passe</label>
+                        <Label className="block text-sm font-medium">Mot de passe</Label>
                         <Input
                             type="password"
                             value={password}

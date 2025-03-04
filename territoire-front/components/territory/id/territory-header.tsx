@@ -36,13 +36,12 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
 
     // États pour l'édition
     const [tempName, setTempName] = useState(name);
-    const [tempCity, setTempCity] = useState(city);
     const [tempNote, setTempNote] = useState(note ?? "");
     const [isEditing, setIsEditing] = useState(false);
 
     // Sauvegarde des modifications
     const handleSave = () => {
-        dispatch(updateTerritory({ id: territoryId, name: tempName, city: tempCity, note: tempNote }));
+        dispatch(updateTerritory({ id: territoryId, name: tempName, note: tempNote }));
         setIsEditing(false);
     };
 
@@ -122,11 +121,7 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
                 <MapPinIcon className="mr-2 text-red-500 flex-shrink-0" />
                 <span className="font-semibold mr-2 flex-shrink-0">Ville :</span>
                 <div className="flex-grow min-w-0">
-                    {isEditing ? (
-                        <Input value={tempCity} onChange={(e) => setTempCity(e.target.value)} className="w-full" />
-                    ) : (
-                        <span className="truncate">{city}</span>
-                    )}
+                    <span className="truncate">{city}</span>
                 </div>
             </div>
 

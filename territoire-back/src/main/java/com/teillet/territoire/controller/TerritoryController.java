@@ -1,14 +1,13 @@
 package com.teillet.territoire.controller;
 
-import com.teillet.territoire.dto.AddAddressNotToDoDto;
-import com.teillet.territoire.dto.AssignmentDto;
-import com.teillet.territoire.dto.TerritoryDto;
-import com.teillet.territoire.dto.UpdateTerritoryDto;
+import com.teillet.territoire.dto.*;
+import com.teillet.territoire.mapper.TerritoryMapper;
 import com.teillet.territoire.model.AddressNotToDo;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.service.IAddressNotToDoService;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.ITerritoryService;
+import com.teillet.territoire.service.impl.CityService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +26,7 @@ class TerritoryController {
 	private final ITerritoryService territoryService;
 	private final IAssignmentService assignmentService;
 	private final IAddressNotToDoService addressNotToDoService;
+	private final CityService cityService;
 
 	@GetMapping("/geojson")
 	public String getAllTerritories() throws IOException {
@@ -44,8 +44,9 @@ class TerritoryController {
 
 	@PostMapping
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
-	public Territory createTerritory(@RequestBody Territory territory) {
-		log.info("Début : Création du territoire : {}", territory.getName());
+	public Territory createTerritory(@RequestBody AddTerritoryDto addTerritoryDto) {
+		log.info("Début : Création du territoire : {}", addTerritoryDto.getName());
+		Territory territory = TerritoryMapper.fromDto(addTerritoryDto, cityService);
 		Territory createdTerritory = territoryService.saveTerritory(territory);
 		log.info("Fin : Création du territoire");
 		return createdTerritory;

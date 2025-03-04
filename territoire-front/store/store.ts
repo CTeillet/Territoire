@@ -5,6 +5,7 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import personReducer from './slices/person-slice';
 import territoryReducer from './slices/territory-slice';
 import userReducer from './slices/user-slice';
+import cityReducer from './slices/city-slice';
 import authReducer, {login} from './slices/auth-slice';
 
 export const store = configureStore({
@@ -13,6 +14,7 @@ export const store = configureStore({
         territories: territoryReducer,
         auth: authReducer,
         users: userReducer,
+        cities: cityReducer,
     },
 });
 

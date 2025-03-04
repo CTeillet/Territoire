@@ -36,7 +36,6 @@ public class TerritoryService implements ITerritoryService {
 	@Transactional
 	@Override
 	public Territory saveTerritory(Territory territory) {
-		territory.setStatus(TerritoryStatus.AVAILABLE);
 		territory.setLastModifiedDate(LocalDate.now());
 		return territoryRepository.save(territory);
 	}
@@ -97,7 +96,6 @@ public class TerritoryService implements ITerritoryService {
 		territory.setLastModifiedDate(LocalDate.now());
 		// ✅ Mise à jour des champs modifiables
 		territory.setName(updateDto.getName());
-		territory.setCity(updateDto.getCity());
 		territory.setNote(updateDto.getNote());
 
 		return TerritoryMapper.toDto(territoryRepository.save(territory));

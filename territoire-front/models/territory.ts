@@ -2,6 +2,7 @@ import {TerritoryStatus} from "@/models/territory-status";
 import {AddressNotToDo} from "@/models/addressNotToDo";
 import {Feature, FeatureCollection, Polygon} from "geojson";
 import {Assignment} from "@/models/assignment";
+import {City} from "@/models/city";
 
 export interface PolygonProperties {
     type: PolygonType;
@@ -13,7 +14,7 @@ export interface Territory {
     name: string;
     status: TerritoryStatus;
     lastModifiedDate: string | null;
-    city: string;
+    city: City;
     addressesNotToDo: AddressNotToDo[];
     assignments: Assignment[];
     geojson: string;

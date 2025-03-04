@@ -1,17 +1,18 @@
 import {Plus} from "lucide-react";
 import React from "react";
+import {Button} from "@/components/ui/button";
 
 type PlusButtonProps = {
     onClick: React.MouseEventHandler<HTMLButtonElement>;
 };
 
 const PlusButton: React.FC<PlusButtonProps> = ({ onClick }) => (
-    <button
+    <Button
         onClick={onClick}
-        className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600"
+        className="px-4 py-2 rounded-lg shadow "
     >
         <Plus/>
-    </button>
+    </Button>
 );
 
 export default PlusButton;

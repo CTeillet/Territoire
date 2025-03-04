@@ -9,7 +9,5 @@ public class UpdateTerritoryDto {
 	@NotBlank
 	@Size(max = 255)
 	private String name;
-
-	private String city;
 	private String note;
 }

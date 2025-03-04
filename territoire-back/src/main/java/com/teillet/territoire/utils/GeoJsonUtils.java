@@ -89,7 +89,7 @@ public class GeoJsonUtils {
 		featureBuilder.add(territory.getId().toString());
 		featureBuilder.add(territory.getName());
 		featureBuilder.add(territory.getStatus().name());
-		featureBuilder.add(territory.getCity());
+		featureBuilder.add(territory.getCity().getName());
 		featureBuilder.add(territory.getConcaveHull());
 		return featureBuilder.buildFeature(null);
 	}
