@@ -34,11 +34,17 @@ public class ExcelExportService implements IExcelExportService {
 
 			// ---- Titre de la ville ----
 			Row cityRow = sheet.createRow(rowNum++);
-			cityRow.setHeightInPoints(30);
 			Cell cityCell = cityRow.createCell(0);
 			cityCell.setCellValue(city.getName());
-			cityCell.setCellStyle(headerStyle);
-			sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 9));
+			cityCell.setCellStyle(createYearStyle(workbook)); // Appliquer le style de l'année scolaire
+			sheet.addMergedRegion(new CellRangeAddress(cityRow.getRowNum(), cityRow.getRowNum(), 0, 9));
+
+			// ---- Ajout de l'année scolaire ----
+			Row yearRow = sheet.createRow(rowNum++);
+			Cell yearCell = yearRow.createCell(0);
+			yearCell.setCellValue("2024-2025"); // Année scolaire en cours
+			yearCell.setCellStyle(createYearStyle(workbook));
+			sheet.addMergedRegion(new CellRangeAddress(yearRow.getRowNum(), yearRow.getRowNum(), 0, 9));
 
 			// ---- En-tête ----
 			createHeaderRow(sheet, rowNum, subHeaderStyle);
@@ -48,7 +54,6 @@ public class ExcelExportService implements IExcelExportService {
 			// ---- Remplissage des territoires ----
 			boolean isBlue = false;
 			for (Territory territory : city.getTerritories()) {
-//				int startRow = rowNum;
 				Row territoryRow = sheet.createRow(rowNum++);
 				Row dateRow = sheet.createRow(rowNum++);
 
@@ -233,6 +238,17 @@ public class ExcelExportService implements IExcelExportService {
 				cell.setCellStyle(borderStyle);
 			}
 		}
+	}
+
+	private CellStyle createYearStyle(Workbook workbook) {
+		CellStyle style = workbook.createCellStyle();
+		Font font = workbook.createFont();
+		font.setBold(true);
+		font.setFontHeightInPoints((short) 16); // Augmenté pour le titre de la ville
+		style.setFont(font);
+		style.setAlignment(HorizontalAlignment.CENTER);
+		style.setVerticalAlignment(VerticalAlignment.CENTER);
+		return style;
 	}
 
 }
