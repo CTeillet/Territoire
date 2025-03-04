@@ -17,7 +17,6 @@ import java.util.List;
 @Service
 public class ExcelExportService implements IExcelExportService {
 
-
 	@Override
 	public void generateExcel(List<City> cities, ByteArrayOutputStream outputStream) throws IOException {
 		Workbook workbook = new XSSFWorkbook();
@@ -27,7 +26,7 @@ public class ExcelExportService implements IExcelExportService {
 		CellStyle headerStyle = createHeaderStyle(workbook);
 		CellStyle subHeaderStyle = createSubHeaderStyle(workbook);
 		CellStyle centeredStyle = createCenteredStyle(workbook);
-		CellStyle blueFillStyle = createBlueFillStyle(workbook);
+		CellStyle blueFillStyle = createBlueRowStyle(workbook);
 
 		for (City city : cities) {
 			Sheet sheet = workbook.createSheet(city.getName());
@@ -42,17 +41,18 @@ public class ExcelExportService implements IExcelExportService {
 			sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 9));
 
 			// ---- En-tête ----
-			Row headerRow = sheet.createRow(rowNum++);
-			createHeaderRow(headerRow, sheet, headerStyle);
+			createHeaderRow(sheet, rowNum, subHeaderStyle);
+
+			rowNum += 2; // Ligne où les territoires commencent
 
 			// ---- Remplissage des territoires ----
 			boolean isBlue = false;
 			for (Territory territory : city.getTerritories()) {
-				int startRow = rowNum;
+//				int startRow = rowNum;
 				Row territoryRow = sheet.createRow(rowNum++);
 				Row dateRow = sheet.createRow(rowNum++);
 
-				// Alternance des couleurs
+				// Alternance des couleurs corrigée
 				CellStyle fillStyle = isBlue ? blueFillStyle : centeredStyle;
 				isBlue = !isBlue;
 
@@ -95,28 +95,40 @@ public class ExcelExportService implements IExcelExportService {
 		workbook.close();
 	}
 
-	private void createHeaderRow(Row row, Sheet sheet, CellStyle style) {
-		String[] headers = {"Terr. no", "Parcouru pour la dernière fois le", "Attribué à", "", "Attribué à", "", "Attribué à", "", "Attribué à", ""};
+	private void createHeaderRow(Sheet sheet, int startRow, CellStyle headerStyle) {
+		Row row1 = sheet.createRow(startRow);
+		Row row2 = sheet.createRow(startRow + 1);
 
-		for (int i = 0; i < headers.length; i++) {
-			Cell cell = row.createCell(i);
-			cell.setCellValue(headers[i]);
-			cell.setCellStyle(style);
-		}
+		// "Terr. no" fusionné sur 2 lignes
+		Cell cell = row1.createCell(0);
+		cell.setCellValue("Terr. no");
+		cell.setCellStyle(headerStyle);
+		sheet.addMergedRegion(new CellRangeAddress(startRow, startRow + 1, 0, 0));
 
-		// Fusionner les cellules "Attribué à" au-dessus des 2 colonnes correspondantes
-		for (int i = 2; i <= 8; i += 2) {
-			sheet.addMergedRegion(new CellRangeAddress(row.getRowNum(), row.getRowNum(), i, i + 1));
-		}
-	}
+		// "Parcouru pour la dernière fois le*" fusionné sur 2 lignes
+		cell = row1.createCell(1);
+		cell.setCellValue("Parcouru pour la dernière fois le*");
+		cell.setCellStyle(headerStyle);
+		sheet.addMergedRegion(new CellRangeAddress(startRow, startRow + 1, 1, 1));
 
-	private void createHeaderRow(Row row, CellStyle style) {
-		String[] headers = {"Terr. no", "Parcouru pour la dernière fois le", "Attribué à", "", "Attribué à", "", "Attribué à", "", "Attribué à", ""};
+		// Fusion des titres "Attribué à" sur 2 colonnes
+		int colStart = 2;
+		for (int i = 0; i < 4; i++) {
+			cell = row1.createCell(colStart);
+			cell.setCellValue("Attribué à");
+			cell.setCellStyle(headerStyle);
+			sheet.addMergedRegion(new CellRangeAddress(startRow, startRow, colStart, colStart + 1));
 
-		for (int i = 0; i < headers.length; i++) {
-			Cell cell = row.createCell(i);
-			cell.setCellValue(headers[i]);
-			cell.setCellStyle(style);
+			// Ajout des sous-colonnes
+			cell = row2.createCell(colStart);
+			cell.setCellValue("Attribué le");
+			cell.setCellStyle(headerStyle);
+
+			cell = row2.createCell(colStart + 1);
+			cell.setCellValue("Entièrement parcouru le");
+			cell.setCellStyle(headerStyle);
+
+			colStart += 2;
 		}
 	}
 
@@ -137,8 +149,6 @@ public class ExcelExportService implements IExcelExportService {
 		CellStyle style = workbook.createCellStyle();
 		style.setAlignment(HorizontalAlignment.CENTER);
 		style.setVerticalAlignment(VerticalAlignment.CENTER);
-		style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		return style;
 	}
 
@@ -146,6 +156,8 @@ public class ExcelExportService implements IExcelExportService {
 		CellStyle style = workbook.createCellStyle();
 		style.setAlignment(HorizontalAlignment.CENTER);
 		style.setVerticalAlignment(VerticalAlignment.CENTER);
+		style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		return style;
 	}
 
@@ -156,9 +168,9 @@ public class ExcelExportService implements IExcelExportService {
 		return style;
 	}
 
-	private CellStyle createBlueFillStyle(Workbook workbook) {
+	private CellStyle createBlueRowStyle(Workbook workbook) {
 		CellStyle style = createCenteredStyle(workbook);
-		style.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+		style.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
 		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		return style;
 	}
