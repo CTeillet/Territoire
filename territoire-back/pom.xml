@@ -157,7 +157,11 @@
             <artifactId>opentelemetry-exporter-otlp-metrics</artifactId>
             <version>1.14.0</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.3</version>
+        </dependency>
     </dependencies>
 
     <repositories>

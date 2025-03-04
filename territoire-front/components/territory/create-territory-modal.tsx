@@ -16,6 +16,7 @@ const CreateTerritoryModal: React.FC = () => {
 
     // Si `cities` est vide, on va chercher les données du backend
     useEffect(() => {
+        console.log("Fetching cities...", cities);
         if (cities.length === 0) {
             dispatch(fetchCities());
         }
