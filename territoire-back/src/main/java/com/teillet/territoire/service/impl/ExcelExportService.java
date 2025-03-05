@@ -23,7 +23,6 @@ public class ExcelExportService implements IExcelExportService {
 		DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 		// Définition des styles
-		CellStyle headerStyle = createHeaderStyle(workbook);
 		CellStyle subHeaderStyle = createSubHeaderStyle(workbook);
 		CellStyle centeredStyle = createCenteredStyle(workbook);
 		CellStyle blueFillStyle = createBlueRowStyle(workbook);
@@ -48,6 +47,7 @@ public class ExcelExportService implements IExcelExportService {
 
 			// ---- En-tête ----
 			createHeaderRow(sheet, rowNum, subHeaderStyle);
+			sheet.setColumnWidth(1, sheet.getColumnWidth(1) * 2);
 
 			rowNum += 2; // Ligne où les territoires commencent
 
