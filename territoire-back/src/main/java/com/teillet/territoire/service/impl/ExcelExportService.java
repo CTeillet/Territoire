@@ -49,6 +49,20 @@ public class ExcelExportService implements IExcelExportService {
 			createHeaderRow(sheet, rowNum, subHeaderStyle);
 			sheet.setColumnWidth(1, sheet.getColumnWidth(1) * 2);
 
+			// ---- Ajuster la largeur des colonnes pour qu'elles aient toutes la même taille ----
+			// Définition d'une largeur fixe basée sur "Entièrement parcouru le"
+			int columnWidth = 6000; // Ajuste cette valeur si nécessaire
+
+			// Appliquer la largeur à toutes les colonnes concernées
+			sheet.setColumnWidth(2, columnWidth); // "Attribué le"
+			sheet.setColumnWidth(3, columnWidth); // "Entièrement parcouru le"
+			sheet.setColumnWidth(4, columnWidth); // "Attribué le"
+			sheet.setColumnWidth(5, columnWidth); // "Entièrement parcouru le"
+			sheet.setColumnWidth(6, columnWidth); // "Attribué le"
+			sheet.setColumnWidth(7, columnWidth); // "Entièrement parcouru le"
+			sheet.setColumnWidth(8, columnWidth); // "Attribué le"
+			sheet.setColumnWidth(9, columnWidth); // "Entièrement parcouru le"
+
 			rowNum += 2; // Ligne où les territoires commencent
 
 			// ---- Remplissage des territoires ----
@@ -57,22 +71,22 @@ public class ExcelExportService implements IExcelExportService {
 				Row territoryRow = sheet.createRow(rowNum++);
 				Row dateRow = sheet.createRow(rowNum++);
 
-				// Alternance des couleurs corrigée
+				// Alternance des couleurs
 				CellStyle fillStyle = isBlue ? blueFillStyle : centeredStyle;
 				isBlue = !isBlue;
 
-				// Colonne "Terr. no"
+				// 1️⃣ Colonne "Terr. no" (fusion sur 2 lignes)
 				createMergedCell(sheet, territoryRow, dateRow, 0, territory.getName(), fillStyle);
 
-				// Colonne "Parcouru pour la dernière fois le"
+				// 2️⃣ Colonne "Parcouru pour la dernière fois le*" (fusion sur 2 lignes)
 				createMergedCell(sheet, territoryRow, dateRow, 1,
 						territory.getLastModifiedDate() != null ? territory.getLastModifiedDate().format(dateFormatter) : "",
 						fillStyle);
 
-				// Ajout des Assignments
+				// 3️⃣ Gestion des Assignments (4 maximum)
 				List<Assignment> assignments = territory.getAssignments();
 				for (int i = 0; i < 4; i++) {
-					int colStart = 2 + (i * 2);
+					int colStart = 2 + (i * 2); // Déplacement par blocs de 2 colonnes
 
 					if (i < assignments.size()) {
 						Assignment assignment = assignments.get(i);
@@ -80,19 +94,23 @@ public class ExcelExportService implements IExcelExportService {
 						String assignedDate = assignment.getAssignmentDate() != null ? assignment.getAssignmentDate().format(dateFormatter) : "";
 						String dueDate = assignment.getDueDate() != null ? assignment.getDueDate().format(dateFormatter) : "";
 
-						createMergedCell(sheet, territoryRow, dateRow, colStart, personName, fillStyle);
+						// 3️⃣.1️⃣ Ligne 1 : Fusion pour le nom/prénom (2 colonnes de large)
+						createMergedCell(sheet, territoryRow, null, colStart, personName, fillStyle);
+						sheet.addMergedRegion(new CellRangeAddress(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1));
+
+						// 3️⃣.2️⃣ Ligne 2 : Attribution et date de retour
 						createCell(dateRow, colStart, assignedDate, fillStyle);
 						createCell(dateRow, colStart + 1, dueDate, fillStyle);
 					} else {
-						createMergedCell(sheet, territoryRow, dateRow, colStart, "", fillStyle);
+						// Remplissage avec cellules vides (alignement)
+						createMergedCell(sheet, territoryRow, null, colStart, "", fillStyle);
+						sheet.addMergedRegion(new CellRangeAddress(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1));
+						createCell(dateRow, colStart, "", fillStyle);
+						createCell(dateRow, colStart + 1, "", fillStyle);
 					}
 				}
 			}
 
-			// Ajustement automatique de la largeur des colonnes
-			for (int i = 0; i < 10; i++) {
-				sheet.autoSizeColumn(i);
-			}
 		}
 
 		// ---- Écriture en mémoire ----
@@ -136,13 +154,22 @@ public class ExcelExportService implements IExcelExportService {
 		Cell cell = row1.createCell(col);
 		cell.setCellValue(value);
 		cell.setCellStyle(style);
-		sheet.addMergedRegion(new CellRangeAddress(row1.getRowNum(), row2.getRowNum(), col, col));
+
+		// Fusion seulement si row2 existe
+		if (row2 != null) {
+			CellRangeAddress mergedRegion = new CellRangeAddress(row1.getRowNum(), row2.getRowNum(), col, col);
+			sheet.addMergedRegion(mergedRegion);
+			applyBordersToMergedRegion(sheet, mergedRegion);
+		} else {
+			applyBorders(cell);
+		}
 	}
 
 	private void createCell(Row row, int col, String value, CellStyle style) {
 		Cell cell = row.createCell(col);
 		cell.setCellValue(value);
 		cell.setCellStyle(style);
+		applyBorders(cell);
 	}
 
 	private CellStyle createHeaderStyle(Workbook workbook) {
@@ -249,6 +276,23 @@ public class ExcelExportService implements IExcelExportService {
 		style.setAlignment(HorizontalAlignment.CENTER);
 		style.setVerticalAlignment(VerticalAlignment.CENTER);
 		return style;
+	}
+
+	private void applyBordersToMergedRegion(Sheet sheet, CellRangeAddress region) {
+		for (int row = region.getFirstRow(); row <= region.getLastRow(); row++) {
+			Row sheetRow = sheet.getRow(row);
+			if (sheetRow == null) {
+				sheetRow = sheet.createRow(row);
+			}
+
+			for (int col = region.getFirstColumn(); col <= region.getLastColumn(); col++) {
+				Cell cell = sheetRow.getCell(col);
+				if (cell == null) {
+					cell = sheetRow.createCell(col);
+				}
+				applyBorders(cell);
+			}
+		}
 	}
 
 }
