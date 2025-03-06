@@ -10,7 +10,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-
 public class ExcelSheetBuilder {
 	private static final int TERRITORY_NAME_COL = 0;
 	private static final int LAST_MODIFIED_DATE_COL = 1;
@@ -29,37 +28,19 @@ public class ExcelSheetBuilder {
 		this.rowNum = 0;
 	}
 
-	/**
-	 * Sets the width of a specific column.
-	 *
-	 * @param columnIndex The index of the column.
-	 * @param width       The width to set.
-	 * @return The ExcelSheetBuilder instance.
-	 */
 	public ExcelSheetBuilder setColumnWidth(int columnIndex, int width) {
 		sheet.setColumnWidth(columnIndex, width);
 		return this;
 	}
 
-	/**
-	 * Adds a header for a city to the sheet.
-	 *
-	 * @param city The city to add.
-	 * @return The ExcelSheetBuilder instance.
-	 */
 	public ExcelSheetBuilder addCityHeader(City city) {
 		CellStyle yearStyle = CellStyleFactory.createYearStyle(workbook);
-		createMergedCell(rowNum++, 0, 9, city.getName(), yearStyle);
-		createMergedCell(rowNum++, 0, 9, "2024-2025", yearStyle);
+		createMergedCell(rowNum, rowNum, 0, 9, city.getName(), yearStyle);
+		createMergedCell(rowNum + 1, rowNum + 1, 0, 9, "2024-2025", yearStyle);
+		rowNum += 2; // Move to the next row after adding the header
 		return this;
 	}
 
-	/**
-	 * Adds territories to the sheet.
-	 *
-	 * @param territories The list of territories to add.
-	 * @return The ExcelSheetBuilder instance.
-	 */
 	public ExcelSheetBuilder addTerritories(List<Territory> territories) {
 		CellStyle subHeaderStyle = CellStyleFactory.createSubHeaderStyle(workbook);
 		CellStyle wrappedHeaderStyle = CellStyleFactory.createWrappedHeaderStyle(workbook);
@@ -82,16 +63,15 @@ public class ExcelSheetBuilder {
 	}
 
 	private void createTerritoryCells(Row territoryRow, Row dateRow, Territory territory, CellStyle fillStyle) {
-		createMergedCell(territoryRow, dateRow, TERRITORY_NAME_COL, territory.getName(), fillStyle);
+		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), TERRITORY_NAME_COL, TERRITORY_NAME_COL, territory.getName(), fillStyle);
 		String lastModifiedDate = formatDate(territory.getLastModifiedDate());
-		createMergedCell(territoryRow, dateRow, LAST_MODIFIED_DATE_COL, lastModifiedDate, fillStyle);
+		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastModifiedDate, fillStyle);
 
 		List<Assignment> assignments = territory.getAssignments();
 		for (int i = 0; i < MAX_ASSIGNMENTS; i++) {
 			int colStart = ASSIGNMENT_START_COL + (i * 2);
 			if (i < assignments.size()) {
-				Assignment assignment = assignments.get(i);
-				createAssignmentCells(territoryRow, dateRow, colStart, assignment, fillStyle);
+				createAssignmentCells(territoryRow, dateRow, colStart, assignments.get(i), fillStyle);
 			} else {
 				createEmptyAssignmentCells(territoryRow, dateRow, colStart, fillStyle);
 			}
@@ -103,15 +83,13 @@ public class ExcelSheetBuilder {
 		String assignedDate = formatDate(assignment.getAssignmentDate());
 		String dueDate = formatDate(assignment.getDueDate());
 
-		createMergedCell(territoryRow, null, colStart, personName, fillStyle);
-		sheet.addMergedRegion(new CellRangeAddress(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1));
+		createMergedCell(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1, personName, fillStyle);
 		createCell(dateRow, colStart, assignedDate, fillStyle);
 		createCell(dateRow, colStart + 1, dueDate, fillStyle);
 	}
 
 	private void createEmptyAssignmentCells(Row territoryRow, Row dateRow, int colStart, CellStyle fillStyle) {
-		createMergedCell(territoryRow, null, colStart, "", fillStyle);
-		sheet.addMergedRegion(new CellRangeAddress(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1));
+		createMergedCell(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1, "", fillStyle);
 		createCell(dateRow, colStart, "", fillStyle);
 		createCell(dateRow, colStart + 1, "", fillStyle);
 	}
@@ -128,41 +106,38 @@ public class ExcelSheetBuilder {
 		int colStart = ASSIGNMENT_START_COL;
 		for (int i = 0; i < MAX_ASSIGNMENTS; i++) {
 			createStyledCell(row1, null, colStart, "Attribué à", headerStyle);
-			CellRangeAddress mergedRegion = new CellRangeAddress(rowNum, rowNum, colStart, colStart + 1);
-			sheet.addMergedRegion(mergedRegion);
-			applyBordersToMergedRegion(mergedRegion, headerStyle);
-
 			createStyledCell(row2, null, colStart, "Attribué le", headerStyle);
 			createStyledCell(row2, null, colStart + 1, "Entièrement parcouru le", headerStyle);
-
+			mergeAndApplyBorders(rowNum, rowNum, colStart, colStart + 1, headerStyle);
 			colStart += 2;
 		}
 		rowNum += 2;
 	}
 
-	private void createMergedCell(int rowNum, int firstCol, int lastCol, String value, CellStyle style) {
-		Row row = sheet.getRow(rowNum);
-		if (row == null) {
-			row = sheet.createRow(rowNum);
-		}
-		Cell cell = row.createCell(firstCol);
-		cell.setCellValue(value);
-		cell.setCellStyle(style);
-		sheet.addMergedRegion(new CellRangeAddress(rowNum, rowNum, firstCol, lastCol));
-		applyBordersToMergedRegion(new CellRangeAddress(rowNum, rowNum, firstCol, lastCol), style);
-	}
+	private void createMergedCell(int startRow, int endRow, int startCol, int endCol, String value, CellStyle style) {
+		// Define the region to be merged
+		CellRangeAddress region = new CellRangeAddress(startRow, endRow, startCol, endCol);
+		sheet.addMergedRegion(region);
 
-	private void createMergedCell(Row row1, Row row2, int col, String value, CellStyle style) {
-		Cell cell = row1.createCell(col);
-		cell.setCellValue(value);
-		cell.setCellStyle(style);
-
-		if (row2 != null) {
-			CellRangeAddress mergedRegion = new CellRangeAddress(row1.getRowNum(), row2.getRowNum(), col, col);
-			sheet.addMergedRegion(mergedRegion);
-			applyBordersToMergedRegion(mergedRegion, style);
-		} else {
-			applyBorders(cell);
+		// Iterate over each cell in the merged region to ensure it exists and apply styles
+		for (int row = startRow; row <= endRow; row++) {
+			Row sheetRow = sheet.getRow(row);
+			if (sheetRow == null) {
+				sheetRow = sheet.createRow(row);
+			}
+			for (int col = startCol; col <= endCol; col++) {
+				Cell cell = sheetRow.getCell(col);
+				if (cell == null) {
+					cell = sheetRow.createCell(col);
+				}
+				// Set the value only for the first cell in the merged region
+				if (row == startRow && col == startCol) {
+					cell.setCellValue(value);
+				}
+				// Apply the style and borders to each cell in the merged region
+				cell.setCellStyle(style);
+				applyBorders(cell);
+			}
 		}
 	}
 
@@ -183,8 +158,6 @@ public class ExcelSheetBuilder {
 			Cell cell2 = row2.createCell(col);
 			cell2.setCellStyle(style);
 			applyBorders(cell2);
-			sheet.addMergedRegion(new CellRangeAddress(row1.getRowNum(), row2.getRowNum(), col, col));
-			applyBordersToMergedRegion(new CellRangeAddress(row1.getRowNum(), row2.getRowNum(), col, col), style);
 		}
 	}
 
@@ -194,7 +167,12 @@ public class ExcelSheetBuilder {
 		style.setBorderBottom(BorderStyle.THIN);
 		style.setBorderLeft(BorderStyle.THIN);
 		style.setBorderRight(BorderStyle.THIN);
-		cell.setCellStyle(style);
+	}
+
+	private void mergeAndApplyBorders(int firstRow, int lastRow, int firstCol, int lastCol, CellStyle style) {
+		CellRangeAddress region = new CellRangeAddress(firstRow, lastRow, firstCol, lastCol);
+		sheet.addMergedRegion(region);
+		applyBordersToMergedRegion(region, style);
 	}
 
 	private void applyBordersToMergedRegion(CellRangeAddress region, CellStyle borderStyle) {
@@ -209,7 +187,6 @@ public class ExcelSheetBuilder {
 					cell = sheetRow.createCell(col);
 				}
 				cell.setCellStyle(borderStyle);
-				// Apply borders to each cell in the merged region
 				applyBorders(cell);
 			}
 		}
@@ -226,11 +203,6 @@ public class ExcelSheetBuilder {
 		return date != null ? date.format(DATE_FORMATTER) : "";
 	}
 
-	/**
-	 * Builds and returns the sheet.
-	 *
-	 * @return The built sheet.
-	 */
 	public Sheet build() {
 		return sheet;
 	}
