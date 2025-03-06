@@ -272,6 +272,15 @@ public class ExcelExportService implements IExcelExportService {
 	}
 
 	private void applyBordersToMergedRegion(Sheet sheet, CellRangeAddress region) {
+		Workbook workbook = sheet.getWorkbook();
+		CellStyle borderStyle = workbook.createCellStyle();
+
+		// Définition des bordures
+		borderStyle.setBorderTop(BorderStyle.THIN);
+		borderStyle.setBorderBottom(BorderStyle.THIN);
+		borderStyle.setBorderLeft(BorderStyle.THIN);
+		borderStyle.setBorderRight(BorderStyle.THIN);
+
 		for (int row = region.getFirstRow(); row <= region.getLastRow(); row++) {
 			Row sheetRow = sheet.getRow(row);
 			if (sheetRow == null) {
@@ -283,9 +292,10 @@ public class ExcelExportService implements IExcelExportService {
 				if (cell == null) {
 					cell = sheetRow.createCell(col);
 				}
-				applyBorders(cell);
+				cell.setCellStyle(borderStyle);
 			}
 		}
 	}
+
 
 }
