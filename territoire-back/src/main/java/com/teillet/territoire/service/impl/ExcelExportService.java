@@ -172,13 +172,6 @@ public class ExcelExportService implements IExcelExportService {
 		applyBorders(cell);
 	}
 
-	private CellStyle createHeaderStyle(Workbook workbook) {
-		CellStyle style = workbook.createCellStyle();
-		style.setAlignment(HorizontalAlignment.CENTER);
-		style.setVerticalAlignment(VerticalAlignment.CENTER);
-		return style;
-	}
-
 	private CellStyle createSubHeaderStyle(Workbook workbook) {
 		CellStyle style = workbook.createCellStyle();
 		style.setAlignment(HorizontalAlignment.CENTER);
