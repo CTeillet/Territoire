@@ -19,6 +19,7 @@ export interface Territory {
     assignments: Assignment[];
     geojson: string;
     note?: string | null;
+    lastVisitedOn: string;
 }
 
 export interface SimplifiedTerritory {

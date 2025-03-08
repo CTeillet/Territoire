@@ -52,14 +52,18 @@ public class AssignmentService implements IAssignmentService {
 	@Override
 	public AssignmentDto returnTerritory(UUID territoryId) {
 		// Récupérer l'assignation en cours pour ce territoire
-		Assignment assignment = assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)
-				.orElseThrow(() -> new EntityNotFoundException("Aucune assignation active trouvée pour ce territoire"));
+		Assignment assignment = findAssignmentRunning(territoryId);
 
 		assignment.setReturnDate(LocalDate.now());
 		assignmentRepository.save(assignment);
 		territoryService.updateTerritoryStatus(assignment.getTerritory(), TerritoryStatus.PENDING);
 		Assignment resultAssignment = getAssignment(assignment.getId());
 		return AssignmentMapper.toDto(resultAssignment);
+	}
+
+	private Assignment findAssignmentRunning(UUID territoryId) {
+		return assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)
+				.orElseThrow(() -> new EntityNotFoundException("Aucune assignation active trouvée pour ce territoire"));
 	}
 
 	@Scheduled(cron = "0 0 0 * * *")
@@ -77,7 +81,7 @@ public class AssignmentService implements IAssignmentService {
 	@Override
 	public Assignment getAssignment(UUID assignmentId) {
 		return assignmentRepository.findById(assignmentId)
-				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
+				.orElseThrow(() -> new RuntimeException("Aucune assignation active trouvée pour ce territoire"));
 	}
 
 	@Override
@@ -94,5 +98,22 @@ public class AssignmentService implements IAssignmentService {
 
 		log.info("Conversion en DTO terminée : {} résultats", assignmentDtos.size());
 		return assignmentDtos;
+	}
+
+	@Override
+	public AssignmentDto extendTerritory(UUID territoryId) {
+		Assignment assignment = findAssignmentRunning(territoryId);
+		assignment.setReturnDate(LocalDate.now());
+		assignmentRepository.save(assignment);
+
+		Assignment extendedAssignment = new Assignment();
+		extendedAssignment.setAssignmentDate(LocalDate.now());
+		extendedAssignment.setDueDate(LocalDate.now().plusMonths(4));
+		extendedAssignment.setPerson(assignment.getPerson());
+		extendedAssignment.setTerritory(assignment.getTerritory());
+		extendedAssignment.setReturnDate(null);
+		Assignment result = assignmentRepository.save(extendedAssignment);
+
+		return AssignmentMapper.toDto(result);
 	}
 }

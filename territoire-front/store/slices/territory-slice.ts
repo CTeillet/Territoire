@@ -9,7 +9,7 @@ type TerritoryState = {
     territoriesGeojson: TerritoryCollection | null,
     selectedTerritory: Territory | null;
     loading: boolean;
-    updating:boolean;
+    updating: boolean;
     error: string | null;
 };
 
@@ -24,13 +24,32 @@ const initialState: TerritoryState = {
 
 const BASE_URL = `/api/territoires`;
 
+export const extendTerritory = createAsyncThunk(
+    "territories/extendTerritory",
+    async (territoryId: string, {rejectWithValue}) => {
+        const response = await authFetch(`${BASE_URL}/${territoryId}/prolongation`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+        });
+
+        if (!response.ok) {
+            return rejectWithValue(await response.text() || "Erreur lors de la prolongation du territoire");
+        }
+
+        try {
+            return await response.json();
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
 
 export const returnTerritory = createAsyncThunk(
     "territories/returnTerritory",
-    async (territoryId: string, { rejectWithValue }) => {
+    async (territoryId: string, {rejectWithValue}) => {
         const response = await authFetch(`${BASE_URL}/${territoryId}/retour`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
         });
 
         if (!response.ok) {
@@ -47,10 +66,10 @@ export const returnTerritory = createAsyncThunk(
 
 export const assignTerritory = createAsyncThunk(
     "territories/assignTerritory",
-    async ({ territoryId, personId }: { territoryId: string; personId: string }, { rejectWithValue }) => {
+    async ({territoryId, personId}: { territoryId: string; personId: string }, {rejectWithValue}) => {
         const response = await authFetch(`${BASE_URL}/${territoryId}/attribuer/${personId}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
         });
 
         if (!response.ok) {
@@ -67,8 +86,8 @@ export const assignTerritory = createAsyncThunk(
 
 export const deleteTerritory = createAsyncThunk(
     "territories/deleteTerritory",
-    async (territoryId: string, { rejectWithValue }) => {
-        const response = await authFetch(`${BASE_URL}/${territoryId}`, { method: "DELETE" });
+    async (territoryId: string, {rejectWithValue}) => {
+        const response = await authFetch(`${BASE_URL}/${territoryId}`, {method: "DELETE"});
 
         if (!response.ok) {
             return rejectWithValue("Erreur lors de la suppression du territoire");
@@ -80,10 +99,10 @@ export const deleteTerritory = createAsyncThunk(
 
 export const updateTerritory = createAsyncThunk(
     "territories/updateTerritory",
-    async (updatedTerritory: Partial<Territory>, { rejectWithValue }) => {
+    async (updatedTerritory: Partial<Territory>, {rejectWithValue}) => {
         const response = await authFetch(`${BASE_URL}/${updatedTerritory.id}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 name: updatedTerritory.name,
                 note: updatedTerritory.note,
@@ -104,7 +123,7 @@ export const updateTerritory = createAsyncThunk(
 
 export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
     "territories/fetchGeoJson",
-    async (_, { rejectWithValue }) => {
+    async (_, {rejectWithValue}) => {
         const response = await authFetch(`${BASE_URL}/geojson`);
 
         if (!response.ok) {
@@ -121,11 +140,11 @@ export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
 
 export const addTerritory = createAsyncThunk(
     "territories/add",
-    async ({ name, cityId }: { name: string, cityId:string }, { rejectWithValue }) => {
+    async ({name, cityId}: { name: string, cityId: string }, {rejectWithValue}) => {
         const response = await authFetch(`${BASE_URL}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: name, cityId:cityId }),
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({name: name, cityId: cityId}),
         });
 
         if (!response.ok) {
@@ -142,7 +161,7 @@ export const addTerritory = createAsyncThunk(
 
 export const fetchTerritoryById = createAsyncThunk<Territory, string>(
     "territories/fetchById",
-    async (id, { rejectWithValue }) => {
+    async (id, {rejectWithValue}) => {
         const response = await authFetch(`${BASE_URL}/${id}`);
 
         if (!response.ok) {
@@ -159,11 +178,11 @@ export const fetchTerritoryById = createAsyncThunk<Territory, string>(
 
 export const addAddressNotToVisit = createAsyncThunk(
     "territories/addAddressNotToVisit",
-    async ({ territoryId, address }: { territoryId: string; address: AddressNotToDoDto }, { rejectWithValue }) => {
+    async ({territoryId, address}: { territoryId: string; address: AddressNotToDoDto }, {rejectWithValue}) => {
         try {
             const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(address),
             });
 
@@ -181,13 +200,13 @@ export const addAddressNotToVisit = createAsyncThunk(
 export const modifyAddressNotToVisit = createAsyncThunk(
     "territories/modifyAddressNotToVisit",
     async (
-        { territoryId, address, addressId }: { territoryId: string; address: AddressNotToDoDto; addressId: string },
-        { rejectWithValue }
+        {territoryId, address, addressId}: { territoryId: string; address: AddressNotToDoDto; addressId: string },
+        {rejectWithValue}
     ) => {
         try {
             const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter/${addressId}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(address),
             });
 
@@ -204,7 +223,7 @@ export const modifyAddressNotToVisit = createAsyncThunk(
 
 export const deleteAddressNotToVisit = createAsyncThunk(
     "territories/deleteAddressNotToVisit",
-    async ({ territoryId, addressId }: { territoryId: string; addressId: string }, { rejectWithValue }) => {
+    async ({territoryId, addressId}: { territoryId: string; addressId: string }, {rejectWithValue}) => {
         try {
             const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter/${addressId}`, {
                 method: "DELETE",
@@ -214,7 +233,7 @@ export const deleteAddressNotToVisit = createAsyncThunk(
                 return rejectWithValue(`Erreur lors de la suppression de l'adresse : ${response.statusText}`);
             }
 
-            return { territoryId, addressId }; // Retourne les IDs pour modifier le state
+            return {territoryId, addressId}; // Retourne les IDs pour modifier le state
         } catch (error) {
             return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
@@ -261,6 +280,7 @@ const territorySlice = createSlice({
                             },
                             addressesNotToDo: [],
                             geojson: "",
+                            lastVisitedOn: "nouveau",
                         },
                         geometry: {
                             type: "Polygon",
@@ -360,7 +380,7 @@ const territorySlice = createSlice({
                     return;
                 }
 
-                const { territory, returnDate } = updatedAssignment;
+                const {territory, returnDate} = updatedAssignment;
 
                 // ✅ Recherche du territoire correspondant dans `FeatureCollection`
                 const feature = state.territoriesGeojson?.features.find(
@@ -369,6 +389,7 @@ const territorySlice = createSlice({
 
                 if (feature) {
                     feature.properties.status = "PENDING";
+                    feature.properties.lastVisitedOn = returnDate
                     feature.properties.assignments = [{
                         ...updatedAssignment,
                         returnDate, // Ajout de la date de retour mise à jour
@@ -433,6 +454,43 @@ const territorySlice = createSlice({
             })
             .addCase(deleteAddressNotToVisit.rejected, (state, action) => {
                 state.updating = false;
+                state.error = action.payload as string;
+            })
+
+
+            .addCase(extendTerritory.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(extendTerritory.fulfilled, (state, action) => {
+                state.loading = false;
+                const updatedAssignment = action.payload;
+
+                if (!state.territoriesGeojson || !updatedAssignment || !updatedAssignment.territory.territoryId) {
+                    console.error("❌ Problème : Assignation ou territoireId est undefined", updatedAssignment);
+                    return;
+                }
+
+                const {territory, returnDate, assignmentDate} = updatedAssignment;
+
+                // ✅ Recherche du territoire correspondant dans `FeatureCollection`
+                const feature = state.territoriesGeojson?.features.find(
+                    (f) => f.properties.id === territory.territoryId
+                );
+
+                if (feature) {
+                    feature.properties.status = "ASSIGNED";
+                    feature.properties.lastVisitedOn = assignmentDate;
+                    feature.properties.assignments = [{
+                        ...updatedAssignment,
+                        returnDate, // Ajout de la date de retour mise à jour
+                    }];
+                    console.log(`✅ Territoire ${territory.territoryId} retourné et mis à jour dans le store`);
+                } else {
+                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${territory.territoryId}`);
+                }
+            })
+            .addCase(extendTerritory.rejected, (state, action) => {
+                state.loading = false;
                 state.error = action.payload as string;
             });
 

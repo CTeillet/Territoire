@@ -18,4 +18,5 @@ public class TerritoryDto {
 	private List<Assignment> assignments;
 	private String geojson;
 	private String note;
+	private String lastVisitedOn;
 }

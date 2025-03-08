@@ -17,4 +17,6 @@ public interface IAssignmentService {
 	Assignment getAssignment(UUID assignmentId);
 
 	List<AssignmentDto> getLastAssignments();
+
+	AssignmentDto extendTerritory(UUID territoryId);
 }

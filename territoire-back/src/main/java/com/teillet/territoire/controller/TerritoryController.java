@@ -93,6 +93,12 @@ class TerritoryController {
 		return assignmentService.returnTerritory(territoryId);
 	}
 
+	@PostMapping("/{territoryId}/prolongation")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
+	public AssignmentDto extendTerritory(@PathVariable UUID territoryId) {
+		return assignmentService.extendTerritory(territoryId);
+	}
+
 	@PostMapping("/{territoryId}/adresses-a-ne-pas-visiter")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public AddressNotToDo addAddressNotToDo(@PathVariable UUID territoryId, @RequestBody AddAddressNotToDoDto addressNotToDoDto) {

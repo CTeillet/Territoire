@@ -5,6 +5,7 @@ import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.service.ICityService;
+import com.teillet.territoire.utils.TerritoryUtils;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -24,6 +25,7 @@ public class TerritoryMapper {
 		territoryDto.setAssignments(new ArrayList<>(territory.getAssignments()));
 		territoryDto.setNote(territory.getNote());
 		territoryDto.setGeojson(convertToGeoJSON(territory.getBlocks(), territory.getConcaveHull()));
+		territoryDto.setLastVisitedOn(TerritoryUtils.getLastVisitedOn(territory));
 		return territoryDto;
 	}
 

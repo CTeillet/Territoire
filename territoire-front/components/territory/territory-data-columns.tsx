@@ -22,7 +22,8 @@ export const territoryDataColumns: ColumnDef<Territory>[] = [
             return (<DataTableColumnHeader className={"text-center"} column={column} title="Name"/>)
         },
         enableColumnFilter: true,
-    }, {
+    },
+    {
         id: "city",
         accessorKey: "city",
         header: ({column}) => {
@@ -49,6 +50,14 @@ export const territoryDataColumns: ColumnDef<Territory>[] = [
         filterFn: (row, columnId, filterValue) => {
             return filterValue === "" || row.getValue(columnId) === filterValue;
         },
+    },
+    {
+        id: "lastVisitedOn",
+        accessorKey: "lastVisitedOn",
+        header: ({column}) => {
+            return (<DataTableColumnHeader className={"text-center"} column={column} title="Parcouru pour la dernière fois le"/>)
+        },
+        enableColumnFilter: true,
     },
     {
         id: "actions",
