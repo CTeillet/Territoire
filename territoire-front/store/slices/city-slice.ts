@@ -14,7 +14,7 @@ const initialState: CityState = {
     loading: false,
     error: null,
 };
-const API_URL = "/api//villes";
+const API_URL = "/api/villes";
 
 // ✅ Thunk pour récupérer les villes depuis le backend
 export const fetchCities = createAsyncThunk("cities/fetchCities", async () => {
