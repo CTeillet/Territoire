@@ -33,6 +33,10 @@ const Geoman = L.Control.extend({
             drawText: false,
             rotateMode: false,
         });
+
+        map.pm.setGlobalOptions({
+            snappable: false,
+        })
     },
 });
 
