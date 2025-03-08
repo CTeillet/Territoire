@@ -19,7 +19,7 @@ public class TerritoryMapper {
 		territoryDto.setName(territory.getName());
 		territoryDto.setStatus(territory.getStatus());
 		territoryDto.setLastModifiedDate(territory.getLastModifiedDate().toString());
-		territoryDto.setCity(territory.getCity().getName());
+		territoryDto.setCity(CityMapper.toDto(territory.getCity()));
 		territoryDto.setAddressesNotToDo(new ArrayList<>(territory.getAddressesNotToDo()));
 		territoryDto.setAssignments(new ArrayList<>(territory.getAssignments()));
 		territoryDto.setNote(territory.getNote());

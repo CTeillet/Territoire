@@ -20,7 +20,7 @@ public class City {
 	private UUID id;
 
 	@Column(nullable = false)
-	private  String name;
+	private String name;
 
 	@OneToMany(mappedBy = "city", orphanRemoval = true)
 	@JsonIgnore

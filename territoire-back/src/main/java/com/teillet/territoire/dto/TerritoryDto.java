@@ -13,7 +13,7 @@ public class TerritoryDto {
 	private String name;
 	private TerritoryStatus status;
 	private String lastModifiedDate;
-	private String city;
+	private CityDto city;
 	private List<AddressNotToDo> addressesNotToDo;
 	private List<Assignment> assignments;
 	private String geojson;
