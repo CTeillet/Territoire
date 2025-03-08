@@ -9,10 +9,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import {RootState, useAppDispatch} from "@/store/store";
 import {addTerritory, fetchTerritories} from "@/store/slices/territory-slice";
 import { fetchCities } from "@/store/slices/city-slice";
+import { useRouter } from "next/navigation";
 
 const CreateTerritoryModal: React.FC = () => {
     const dispatch = useAppDispatch();
     const cities = useSelector((state: RootState) => state.cities.cities);
+    const router = useRouter();
 
     // Si `cities` est vide, on va chercher les données du backend
     useEffect(() => {
@@ -20,7 +22,7 @@ const CreateTerritoryModal: React.FC = () => {
         if (cities.length === 0) {
             dispatch(fetchCities());
         }
-    }, [dispatch, cities.length]);
+    }, [dispatch, cities.length, cities]);
 
     // État local du formulaire
     const [territoryName, setTerritoryName] = useState("");
@@ -32,9 +34,11 @@ const CreateTerritoryModal: React.FC = () => {
 
         setIsCreating(true);
         try {
-            await dispatch(addTerritory({name: territoryName, cityId: selectedCity})).unwrap();
+            const newTerritory = await dispatch(addTerritory({name: territoryName, cityId: selectedCity})).unwrap();
             setTerritoryName("");
             dispatch(fetchTerritories()); // Recharge la liste après ajout
+            console.log("newTerritory", newTerritory);
+            router.push(`/territoires/${newTerritory.id}`);
         } catch (error) {
             console.error("Erreur lors de la création du territoire :", error);
         } finally {
