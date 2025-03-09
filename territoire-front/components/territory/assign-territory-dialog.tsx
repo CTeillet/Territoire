@@ -2,10 +2,12 @@
 
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {Person} from "@/models/person";
+import {ChevronsUpDown} from "lucide-react";
+import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList} from "@/components/ui/command";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 
 interface AssignTerritoryDialogProps {
     isOpen: boolean;
@@ -17,8 +19,8 @@ interface AssignTerritoryDialogProps {
 const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({ isOpen, onOpenChange, people, onAssign }) => {
     const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
     const [newPerson, setNewPerson] = useState({ firstName: "", lastName: "" });
+    const [popoverOpen, setPopoverOpen] = useState(false);
 
-    // Vérification des conditions pour activer le bouton
     const isFormValid = selectedPerson !== null || (newPerson.firstName.trim() !== "" && newPerson.lastName.trim() !== "");
 
     const handleAssign = () => {
@@ -35,31 +37,56 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({ isOpen, o
                     <DialogTitle>Assigner une personne au territoire</DialogTitle>
                 </DialogHeader>
 
-                {/* Sélection d'une personne existante */}
-                <Select
-                    value={selectedPerson ?? "none"} // Garantit que "Aucune personne" est bien sélectionné
-                    onValueChange={(value) => {
-                        setTimeout(() => setSelectedPerson(value === "none" ? null : value), 0);
-                    }}
-                >
-                    <SelectTrigger className="w-full">
-                        <SelectValue>
+                {/* Sélection d'une personne existante via Popover avec Command */}
+                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={popoverOpen}
+                            className="w-full justify-between"
+                        >
                             {selectedPerson
                                 ? people.find((p) => p.id === selectedPerson)?.firstName + " " + people.find((p) => p.id === selectedPerson)?.lastName
                                 : "Sélectionner une personne ou aucune"}
-                        </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="none">Aucune personne</SelectItem> {/* Option pour ne rien sélectionner */}
-                        {people.map((person) => (
-                            <SelectItem key={person.id} value={person.id==null?"":person.id}>
-                                {person.firstName} {person.lastName}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                            <ChevronsUpDown className="opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                        <Command>
+                            <CommandInput placeholder="Rechercher une personne..." className="h-9" />
+                            <CommandList>
+                                <CommandEmpty>Aucune personne trouvée.</CommandEmpty>
+                                <CommandGroup>
+                                    <CommandItem
+                                        value="none"
+                                        onSelect={() => {
+                                            setSelectedPerson(null);
+                                            setPopoverOpen(false);
+                                        }}
+                                    >
+                                        Aucune personne
+                                    </CommandItem>
+                                    {people.map((person) => (
+                                        <CommandItem
+                                            key={person.id}
+                                            value={`${person.firstName} ${person.lastName}`}
+                                            onSelect={(currentValue) => {
+                                                const selected = people.find((p) => `${p.firstName} ${p.lastName}` === currentValue);
+                                                setSelectedPerson(selected ? selected.id : null);
+                                                setPopoverOpen(false);
+                                            }}
+                                        >
+                                            {person.firstName} {person.lastName}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
 
-                {/* Création d'une nouvelle personne (désactivé si une personne est sélectionnée) */}
+                {/* Création d'une nouvelle personne */}
                 <div className="flex flex-col space-y-2 mt-4">
                     <span className="text-sm text-gray-600">Ou créer une nouvelle personne :</span>
                     <Input
@@ -82,13 +109,13 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({ isOpen, o
                 <Button
                     className={`w-full mt-4 ${isFormValid ? "bg-teal-500 hover:bg-teal-600" : "bg-gray-400 cursor-not-allowed"}`}
                     onClick={handleAssign}
-                    disabled={!isFormValid} // Désactivé tant que les conditions ne sont pas remplies
+                    disabled={!isFormValid}
                 >
                     Confirmer l&apos;assignation
                 </Button>
             </DialogContent>
         </Dialog>
     );
-}
+};
 
 export default AssignTerritoryDialog;
