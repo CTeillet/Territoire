@@ -14,7 +14,7 @@ import {
 } from "@tanstack/react-table"
 
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {DataTablePagination} from "@/components/ui/data-table-pagination";
 
 interface DataTableProps<TData, TValue> {
@@ -35,11 +35,25 @@ export function DataTable<TData, TValue>({
             actions: true,
         })
     const [sorting, setSorting] = React.useState<SortingState>([])
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
+        if (typeof window !== "undefined") {
+            const storedFilters = localStorage.getItem("tableFilters");
+            return storedFilters ? JSON.parse(storedFilters) : [];
+        }
+        return [];
+    });
+
     const [pagination, setPagination] = useState({
         pageIndex: 0, //initial page index
         pageSize: 10, //default page size
     });
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("tableFilters", JSON.stringify(columnFilters));
+        }
+    }, [columnFilters]);
+
 
     const table = useReactTable({
         data,
