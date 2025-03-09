@@ -14,15 +14,17 @@ const CityManager: React.FC = () => {
     const dispatch = useAppDispatch();
     const { cities, loading, error } = useSelector((state: RootState) => state.cities);
     const [cityName, setCityName] = useState("");
+    const [zipCode, setZipCode] = useState("");
 
     useEffect(() => {
         dispatch(fetchCities());
     }, [dispatch]);
 
     const handleAddCity = () => {
-        if (cityName.trim()) {
-            dispatch(addCity(cityName));
+        if (cityName.trim() && zipCode.trim()) {
+            dispatch(addCity({name:cityName, zipCode: zipCode}));
             setCityName("");
+            setZipCode("")
         }
     };
 
@@ -41,6 +43,13 @@ const CityManager: React.FC = () => {
                     value={cityName}
                     onChange={(e) => setCityName(e.target.value)}
                     placeholder="Nom de la ville"
+                    className="w-64"
+                />
+                <Input
+                    type="text"
+                    value={zipCode}
+                    onChange={(e) => setZipCode(e.target.value)}
+                    placeholder="Code Postal"
                     className="w-64"
                 />
                 <Button onClick={handleAddCity} variant="default">

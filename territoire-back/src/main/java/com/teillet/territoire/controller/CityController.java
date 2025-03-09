@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/villes")
@@ -27,20 +28,19 @@ public class CityController {
 		return result;
 	}
 
-	// 🔹 Récupération d'une ville
-	@GetMapping("/{name}")
-	public City findCityByName(@RequestParam String name) {
-		log.info("📌 Demande de récupération de la ville {}", name);
-		City result = cityService.getCity(name);
-		log.info("✅ Ville récupérée avec succès");
-		return result;
-	}
-
 	@GetMapping
 	public List<City> getCities() {
 		log.info("📌 Demande de récupération des villes");
 		List<City> result = cityService.getCities();
 		log.info("✅ Villes récupérées avec succès");
 		return result;
+	}
+
+	@DeleteMapping("/{cityId}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public void deleteCity(@PathVariable UUID cityId) {
+		log.info("📌 Demande de suppression de la ville {}", cityId);
+		cityService.deleteCity(cityId);
+		log.info("✅ Ville supprimée avec succès");
 	}
 }

@@ -12,20 +12,28 @@ import {useAppDispatch} from "@/store/store";
 import {authFetch} from "@/utils/auth-fetch";
 import MapUpdater from "@/components/territory/map-updater";
 import {useSidebar} from "@/components/ui/sidebar";
+import {City} from "@/models/city";
 
 interface GeomanCreateEvent extends LeafletEvent {
     layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
 }
 
-const defaultCenter: LatLngBoundsExpression = [[48.695874, 2.367055], [48.695874, 2.367055]];
-
-
-const TerritoryMap = ({territory}: { territory: Territory }) => {
+const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) => {
     const mapRef = useRef<Map | null>(null);
     const dispatch = useAppDispatch();
     const sidebar = useSidebar();
 
     const [geoJsonData, setGeoJsonData] = useState<FeatureCollection<Polygon, PolygonProperties> | null>(null);
+
+    const cityCenter: LatLngBoundsExpression = useMemo(() => {
+        console.log("📍 City center:", city); // Log pour vérifier les infos de la ville
+
+        return [
+            [city.center.latitude, city.center.longitude],
+            [city.center.latitude, city.center.longitude]
+        ];
+    }, [city]);
+
 
     const [blockFeatures, setBlockFeatures] = useState<FeatureCollection>({
         type: "FeatureCollection",
@@ -61,8 +69,8 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
                 [Math.max(...concaveHullCoords.map(coord => coord[0])), Math.max(...concaveHullCoords.map(coord => coord[1]))]
             ];
         }
-        return defaultCenter; // Utilisation des coordonnées par défaut
-    }, [concaveHullCoords]);
+        return cityCenter; // Utilisation des coordonnées par défaut
+    }, [cityCenter, concaveHullCoords]);
 
     useEffect(() => {
         if (territory?.geojson) {
@@ -77,10 +85,11 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
     }, [territory.geojson]);
 
     useEffect(() => {
-        if (mapRef.current && concaveHullCoords.length > 0) {
+        if (mapRef.current) {
             mapRef.current.fitBounds(bounds);
         }
     }, [territory.geojson, bounds, concaveHullCoords.length]);
+
 
     useEffect(() => {
         const testJson: FeatureCollection = JSON.parse(territory.geojson as string) as FeatureCollection<Polygon, PolygonProperties>;
@@ -117,7 +126,7 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
 
 
     const handleCreate = async (e: GeomanCreateEvent) => {
-        const { layer } = e;
+        const {layer} = e;
         if (!layer.getLatLngs) return;
 
         // Création de l'objet GeoJSON
@@ -127,7 +136,7 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
 
         const response = await authFetch(`/api/territories/${territory.id}/blocks`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify(newPolygon),
         });
 
@@ -175,7 +184,7 @@ const TerritoryMap = ({territory}: { territory: Territory }) => {
             ref={mapRef} bounds={bounds} style={{height: "500px", width: "100%", zIndex: 0}}
             className="mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm"
         >
-            <MapUpdater isSidebarOpen={sidebar.state === "expanded"} /> {/* Ajout pour gérer la sidebar */}
+            <MapUpdater isSidebarOpen={sidebar.state === "expanded"}/> {/* Ajout pour gérer la sidebar */}
 
             <LayersControl position="topright">
                 {/* Fonds de carte sélectionnables */}

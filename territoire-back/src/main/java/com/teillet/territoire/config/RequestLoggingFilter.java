@@ -13,6 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -25,9 +26,12 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
 	                                @NonNull FilterChain filterChain) throws ServletException, IOException {
 		if (logRequestDetails.equals(Boolean.TRUE)) {
-			logRequestDetails(request);
+			CachedBodyHttpServletRequest cachedRequest = new CachedBodyHttpServletRequest(request);
+			logRequestDetails(cachedRequest);
+			filterChain.doFilter(cachedRequest, response);
+		} else {
+			filterChain.doFilter(request, response);
 		}
-		filterChain.doFilter(request, response);
 	}
 
 	private void logRequestDetails(HttpServletRequest request) {
@@ -42,5 +46,15 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
 		// Logger les paramètres de requête
 		request.getParameterMap().forEach((key, value) -> log.info("Param: {} = {}", key, String.join(",", value)));
+
+		// Logger le body (si la requête a un corps)
+		try {
+			String body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
+			if (!body.isBlank()) {
+				log.info("Body: {}", body);
+			}
+		} catch (IOException e) {
+			log.warn("Impossible de lire le body de la requête", e);
+		}
 	}
 }

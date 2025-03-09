@@ -1,4 +1,4 @@
-import { City } from "@/models/city";
+import {City} from "@/models/city";
 import {createAsyncThunk, createSlice, PayloadAction} from "@reduxjs/toolkit";
 import {authFetch} from "@/utils/auth-fetch";
 
@@ -26,23 +26,24 @@ export const fetchCities = createAsyncThunk("cities/fetchCities", async () => {
 });
 
 // ✅ Thunk pour ajouter une ville
-export const addCity = createAsyncThunk("cities/addCity", async (name: string) => {
-    const response = await authFetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+export const addCity = createAsyncThunk("cities/addCity",
+    async ({name, zipCode}:{name: string, zipCode: string}) => {
+        const response = await authFetch(API_URL, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({name: name, zipCode: zipCode}),
+        });
+
+        if (!response.ok) {
+            throw new Error("Erreur lors de l'ajout de la ville");
+        }
+
+        return response.json() as Promise<City>;
     });
-
-    if (!response.ok) {
-        throw new Error("Erreur lors de l'ajout de la ville");
-    }
-
-    return response.json() as Promise<City>;
-});
 
 // ✅ Thunk pour supprimer une ville
 export const removeCity = createAsyncThunk("cities/removeCity", async (id: string) => {
-    const response = await authFetch(`${API_URL}/${id}`, { method: "DELETE" });
+    const response = await authFetch(`${API_URL}/${id}`, {method: "DELETE"});
 
     if (!response.ok) {
         throw new Error("Erreur lors de la suppression de la ville");

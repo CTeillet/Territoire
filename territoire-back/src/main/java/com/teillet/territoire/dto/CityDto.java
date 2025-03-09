@@ -10,4 +10,5 @@ import java.util.UUID;
 public class CityDto {
 	private UUID id;
 	private String name;
+	private LatLong center;
 }

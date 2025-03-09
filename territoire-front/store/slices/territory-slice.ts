@@ -277,6 +277,8 @@ const territorySlice = createSlice({
                             city: {
                                 id: action.payload.city.id,
                                 name: action.payload.city.name,
+                                zipCode: action.payload.city.zipCode,
+                                center: action.payload.city.center,
                             },
                             addressesNotToDo: [],
                             geojson: "",

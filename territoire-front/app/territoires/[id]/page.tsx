@@ -76,7 +76,7 @@ const TerritoryPage = () => {
             />
 
             {/* Carte du territoire */}
-            <TerritoryIdMap territory={selectedTerritory}/>
+            <TerritoryIdMap territory={selectedTerritory} city={selectedTerritory.city}/>
 
             {/* Liste des adresses à ne pas visiter */}
             <AddressNotToDoList/>
