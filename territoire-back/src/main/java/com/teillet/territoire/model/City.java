@@ -27,12 +27,12 @@ public class City {
 	@Column(nullable = false)
 	private String name;
 
-	@Column(name = "zip_code")
+	@Column(name = "zip_code", nullable = false)
 	private String zipCode;
 
 	@JsonSerialize(using = GeometrySerializer.class)
 	@JsonDeserialize(using = GeometryDeserializer.class)
-	@Column(name = "center", columnDefinition = "geometry(Point, 4326)")
+	@Column(name = "center", columnDefinition = "geometry(Point, 4326)", nullable = false)
 	private Point center;
 
 	@OneToMany(mappedBy = "city", orphanRemoval = true)
