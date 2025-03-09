@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Person } from "@/models/person";
-import { useToast } from "@/hooks/use-toast"; // Pour afficher une notification
+import { toast } from "sonner";
 
 type CreatePersonDialogProps = {
     isOpen: boolean;
@@ -14,7 +14,6 @@ type CreatePersonDialogProps = {
 
 const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({ isOpen, onOpenChange, onCreate, isLoading }) => {
     const [person, setPerson] = useState({ firstName: "", lastName: "", email: "", phoneNumber: "" });
-    const { toast } = useToast(); // Hook pour afficher les notifications
 
     const isFormValid = person.firstName.trim() !== "" && person.lastName.trim() !== "";
 
@@ -29,19 +28,13 @@ const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({ isOpen, onOpenC
                     phoneNumber: person.phoneNumber.trim() || undefined,
                 });
 
-                toast({
-                    title: "Succès",
-                    description: "La personne a bien été ajoutée !",
-                });
+                toast.success("La personne a bien été ajoutée !");
 
                 onOpenChange(false); // Fermer le modal après création réussie
                 setPerson({ firstName: "", lastName: "", email: "", phoneNumber: "" }); // Réinitialiser le formulaire
             } catch (error) {
                 console.log(error);
-                toast({
-                    title: "Erreur",
-                    description: "Échec de l'ajout de la personne. Veuillez réessayer.",
-                });
+                toast.error("Échec de l'ajout de la personne. Veuillez réessayer.");
             }
         }
     };

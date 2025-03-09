@@ -5,8 +5,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import React from "react";
 import { ReduxProvider } from "@/store/provider";
-import { Toaster } from "@/components/ui/toaster";
 import ServiceWorker from "@/components/service-worker";
+import {Toaster} from "@/components/ui/sonner";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -47,7 +47,7 @@ export default function RootLayout(
                     <SidebarTrigger/>
                     {children}
                 </main>
-                <Toaster/>
+                <Toaster position="bottom-center" />
             </SidebarProvider>
             <ServiceWorker/>
         </ReduxProvider>
