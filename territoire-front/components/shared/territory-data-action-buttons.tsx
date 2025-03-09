@@ -37,7 +37,8 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
 
     // ✅ Charger la liste des personnes au montage
     useEffect(() => {
-        if(!persons) {
+        console.log(persons)
+        if(persons.length == 0) {
             console.log("Récupération des personnes...");
             dispatch(fetchPersons());
         }
