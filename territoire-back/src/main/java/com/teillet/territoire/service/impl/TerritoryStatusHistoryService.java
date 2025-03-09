@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -40,6 +41,7 @@ public class TerritoryStatusHistoryService implements ITerritoryStatusHistorySer
 
 		// Création et sauvegarde de l'historique
 		TerritoryStatusHistory history = TerritoryStatusHistory.builder()
+				.date(LocalDate.now())
 				.availableTerritory(available)
 				.lateTerritory(late)
 				.pendingTerritory(pending)
