@@ -2,6 +2,7 @@ package com.teillet.territoire.controller;
 
 
 import com.teillet.territoire.model.City;
+import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.service.IExcelExportService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/excel")
@@ -31,6 +34,12 @@ public class ExcelExportController {
 		try {
 			// Récupérer toutes les villes avec leurs territoires et affectations
 			List<City> cities = cityRepository.findAll();
+			cities = cities.stream().map(city -> {
+				List<Territory> territories = city.getTerritories();
+				territories = territories.stream().sorted(Comparator.comparing(Territory::getName)).toList();
+				city.setTerritories(territories);
+				return city;
+			}).sorted(Comparator.comparing(City::getName)).collect(Collectors.toList());
 
 			// Générer l'Excel en mémoire
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
