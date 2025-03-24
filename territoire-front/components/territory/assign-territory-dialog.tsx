@@ -1,13 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {Person} from "@/models/person";
+import React, {useState} from "react";
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form";
+import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover";
+import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,} from "@/components/ui/command";
 import {ChevronsUpDown} from "lucide-react";
-import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList} from "@/components/ui/command";
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {useForm} from "react-hook-form";
+import {z} from "zod";
+import {zodResolver} from "@hookform/resolvers/zod";
+import {Person} from "@/models/person";
 
 interface AssignTerritoryDialogProps {
     isOpen: boolean;
@@ -16,105 +27,201 @@ interface AssignTerritoryDialogProps {
     onAssign: (personId: string | null, newPerson: { firstName: string; lastName: string }) => void;
 }
 
-const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({ isOpen, onOpenChange, people, onAssign }) => {
-    const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
-    const [newPerson, setNewPerson] = useState({ firstName: "", lastName: "" });
+// Zod schema : au moins une des deux options doit être remplie
+const assignSchema = z
+    .object({
+        personId: z.string().nullable(),
+        firstName: z.string(),
+        lastName: z.string(),
+    })
+    .superRefine((data, ctx) => {
+            const {personId, firstName, lastName} = data;
+            const hasSelectedPerson = !!personId;
+            const hasFirstName = firstName.trim() !== "";
+            const hasLastName = lastName.trim() !== "";
+
+            if (!hasSelectedPerson) {
+                if (!hasFirstName && !hasLastName) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: ["firstName"],
+                        message: "Sélectionnez une personne ou entrez un prénom et un nom",
+                    });
+                    ctx.addIssue({
+                        code: "custom",
+                        path: ["lastName"],
+                        message: "Sélectionnez une personne ou entrez un prénom et un nom",
+                    });
+                } else if (hasFirstName && !hasLastName) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: ["lastName"],
+                        message: "Le nom est requis",
+                    });
+                } else if (!hasFirstName && hasLastName) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: ["firstName"],
+                        message: "Le prénom est requis",
+                    });
+                }
+            }
+        }
+    );
+
+type AssignForm = z.infer<typeof assignSchema>;
+
+const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = (
+    {
+        isOpen,
+        onOpenChange,
+        people,
+        onAssign,
+    }) => {
     const [popoverOpen, setPopoverOpen] = useState(false);
 
-    const isFormValid = selectedPerson !== null || (newPerson.firstName.trim() !== "" && newPerson.lastName.trim() !== "");
+    const form = useForm<AssignForm>({
+        resolver: zodResolver(assignSchema),
+        defaultValues: {
+            personId: null,
+            firstName: "",
+            lastName: "",
+        },
+    });
 
-    const handleAssign = () => {
-        if (isFormValid) {
-            onAssign(selectedPerson, newPerson);
-            onOpenChange(false);
-        }
+    const handleSubmit = (data: AssignForm) => {
+        onAssign(data.personId, {
+            firstName: data.firstName.trim(),
+            lastName: data.lastName.trim(),
+        });
+        form.reset();
+        onOpenChange(false);
     };
 
+    const selectedPerson = form.watch("personId");
+    const isDisabled = selectedPerson !== null;
+
     return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Assigner une personne au territoire</DialogTitle>
-                </DialogHeader>
+        <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Assigner une personne au territoire</AlertDialogTitle>
+                </AlertDialogHeader>
 
-                {/* Sélection d'une personne existante via Popover avec Command */}
-                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                    <PopoverTrigger asChild>
-                        <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={popoverOpen}
-                            className="w-full justify-between"
-                        >
-                            {selectedPerson
-                                ? people.find((p) => p.id === selectedPerson)?.firstName + " " + people.find((p) => p.id === selectedPerson)?.lastName
-                                : "Sélectionner une personne ou aucune"}
-                            <ChevronsUpDown className="opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                        <Command>
-                            <CommandInput placeholder="Rechercher une personne..." className="h-9" />
-                            <CommandList>
-                                <CommandEmpty>Aucune personne trouvée.</CommandEmpty>
-                                <CommandGroup>
-                                    <CommandItem
-                                        value="none"
-                                        onSelect={() => {
-                                            setSelectedPerson(null);
-                                            setPopoverOpen(false);
-                                        }}
-                                    >
-                                        Aucune personne
-                                    </CommandItem>
-                                    {people.map((person) => (
-                                        <CommandItem
-                                            key={person.id}
-                                            value={`${person.firstName} ${person.lastName}`}
-                                            onSelect={(currentValue) => {
-                                                const selected = people.find((p) => `${p.firstName} ${p.lastName}` === currentValue);
-                                                setSelectedPerson(selected ? selected.id : null);
-                                                setPopoverOpen(false);
-                                            }}
-                                        >
-                                            {person.firstName} {person.lastName}
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                        {/* Sélection d'une personne existante */}
+                        <FormField
+                            control={form.control}
+                            name="personId"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Personne existante</FormLabel>
+                                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className="w-full justify-between"
+                                            >
+                                                {field.value
+                                                    ? people.find((p) => p.id === field.value)?.firstName +
+                                                    " " +
+                                                    people.find((p) => p.id === field.value)?.lastName
+                                                    : "Sélectionner une personne ou aucune"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50"/>
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Rechercher une personne..." className="h-9"/>
+                                                <CommandList>
+                                                    <CommandEmpty>Aucune personne trouvée.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        <CommandItem
+                                                            value="none"
+                                                            onSelect={() => {
+                                                                field.onChange(null);
+                                                                setPopoverOpen(false);
+                                                            }}
+                                                        >
+                                                            Aucune personne
+                                                        </CommandItem>
+                                                        {people.map((person) => (
+                                                            <CommandItem
+                                                                key={person.id}
+                                                                value={`${person.firstName} ${person.lastName}`}
+                                                                onSelect={() => {
+                                                                    field.onChange(person.id);
+                                                                    setPopoverOpen(false);
+                                                                }}
+                                                            >
+                                                                {person.firstName} {person.lastName}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </FormItem>
+                            )}
+                        />
 
-                {/* Création d'une nouvelle personne */}
-                <div className="flex flex-col space-y-2 mt-4">
-                    <span className="text-sm text-gray-600">Ou créer une nouvelle personne :</span>
-                    <Input
-                        placeholder="Prénom"
-                        value={newPerson.firstName}
-                        onChange={(e) => setNewPerson({ ...newPerson, firstName: e.target.value })}
-                        disabled={!!selectedPerson}
-                        className={selectedPerson ? "opacity-50 cursor-not-allowed bg-gray-200" : ""}
-                    />
-                    <Input
-                        placeholder="Nom"
-                        value={newPerson.lastName}
-                        onChange={(e) => setNewPerson({ ...newPerson, lastName: e.target.value })}
-                        disabled={!!selectedPerson}
-                        className={selectedPerson ? "opacity-50 cursor-not-allowed bg-gray-200" : ""}
-                    />
-                </div>
+                        {/* Création d'une nouvelle personne */}
+                        <FormField
+                            control={form.control}
+                            name="firstName"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Prénom</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            placeholder="Prénom"
+                                            disabled={isDisabled}
+                                            className={isDisabled ? "opacity-50 cursor-not-allowed bg-gray-200" : ""}
+                                        />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Requis si aucune personne n’est sélectionnée
+                                    </FormDescription>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="lastName"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Nom</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            {...field}
+                                            placeholder="Nom"
+                                            disabled={isDisabled}
+                                            className={isDisabled ? "opacity-50 cursor-not-allowed bg-gray-200" : ""}
+                                        />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Requis si aucune personne n’est sélectionnée
+                                    </FormDescription>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}
+                        />
 
-                {/* Bouton de validation */}
-                <Button
-                    className={`w-full mt-4 ${isFormValid ? "bg-teal-500 hover:bg-teal-600" : "bg-gray-400 cursor-not-allowed"}`}
-                    onClick={handleAssign}
-                    disabled={!isFormValid}
-                >
-                    Confirmer l&apos;assignation
-                </Button>
-            </DialogContent>
-        </Dialog>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel type="button">Annuler</AlertDialogCancel>
+                            <Button type="submit" className="w-full">
+                                Confirmer l&apos;assignation
+                            </Button>
+                        </AlertDialogFooter>
+                    </form>
+                </Form>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 };
 
