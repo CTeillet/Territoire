@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { authFetch } from "@/utils/auth-fetch";
 import { Role } from "@/models/role";
 import { User } from "@/models/user";
+import {RegisterRequest} from "@/models/registerRequest";
 
 const BASE_URL = "/api/utilisateurs";
 
@@ -32,10 +33,10 @@ export const fetchUsersThunk = createAsyncThunk<User[], void, { rejectValue: str
 );
 
 // Création d'un utilisateur
-export const createUserThunk = createAsyncThunk<User, Partial<User>, { rejectValue: string }>(
+export const createUserThunk = createAsyncThunk<User, RegisterRequest, { rejectValue: string }>(
     "users/createUser",
     async (user, { rejectWithValue }) => {
-        const response = await authFetch("/api/auth/register", {
+        const response = await authFetch("/api/utilisateurs", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(user),

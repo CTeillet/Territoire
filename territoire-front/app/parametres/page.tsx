@@ -1,9 +1,9 @@
 "use client";
 
-import UserManagement from "@/components/parameters/user-management";
+import UserManagement from "@/components/parameters/user-management/user-management";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {useState} from "react";
-import CityManagement from "@/components/parameters/city-management";
+import CityManagement from "@/components/parameters/city-management/city-management";
 import OtherParameter from "@/components/parameters/other-parameter";
 
 const ParametersPage = () => {

@@ -28,16 +28,15 @@ public class UserController {
 
 	// 🔹 Endpoint d'inscription (Register)
 	@PostMapping
-	public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+	public ResponseEntity<User> register(@RequestBody RegisterRequest request) {
 
 		if (userService.findByEmail(request.getEmail()).isPresent()) {
-			return ResponseEntity.badRequest().body(Map.of("error", "Email déjà utilisé"));
+			return ResponseEntity.badRequest().build();
 		}
 
 		User user = userService.registerUser(request);
-		String token = jwtService.generateToken(user);
 
-		return ResponseEntity.ok(Map.of("user", user, "token", token));
+		return ResponseEntity.ok(user);
 	}
 
 	// 🔹 Modifier le rôle d’un utilisateur
