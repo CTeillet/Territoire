@@ -5,8 +5,8 @@ interface PersonEditFormProps {
     formData: {
         firstName: string;
         lastName: string;
-        email: string;
-        phoneNumber: string;
+        email: string | undefined;
+        phoneNumber: string | undefined;
     };
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }

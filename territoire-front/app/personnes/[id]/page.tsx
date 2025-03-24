@@ -30,8 +30,8 @@ const PersonDetail = () => {
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
-        email: "",
-        phoneNumber: "",
+        email: undefined as string | undefined,
+        phoneNumber: undefined as string | undefined,
     });
 
     // Redirection si l'utilisateur n'est pas authentifié
@@ -54,7 +54,7 @@ const PersonDetail = () => {
             setFormData({
                 firstName: person.firstName,
                 lastName: person.lastName,
-                email: person.email || "",
+                email: person.email || undefined,
                 phoneNumber: person.phoneNumber || "",
             });
         }
