@@ -5,7 +5,7 @@ import com.teillet.territoire.enums.TerritoryStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
-import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.MultiPolygon;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -37,8 +37,8 @@ public class Territory {
 	@JsonManagedReference
 	private List<Block> blocks = new ArrayList<>();
 
-	@Column(name = "concave_hull", columnDefinition = "geometry(Polygon, 4326)")
-	private Polygon concaveHull;
+	@Column(name = "concave_hull", columnDefinition = "geometry(MultiPolygon, 4326)")
+	private MultiPolygon concaveHull;
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
 	@JsonManagedReference
