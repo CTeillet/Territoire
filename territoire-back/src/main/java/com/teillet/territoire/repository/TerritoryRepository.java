@@ -15,14 +15,23 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
 
 	@Modifying
 	@Query(nativeQuery = true, value = """
-			Update territory
-			set concave_hull =
-			        (Select ST_ConcaveHull(ST_Union(block), 0.5)
-			         from territory
-			                  left join block b on territory.id = b.territory_id
-			         where territory_id=:id
-			         group by territory_id)
-			where territory.id = :id;
+			UPDATE territory
+			SET concave_hull = (
+				SELECT ST_Transform(
+							   ST_Buffer(
+									   ST_Union(
+											   ST_Buffer(
+													   ST_Transform(b.block, 2154), 7
+											   )
+									   ),
+									   -8
+							   ),
+							   4326
+					   )
+				FROM block b
+				WHERE b.territory_id = territory.id
+			)
+			WHERE territory.id = :id;
 			""")
 	void updateConcaveHullTerritory(UUID id);
 
