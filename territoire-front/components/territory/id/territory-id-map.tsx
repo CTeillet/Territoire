@@ -3,9 +3,9 @@
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {GeoJSON, LayerGroup, LayersControl, MapContainer, TileLayer} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import {LatLng, LatLngBoundsExpression, Layer, LeafletEvent, Map} from "leaflet";
+import {LatLng, LatLngBoundsExpression, LatLngTuple, Layer, LeafletEvent, Map} from "leaflet";
 import {PolygonProperties, Territory} from "@/models/territory";
-import {Feature, FeatureCollection, Polygon} from "geojson";
+import {Feature, FeatureCollection, MultiPolygon, Polygon, Position} from "geojson";
 import {GeomanControl} from "@/components/territory/id/geoman-controls";
 import {fetchTerritoryById} from "@/store/slices/territory-slice";
 import {useAppDispatch} from "@/store/store";
@@ -23,7 +23,7 @@ const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) =
     const dispatch = useAppDispatch();
     const sidebar = useSidebar();
 
-    const [geoJsonData, setGeoJsonData] = useState<FeatureCollection<Polygon, PolygonProperties> | null>(null);
+    const [geoJsonData, setGeoJsonData] = useState<FeatureCollection<Polygon | MultiPolygon, PolygonProperties> | null>(null);
 
     const cityCenter: LatLngBoundsExpression = useMemo(() => {
         console.log("📍 City center:", city); // Log pour vérifier les infos de la ville
@@ -33,6 +33,29 @@ const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) =
             [city.center.latitude, city.center.longitude]
         ];
     }, [city]);
+
+    const toLatLngBounds= (coords: Position[][]) : LatLngBoundsExpression =>  {
+        // On suppose qu'il y a un seul tableau dans le tableau
+        const flatCoords: LatLngTuple[] = coords[0].map(
+            ([lng, lat]) => [lat, lng] as LatLngTuple
+        );
+
+        let minLat = Infinity, minLng = Infinity;
+        let maxLat = -Infinity, maxLng = -Infinity;
+
+        for (const [lat, lng] of flatCoords) {
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+            if (lng < minLng) minLng = lng;
+            if (lng > maxLng) maxLng = lng;
+        }
+
+        console.log("calcul bounds",minLat, minLng, maxLng, minLat, maxLng);
+        return [
+            [minLat, minLng],
+            [maxLat, maxLng],
+        ];
+    }
 
 
     const [blockFeatures, setBlockFeatures] = useState<FeatureCollection>({
@@ -49,7 +72,7 @@ const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) =
                 features: geoJsonData?.features?.filter(
                     (feature) => feature.properties.type === "CONCAVE_HULL"
                 ) || [],
-            } as FeatureCollection<Polygon, PolygonProperties>), // 🔹 Ajout du cast explicite
+            } as FeatureCollection<MultiPolygon, PolygonProperties>), // 🔹 Ajout du cast explicite
         [geoJsonData?.features]
     );
 
@@ -64,10 +87,7 @@ const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) =
 
     const bounds: LatLngBoundsExpression = useMemo(() => {
         if (concaveHullCoords.length > 0) {
-            return [
-                [Math.min(...concaveHullCoords.map(coord => coord[0])), Math.min(...concaveHullCoords.map(coord => coord[1]))],
-                [Math.max(...concaveHullCoords.map(coord => coord[0])), Math.max(...concaveHullCoords.map(coord => coord[1]))]
-            ];
+            return toLatLngBounds(concaveHullCoords);
         }
         return cityCenter; // Utilisation des coordonnées par défaut
     }, [cityCenter, concaveHullCoords]);

@@ -43,15 +43,16 @@ public class GeoJsonUtils {
 	public static String convertToGeoJSON(List<Block> blocks, MultiPolygon concaveHull) throws IOException {
 		// Définir le type de feature
 		SimpleFeatureType featureType = createPolygonFeatureType();
+		SimpleFeatureType featureTypeMultiPolygon = createMultiPolygonFeatureType();
 
 		// Créer une collection de features
 		ListFeatureCollection featureCollection = new ListFeatureCollection(featureType);
 		for (Block block : blocks) {
-			featureCollection.add(createPolygonFeature(featureType, block.getBlock(), block.getId().toString(), BLOCK));
+			featureCollection.add(createPolygonFeature(featureType, block.getBlock(), block.getId().toString()));
 		}
 
 		if (concaveHull != null) {
-			featureCollection.add(createPolygonFeature(featureType, concaveHull, null, CONCAVE_HULL));
+			featureCollection.add(createMultiPolygonFeature(featureTypeMultiPolygon, concaveHull));
 		}
 
 		// Convertir en GeoJSON
@@ -75,6 +76,14 @@ public class GeoJsonUtils {
 
 	private static SimpleFeatureType createPolygonFeatureType() {
 		SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+		builder.setName("Polygon");
+		builder.add("id", String.class);
+		builder.add("type", String.class);
+		builder.add("geometry", Polygon.class);
+		return builder.buildFeatureType();
+	}
+	private static SimpleFeatureType createMultiPolygonFeatureType() {
+		SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
 		builder.setName("MultiPolygon");
 		builder.add("id", String.class);
 		builder.add("type", String.class);
@@ -93,10 +102,18 @@ public class GeoJsonUtils {
 		return featureBuilder.buildFeature(null);
 	}
 
-	private static SimpleFeature createPolygonFeature(SimpleFeatureType featureType, MultiPolygon geom, String id, String type) {
+	private static SimpleFeature createMultiPolygonFeature(SimpleFeatureType featureType, MultiPolygon geom) {
+		SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureType);
+		featureBuilder.add(null);
+		featureBuilder.add(GeoJsonUtils.CONCAVE_HULL);
+		featureBuilder.add(geom);
+		return featureBuilder.buildFeature(null);
+	}
+
+	private static SimpleFeature createPolygonFeature(SimpleFeatureType featureType, Polygon geom, String id) {
 		SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureType);
 		featureBuilder.add(id);
-		featureBuilder.add(type);
+		featureBuilder.add(GeoJsonUtils.BLOCK);
 		featureBuilder.add(geom);
 		return featureBuilder.buildFeature(null);
 	}
