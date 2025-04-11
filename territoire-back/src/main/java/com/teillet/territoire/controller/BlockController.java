@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/territories/{territoryId}/blocks")
+@RequestMapping("/api/territoires/{territoryId}/pate")
 @RequiredArgsConstructor
 @Slf4j
 public class BlockController {
@@ -23,13 +23,13 @@ public class BlockController {
 	// 🔹 Ajout d'un block
 	@PostMapping
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
-	public Block addBlock(@PathVariable UUID territoryId, @RequestBody BlockDto block) {
+	public ResponseEntity<Void> addBlock(@PathVariable UUID territoryId, @RequestBody BlockDto block) {
 		log.info("📌 Demande d'ajout d'un block au territoire {} : {}", territoryId, block);
 
 		Block newBlock = blockService.addBlockToTerritory(territoryId, block);
 
 		log.info("✅ Block ajouté avec succès : {}", newBlock);
-		return newBlock;
+		return ResponseEntity.ok().build();
 	}
 
 	// 🔹 Suppression d'un block

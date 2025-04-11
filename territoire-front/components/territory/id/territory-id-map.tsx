@@ -128,7 +128,7 @@ const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) =
     };
 
     const handleDeleteBlock = async (blockId: string) => {
-        const response = await authFetch(`/api/territories/${territory.id}/blocks/${blockId}`, {
+        const response = await authFetch(`/api/territoires/${territory.id}/pate/${blockId}`, {
             method: "DELETE",
         });
 
@@ -154,7 +154,7 @@ const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) =
             coordinates: [layer.getLatLngs()[0].map((latlng: LatLng) => [latlng.lng, latlng.lat])],
         };
 
-        const response = await authFetch(`/api/territories/${territory.id}/blocks`, {
+        const response = await authFetch(`/api/territoires/${territory.id}/pate`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify(newPolygon),

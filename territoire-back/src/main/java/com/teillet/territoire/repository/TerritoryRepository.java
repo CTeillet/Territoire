@@ -41,4 +41,6 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
         GROUP BY t.status
     """)
 	List<TerritoryStatisticsProjection> getCurrentTerritoryStats();
+
+    Territory findByName(String name);
 }
