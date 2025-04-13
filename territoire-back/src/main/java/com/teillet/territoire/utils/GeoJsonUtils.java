@@ -70,6 +70,9 @@ public class GeoJsonUtils {
 		builder.add("status", String.class);
 		builder.add("city", String.class);
 		builder.add("lastVisitedOn", String.class);
+		builder.add("assignedTo", String.class);
+		builder.add("assignedOn", String.class);
+		builder.add("waitedFor", String.class);
 		builder.add("geometry", MultiPolygon.class);
 		return builder.buildFeatureType();
 	}
@@ -98,6 +101,9 @@ public class GeoJsonUtils {
 		featureBuilder.add(territory.getStatus().name());
 		featureBuilder.add(territory.getCity().getName());
 		featureBuilder.add(TerritoryUtils.getLastVisitedOn(territory));
+		featureBuilder.add(TerritoryUtils.getAssignedTo(territory));
+		featureBuilder.add(TerritoryUtils.getAssignedOn(territory));
+		featureBuilder.add(TerritoryUtils.getWaitedFor(territory));
 		featureBuilder.add(territory.getConcaveHull());
 		return featureBuilder.buildFeature(null);
 	}
