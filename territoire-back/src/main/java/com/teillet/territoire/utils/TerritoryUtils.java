@@ -19,7 +19,7 @@ public class TerritoryUtils {
 	public static String getAssignedTo(Territory territory) {
 		return territory.getAssignments()
 				.stream()
-				.filter(assignment -> assignment.getReturnDate() != null)
+				.filter(assignment -> assignment.getReturnDate() == null)
 				.map(assignment -> assignment.getPerson().getFirstName() + " " + assignment.getPerson().getLastName())
 				.findFirst()
 				.orElse(NA);
@@ -28,7 +28,7 @@ public class TerritoryUtils {
 	public static String getAssignedOn(Territory territory) {
 		return territory.getAssignments()
 				.stream()
-				.filter(assignment -> assignment.getReturnDate() != null)
+				.filter(assignment -> assignment.getReturnDate() == null)
 				.map(assignment -> assignment.getAssignmentDate().toString())
 				.findFirst()
 				.orElse(NA);
@@ -37,7 +37,7 @@ public class TerritoryUtils {
 	public static String getWaitedFor(Territory territory) {
 		return territory.getAssignments()
 				.stream()
-				.filter(assignment -> assignment.getReturnDate() != null)
+				.filter(assignment -> assignment.getReturnDate() == null)
 				.map(assignment -> assignment.getDueDate().toString())
 				.findFirst()
 				.orElse(NA);
