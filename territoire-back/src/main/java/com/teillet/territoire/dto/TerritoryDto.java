@@ -19,4 +19,7 @@ public class TerritoryDto {
 	private String geojson;
 	private String note;
 	private String lastVisitedOn;
+	private String assignedTo;
+	private String assignedOn;
+	private String waitedFor;
 }

@@ -20,6 +20,9 @@ export interface Territory {
     geojson: string;
     note?: string | null;
     lastVisitedOn: string;
+    assignedOn: string;
+    waitedFor: string;
+    assignedTo: string;
 }
 
 export interface SimplifiedTerritory {

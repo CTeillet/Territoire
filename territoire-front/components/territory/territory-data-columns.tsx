@@ -57,7 +57,28 @@ export const territoryDataColumns: ColumnDef<Territory>[] = [
         header: ({column}) => {
             return (<DataTableColumnHeader className={"text-center"} column={column} title="Parcouru pour la dernière fois le"/>)
         },
-        enableColumnFilter: true,
+        //enableColumnFilter: true,
+    },
+    {
+        id: "assignedTo",
+        accessorKey: "assignedTo",
+        header: ({column}) => {
+            return (<DataTableColumnHeader className={"text-center"} column={column} title="Assigné à"/>)
+        },
+    },
+    {
+        id: "assignedOn",
+        accessorKey: "assignedOn",
+        header: ({column}) => {
+            return (<DataTableColumnHeader className={"text-center"} column={column} title="Assigné le"/>)
+        },
+    },
+    {
+        id: "waitedFor",
+        accessorKey: "waitedFor",
+        header: ({column}) => {
+            return (<DataTableColumnHeader className={"text-center"} column={column} title="Attendu pour le"/>)
+        },
     },
     {
         id: "actions",
