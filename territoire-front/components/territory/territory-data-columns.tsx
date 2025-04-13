@@ -9,7 +9,7 @@ import {DataTableColumnHeader} from "@/components/territory/territory-data-heade
 import {
     TerritoryDataActionButtons
 } from "@/components/shared/territory-data-action-buttons";
-export const territoryDataColumns: ColumnDef<Territory>[] = [
+export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
     {
         id: "id",
         accessorKey: "id",

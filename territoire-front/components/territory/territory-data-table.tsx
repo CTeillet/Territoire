@@ -16,25 +16,28 @@ import {
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
 import React, {useEffect, useState} from "react";
 import {DataTablePagination} from "@/components/ui/data-table-pagination";
+import * as XLSX from 'xlsx';
+import {Territory} from "@/models/territory";
+import {Button} from "@/components/ui/button";
+import {FileDown} from "lucide-react";
 
-interface DataTableProps<TData, TValue> {
-    columns: ColumnDef<TData, TValue>[]
-    data: TData[]
+interface DataTableProps {
+    columns: ColumnDef<Territory, unknown>[]
+    data: Territory[]
 }
 
-export function DataTable<TData, TValue>({
-                                             columns,
-                                             data,
-                                         }: DataTableProps<TData, TValue>) {
-    const [columnVisibility, setColumnVisibility] =
-        useState<VisibilityState>({
-            id: false,
-            name: true,
-            city: true,
-            status: true,
-            actions: true,
-        })
-    const [sorting, setSorting] = React.useState<SortingState>([])
+export function DataTable<TValue>({
+                                                                         columns,
+                                                                         data,
+                                                                     }: DataTableProps) {
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+        id: false,
+        name: true,
+        city: true,
+        status: true,
+        actions: true,
+    });
+    const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
         if (typeof window !== "undefined") {
             const storedFilters = localStorage.getItem("tableFilters");
@@ -54,7 +57,6 @@ export function DataTable<TData, TValue>({
         }
     }, [columnFilters]);
 
-
     const table = useReactTable({
         data,
         columns,
@@ -72,10 +74,33 @@ export function DataTable<TData, TValue>({
             columnFilters,
             pagination,
         },
-    })
+    });
+
+    const exportToExcel = () => {
+        const filteredData: Record<string, TValue>[] = table.getFilteredRowModel().rows.map(row => {
+            const rowData: Record<string, TValue> = {};
+            row.getVisibleCells().forEach(cell => {
+                const columnHeader = cell.column.id as string;
+                rowData[columnHeader] = cell.getValue() as TValue;
+            });
+            return rowData;
+        });
+
+        console.log(filteredData);
+
+        const ws = XLSX.utils.json_to_sheet(filteredData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Feuille 1');
+        XLSX.writeFile(wb, 'table_data.xlsx');
+    };
 
     return (
         <div className="w-full overflow-hidden rounded-lg shadow-lg border border-gray-200">
+            <div className="flex justify-end mb-2">
+                <Button onClick={exportToExcel}>
+                    <FileDown/>
+                </Button>
+            </div>
             <div className="overflow-x-auto">
                 <Table className="w-full border-collapse">
                     {/* En-tête de la table */}
