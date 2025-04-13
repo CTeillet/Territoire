@@ -1,4 +1,4 @@
-const CACHE_NAME = "pwa-cache-v47";
+const CACHE_NAME = "pwa-cache-v48";
 
 // Cache uniquement le code (pas les API, pas les POST, pas les images dynamiques)
 self.addEventListener("install", (event) => {

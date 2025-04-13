@@ -9,17 +9,30 @@ import {DataTableColumnHeader} from "@/components/territory/territory-data-heade
 import {
     TerritoryDataActionButtons
 } from "@/components/shared/territory-data-action-buttons";
+
+export const COLUMNS_ID_TRANSLATIONS = {
+    actions:"Actions",
+    id:"Identifiant",
+    name: "Territoire",
+    city: "Ville",
+    status: "Statut",
+    lastVisitedOn: "Parcouru pour la dernière fois le",
+    assignedTo: "Assigné à",
+    assignedOn: "Assigné le",
+    waitedFor: "Attendu pour le"
+}
+
 export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
     {
         id: "id",
         accessorKey: "id",
-        header: "ID",
+        header: COLUMNS_ID_TRANSLATIONS.id,
     },
     {
         id: "name",
         accessorKey: "name",
         header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title="Name"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.name}/>)
         },
         enableColumnFilter: true,
     },
@@ -27,7 +40,7 @@ export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
         id: "city",
         accessorKey: "city",
         header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title="Ville"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.city}/>)
         },
         enableColumnFilter: true,
     },
@@ -35,7 +48,7 @@ export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
         id: "status",
         accessorKey: "status",
         header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title="Statut"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.status}/>)
         },
         cell: ({row}) => {
             return (
@@ -55,29 +68,28 @@ export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
         id: "lastVisitedOn",
         accessorKey: "lastVisitedOn",
         header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title="Parcouru pour la dernière fois le"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.lastVisitedOn}/>)
         },
-        //enableColumnFilter: true,
     },
     {
         id: "assignedTo",
         accessorKey: "assignedTo",
         header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title="Assigné à"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.assignedTo}/>)
         },
     },
     {
         id: "assignedOn",
         accessorKey: "assignedOn",
         header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title="Assigné le"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.assignedOn}/>)
         },
     },
     {
         id: "waitedFor",
         accessorKey: "waitedFor",
         header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title="Attendu pour le"/>)
+            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.waitedFor}/>)
         },
     },
     {

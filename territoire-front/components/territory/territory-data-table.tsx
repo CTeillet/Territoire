@@ -20,16 +20,19 @@ import * as XLSX from 'xlsx';
 import {Territory} from "@/models/territory";
 import {Button} from "@/components/ui/button";
 import {FileDown} from "lucide-react";
+import {COLUMNS_ID_TRANSLATIONS} from "@/components/territory/territory-data-columns";
+import {STATUS_TRANSLATIONS} from "@/models/territory-status";
 
 interface DataTableProps {
     columns: ColumnDef<Territory, unknown>[]
     data: Territory[]
 }
 
-export function DataTable<TValue>({
-                                                                         columns,
-                                                                         data,
-                                                                     }: DataTableProps) {
+export function DataTable<TValue>(
+    {
+        columns,
+        data,
+    }: DataTableProps) {
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
         id: false,
         name: true,
@@ -80,13 +83,22 @@ export function DataTable<TValue>({
         const filteredData: Record<string, TValue>[] = table.getFilteredRowModel().rows.map(row => {
             const rowData: Record<string, TValue> = {};
             row.getVisibleCells().forEach(cell => {
-                const columnHeader = cell.column.id as string;
-                rowData[columnHeader] = cell.getValue() as TValue;
+                const columnHeader = cell.column.id as keyof typeof COLUMNS_ID_TRANSLATIONS;
+                if (columnHeader !== "actions") {
+                    // Remplacer la clé par sa traduction
+                    const translatedHeader = COLUMNS_ID_TRANSLATIONS[columnHeader];
+                    let cellValue: TValue = cell.getValue() as TValue;
+
+                    // Traduire la valeur de la colonne "statut"
+                    if (columnHeader === "status") {
+                        cellValue = STATUS_TRANSLATIONS[cellValue as keyof typeof STATUS_TRANSLATIONS] as unknown as TValue;
+                    }
+
+                    rowData[translatedHeader] = cellValue;
+                }
             });
             return rowData;
         });
-
-        console.log(filteredData);
 
         const ws = XLSX.utils.json_to_sheet(filteredData);
         const wb = XLSX.utils.book_new();
@@ -152,7 +164,7 @@ export function DataTable<TValue>({
             </div>
 
             {/* Pagination en bas */}
-            <DataTablePagination table={table} />
+            <DataTablePagination table={table}/>
         </div>
     );
 }
