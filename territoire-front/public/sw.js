@@ -1,13 +1,12 @@
-const CACHE_NAME = "pwa-cache-v48";
+const CACHE_NAME = "pwa-cache-v49";
 
-// Cache uniquement le code (pas les API, pas les POST, pas les images dynamiques)
 self.addEventListener("install", (event) => {
     self.skipWaiting();
-    console.log('[SW] install v40');
+    console.log('[SW] install v49');
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll([
-                "/", // important pour que l'app fonctionne offline
+                "/", // Permet le offline
                 "/manifest.json",
                 "/images/logo.svg",
             ]);
@@ -32,41 +31,40 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-    // Ne pas traiter les requêtes non-GET
     if (event.request.method !== "GET") return;
 
     const url = new URL(event.request.url);
 
-    // Ne pas mettre en cache les requêtes externes ou API
+    // Ignore les requêtes externes et dynamiques
     if (
-        url.origin !== location.origin ||           // requêtes externes
-        url.pathname.startsWith("/api/") ||         // appel API
-        url.pathname.endsWith(".json") ||           // contenu JSON
-        url.pathname.endsWith(".png") ||            // images
+        url.origin !== location.origin ||
+        url.pathname.startsWith("/api/") ||
+        url.pathname.endsWith(".json") ||
+        url.pathname.endsWith(".png") ||
         url.pathname.endsWith(".jpg") ||
         url.pathname.endsWith(".jpeg") ||
         url.pathname.endsWith(".webp") ||
         url.pathname.endsWith(".svg") ||
         url.pathname.endsWith(".mp4")
     ) {
-        return; // on ignore
+        return;
     }
 
+    // Stratégie network-first
     event.respondWith(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.match(event.request).then((cachedResponse) => {
-                const fetchPromise = fetch(event.request).then((networkResponse) => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        cache.put(event.request, networkResponse.clone());
-                    }
-                    return networkResponse;
-                }).catch(() => {
-                    return cachedResponse;
-                });
-
-                return cachedResponse || fetchPromise;
-            });
-        })
+        fetch(event.request)
+            .then((response) => {
+                if (response && response.status === 200) {
+                    return caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, response.clone());
+                        return response;
+                    });
+                }
+                return response;
+            })
+            .catch(() => {
+                return caches.match(event.request);
+            })
     );
 });
 

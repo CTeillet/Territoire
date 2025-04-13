@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { toast } from "sonner";
 
 function ServiceWorker() {
     useEffect(() => {
@@ -33,15 +32,8 @@ function ServiceWorker() {
             if (refreshing) return;
             refreshing = true;
 
-            toast("Nouvelle version disponible", {
-                description: "Cliquez pour recharger l'application.",
-                action: {
-                    label: "Recharger",
-                    onClick: () => {
-                        window.location.reload();
-                    },
-                },
-            });
+            console.log("🔁 Nouveau SW activé, rechargement...");
+            window.location.reload();
         });
     }, []);
 
