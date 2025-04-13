@@ -283,6 +283,9 @@ const territorySlice = createSlice({
                             addressesNotToDo: [],
                             geojson: "",
                             lastVisitedOn: "nouveau",
+                            assignedTo: "N/A",
+                            assignedOn: "N/A",
+                            waitedFor: "N/A",
                         },
                         geometry: {
                             type: "Polygon",
