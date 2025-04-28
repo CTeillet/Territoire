@@ -14,7 +14,9 @@ public interface IAssignmentService {
 	@Transactional
 	AssignmentDto returnTerritory(UUID assignment);
 
-	Assignment getAssignment(UUID assignmentId);
+    void checkOverdueAssignments();
+
+    Assignment getAssignment(UUID assignmentId);
 
 	List<AssignmentDto> getLastAssignments();
 

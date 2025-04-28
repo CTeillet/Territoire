@@ -43,4 +43,6 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
 	List<TerritoryStatisticsProjection> getCurrentTerritoryStats();
 
     Territory findByName(String name);
+
+	List<Territory> findByCity_Name(String cityName);
 }

@@ -111,4 +111,16 @@ public class TerritoryService implements ITerritoryService {
 		log.info("Suppression du territoire {}", territoryId);
 		territoryRepository.deleteById(territoryId);
 	}
+
+	@Transactional
+	@Override
+	public void revokeAssignmentsBulk(String city) {
+		if (city != null) {
+			assignmentRepository.deleteAssignmentByTerritory_City_Name(city);
+			territoryRepository.findByCity_Name(city).forEach(t -> updateTerritoryStatus(t, TerritoryStatus.AVAILABLE));
+		} else {
+			assignmentRepository.deleteAll();
+			territoryRepository.findAll().forEach(t -> updateTerritoryStatus(t, TerritoryStatus.AVAILABLE));
+		}
+	}
 }

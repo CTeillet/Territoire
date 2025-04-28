@@ -31,4 +31,7 @@ public interface ITerritoryService {
 
 	@Transactional
 	void deleteTerritory(UUID id);
+
+    @Transactional
+    void revokeAssignmentsBulk(String cityName);
 }

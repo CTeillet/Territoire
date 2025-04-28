@@ -4,7 +4,7 @@ import UserManagement from "@/components/parameters/user-management/user-managem
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {useState} from "react";
 import CityManagement from "@/components/parameters/city-management/city-management";
-import OtherParameter from "@/components/parameters/other-parameter";
+import OtherParameter from "@/components/parameters/other-parameter/other-parameter";
 
 const ParametersPage = () => {
     const [selectedTab, setSelectedTab] = useState("cities");

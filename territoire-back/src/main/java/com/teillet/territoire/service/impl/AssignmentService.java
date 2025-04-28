@@ -67,10 +67,11 @@ public class AssignmentService implements IAssignmentService {
 	}
 
 	@Scheduled(cron = "0 0 0 * * *")
+	@Override
 	public void checkOverdueAssignments() {
 		List<Assignment> overdueAssignments = assignmentRepository.findByDueDateBeforeAndReturnDateIsNull(LocalDate.now());
 		for (Assignment assignment : overdueAssignments) {
-			System.out.println("Reminder: Territory " + assignment.getTerritory().getId() + " is overdue for return.");
+			log.info("Territoire {} est en retard", assignment.getTerritory().getName());
 
 			Territory territory = assignment.getTerritory();
 			territory.setStatus(TerritoryStatus.LATE);
