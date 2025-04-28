@@ -19,7 +19,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class City {
+public class City implements Comparable<City> {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private UUID id;
@@ -38,4 +38,9 @@ public class City {
 	@OneToMany(mappedBy = "city", orphanRemoval = true)
 	@JsonIgnore
 	private List<Territory> territories = new ArrayList<>();
+
+	@Override
+	public int compareTo(City o) {
+		return this.name.compareTo(o.name);
+	}
 }
