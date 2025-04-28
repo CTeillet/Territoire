@@ -10,7 +10,6 @@ import java.util.UUID;
 @Entity
 @Getter
 @Setter
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -31,5 +30,17 @@ public class Assignment {
 	@JoinColumn(name = "territory_id")
 	@JsonBackReference
 	private Territory territory;
+
+	@Override
+	public String toString() {
+		return "Assignment{" +
+				"id=" + id +
+				", person=" + (person != null ? person.getId() : null) +
+				", assignmentDate=" + assignmentDate +
+				", dueDate=" + dueDate +
+				", returnDate=" + returnDate +
+				", territory=" + (territory != null ? territory.getId() : null) +
+				'}';
+	}
 
 }
