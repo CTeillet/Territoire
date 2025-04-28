@@ -92,6 +92,10 @@ public class ExcelService implements IExcelService {
 						terrId, name, attribLe, parcouruLe);
 
 				LocalDate assignmentDate = LocalDate.parse(attribLe);
+				LocalDate returnDate = null;
+				if (parcouruLe != null && !parcouruLe.isEmpty()) {
+					returnDate = LocalDate.parse(parcouruLe);
+				}
 
 				Person person = personList.stream()
 						.filter(p -> normalize(p.getFirstName() + " " + p.getLastName()).equals(normalize(name)))
@@ -108,7 +112,7 @@ public class ExcelService implements IExcelService {
 				assignment.setDueDate(assignmentDate.plusMonths(4));
 				assignment.setPerson(person);
 				if (parcouruLe != null && !parcouruLe.isEmpty()) {
-					assignment.setReturnDate(assignmentDate);
+					assignment.setReturnDate(returnDate);
 					territory.setStatus(TerritoryStatus.PENDING);
 				} else {
 					territory.setStatus(TerritoryStatus.ASSIGNED);
