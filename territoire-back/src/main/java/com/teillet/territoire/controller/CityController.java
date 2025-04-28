@@ -32,6 +32,7 @@ public class CityController {
 	public List<City> getCities() {
 		log.info("📌 Demande de récupération des villes");
 		List<City> result = cityService.getCities();
+		result = result.stream().sorted().toList();
 		log.info("✅ Villes récupérées avec succès");
 		return result;
 	}
