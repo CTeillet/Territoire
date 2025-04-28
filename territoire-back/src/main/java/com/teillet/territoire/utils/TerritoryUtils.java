@@ -20,7 +20,7 @@ public class TerritoryUtils {
 		return territory.getAssignments()
 				.stream()
 				.filter(assignment -> assignment.getReturnDate() == null)
-				.map(assignment -> assignment.getPerson().getFirstName() + " " + assignment.getPerson().getLastName())
+				.map(assignment -> Utils.formatName(assignment.getPerson().getFirstName(), assignment.getPerson().getLastName()))
 				.findFirst()
 				.orElse(NA);
 	}
