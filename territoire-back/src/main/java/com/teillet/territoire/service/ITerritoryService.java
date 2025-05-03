@@ -19,6 +19,9 @@ public interface ITerritoryService {
 	@Transactional
 	void updateTerritoryStatus(Territory territory, TerritoryStatus newStatus);
 
+	@Transactional
+	void releasePendingTerritories();
+
 	Territory getTerritory(UUID id);
 
 	TerritoryDto getTerritoryDto(UUID id) throws IOException;

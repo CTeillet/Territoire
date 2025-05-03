@@ -1,6 +1,7 @@
 import { ExportExcelButton } from "./export-excel-button";
 import { ImportExcelSection } from "./import-excel-section";
 import {CheckLateTerritoriesButton} from "@/components/parameters/other-parameter/check-late-territories-button";
+import {CheckAvailableTerritoriesButton} from "@/components/parameters/other-parameter/check-available-territories-button";
 import {DeleteAssignmentsSection} from "@/components/parameters/other-parameter/delete-assignments-section";
 
 export default function OtherParameter() {
@@ -9,6 +10,7 @@ export default function OtherParameter() {
             <ExportExcelButton />
             <ImportExcelSection />
             <CheckLateTerritoriesButton />
+            <CheckAvailableTerritoriesButton />
             <DeleteAssignmentsSection />
         </div>
     );

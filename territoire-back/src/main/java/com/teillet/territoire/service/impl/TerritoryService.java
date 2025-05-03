@@ -52,10 +52,11 @@ public class TerritoryService implements ITerritoryService {
 
 	@Scheduled(cron = "0 0 0 * * *")
 	@Transactional
+	@Override
 	public void releasePendingTerritories() {
 		LocalDate thresholdDate = LocalDate.now().minusMonths(4);
 		List<Territory> pendingTerritories = territoryRepository.findAll().stream()
-				.filter(t -> t.getStatus() == TerritoryStatus.PENDING && t.getAssignments().stream().max(Comparator.comparing(Assignment::getReturnDate)).stream().findFirst().get().getReturnDate().isBefore(thresholdDate))
+				.filter(t -> t.getStatus() == TerritoryStatus.PENDING && t.getAssignments().stream().max(Comparator.comparing(Assignment::getReturnDate)).stream().findFirst().orElseThrow().getReturnDate().isBefore(thresholdDate))
 				.toList();
 
 		for (Territory territory : pendingTerritories) {

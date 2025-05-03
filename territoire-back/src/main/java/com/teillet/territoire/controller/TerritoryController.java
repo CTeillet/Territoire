@@ -115,4 +115,10 @@ class TerritoryController {
 	public void deleteAddressNotToDo(@PathVariable UUID territoryId, @PathVariable UUID addressId) {
 		addressNotToDoService.deleteAddressNotToDo(territoryId, addressId);
 	}
+
+	@PutMapping("/verification-disponible")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public void checkAvailableTerritories() {
+		territoryService.releasePendingTerritories();
+	}
 }
