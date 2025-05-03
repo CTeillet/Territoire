@@ -4,6 +4,7 @@ import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.mapper.TerritoryMapper;
+import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.BlockRepository;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,7 +55,7 @@ public class TerritoryService implements ITerritoryService {
 	public void releasePendingTerritories() {
 		LocalDate thresholdDate = LocalDate.now().minusMonths(4);
 		List<Territory> pendingTerritories = territoryRepository.findAll().stream()
-				.filter(t -> t.getStatus() == TerritoryStatus.PENDING && t.getLastModifiedDate().isBefore(thresholdDate))
+				.filter(t -> t.getStatus() == TerritoryStatus.PENDING && t.getAssignments().stream().max(Comparator.comparing(Assignment::getReturnDate)).stream().findFirst().get().getReturnDate().isBefore(thresholdDate))
 				.toList();
 
 		for (Territory territory : pendingTerritories) {
