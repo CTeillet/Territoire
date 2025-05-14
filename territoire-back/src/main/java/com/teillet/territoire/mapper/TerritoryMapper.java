@@ -22,7 +22,7 @@ public class TerritoryMapper {
 		territoryDto.setLastModifiedDate(territory.getLastModifiedDate().toString());
 		territoryDto.setCity(CityMapper.toDto(territory.getCity()));
 		territoryDto.setAddressesNotToDo(new ArrayList<>(territory.getAddressesNotToDo()));
-		territoryDto.setAssignments(new ArrayList<>(territory.getAssignments()));
+		territoryDto.setAssignments(territory.getAssignments().stream().map(AssignmentMapper::toDto).toList());
 		territoryDto.setNote(territory.getNote());
 		territoryDto.setGeojson(convertToGeoJSON(territory.getBlocks(), territory.getConcaveHull()));
 		territoryDto.setLastVisitedOn(TerritoryUtils.getLastVisitedOn(territory));

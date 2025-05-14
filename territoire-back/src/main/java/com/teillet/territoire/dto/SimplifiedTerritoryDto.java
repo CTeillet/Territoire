@@ -12,4 +12,6 @@ public class SimplifiedTerritoryDto {
 	private UUID territoryId;
 	private String name;
 	private TerritoryStatus status;
+	private UUID cityId;
+	private String cityName;
 }

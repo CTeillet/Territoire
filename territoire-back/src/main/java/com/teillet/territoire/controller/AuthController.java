@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/authentification")
 @RequiredArgsConstructor
 @Slf4j
 public class AuthController {
@@ -25,7 +25,7 @@ public class AuthController {
 	private final JwtService jwtService;
 
 	// 🔹 Endpoint de connexion (Login)
-	@PostMapping("/login")
+	@PostMapping("/connexion")
 	public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 		log.info("🛂 Tentative de connexion pour l'utilisateur : {}", request.getEmail());
 

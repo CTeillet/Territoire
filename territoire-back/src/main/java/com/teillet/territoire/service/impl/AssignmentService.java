@@ -4,6 +4,7 @@ import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.mapper.AssignmentMapper;
 import com.teillet.territoire.model.Assignment;
+import com.teillet.territoire.model.Campaign;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
@@ -116,5 +117,28 @@ public class AssignmentService implements IAssignmentService {
 		Assignment result = assignmentRepository.save(extendedAssignment);
 
 		return AssignmentMapper.toDto(result);
+	}
+
+	@Override
+	@Transactional
+	public void createCampaignAssignments(Campaign campaign, List<Territory> usedTerritories) {
+		log.info("Création des assignations pour {} territoires utilisés dans la campagne '{}'", 
+				usedTerritories.size(), campaign.getName());
+
+		for (Territory territory : usedTerritories) {
+			log.info("Création d'une assignation pour le territoire '{}' dans la campagne '{}'", 
+					territory.getName(), campaign.getName());
+
+			Assignment assignment = Assignment.builder()
+					.territory(territory)
+					.campaign(campaign)
+					.dueDate(campaign.getEndDate())
+					.assignmentDate(campaign.getStartDate())
+					.returnDate(campaign.getEndDate())
+					.build();
+
+			assignmentRepository.save(assignment);
+			log.info("Assignation créée avec succès pour le territoire '{}'", territory.getName());
+		}
 	}
 }

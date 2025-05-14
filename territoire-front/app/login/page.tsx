@@ -23,7 +23,7 @@ const LoginPage = () => {
         setError(null);
 
         try {
-            const response = await authFetch(`/api/auth/login`, {
+            const response = await authFetch(`/api/authentification/connexion`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),

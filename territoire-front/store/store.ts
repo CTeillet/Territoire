@@ -18,13 +18,25 @@ export const store = configureStore({
     },
 });
 
-// ⚠️ Vérifier si on est côté client avant d'utiliser localStorage
+// ⚠️ Vérifier si on est côté client avant d'utiliser les cookies
 if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
-    const user = localStorage.getItem("user");
+    const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('token='))
+        ?.split('=')[1];
 
-    if (token && user) {
-        store.dispatch(login({ user: JSON.parse(user), token }));
+    const userCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('user='))
+        ?.split('=')[1];
+
+    if (token && userCookie) {
+        try {
+            const user = JSON.parse(decodeURIComponent(userCookie));
+            store.dispatch(login({ user, token }));
+        } catch (e) {
+            console.error("Erreur lors du parsing des données utilisateur:", e);
+        }
     }
 }
 

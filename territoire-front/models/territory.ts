@@ -29,6 +29,8 @@ export interface SimplifiedTerritory {
     territoryId: string;
     name: string;
     status: TerritoryStatus;
+    cityId: string;
+    cityName: string;
 }
 
 type PolygonType = "BLOCK" | "CONCAVE_HULL";

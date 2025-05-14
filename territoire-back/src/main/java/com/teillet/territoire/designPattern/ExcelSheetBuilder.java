@@ -195,6 +195,8 @@ public class ExcelSheetBuilder {
 	private String getPersonName(Assignment assignment) {
 		if (assignment.getPerson() != null) {
 			return assignment.getPerson().getFirstName() + " " + assignment.getPerson().getLastName();
+		} else if(assignment.getCampaign() != null) {
+			return "-- " + assignment.getCampaign().getName() + " --";
 		}
 		return "";
 	}

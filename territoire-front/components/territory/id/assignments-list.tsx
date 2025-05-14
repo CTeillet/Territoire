@@ -12,7 +12,13 @@ const AssignmentsList = ({assignments}: { assignments: Assignment[] }) => {
                 <ul>
                     {assignments.map((assignment) => (
                         <li key={assignment.id} className="p-2 border-b">
-                            <strong>{assignment.person.firstName} {assignment.person.lastName}</strong>
+                            <strong>
+                                {assignment.person 
+                                    ? `${assignment.person.firstName} ${assignment.person.lastName}`
+                                    : assignment.campaign 
+                                        ? `Campagne: ${assignment.campaign.name}` 
+                                        : "N/A"}
+                            </strong>
                             <br/>
                             <span className="text-sm text-gray-600">
                 📅 {new Date(assignment.assignmentDate).toLocaleDateString()} →{" "}

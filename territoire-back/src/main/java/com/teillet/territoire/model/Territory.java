@@ -36,6 +36,7 @@ public class Territory {
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
 	@JsonManagedReference
+	@ToString.Exclude
 	private List<Block> blocks = new ArrayList<>();
 
 	@Column(name = "concave_hull", columnDefinition = "geometry(MultiPolygon, 4326)")
@@ -43,10 +44,12 @@ public class Territory {
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
 	@JsonManagedReference
+	@ToString.Exclude
 	List<AddressNotToDo> addressesNotToDo;
 
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
-	@JsonManagedReference
+	@JsonManagedReference(value = "territory-assignments")
+	@ToString.Exclude
 	private List<Assignment> assignments = new ArrayList<>();
 
 	@ManyToOne(optional = false)

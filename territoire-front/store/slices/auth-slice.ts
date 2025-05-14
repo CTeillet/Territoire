@@ -18,14 +18,16 @@ const authSlice = createSlice({
         login: (state, action: PayloadAction<{ user: User; token: string }>) => {
             state.user = action.payload.user;
             state.token = action.payload.token;
-            localStorage.setItem("token", action.payload.token); // Stocke dans localStorage
-            localStorage.setItem("user", JSON.stringify(action.payload.user)); // Stocke l'utilisateur
+            // Stocke dans les cookies au lieu de localStorage
+            document.cookie = `token=${action.payload.token}; path=/;`;
+            document.cookie = `user=${JSON.stringify(action.payload.user)}; path=/;`;
         },
         logout: (state) => {
             state.user = null;
             state.token = null;
-            localStorage.removeItem("token"); // Supprime le token du stockage local
-            localStorage.removeItem("user");
+            // Supprime les cookies au lieu de localStorage
+            document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            document.cookie = "user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         },
     },
 });

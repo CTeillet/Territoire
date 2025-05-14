@@ -1,5 +1,5 @@
 "use client";
-import {Building, ChartBar, Contact, Settings} from "lucide-react"
+import {Building, ChartBar, Contact, Settings, Calendar} from "lucide-react"
 
 import {
     Sidebar,
@@ -37,6 +37,11 @@ const items = [
         icon: Contact,
     },
     {
+        title: "Campagnes",
+        url: "/campagnes",
+        icon: Calendar,
+    },
+    {
         title: "Paramètres",
         url: "/parametres",
         icon: Settings,
@@ -51,31 +56,31 @@ export function AppSidebar() {
         <Sidebar>
             {/* Utilisation de flex pour positionner NavUser en bas */}
             <SidebarContent className="bg-gray-300 flex flex-col h-full justify-between">
-                <SidebarGroup className="mt-5">
-                    <SidebarGroupLabel className="flex justify-center">
+                <SidebarGroup className="mt-8">
+                    <SidebarGroupLabel className="flex justify-center mb-6">
                         <Image
                             src="/images/logo-complet.svg"
                             alt="Logo de l'application"
                             width={100}
                             height={100}
-                            className="w-24 h-auto block mx-auto"
+                            className="w-28 h-auto block mx-auto"
                         />
                     </SidebarGroupLabel>
-                    <SidebarGroupContent className="mt-10">
+                    <SidebarGroupContent className="mt-12">
                         <SidebarMenu>
                             {items.map((item) => {
                                 const isActive = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
 
                                 return (
-                                    <SidebarMenuItem key={item.title} className="mb-3">
+                                    <SidebarMenuItem key={item.title} className="mb-4">
                                         <SidebarMenuButton asChild>
                                             <a
                                                 href={item.url}
-                                                className={`flex items-center space-x-2 p-2 rounded-lg 
-                                                    ${isActive ? "bg-gray-400 text-primary font-bold" : ""}`}
+                                                className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200
+                                                    ${isActive ? "bg-gray-400 text-primary font-bold shadow-sm" : "hover:bg-gray-200"}`}
                                             >
-                                                <item.icon/>
-                                                <span>{item.title}</span>
+                                                <item.icon className="h-5 w-5" />
+                                                <span className="text-base">{item.title}</span>
                                             </a>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>

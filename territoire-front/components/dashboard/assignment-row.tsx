@@ -26,7 +26,10 @@ const AssignmentRow: React.FC<Assignment> = (assignment: Assignment) => (
             className="text-center">{(assignment.dueDate !== null) ? assignment.dueDate : "N/A"}</TableCell>
         <TableCell
             className="text-center">{(assignment.returnDate !== null) ? assignment.returnDate : "N/A"}</TableCell>
-        <TableCell className="text-center">{personToString(assignment.person)}</TableCell>
+        <TableCell className="text-center">
+            {assignment.person ? personToString(assignment.person) : 
+             assignment.campaign ? `Campagne: ${assignment.campaign.name}` : "N/A"}
+        </TableCell>
         <TableCell >
             <TerritoryDataActionButtons territoryId={assignment.territory.territoryId} status={assignment.territory.status}/>
         </TableCell>

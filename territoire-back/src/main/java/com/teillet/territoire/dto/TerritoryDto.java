@@ -2,7 +2,6 @@ package com.teillet.territoire.dto;
 
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.AddressNotToDo;
-import com.teillet.territoire.model.Assignment;
 import lombok.Data;
 
 import java.util.List;
@@ -15,7 +14,7 @@ public class TerritoryDto {
 	private String lastModifiedDate;
 	private CityDto city;
 	private List<AddressNotToDo> addressesNotToDo;
-	private List<Assignment> assignments;
+	private List<AssignmentDto> assignments;
 	private String geojson;
 	private String note;
 	private String lastVisitedOn;

@@ -29,7 +29,7 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 				.cors(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/api/auth/login").permitAll() // Permet l'authentification
+						.requestMatchers("/api/authentification/connexion").permitAll() // Permet l'authentification
 						.anyRequest().authenticated() // Protège toutes les autres routes
 				)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -10,7 +10,7 @@ const ParametersPage = () => {
     const [selectedTab, setSelectedTab] = useState("cities");
 
     return (
-        <div>
+        <div className="p-6">
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
                 <TabsList>
                     <TabsTrigger value="cities">Villes</TabsTrigger>

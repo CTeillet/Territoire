@@ -28,8 +28,13 @@ public class Assignment {
 
 	@ManyToOne
 	@JoinColumn(name = "territory_id")
-	@JsonBackReference
+	@JsonBackReference(value = "territory-assignments")
 	private Territory territory;
+
+	@ManyToOne
+	@JoinColumn(name = "campaign_id")
+	@JsonBackReference(value = "campaign-assignments")
+	private Campaign campaign;
 
 	@Override
 	public String toString() {
@@ -40,6 +45,7 @@ public class Assignment {
 				", dueDate=" + dueDate +
 				", returnDate=" + returnDate +
 				", territory=" + (territory != null ? territory.getId() : null) +
+				", campaign=" + (campaign != null ? campaign.getId() : null) +
 				'}';
 	}
 

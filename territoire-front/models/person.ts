@@ -7,6 +7,9 @@ export interface Person {
 
 }
 
-export function personToString(person: Person):string {
+export function personToString(person?: Person):string {
+    if (!person) {
+        return "N/A";
+    }
     return `${person.firstName} ${person.lastName}`;
 }

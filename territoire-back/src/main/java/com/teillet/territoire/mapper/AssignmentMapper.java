@@ -14,6 +14,7 @@ public class AssignmentMapper {
 				.assignmentDate(assignment.getAssignmentDate())
 				.dueDate(assignment.getDueDate())
 				.returnDate(assignment.getReturnDate())
+				.campaign(CampaignMapper.toDto(assignment.getCampaign()))
 				.build();
 	}
 }

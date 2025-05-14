@@ -16,4 +16,5 @@ public class AssignmentDto {
 	private LocalDate assignmentDate;
 	private LocalDate dueDate;
 	private LocalDate returnDate;
+	private CampaignDto campaign;
 }
