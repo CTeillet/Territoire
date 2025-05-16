@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface ITerritoryService {
 	List<Territory> getAllTerritories();
 
+	List<TerritoryDto> getAllTerritoryDtos();
+
 	@Transactional
 	Territory saveTerritory(Territory territory);
 

@@ -61,6 +61,14 @@ class TerritoryController {
 		return territory;
 	}
 
+	@GetMapping
+	public List<TerritoryDto> getTerritories() {
+		log.info("Début : Récupération des territoires");
+		List<TerritoryDto> territories = territoryService.getAllTerritoryDtos();
+		log.info("Fin récupération des territoires");
+		return territories;
+	}
+
 	@PutMapping("{territoryId}")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public TerritoryDto modifyTerritory(@PathVariable UUID territoryId, @RequestBody UpdateTerritoryDto updateDto) throws IOException {
@@ -121,4 +129,5 @@ class TerritoryController {
 	public void checkAvailableTerritories() {
 		territoryService.releasePendingTerritories();
 	}
+
 }

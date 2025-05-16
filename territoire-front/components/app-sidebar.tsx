@@ -1,5 +1,5 @@
 "use client";
-import {Building, ChartBar, Contact, Settings, Calendar} from "lucide-react"
+import {Building, ChartBar, Contact, Settings, Calendar, Clock} from "lucide-react"
 
 import {
     Sidebar,
@@ -30,6 +30,11 @@ const items = [
         title: "Territoires",
         url: "/territoires",
         icon: Building,
+    },
+    {
+        title: "Territoires en retard",
+        url: "/territoires/retards",
+        icon: Clock,
     },
     {
         title: "Personnes",

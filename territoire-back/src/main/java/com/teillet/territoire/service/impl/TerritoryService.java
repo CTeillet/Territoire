@@ -35,6 +35,17 @@ public class TerritoryService implements ITerritoryService {
 		return territoryRepository.findAll();
 	}
 
+	@Override
+	public List<TerritoryDto> getAllTerritoryDtos() {
+		return getAllTerritories().stream().map(territory -> {
+			try {
+				return TerritoryMapper.toDto(territory);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}).toList();
+	}
+
 	@Transactional
 	@Override
 	public Territory saveTerritory(Territory territory) {
