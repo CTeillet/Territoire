@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 public class ExcelSheetBuilder {
 	private static final int TERRITORY_NAME_COL = 0;
@@ -65,8 +66,8 @@ public class ExcelSheetBuilder {
 
 	private void createTerritoryCells(Row territoryRow, Row dateRow, Territory territory, CellStyle fillStyle) {
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), TERRITORY_NAME_COL, TERRITORY_NAME_COL, territory.getName(), fillStyle);
-		String lastModifiedDate = formatDate(territory.getLastModifiedDate());
-		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastModifiedDate, fillStyle);
+		String lastVisitDate = formatDate(territory.getAssignments().stream().map(Assignment::getReturnDate).filter(Objects::nonNull).sorted().findFirst().orElse(null));
+		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastVisitDate, fillStyle);
 
 		List<Assignment> assignments = territory.getAssignments().stream().sorted(Comparator.comparing(Assignment::getAssignmentDate)).toList();
 		for (int i = 0; i < MAX_ASSIGNMENTS; i++) {
@@ -203,7 +204,7 @@ public class ExcelSheetBuilder {
 	}
 
 	private String formatDate(LocalDate date) {
-		return date != null ? date.format(DATE_FORMATTER) : "";
+		return date != null ? date.format(DATE_FORMATTER) : "nouveau";
 	}
 
 	public Sheet build() {
