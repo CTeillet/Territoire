@@ -5,6 +5,7 @@ import com.teillet.territoire.model.Territory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -62,4 +63,33 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
         )
     """)
 	long countTerritoriesNotAssignedSince(LocalDate startDate);
+
+	/**
+	 * Calculates the distribution of territories by city.
+	 * Returns the city name, count of territories, and percentage of total.
+	 * 
+	 * @param startDate Optional date to filter territories assigned since a specific date
+	 * @return List of objects containing city name, territory count, and percentage
+	 */
+	@Query(nativeQuery = true, value = """
+		SELECT
+			c.name as cityName,
+			COUNT(t.id) as territoryCount,
+			(COUNT(t.id) * 100.0 / (SELECT COUNT(*) FROM territory)) as percentage
+		FROM territory t
+		JOIN city c ON t.city_id = c.id
+		WHERE (:startDate IS NULL OR t.id IN (
+			SELECT DISTINCT a.territory_id
+			FROM assignment a
+			WHERE
+				a.assignment_date >= :startDate
+				OR
+				(a.assignment_date < :startDate AND a.return_date >= :startDate)
+				OR
+				(a.assignment_date < :startDate AND a.return_date IS NULL)
+		))
+		GROUP BY c.name
+		ORDER BY COUNT(t.id) DESC
+	""")
+	List<Object[]> calculateTerritoryDistributionByCity(@Param("startDate") LocalDate startDate);
 }

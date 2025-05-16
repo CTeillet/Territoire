@@ -1,5 +1,7 @@
 package com.teillet.territoire.service.impl;
 
+import com.teillet.territoire.dto.AverageAssignmentDurationDto;
+import com.teillet.territoire.dto.TerritoryDistributionByCityDto;
 import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
@@ -18,6 +20,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -141,5 +146,56 @@ public class TerritoryService implements ITerritoryService {
 	@Override
 	public long countTerritoriesNotAssignedSince(LocalDate startDate) {
 		return territoryRepository.countTerritoriesNotAssignedSince(startDate);
+	}
+
+	@Override
+	public List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth() {
+		List<Object[]> results = assignmentRepository.calculateAverageAssignmentDurationByMonth();
+		List<AverageAssignmentDurationDto> durationDtos = new ArrayList<>();
+
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+		for (Object[] result : results) {
+			if (result[0] != null && result[1] != null) {
+				String dateStr = result[0].toString();
+				LocalDate date = LocalDate.parse(dateStr, formatter);
+				YearMonth yearMonth = YearMonth.from(date);
+				Double avgDuration = ((Number) result[1]).doubleValue();
+
+				durationDtos.add(AverageAssignmentDurationDto.builder()
+						.period(yearMonth)
+						.averageDuration(avgDuration)
+						.build());
+			}
+		}
+
+		return durationDtos;
+	}
+
+	@Override
+	public Double getOverallAverageAssignmentDuration() {
+		return assignmentRepository.calculateOverallAverageAssignmentDuration();
+	}
+
+	@Override
+	public List<TerritoryDistributionByCityDto> getTerritoryDistributionByCity(LocalDate startDate) {
+		List<Object[]> results = territoryRepository.calculateTerritoryDistributionByCity(startDate);
+		List<TerritoryDistributionByCityDto> distributionDtos = new ArrayList<>();
+
+		for (Object[] result : results) {
+			if (result[0] != null && result[1] != null && result[2] != null) {
+				String cityName = result[0].toString();
+				Long count = ((Number) result[1]).longValue();
+				Double percentage = ((Number) result[2]).doubleValue();
+
+				distributionDtos.add(TerritoryDistributionByCityDto.builder()
+						.cityName(cityName)
+						.territoryCount(count)
+						.percentage(percentage)
+						.build());
+			}
+		}
+
+		return distributionDtos;
 	}
 }

@@ -1,5 +1,7 @@
 package com.teillet.territoire.service;
 
+import com.teillet.territoire.dto.AverageAssignmentDurationDto;
+import com.teillet.territoire.dto.TerritoryDistributionByCityDto;
 import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
@@ -47,4 +49,23 @@ public interface ITerritoryService {
      * @return The count of territories not assigned since the start date
      */
     long countTerritoriesNotAssignedSince(LocalDate startDate);
+
+    /**
+     * Gets the average duration of territory assignments, grouped by month.
+     * @return List of average assignment durations by month
+     */
+    List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth();
+
+    /**
+     * Gets the overall average duration of territory assignments.
+     * @return The overall average assignment duration in days
+     */
+    Double getOverallAverageAssignmentDuration();
+
+    /**
+     * Gets the distribution of territories by city.
+     * @param startDate Optional date to filter territories assigned since a specific date
+     * @return List of territory distributions by city
+     */
+    List<TerritoryDistributionByCityDto> getTerritoryDistributionByCity(LocalDate startDate);
 }
