@@ -31,15 +31,16 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 	 * @return List of objects containing the year-month and average duration
 	 */
 	@Query(value = """
-		SELECT
-			FUNCTION('DATE_FORMAT', a.assignmentDate, '%Y-%m-01') as yearMonth,
-			AVG(FUNCTION('TIMESTAMPDIFF', 'DAY', a.assignmentDate, a.returnDate)) as averageDuration
-		FROM Assignment a
-		WHERE a.returnDate IS NOT NULL
-		GROUP BY FUNCTION('DATE_FORMAT', a.assignmentDate, '%Y-%m-01')
-		ORDER BY FUNCTION('DATE_FORMAT', a.assignmentDate, '%Y-%m-01')
-	""")
+			    SELECT
+			        DATE_FORMAT(a.assignmentDate, '%Y-%m-01') as yearMonth,
+			        AVG(TIMESTAMPDIFF(DAY, a.assignmentDate, a.returnDate)) as averageDuration
+			    FROM Assignment a
+			    WHERE a.returnDate IS NOT NULL
+			    GROUP BY DATE_FORMAT(a.assignmentDate, '%Y-%m-01')
+			    ORDER BY DATE_FORMAT(a.assignmentDate, '%Y-%m-01')
+			""", nativeQuery = true)
 	List<Object[]> calculateAverageAssignmentDurationByMonth();
+
 
 	/**
 	 * Calculates the overall average duration of assignments in days.
