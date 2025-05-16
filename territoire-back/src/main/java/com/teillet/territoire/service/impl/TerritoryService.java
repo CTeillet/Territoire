@@ -137,4 +137,9 @@ public class TerritoryService implements ITerritoryService {
 			territoryRepository.findAll().forEach(t -> updateTerritoryStatus(t, TerritoryStatus.AVAILABLE));
 		}
 	}
+
+	@Override
+	public long countTerritoriesNotAssignedSince(LocalDate startDate) {
+		return territoryRepository.countTerritoriesNotAssignedSince(startDate);
+	}
 }

@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -128,6 +129,20 @@ class TerritoryController {
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public void checkAvailableTerritories() {
 		territoryService.releasePendingTerritories();
+	}
+
+	@GetMapping("/statistiques/non-assignes-depuis")
+	public long getTerritoriesNotAssignedSince(@RequestParam(required = false) LocalDate startDate) {
+		// Si la date n'est pas fournie, utiliser le 1er septembre de l'année précédente
+		if (startDate == null) {
+			int year = LocalDate.now().getYear();
+			// Si on est avant septembre, utiliser l'année précédente - 1, sinon l'année précédente
+			if (LocalDate.now().getMonthValue() < 9) {
+				year = year - 1;
+			}
+			startDate = LocalDate.of(year, 9, 1);
+		}
+		return territoryService.countTerritoriesNotAssignedSince(startDate);
 	}
 
 }

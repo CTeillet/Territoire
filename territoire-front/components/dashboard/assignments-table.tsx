@@ -43,25 +43,27 @@ export const AssignmentsTable: React.FC = () => {
             <CardHeader>
                 <CardTitle>Actualités des territoires</CardTitle>
             </CardHeader>
-            <Table className="rounded-sm w-full text-center">
-                <TableCaption></TableCaption>
-                <TableHeader>
-                    <TableRow>
-                        <TableCell className="text-center">#</TableCell>
-                        <TableCell className="text-center">Statut</TableCell>
-                        <TableCell className="text-center">Date Attribution</TableCell>
-                        <TableCell className="text-center">Date Attendu</TableCell>
-                        <TableCell className="text-center">Date Rendu</TableCell>
-                        <TableCell className="text-center">Personne</TableCell>
-                        <TableCell className="text-center">Actions</TableCell>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {assignments.map((assignment) => (
-                        <AssignmentRow key={assignment.id} {...assignment} />
-                    ))}
-                </TableBody>
-            </Table>
+            <div className="max-h-[450px] overflow-auto pb-2">
+                <Table className="rounded-sm w-full text-center">
+                    <TableCaption></TableCaption>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                        <TableRow>
+                            <TableCell className="text-center">#</TableCell>
+                            <TableCell className="text-center">Statut</TableCell>
+                            <TableCell className="text-center">Date Attribution</TableCell>
+                            <TableCell className="text-center">Date Attendu</TableCell>
+                            <TableCell className="text-center">Date Rendu</TableCell>
+                            <TableCell className="text-center">Personne</TableCell>
+                            <TableCell className="text-center">Actions</TableCell>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {assignments.map((assignment) => (
+                            <AssignmentRow key={assignment.id} {...assignment} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
         </Card>
     );
 };
