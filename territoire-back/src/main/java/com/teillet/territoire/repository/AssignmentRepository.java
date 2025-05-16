@@ -33,7 +33,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 	@Query(value = """
 		SELECT
 			FUNCTION('DATE_FORMAT', a.assignmentDate, '%Y-%m-01') as yearMonth,
-			AVG(DATEDIFF(a.returnDate, a.assignmentDate)) as averageDuration
+			AVG(FUNCTION('TIMESTAMPDIFF', 'DAY', a.assignmentDate, a.returnDate)) as averageDuration
 		FROM Assignment a
 		WHERE a.returnDate IS NOT NULL
 		GROUP BY FUNCTION('DATE_FORMAT', a.assignmentDate, '%Y-%m-01')
@@ -48,7 +48,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 	 * @return The average duration in days
 	 */
 	@Query(value = """
-		SELECT AVG(DATEDIFF(a.returnDate, a.assignmentDate))
+		SELECT AVG(FUNCTION('TIMESTAMPDIFF', 'DAY', a.assignmentDate, a.returnDate))
 		FROM Assignment a
 		WHERE a.returnDate IS NOT NULL
 	""")
