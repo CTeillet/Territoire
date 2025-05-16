@@ -25,7 +25,7 @@ export const ImportExcelSection = () => {
         formData.append("file", selectedFile);
 
         try {
-            const response = await authFetch("/api/fichiers-excel", {
+            const response = await authFetch("/api/excel", {
                 method: "POST",
                 body: formData,
             });

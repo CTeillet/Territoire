@@ -7,7 +7,7 @@ import { authFetch } from "@/utils/auth-fetch";
 export const ExportExcelButton = () => {
     const downloadExcel = async () => {
         try {
-            const response = await authFetch("/api/fichiers-excel");
+            const response = await authFetch("/api/excel");
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
