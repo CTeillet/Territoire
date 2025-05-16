@@ -8,6 +8,7 @@ import org.apache.poi.ss.util.CellRangeAddress;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 public class ExcelSheetBuilder {
@@ -67,7 +68,7 @@ public class ExcelSheetBuilder {
 		String lastModifiedDate = formatDate(territory.getLastModifiedDate());
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastModifiedDate, fillStyle);
 
-		List<Assignment> assignments = territory.getAssignments();
+		List<Assignment> assignments = territory.getAssignments().stream().sorted(Comparator.comparing(Assignment::getAssignmentDate)).toList();
 		for (int i = 0; i < MAX_ASSIGNMENTS; i++) {
 			int colStart = ASSIGNMENT_START_COL + (i * 2);
 			if (i < assignments.size()) {
