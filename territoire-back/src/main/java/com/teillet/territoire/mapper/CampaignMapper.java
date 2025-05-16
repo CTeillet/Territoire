@@ -9,6 +9,9 @@ import java.util.stream.Collectors;
 public class CampaignMapper {
 
     public static CampaignDto toDto(Campaign campaign) {
+        if (campaign == null) {
+            return null;
+        }
         CampaignDto dto = CampaignDto.builder()
                 .id(campaign.getId())
                 .name(campaign.getName())
