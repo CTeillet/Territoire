@@ -27,7 +27,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 	/**
 	 * Calculates the average duration of assignments in days, grouped by month.
 	 * Only considers completed assignments (where returnDate is not null).
-	 * 
+	 *
 	 * @return List of objects containing the year-month and average duration
 	 */
 	@Query(value = """
@@ -45,13 +45,14 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 	/**
 	 * Calculates the overall average duration of assignments in days.
 	 * Only considers completed assignments (where returnDate is not null).
-	 * 
+	 *
 	 * @return The average duration in days
 	 */
 	@Query(value = """
-		SELECT AVG(FUNCTION('TIMESTAMPDIFF', 'DAY', a.assignmentDate, a.returnDate))
-		FROM Assignment a
-		WHERE a.returnDate IS NOT NULL
-	""")
+			    SELECT AVG(TIMESTAMPDIFF(DAY, a.assignmentDate, a.returnDate))
+			    FROM Assignment a
+			    WHERE a.returnDate IS NOT NULL
+			""", nativeQuery = true)
 	Double calculateOverallAverageAssignmentDuration();
+
 }
