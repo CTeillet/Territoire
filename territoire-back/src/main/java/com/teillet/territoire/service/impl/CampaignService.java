@@ -10,8 +10,8 @@ import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.ICampaignService;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,13 +21,22 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CampaignService implements ICampaignService {
 
     private final CampaignRepository campaignRepository;
     private final TerritoryRepository territoryRepository;
     private final IAssignmentService assignmentService;
+
+    public CampaignService(
+        CampaignRepository campaignRepository,
+        TerritoryRepository territoryRepository,
+        @Lazy IAssignmentService assignmentService
+    ) {
+        this.campaignRepository = campaignRepository;
+        this.territoryRepository = territoryRepository;
+        this.assignmentService = assignmentService;
+    }
 
     @Override
     public List<CampaignDto> getAllCampaigns() {

@@ -14,8 +14,8 @@ import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.ICampaignService;
 import com.teillet.territoire.service.ITerritoryService;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -27,13 +27,24 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class TerritoryService implements ITerritoryService {
 	private final TerritoryRepository territoryRepository;
 	private final BlockRepository blockRepository;
 	private final AssignmentRepository assignmentRepository;
 	private final ICampaignService campaignService;
+
+	public TerritoryService(
+		TerritoryRepository territoryRepository,
+		BlockRepository blockRepository,
+		AssignmentRepository assignmentRepository,
+		@Lazy ICampaignService campaignService
+	) {
+		this.territoryRepository = territoryRepository;
+		this.blockRepository = blockRepository;
+		this.assignmentRepository = assignmentRepository;
+		this.campaignService = campaignService;
+	}
 
 	@Override
 	public List<Territory> getAllTerritories() {

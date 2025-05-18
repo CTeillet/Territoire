@@ -13,8 +13,8 @@ import com.teillet.territoire.service.IPersonService;
 import com.teillet.territoire.service.ITerritoryService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -23,12 +23,21 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AssignmentService implements IAssignmentService {
 	private final AssignmentRepository assignmentRepository;
 	private final ITerritoryService territoryService;
 	private final IPersonService personService;
+
+	public AssignmentService(
+		AssignmentRepository assignmentRepository,
+		@Lazy ITerritoryService territoryService,
+		IPersonService personService
+	) {
+		this.assignmentRepository = assignmentRepository;
+		this.territoryService = territoryService;
+		this.personService = personService;
+	}
 
 	@Transactional
 	@Override

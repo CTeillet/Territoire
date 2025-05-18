@@ -6,8 +6,8 @@ import com.teillet.territoire.model.AddressNotToDo;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.service.IAddressNotToDoService;
 import com.teillet.territoire.service.IAssignmentService;
+import com.teillet.territoire.service.ICityService;
 import com.teillet.territoire.service.ITerritoryService;
-import com.teillet.territoire.service.impl.CityService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ class TerritoryController {
 	private final ITerritoryService territoryService;
 	private final IAssignmentService assignmentService;
 	private final IAddressNotToDoService addressNotToDoService;
-	private final CityService cityService;
+	private final ICityService cityService;
 
 	@GetMapping("/geojson")
 	public String getAllTerritories() throws IOException {
