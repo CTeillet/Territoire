@@ -32,7 +32,7 @@ export const fetchPersons = createAsyncThunk(
         // Check if a fetch is already in progress
         const state = getState() as { persons: PersonState };
         if (state.persons.isFetchingPersons) {
-            //console.log("Une récupération des personnes est déjà en cours. Retourne les données existantes.");
+            console.log("Une récupération des personnes est déjà en cours. Retourne les données existantes.");
             return state.persons.persons; // Return current persons array instead of rejecting
         }
 

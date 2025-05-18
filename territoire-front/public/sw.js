@@ -1,8 +1,8 @@
-const CACHE_NAME = "pwa-cache-v68";
+const CACHE_NAME = "pwa-cache-v73";
 
 self.addEventListener("install", (event) => {
     self.skipWaiting();
-    console.log('[SW] install v49');
+    console.log('[SW] install' + CACHE_NAME);
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll([

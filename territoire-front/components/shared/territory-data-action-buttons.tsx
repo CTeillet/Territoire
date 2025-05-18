@@ -35,13 +35,14 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
     const showAssign = status === "AVAILABLE";
     const showReturn = status === "ASSIGNED" || status === "LATE";
 
-    // ✅ Charger la liste des personnes au montage
     useEffect(() => {
-        if(persons.length == 0 && !isFetchingPersons) {
-            console.log("Récupération des personnes...");
+        if (persons.length === 0 && !isFetchingPersons) {
             dispatch(fetchPersons());
         }
-    }, [dispatch, persons.length, isFetchingPersons]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // ← Exécute le useEffect une seule fois au montage
+
+
 
     // 🔹 Fonction pour gérer l'assignation d'un territoire
     const handleAssign = async (selectedPersonId: string | null, newPerson: {
