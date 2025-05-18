@@ -19,13 +19,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -150,27 +149,22 @@ public class TerritoryService implements ITerritoryService {
 
 	@Override
 	public List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth() {
-		List<Object[]> results = assignmentRepository.calculateAverageAssignmentDurationByMonth();
-		List<AverageAssignmentDurationDto> durationDtos = new ArrayList<>();
-
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-		for (Object[] result : results) {
-			if (result[0] != null && result[1] != null) {
-				String dateStr = result[0].toString();
-				LocalDate date = LocalDate.parse(dateStr, formatter);
-				YearMonth yearMonth = YearMonth.from(date);
-				Double avgDuration = ((Number) result[1]).doubleValue();
-
-				durationDtos.add(AverageAssignmentDurationDto.builder()
-						.period(yearMonth)
-						.averageDuration(avgDuration)
-						.build());
-			}
-		}
-
-		return durationDtos;
+		return assignmentRepository.findByReturnDateNotNull().stream()
+				.collect(Collectors.groupingBy(
+						a -> YearMonth.from(a.getAssignmentDate()),
+						Collectors.averagingDouble(a ->
+								ChronoUnit.DAYS.between(a.getAssignmentDate(), a.getReturnDate())
+						)
+				))
+				.entrySet().stream()
+				.map(entry -> AverageAssignmentDurationDto.builder()
+						.period(entry.getKey())
+						.averageDuration(entry.getValue())
+						.build())
+				.sorted(Comparator.comparing(AverageAssignmentDurationDto::getPeriod))
+				.toList();
 	}
+
 
 	@Override
 	public Double getOverallAverageAssignmentDuration() {

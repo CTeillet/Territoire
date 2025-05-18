@@ -78,15 +78,15 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
 			(COUNT(t.id) * 100.0 / (SELECT COUNT(*) FROM territory)) as percentage
 		FROM territory t
 		JOIN city c ON t.city_id = c.id
-		WHERE (:startDate IS NULL OR t.id IN (
+		WHERE (CAST(:startDate AS DATE) IS NULL OR t.id IN (
 			SELECT DISTINCT a.territory_id
 			FROM assignment a
 			WHERE
-				a.assignment_date >= :startDate
+				a.assignment_date >= CAST(:startDate AS DATE)
 				OR
-				(a.assignment_date < :startDate AND a.return_date >= :startDate)
+				(a.assignment_date < CAST(:startDate AS DATE) AND a.return_date >= CAST(:startDate AS DATE))
 				OR
-				(a.assignment_date < :startDate AND a.return_date IS NULL)
+				(a.assignment_date < CAST(:startDate AS DATE) AND a.return_date IS NULL)
 		))
 		GROUP BY c.name
 		ORDER BY COUNT(t.id) DESC
