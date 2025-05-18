@@ -11,6 +11,7 @@ interface PersonState {
     creating: boolean;
     updating: boolean;
     error: string | null;
+    isFetchingPersons: boolean;
 }
 
 const initialState: PersonState = {
@@ -20,13 +21,21 @@ const initialState: PersonState = {
     creating: false,
     updating: false,
     error: null,
+    isFetchingPersons: false,
 };
 
 
 // 🔹 Thunk pour récupérer les personnes
 export const fetchPersons = createAsyncThunk(
     "persons/fetchPersons",
-    async (_, { rejectWithValue }) => {
+    async (_, { rejectWithValue, getState }) => {
+        // Check if a fetch is already in progress
+        const state = getState() as { persons: PersonState };
+        if (state.persons.isFetchingPersons) {
+            //console.log("Une récupération des personnes est déjà en cours. Retourne les données existantes.");
+            return state.persons.persons; // Return current persons array instead of rejecting
+        }
+
         const response = await authFetch(BASE_URL);
 
         // 🔹 Retourner immédiatement `rejectWithValue` au lieu de `throw`
@@ -114,14 +123,17 @@ const personSlice = createSlice({
             // 🔹 Récupération des personnes
             .addCase(fetchPersons.pending, (state) => {
                 state.loading = true;
+                state.isFetchingPersons = true;
                 state.error = null;
             })
             .addCase(fetchPersons.fulfilled, (state, action) => {
                 state.loading = false;
+                state.isFetchingPersons = false;
                 state.persons = action.payload;
             })
             .addCase(fetchPersons.rejected, (state, action) => {
                 state.loading = false;
+                state.isFetchingPersons = false;
                 state.error = action.payload as string;
             })
 

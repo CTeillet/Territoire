@@ -26,7 +26,7 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
 
 
     // ✅ Récupération des personnes depuis Redux
-    const {persons, loading, error} = useSelector((state: RootState) => state.persons);
+    const {persons, loading, error, isFetchingPersons} = useSelector((state: RootState) => state.persons);
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
@@ -37,11 +37,11 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
 
     // ✅ Charger la liste des personnes au montage
     useEffect(() => {
-        if(persons.length == 0) {
+        if(persons.length == 0 && !isFetchingPersons) {
             console.log("Récupération des personnes...");
             dispatch(fetchPersons());
         }
-    }, [dispatch, persons]);
+    }, [dispatch, persons.length, isFetchingPersons]);
 
     // 🔹 Fonction pour gérer l'assignation d'un territoire
     const handleAssign = async (selectedPersonId: string | null, newPerson: {
