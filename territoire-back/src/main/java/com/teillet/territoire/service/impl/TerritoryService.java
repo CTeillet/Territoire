@@ -11,6 +11,7 @@ import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.BlockRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
+import com.teillet.territoire.service.ICampaignService;
 import com.teillet.territoire.service.ITerritoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
@@ -33,6 +33,7 @@ public class TerritoryService implements ITerritoryService {
 	private final TerritoryRepository territoryRepository;
 	private final BlockRepository blockRepository;
 	private final AssignmentRepository assignmentRepository;
+	private final ICampaignService campaignService;
 
 	@Override
 	public List<Territory> getAllTerritories() {
@@ -122,6 +123,11 @@ public class TerritoryService implements ITerritoryService {
 	@Override
 	@Transactional
 	public void deleteTerritory(UUID territoryId) {
+		Territory territory = getTerritory(territoryId);
+
+		// Remove territory from all campaigns
+		campaignService.deleteTerrritoryFromAllCampaign(territory);
+
 		log.info("Suppression des pâtés appartenant au territoire {}", territoryId);
 		blockRepository.deleteBlockByTerritory_Id(territoryId);
 		log.info("Suppression des attributions appartenant au territoire {}", territoryId);

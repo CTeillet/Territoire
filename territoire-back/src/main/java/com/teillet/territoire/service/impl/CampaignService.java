@@ -56,11 +56,12 @@ public class CampaignService implements ICampaignService {
                 });
     }
 
-    @Override
-    @Transactional
-    public CampaignDto createCampaign(CampaignDto campaignDto) {
-        log.info("Création d'une nouvelle campagne: '{}'", campaignDto.getName());
-
+    /**
+     * Helper method to validate campaign dates
+     * @param campaignDto The campaign DTO containing dates to validate
+     * @return A pair of validated start and end dates
+     */
+    private LocalDate[] validateCampaignDates(CampaignDto campaignDto) {
         // Validation des dates
         LocalDate startDate;
         if (campaignDto.getStartDate() != null) {
@@ -85,13 +86,38 @@ public class CampaignService implements ICampaignService {
             throw new IllegalArgumentException("La date de fin doit être après la date de début");
         }
 
-        // Création de la campagne
+        return new LocalDate[]{startDate, endDate};
+    }
+
+    /**
+     * Helper method to create a campaign entity from DTO and validated dates
+     * @param campaignDto The campaign DTO
+     * @param startDate The validated start date
+     * @param endDate The validated end date
+     * @return A new Campaign entity (not yet saved)
+     */
+    private Campaign createCampaignEntity(CampaignDto campaignDto, LocalDate startDate, LocalDate endDate) {
         Campaign campaign = new Campaign();
         campaign.setName(campaignDto.getName());
         campaign.setDescription(campaignDto.getDescription());
         campaign.setStartDate(startDate);
         campaign.setEndDate(endDate);
         campaign.setClosed(false);
+        return campaign;
+    }
+
+    @Override
+    @Transactional
+    public CampaignDto createCampaign(CampaignDto campaignDto) {
+        log.info("Création d'une nouvelle campagne: '{}'", campaignDto.getName());
+
+        // Validate dates
+        LocalDate[] dates = validateCampaignDates(campaignDto);
+        LocalDate startDate = dates[0];
+        LocalDate endDate = dates[1];
+
+        // Create campaign entity
+        Campaign campaign = createCampaignEntity(campaignDto, startDate, endDate);
 
         // Get all available territories
         log.info("Récupération de tous les territoires disponibles");
@@ -199,32 +225,13 @@ public class CampaignService implements ICampaignService {
     @Override
     @Transactional
     public CampaignDto createCampaignWithRemainingTerritories(CampaignDto campaignDto, UUID previousCampaignId) {
-        log.info("Création d'une nouvelle campagne '{}' avec les territoires restants de la campagne {}", 
+        log.info("Création d'une nouvelle campagne '{}' avec les territoires restants de la campagne {}",
                 campaignDto.getName(), previousCampaignId);
 
-        // Validation des dates
-        LocalDate startDate;
-        if (campaignDto.getStartDate() != null) {
-            startDate = campaignDto.getStartDate();
-            log.info("Date de début définie: {}", startDate);
-        } else {
-            startDate = LocalDate.now();
-            log.info("Date de début non fournie, utilisation de la date actuelle: {}", startDate);
-        }
-
-        if (campaignDto.getEndDate() == null) {
-            log.error("La date de fin est obligatoire");
-            throw new IllegalArgumentException("La date de fin est obligatoire");
-        }
-
-        LocalDate endDate = campaignDto.getEndDate();
-        log.info("Date de fin définie: {}", endDate);
-
-        // Vérifier que la date de fin est après la date de début
-        if (endDate.isBefore(startDate)) {
-            log.error("La date de fin ({}) est avant la date de début ({})", endDate, startDate);
-            throw new IllegalArgumentException("La date de fin doit être après la date de début");
-        }
+        // Validate dates
+        LocalDate[] dates = validateCampaignDates(campaignDto);
+        LocalDate startDate = dates[0];
+        LocalDate endDate = dates[1];
 
         // Récupération de la campagne précédente
         Campaign previousCampaign = getCampaignEntityById(previousCampaignId);
@@ -234,22 +241,44 @@ public class CampaignService implements ICampaignService {
         List<Territory> remainingTerritories = previousCampaign.getRemainingTerritories();
         log.info("{} territoires restants trouvés dans la campagne précédente", remainingTerritories.size());
 
-        // Création de la campagne
-        Campaign campaign = new Campaign();
-        campaign.setName(campaignDto.getName());
-        campaign.setDescription(campaignDto.getDescription());
-        campaign.setStartDate(startDate);
-        campaign.setEndDate(endDate);
-        campaign.setClosed(false);
+        // Create campaign entity
+        Campaign campaign = createCampaignEntity(campaignDto, startDate, endDate);
 
         // Ajout des territoires restants de la campagne précédente
         campaign.setTerritories(new ArrayList<>(remainingTerritories));
         campaign.setRemainingTerritories(new ArrayList<>(remainingTerritories));
 
         Campaign savedCampaign = campaignRepository.save(campaign);
-        log.info("Campagne '{}' créée avec succès avec {} territoires de la campagne précédente (ID: {})", 
+        log.info("Campagne '{}' créée avec succès avec {} territoires de la campagne précédente (ID: {})",
                 savedCampaign.getName(), remainingTerritories.size(), savedCampaign.getId());
 
         return CampaignMapper.toDto(savedCampaign);
+    }
+    @Override
+    @Transactional
+    public void deleteTerrritoryFromAllCampaign(Territory territory) {
+        log.info("Suppression du territoire {} des campagnes", territory.getId());
+
+        // Remove from territories list
+        List<Campaign> campaignsWithTerritory = campaignRepository.findByTerritoriesContaining(territory);
+        for (Campaign campaign : campaignsWithTerritory) {
+            campaign.getTerritories().remove(territory);
+            campaignRepository.save(campaign);
+        }
+
+        // Remove from remainingTerritories list
+        List<Campaign> campaignsWithRemainingTerritory = campaignRepository.findByRemainingTerritoriesContaining(territory);
+        for (Campaign campaign : campaignsWithRemainingTerritory) {
+            campaign.getRemainingTerritories().remove(territory);
+            campaignRepository.save(campaign);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteTerrritoryFromAllCampaign(UUID territoryId) {
+        Territory territory = territoryRepository.findById(territoryId)
+                .orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
+        deleteTerrritoryFromAllCampaign(territory);
     }
 }
