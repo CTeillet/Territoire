@@ -3,11 +3,19 @@ import {CalendarIcon, CheckCircleIcon, CheckIcon, EditIcon, MapPinIcon, TrashIco
 import { getBadgeColor } from "@/components/territory/territory-data-columns";
 import { STATUS_TRANSLATIONS, TerritoryStatus } from "@/models/territory-status";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {useDispatch, useSelector} from "react-redux";
 import {AppDispatch, RootState} from "@/store/store";
 import {deleteTerritory, updateTerritory} from "@/store/slices/territory-slice";
+import {fetchCities} from "@/store/slices/city-slice";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel,
     AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -30,18 +38,29 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
     const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
     const user = useSelector((state: RootState) => state.auth.user);
-
+    const cities = useSelector((state: RootState) => state.cities.cities);
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     // États pour l'édition
     const [tempName, setTempName] = useState(name);
     const [tempNote, setTempNote] = useState(note ?? "");
+    const [tempCityId, setTempCityId] = useState<string | undefined>(undefined);
     const [isEditing, setIsEditing] = useState(false);
+
+    // Charger les villes au montage du composant
+    useEffect(() => {
+        dispatch(fetchCities());
+    }, [dispatch]);
 
     // Sauvegarde des modifications
     const handleSave = () => {
-        dispatch(updateTerritory({ id: territoryId, name: tempName, note: tempNote }));
+        dispatch(updateTerritory({ 
+            id: territoryId, 
+            name: tempName, 
+            note: tempNote,
+            cityId: tempCityId
+        }));
         setIsEditing(false);
     };
 
@@ -121,7 +140,22 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
                 <MapPinIcon className="mr-2 text-red-500 flex-shrink-0" />
                 <span className="font-semibold mr-2 flex-shrink-0">Ville :</span>
                 <div className="flex-grow min-w-0">
-                    <span className="truncate">{city}</span>
+                    {isEditing ? (
+                        <Select onValueChange={setTempCityId}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder={city} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {cities.map((cityItem) => (
+                                    <SelectItem key={cityItem.id} value={cityItem.id}>
+                                        {cityItem.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                        <span className="truncate">{city}</span>
+                    )}
                 </div>
             </div>
 

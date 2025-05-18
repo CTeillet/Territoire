@@ -106,6 +106,7 @@ export const updateTerritory = createAsyncThunk(
             body: JSON.stringify({
                 name: updatedTerritory.name,
                 note: updatedTerritory.note,
+                cityId: updatedTerritory.cityId,
             }),
         });
 

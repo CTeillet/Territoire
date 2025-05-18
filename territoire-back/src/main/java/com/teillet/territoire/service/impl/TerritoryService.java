@@ -12,6 +12,7 @@ import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.BlockRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.ICampaignService;
+import com.teillet.territoire.service.ICityService;
 import com.teillet.territoire.service.ITerritoryService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -33,17 +34,20 @@ public class TerritoryService implements ITerritoryService {
 	private final BlockRepository blockRepository;
 	private final AssignmentRepository assignmentRepository;
 	private final ICampaignService campaignService;
+	private final ICityService cityService;
 
 	public TerritoryService(
 		TerritoryRepository territoryRepository,
 		BlockRepository blockRepository,
 		AssignmentRepository assignmentRepository,
-		@Lazy ICampaignService campaignService
+		@Lazy ICampaignService campaignService,
+		ICityService cityService
 	) {
 		this.territoryRepository = territoryRepository;
 		this.blockRepository = blockRepository;
 		this.assignmentRepository = assignmentRepository;
 		this.campaignService = campaignService;
+		this.cityService = cityService;
 	}
 
 	@Override
@@ -127,6 +131,11 @@ public class TerritoryService implements ITerritoryService {
 		// ✅ Mise à jour des champs modifiables
 		territory.setName(updateDto.getName());
 		territory.setNote(updateDto.getNote());
+
+		// Mise à jour de la ville si un ID de ville est fourni
+		if (updateDto.getCityId() != null) {
+			territory.setCity(cityService.getCity(updateDto.getCityId()));
+		}
 
 		return TerritoryMapper.toDto(territoryRepository.save(territory));
 	}
