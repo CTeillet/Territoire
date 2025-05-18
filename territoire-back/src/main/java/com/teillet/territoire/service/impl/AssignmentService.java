@@ -10,6 +10,7 @@ import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.IPersonService;
+import com.teillet.territoire.service.ITerritoryService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ import java.util.UUID;
 @Slf4j
 public class AssignmentService implements IAssignmentService {
 	private final AssignmentRepository assignmentRepository;
-	private final TerritoryService territoryService;
+	private final ITerritoryService territoryService;
 	private final IPersonService personService;
 
 	@Transactional
