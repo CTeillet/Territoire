@@ -84,78 +84,104 @@ export const StatisticsChart: React.FC = () => {
 
     // Prepare data for the pie chart
     const pieChartData = [
-        { name: 'Territoires parcourus', value: totalTerritories - territoriesNotAssigned, fill: '#4CAF50' },
-        { name: 'Territoires non parcourus', value: territoriesNotAssigned, fill: '#F44336' }
+        { 
+            name: 'Territoires parcourus', 
+            value: totalTerritories - territoriesNotAssigned, 
+            count: totalTerritories - territoriesNotAssigned,
+            fill: "hsl(var(--chart-2))" // Using the same color as "Assigné" from chartConfig
+        },
+        { 
+            name: 'Territoires non parcourus', 
+            value: territoriesNotAssigned, 
+            count: territoriesNotAssigned,
+            fill: "hsl(var(--chart-4))" // Using the same color as "Retard" from chartConfig
+        }
     ];
 
-    const COLORS = ['#4CAF50', '#F44336'];
+    const COLORS = ["hsl(var(--chart-2))", "hsl(var(--chart-4))"];
 
     return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Statistiques des territoires</CardTitle>
-                    <CardDescription>Statistiques par date</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {loading ? (
-                        <p>Chargement des statistiques...</p>
-                    ) : (
-                        <ChartContainer config={chartConfig}>
-                            <LineChart data={formattedChartData}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis
-                                    dataKey="date"
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickMargin={10}
-                                />
-                                <YAxis />
-                                <ChartTooltip content={<ChartTooltipContent hideLabel={true} />} />
-                                <ChartLegend content={<ChartLegendContent />} />
+        <div className="grid grid-cols-1 2xl:grid-cols-3 gap-6">
+            <div className="col-span-1 2xl:col-span-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Statistiques des territoires</CardTitle>
+                        <CardDescription>Statistiques par date</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? (
+                            <p>Chargement des statistiques...</p>
+                        ) : (
+                            <ChartContainer config={chartConfig}>
+                                <LineChart data={formattedChartData}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                        dataKey="date"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={10}
+                                    />
+                                    <YAxis />
+                                    <ChartTooltip content={<ChartTooltipContent hideLabel={true} />} />
+                                    <ChartLegend content={<ChartLegendContent />} />
 
-                                <Line dataKey="available" type="monotone" stroke="var(--color-available)" strokeWidth={2} dot={true} />
-                                <Line dataKey="assigned" type="monotone" stroke="var(--color-assigned)" strokeWidth={2} dot={true} />
-                                <Line dataKey="pending" type="monotone" stroke="var(--color-pending)" strokeWidth={2} dot={true} />
-                                <Line dataKey="late" type="monotone" stroke="var(--color-late)" strokeWidth={2} dot={true} />
-                            </LineChart>
-                        </ChartContainer>
-                    )}
-                </CardContent>
-            </Card>
+                                    <Line dataKey="available" type="monotone" stroke="var(--color-available)" strokeWidth={2} dot={true} />
+                                    <Line dataKey="assigned" type="monotone" stroke="var(--color-assigned)" strokeWidth={2} dot={true} />
+                                    <Line dataKey="pending" type="monotone" stroke="var(--color-pending)" strokeWidth={2} dot={true} />
+                                    <Line dataKey="late" type="monotone" stroke="var(--color-late)" strokeWidth={2} dot={true} />
+                                </LineChart>
+                            </ChartContainer>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Territoires parcourus depuis le 01/09</CardTitle>
-                    <CardDescription>Pourcentage des territoires parcourus depuis le 01/09</CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center">
-                    {loading ? (
-                        <p>Chargement des statistiques...</p>
-                    ) : (
-                        <div style={{ width: '100%', height: 300 }}>
-                            <PieChart width={400} height={300}>
-                                <Pie
-                                    data={pieChartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                >
-                                    {pieChartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            <div className="col-span-1 h-full">
+                <Card className="h-full flex flex-col">
+                    <CardHeader>
+                        <CardTitle>Territoires parcourus depuis le 01/09</CardTitle>
+                        <CardDescription>Pourcentage des territoires parcourus depuis le 01/09</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex justify-center items-center flex-grow">
+                        {loading ? (
+                            <p>Chargement des statistiques...</p>
+                        ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                <PieChart width={400} height={400}>
+                                    <Pie
+                                        data={pieChartData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={true}
+                                        innerRadius={60}
+                                        outerRadius={120}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                        paddingAngle={2}
+                                        animationBegin={0}
+                                        animationDuration={1000}
+                                        label={({ percent, count }) => `${(percent * 100).toFixed(0)}% (${count})`}
+                                    >
+                                        {pieChartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip 
+                                        formatter={(value, name) => [`${value} territoires`, name]}
+                                        contentStyle={{ borderRadius: '8px', padding: '10px', border: '1px solid var(--border)' }}
+                                    />
+                                    <Legend 
+                                        layout="horizontal" 
+                                        verticalAlign="bottom" 
+                                        align="center"
+                                        wrapperStyle={{ paddingTop: '20px' }}
+                                    />
+                                </PieChart>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 };
