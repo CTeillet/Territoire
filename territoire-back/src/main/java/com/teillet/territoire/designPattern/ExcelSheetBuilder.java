@@ -83,11 +83,11 @@ public class ExcelSheetBuilder {
 	private void createAssignmentCells(Row territoryRow, Row dateRow, int colStart, Assignment assignment, CellStyle fillStyle) {
 		String personName = getPersonName(assignment);
 		String assignedDate = formatDate(assignment.getAssignmentDate());
-		String dueDate = formatDate(assignment.getDueDate());
+		String returnDate = formatDate(assignment.getReturnDate());
 
 		createMergedCell(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1, personName, fillStyle);
 		createCell(dateRow, colStart, assignedDate, fillStyle);
-		createCell(dateRow, colStart + 1, dueDate, fillStyle);
+		createCell(dateRow, colStart + 1, returnDate, fillStyle);
 	}
 
 	private void createEmptyAssignmentCells(Row territoryRow, Row dateRow, int colStart, CellStyle fillStyle) {
