@@ -9,6 +9,7 @@ import {useDispatch, useSelector} from "react-redux";
 import {AppDispatch, RootState} from "@/store/store";
 import {deleteTerritory, updateTerritory} from "@/store/slices/territory-slice";
 import {fetchCities} from "@/store/slices/city-slice";
+import {UpdateTerritoryDto} from "@/models/update-territory-dto";
 import {
     Select,
     SelectContent,
@@ -55,11 +56,14 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
 
     // Sauvegarde des modifications
     const handleSave = () => {
-        dispatch(updateTerritory({ 
-            id: territoryId, 
-            name: tempName, 
+        const dto: UpdateTerritoryDto = {
+            name: tempName,
             note: tempNote,
             cityId: tempCityId
+        };
+        dispatch(updateTerritory({ 
+            id: territoryId, 
+            dto
         }));
         setIsEditing(false);
     };

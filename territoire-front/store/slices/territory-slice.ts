@@ -4,6 +4,7 @@ import {format} from "date-fns";
 import {Assignment} from "@/models/assignment";
 import {authFetch} from "@/utils/auth-fetch";
 import {AddressNotToDoDto} from "@/models/AddressNotToDoDto";
+import {UpdateTerritoryDto} from "@/models/update-territory-dto";
 
 type TerritoryState = {
     territoriesGeojson: TerritoryCollection | null,
@@ -99,15 +100,11 @@ export const deleteTerritory = createAsyncThunk(
 
 export const updateTerritory = createAsyncThunk(
     "territories/updateTerritory",
-    async (updatedTerritory: Partial<Territory>, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}/${updatedTerritory.id}`, {
+    async ({id, dto}: {id: string, dto: UpdateTerritoryDto}, {rejectWithValue}) => {
+        const response = await authFetch(`${BASE_URL}/${id}`, {
             method: "PUT",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                name: updatedTerritory.name,
-                note: updatedTerritory.note,
-                cityId: updatedTerritory.cityId,
-            }),
+            body: JSON.stringify(dto),
         });
 
         if (!response.ok) {
