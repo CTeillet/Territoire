@@ -66,7 +66,7 @@ public class ExcelSheetBuilder {
 
 	private void createTerritoryCells(Row territoryRow, Row dateRow, Territory territory, CellStyle fillStyle) {
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), TERRITORY_NAME_COL, TERRITORY_NAME_COL, territory.getName(), fillStyle);
-		String lastVisitDate = formatDate(territory.getAssignments().stream().map(Assignment::getReturnDate).filter(Objects::nonNull).sorted().findFirst().orElse(null), "nouveau");
+		String lastVisitDate = formatDate(territory.getAssignments().stream().map(Assignment::getReturnDate).filter(Objects::nonNull).max(LocalDate::compareTo).orElse(null), "nouveau");
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastVisitDate, fillStyle);
 
 		List<Assignment> assignments = territory.getAssignments().stream().sorted(Comparator.comparing(Assignment::getAssignmentDate)).toList();
