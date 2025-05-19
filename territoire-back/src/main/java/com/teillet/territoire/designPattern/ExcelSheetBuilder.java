@@ -66,7 +66,7 @@ public class ExcelSheetBuilder {
 
 	private void createTerritoryCells(Row territoryRow, Row dateRow, Territory territory, CellStyle fillStyle) {
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), TERRITORY_NAME_COL, TERRITORY_NAME_COL, territory.getName(), fillStyle);
-		String lastVisitDate = formatDate(territory.getAssignments().stream().map(Assignment::getReturnDate).filter(Objects::nonNull).sorted().findFirst().orElse(null));
+		String lastVisitDate = formatDate(territory.getAssignments().stream().map(Assignment::getReturnDate).filter(Objects::nonNull).sorted().findFirst().orElse(null), "nouveau");
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastVisitDate, fillStyle);
 
 		List<Assignment> assignments = territory.getAssignments().stream().sorted(Comparator.comparing(Assignment::getAssignmentDate)).toList();
@@ -82,8 +82,8 @@ public class ExcelSheetBuilder {
 
 	private void createAssignmentCells(Row territoryRow, Row dateRow, int colStart, Assignment assignment, CellStyle fillStyle) {
 		String personName = getPersonName(assignment);
-		String assignedDate = formatDate(assignment.getAssignmentDate());
-		String returnDate = formatDate(assignment.getReturnDate());
+		String assignedDate = formatDate(assignment.getAssignmentDate(), "");
+		String returnDate = formatDate(assignment.getReturnDate(), "");
 
 		createMergedCell(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1, personName, fillStyle);
 		createCell(dateRow, colStart, assignedDate, fillStyle);
@@ -203,8 +203,8 @@ public class ExcelSheetBuilder {
 		return "";
 	}
 
-	private String formatDate(LocalDate date) {
-		return date != null ? date.format(DATE_FORMATTER) : "nouveau";
+	private String formatDate(LocalDate date, String alternative) {
+		return date != null ? date.format(DATE_FORMATTER) : alternative;
 	}
 
 	public Sheet build() {
