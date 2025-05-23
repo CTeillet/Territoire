@@ -14,7 +14,7 @@ L'application de gestion de territoires permet d'attribuer, suivre et organiser 
   - **Gestionnaire** : Attribution et restitution de territoires.
   - **Superviseur** : Modification des territoires et personnes et attribution et restitution de territoire.
 - Authentification sécurisée avec Redux Store et Spring Boot.
-- Interface web en **Next.js avec TypeScript et Tailwind CSS**.
+- Interface web en **Next.js avec TypeScript et Tailwind CSS** et avec les composants Shadcn.
 
 ## Architecture
 ### Backend
@@ -55,11 +55,9 @@ yarn install
 yarn dev
 ```
 
-## API REST
-L'API REST est documentée via Swagger, accessible sur :
-```
-http://localhost:8080/swagger-ui.html
-```
+## Évolutions futures
+- Annulation d'une assignation
+- Intégrer directement la gestion des relances pour retard
 
 ## Licence
 Ce projet est sous licence MIT.

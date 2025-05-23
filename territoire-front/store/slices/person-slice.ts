@@ -28,14 +28,8 @@ const initialState: PersonState = {
 // 🔹 Thunk pour récupérer les personnes
 export const fetchPersons = createAsyncThunk(
     "persons/fetchPersons",
-    async (_, { rejectWithValue, getState }) => {
-        // Check if a fetch is already in progress
-        const state = getState() as { persons: PersonState };
-        if (state.persons.isFetchingPersons) {
-            console.log("Une récupération des personnes est déjà en cours. Retourne les données existantes.");
-            return state.persons.persons; // Return current persons array instead of rejecting
-        }
-
+    async (_, { rejectWithValue }) => {
+        console.log("Récup")
         const response = await authFetch(BASE_URL);
 
         // 🔹 Retourner immédiatement `rejectWithValue` au lieu de `throw`
@@ -47,6 +41,17 @@ export const fetchPersons = createAsyncThunk(
             return await response.json();
         } catch (error) {
             return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    },
+    {
+        // Check if a fetch is already in progress before dispatching the pending action
+        condition: (_, { getState }) => {
+            const state = getState() as { persons: PersonState };
+            if (state.persons.isFetchingPersons) {
+                console.log("Une récupération des personnes est déjà en cours. Opération annulée.");
+                return false; // Skip this thunk execution
+            }
+            return true; // Proceed with the thunk execution
         }
     }
 );
