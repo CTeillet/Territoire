@@ -74,7 +74,16 @@ export function AppSidebar() {
                     <SidebarGroupContent className="mt-12">
                         <SidebarMenu>
                             {items.map((item) => {
-                                const isActive = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
+                                // For root path, exact match; for others, check if it's the most specific match
+                                const isActive = item.url === "/" 
+                                    ? pathname === "/" 
+                                    : pathname.startsWith(item.url) && 
+                                      // Make sure no other more specific item matches this path
+                                      !items.some(otherItem => 
+                                        otherItem !== item && 
+                                        pathname.startsWith(otherItem.url) && 
+                                        otherItem.url.startsWith(item.url)
+                                      );
 
                                 return (
                                     <SidebarMenuItem key={item.title} className="mb-4">
