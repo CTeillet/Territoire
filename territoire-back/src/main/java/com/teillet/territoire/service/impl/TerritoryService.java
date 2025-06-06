@@ -131,6 +131,7 @@ public class TerritoryService implements ITerritoryService {
 		// ✅ Mise à jour des champs modifiables
 		territory.setName(updateDto.getName());
 		territory.setNote(updateDto.getNote());
+		territory.setType(updateDto.getType());
 
 		// Mise à jour de la ville si un ID de ville est fourni
 		if (updateDto.getCityId() != null) {

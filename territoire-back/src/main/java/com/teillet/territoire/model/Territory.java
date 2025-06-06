@@ -2,6 +2,7 @@ package com.teillet.territoire.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.teillet.territoire.enums.TerritoryStatus;
+import com.teillet.territoire.enums.TerritoryType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
@@ -29,6 +30,9 @@ public class Territory {
 
 	@Enumerated(EnumType.STRING)
 	private TerritoryStatus status;
+
+	@Enumerated(EnumType.STRING)
+	private TerritoryType type;
 
 	private LocalDate lastModifiedDate;
 

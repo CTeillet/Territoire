@@ -3,6 +3,7 @@
 import {ColumnDef} from "@tanstack/react-table"
 import {Territory} from "@/models/territory";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
+import {TYPE_TRANSLATIONS} from "@/models/territory-type";
 import {Badge} from "@/components/ui/badge";
 import React from "react";
 import {DataTableColumnHeader} from "@/components/territory/territory-data-header";
@@ -16,6 +17,7 @@ export const COLUMNS_ID_TRANSLATIONS = {
     name: "Territoire",
     city: "Ville",
     status: "Statut",
+    type: "Type",
     lastVisitedOn: "Parcouru pour la dernière fois le",
     assignedTo: "Assigné à",
     assignedOn: "Assigné le",
@@ -63,6 +65,21 @@ export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
         filterFn: (row, columnId, filterValue) => {
             return filterValue === "" || row.getValue(columnId) === filterValue;
         },
+    },
+    {
+        id: "type",
+        accessorKey: "type",
+        header: ({column}) => {
+            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.type}/>)
+        },
+        cell: ({row}) => {
+            return (
+                <div className="flex justify-center">
+                    {row.getValue("type") ? TYPE_TRANSLATIONS[row.getValue("type") as keyof typeof TYPE_TRANSLATIONS] : "-"}
+                </div>
+            )
+        },
+        enableColumnFilter: true,
     },
     {
         id: "lastVisitedOn",

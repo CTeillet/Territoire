@@ -19,6 +19,7 @@ public class TerritoryMapper {
 		territoryDto.setId(territory.getId().toString());
 		territoryDto.setName(territory.getName());
 		territoryDto.setStatus(territory.getStatus());
+		territoryDto.setType(territory.getType());
 		territoryDto.setLastModifiedDate(territory.getLastModifiedDate().toString());
 		territoryDto.setCity(CityMapper.toDto(territory.getCity()));
 		territoryDto.setAddressesNotToDo(new ArrayList<>(territory.getAddressesNotToDo()));
@@ -38,6 +39,7 @@ public class TerritoryMapper {
 		territory.setCity(cityService.getCity(addTerritoryDto.getCityId()));
 		territory.setLastModifiedDate(LocalDate.now());
 		territory.setStatus(TerritoryStatus.AVAILABLE);
+		territory.setType(addTerritoryDto.getType());
 		return territory;
 	}
 }

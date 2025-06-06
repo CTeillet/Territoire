@@ -1,5 +1,6 @@
 package com.teillet.territoire.dto;
 
+import com.teillet.territoire.enums.TerritoryType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -13,4 +14,5 @@ public class UpdateTerritoryDto {
 	private String name;
 	private String note;
 	private UUID cityId;
+	private TerritoryType type;
 }

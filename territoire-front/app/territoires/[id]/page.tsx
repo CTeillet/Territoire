@@ -70,6 +70,7 @@ const TerritoryPage = () => {
                 name={selectedTerritory.name}
                 city={selectedTerritory.city.name}
                 status={selectedTerritory.status}
+                type={selectedTerritory.type}
                 lastModifiedDate={selectedTerritory.lastModifiedDate}
                 note={selectedTerritory.note}
                 territoryId={selectedTerritory.id}

@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import {CalendarIcon, CheckCircleIcon, CheckIcon, EditIcon, MapPinIcon, TrashIcon, XIcon} from "lucide-react";
 import { getBadgeColor } from "@/components/territory/territory-data-columns";
 import { STATUS_TRANSLATIONS, TerritoryStatus } from "@/models/territory-status";
+import { TYPE_TRANSLATIONS, TerritoryType } from "@/models/territory-type";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -31,11 +32,12 @@ interface TerritoryHeaderProps {
     name: string;
     city: string;
     status: TerritoryStatus;
+    type?: TerritoryType;
     lastModifiedDate: string | null;
     note?: string | null;
 }
 
-const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territoryId }: TerritoryHeaderProps) => {
+const TerritoryHeader = ({ name, city, status, type, lastModifiedDate, note, territoryId }: TerritoryHeaderProps) => {
     const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
     const user = useSelector((state: RootState) => state.auth.user);
@@ -47,6 +49,7 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
     const [tempName, setTempName] = useState(name);
     const [tempNote, setTempNote] = useState(note ?? "");
     const [tempCityId, setTempCityId] = useState<string | undefined>(undefined);
+    const [tempType, setTempType] = useState<TerritoryType | undefined>(type);
     const [isEditing, setIsEditing] = useState(false);
 
     // Charger les villes au montage du composant
@@ -59,7 +62,8 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
         const dto: UpdateTerritoryDto = {
             name: tempName,
             note: tempNote,
-            cityId: tempCityId
+            cityId: tempCityId,
+            type: tempType
         };
         dispatch(updateTerritory({ 
             id: territoryId, 
@@ -170,6 +174,26 @@ const TerritoryHeader = ({ name, city, status, lastModifiedDate, note, territory
                     {STATUS_TRANSLATIONS[status]}
                 </Badge>
             </p>
+
+            {/* Type */}
+            <div className="text-gray-700 flex items-center mb-2">
+                <span className="font-semibold">🏠 Type :</span>
+                {isEditing ? (
+                    <Select value={tempType} onValueChange={(value) => setTempType(value as TerritoryType)}>
+                        <SelectTrigger className="w-40 ml-2">
+                            <SelectValue placeholder="Sélectionner un type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="BUILDING">Immeuble</SelectItem>
+                            <SelectItem value="HOUSE">Pavillon</SelectItem>
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    <span className="ml-2">
+                        {type ? TYPE_TRANSLATIONS[type] : "-"}
+                    </span>
+                )}
+            </div>
 
             {/* Dernière modification */}
             {lastModifiedDate && (
