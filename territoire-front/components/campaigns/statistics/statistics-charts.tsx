@@ -2,18 +2,8 @@
 
 import { TerritoryStatusPieChart } from "./territory-status-pie-chart";
 import { TerritoryTypeBarChart } from "./territory-type-bar-chart";
-
-interface TerritoryStatusData {
-  name: string;
-  value: number;
-  key: string;
-}
-
-interface TerritoryTypeData {
-  name: string;
-  used: number;
-  available: number;
-}
+import { TerritoryStatusData, TerritoryTypeData } from "@/models/chart-data";
+import { GridContainer } from "@/components/shared/ui/grid-container";
 
 interface StatisticsChartsProps {
   territoryStatusData: TerritoryStatusData[];
@@ -30,10 +20,10 @@ export function StatisticsCharts({
 }: StatisticsChartsProps) {
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <GridContainer columns={1} mdColumns={2} gap={8}>
         <TerritoryStatusPieChart data={territoryStatusData} colors={colors} />
         <TerritoryTypeBarChart data={territoryTypeData} statusTranslations={statusTranslations} />
-      </div>
+      </GridContainer>
     </div>
   );
 }

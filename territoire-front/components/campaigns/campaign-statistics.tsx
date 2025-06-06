@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CampaignStatistics } from "@/models/campaign-statistics";
 import { TerritoryType } from "@/models/territory-type";
+import { TerritoryStatusData, TerritoryTypeData } from "@/models/chart-data";
 import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
 
@@ -82,12 +83,12 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
   };
 
   // Prepare data for charts
-  const territoryStatusData = [
+  const territoryStatusData: TerritoryStatusData[] = [
     { name: statusTranslations.used, value: statistics.usedTerritories, key: "used" },
     { name: statusTranslations.available, value: statistics.availableTerritories, key: "available" },
   ];
 
-  const territoryTypeData = [
+  const territoryTypeData: TerritoryTypeData[] = [
     { 
       name: typeTranslations[TerritoryType.BUILDING], 
       used: statistics.usedTerritoriesByType[TerritoryType.BUILDING] || 0,

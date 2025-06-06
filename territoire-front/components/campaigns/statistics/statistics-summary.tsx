@@ -1,6 +1,8 @@
 "use client";
 
 import { CampaignStatistics } from "@/models/campaign-statistics";
+import { GridContainer } from "@/components/shared/ui/grid-container";
+import { StatCard } from "@/components/shared/ui/stat-card";
 
 interface StatisticsSummaryProps {
   statistics: CampaignStatistics;
@@ -8,19 +10,21 @@ interface StatisticsSummaryProps {
 
 export function StatisticsSummary({ statistics }: StatisticsSummaryProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-lg font-semibold mb-2">Total des territoires</h3>
-        <p className="text-3xl font-bold">{statistics.totalTerritories}</p>
-      </div>
-      <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-lg font-semibold mb-2">Territoires utilisés</h3>
-        <p className="text-3xl font-bold text-green-600">{statistics.usedTerritories}</p>
-      </div>
-      <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-        <h3 className="text-lg font-semibold mb-2">Territoires disponibles</h3>
-        <p className="text-3xl font-bold text-blue-600">{statistics.availableTerritories}</p>
-      </div>
-    </div>
+    <GridContainer columns={1} mdColumns={3} gap={6} className="mb-8">
+      <StatCard 
+        title="Total des territoires" 
+        value={statistics.totalTerritories} 
+      />
+      <StatCard 
+        title="Territoires utilisés" 
+        value={statistics.usedTerritories} 
+        valueClassName="text-3xl font-bold text-green-600"
+      />
+      <StatCard 
+        title="Territoires disponibles" 
+        value={statistics.availableTerritories} 
+        valueClassName="text-3xl font-bold text-blue-600"
+      />
+    </GridContainer>
   );
 }
