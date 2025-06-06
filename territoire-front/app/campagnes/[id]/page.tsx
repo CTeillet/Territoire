@@ -35,6 +35,7 @@ import {
 import { authFetch } from "@/utils/auth-fetch";
 import { SimplifiedTerritory } from "@/models/territory";
 import { Campaign } from "@/models/campaign";
+import { CampaignStatisticsComponent } from "@/components/campaigns/campaign-statistics";
 
 export default function CampaignDetailPage() {
   const router = useRouter();
@@ -473,6 +474,9 @@ export default function CampaignDetailPage() {
           </Button>
         </div>
       )}
+
+      {/* Statistics Component */}
+      <CampaignStatisticsComponent campaignId={campaignId} />
     </div>
   );
 }

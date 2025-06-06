@@ -1,7 +1,9 @@
 package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.CampaignDto;
+import com.teillet.territoire.dto.CampaignStatisticsDto;
 import com.teillet.territoire.dto.SimplifiedTerritoryDto;
+import com.teillet.territoire.enums.TerritoryType;
 import com.teillet.territoire.mapper.CampaignMapper;
 import com.teillet.territoire.model.Campaign;
 import com.teillet.territoire.model.Territory;
@@ -16,7 +18,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -289,5 +293,68 @@ public class CampaignService implements ICampaignService {
         Territory territory = territoryRepository.findById(territoryId)
                 .orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
         deleteTerrritoryFromAllCampaign(territory);
+    }
+
+    @Override
+    public CampaignStatisticsDto getCampaignStatistics(UUID campaignId) {
+        log.info("Récupération des statistiques pour la campagne avec l'ID: {}", campaignId);
+        Campaign campaign = getCampaignEntityById(campaignId);
+
+        // Get all territories in the campaign
+        List<Territory> allTerritories = campaign.getTerritories();
+
+        // Get remaining territories (available)
+        List<Territory> availableTerritories = campaign.getRemainingTerritories();
+
+        // Calculate used territories (all - available)
+        List<Territory> usedTerritories = allTerritories.stream()
+                .filter(territory -> !availableTerritories.contains(territory))
+                .toList();
+
+        // Initialize maps for territory counts by type
+        Map<TerritoryType, Integer> totalTerritoriesByType = new HashMap<>();
+        Map<TerritoryType, Integer> usedTerritoriesByType = new HashMap<>();
+        Map<TerritoryType, Integer> availableTerritoriesByType = new HashMap<>();
+
+        // Initialize counts for each territory type
+        for (TerritoryType type : TerritoryType.values()) {
+            totalTerritoriesByType.put(type, 0);
+            usedTerritoriesByType.put(type, 0);
+            availableTerritoriesByType.put(type, 0);
+        }
+
+        // Count territories by type
+        for (Territory territory : allTerritories) {
+            TerritoryType type = territory.getType();
+            totalTerritoriesByType.put(type, totalTerritoriesByType.get(type) + 1);
+        }
+
+        for (Territory territory : usedTerritories) {
+            TerritoryType type = territory.getType();
+            usedTerritoriesByType.put(type, usedTerritoriesByType.get(type) + 1);
+        }
+
+        for (Territory territory : availableTerritories) {
+            TerritoryType type = territory.getType();
+            availableTerritoriesByType.put(type, availableTerritoriesByType.get(type) + 1);
+        }
+
+        // Build and return the statistics DTO
+        CampaignStatisticsDto statisticsDto = CampaignStatisticsDto.builder()
+                .campaignId(campaign.getId())
+                .campaignName(campaign.getName())
+                .totalTerritories(allTerritories.size())
+                .usedTerritories(usedTerritories.size())
+                .availableTerritories(availableTerritories.size())
+                .totalTerritoriesByType(totalTerritoriesByType)
+                .usedTerritoriesByType(usedTerritoriesByType)
+                .availableTerritoriesByType(availableTerritoriesByType)
+                .build();
+
+        log.info("Statistiques calculées pour la campagne '{}': {} territoires au total, {} utilisés, {} disponibles",
+                campaign.getName(), statisticsDto.getTotalTerritories(), statisticsDto.getUsedTerritories(), 
+                statisticsDto.getAvailableTerritories());
+
+        return statisticsDto;
     }
 }

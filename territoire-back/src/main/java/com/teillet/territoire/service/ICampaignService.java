@@ -1,6 +1,7 @@
 package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.CampaignDto;
+import com.teillet.territoire.dto.CampaignStatisticsDto;
 import com.teillet.territoire.dto.SimplifiedTerritoryDto;
 import com.teillet.territoire.model.Territory;
 import jakarta.transaction.Transactional;
@@ -33,16 +34,23 @@ public interface ICampaignService {
 
     @Transactional
     void deleteCampaign(UUID id);
-    
+
     /**
      * Removes a territory from all campaigns
      * @param territory The territory to remove from all campaigns
      */
     void deleteTerrritoryFromAllCampaign(Territory territory);
-    
+
     /**
      * Removes a territory from all campaigns by its ID
      * @param territoryId The ID of the territory to remove from all campaigns
      */
     void deleteTerrritoryFromAllCampaign(UUID territoryId);
+
+    /**
+     * Get statistics for a campaign
+     * @param campaignId The ID of the campaign
+     * @return Statistics for the campaign
+     */
+    CampaignStatisticsDto getCampaignStatistics(UUID campaignId);
 }

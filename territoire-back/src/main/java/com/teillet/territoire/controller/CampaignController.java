@@ -1,6 +1,7 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.CampaignDto;
+import com.teillet.territoire.dto.CampaignStatisticsDto;
 import com.teillet.territoire.dto.SimplifiedTerritoryDto;
 import com.teillet.territoire.service.ICampaignService;
 import lombok.RequiredArgsConstructor;
@@ -94,5 +95,13 @@ public class CampaignController {
         campaignService.deleteCampaign(id);
         log.info("Réponse envoyée : campagne supprimée avec succès");
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/statistiques")
+    public ResponseEntity<CampaignStatisticsDto> getCampaignStatistics(@PathVariable UUID id) {
+        log.info("Requête reçue : GET /api/campagnes/{}/statistiques", id);
+        CampaignStatisticsDto statistics = campaignService.getCampaignStatistics(id);
+        log.info("Réponse envoyée : statistiques pour la campagne '{}'", statistics.getCampaignName());
+        return ResponseEntity.ok(statistics);
     }
 }
