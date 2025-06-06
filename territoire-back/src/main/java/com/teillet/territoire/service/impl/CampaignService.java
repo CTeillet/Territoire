@@ -326,17 +326,23 @@ public class CampaignService implements ICampaignService {
         // Count territories by type
         for (Territory territory : allTerritories) {
             TerritoryType type = territory.getType();
-            totalTerritoriesByType.put(type, totalTerritoriesByType.get(type) + 1);
+            if (type != null) {
+                totalTerritoriesByType.put(type, totalTerritoriesByType.get(type) + 1);
+            }
         }
 
         for (Territory territory : usedTerritories) {
             TerritoryType type = territory.getType();
-            usedTerritoriesByType.put(type, usedTerritoriesByType.get(type) + 1);
+            if (type != null) {
+                usedTerritoriesByType.put(type, usedTerritoriesByType.get(type) + 1);
+            }
         }
 
         for (Territory territory : availableTerritories) {
             TerritoryType type = territory.getType();
-            availableTerritoriesByType.put(type, availableTerritoriesByType.get(type) + 1);
+            if (type != null) {
+                availableTerritoriesByType.put(type, availableTerritoriesByType.get(type) + 1);
+            }
         }
 
         // Build and return the statistics DTO
