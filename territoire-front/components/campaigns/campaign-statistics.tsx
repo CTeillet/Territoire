@@ -3,11 +3,15 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { CampaignStatistics } from "@/models/campaign-statistics";
 import { TerritoryType } from "@/models/territory-type";
 import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
+
+// Import sub-components
+import { StatisticsSummary } from "./statistics/statistics-summary";
+import { StatisticsCharts } from "./statistics/statistics-charts";
+import { StatisticsTable } from "./statistics/statistics-table";
 
 interface CampaignStatisticsProps {
   campaignId: string;
@@ -108,20 +112,8 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-2">Total des territoires</h3>
-            <p className="text-3xl font-bold">{statistics.totalTerritories}</p>
-          </div>
-          <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-2">Territoires utilisés</h3>
-            <p className="text-3xl font-bold text-green-600">{statistics.usedTerritories}</p>
-          </div>
-          <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold mb-2">Territoires disponibles</h3>
-            <p className="text-3xl font-bold text-blue-600">{statistics.availableTerritories}</p>
-          </div>
-        </div>
+        {/* Summary Cards */}
+        <StatisticsSummary statistics={statistics} />
 
         <Tabs defaultValue="charts" className="w-full">
           <TabsList className="mb-6">
@@ -129,101 +121,20 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
             <TabsTrigger value="details">Détails par type</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="charts" className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Répartition des territoires</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={territoryStatusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={true}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                      >
-                        {territoryStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value, name, props) => {
-                        // For PieChart, name is the category (value)
-                        return [value, props.payload.name];
-                      }} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4">Territoires par type</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={territoryTypeData}
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip formatter={(value, name) => {
-                        if (name === "used") return [value, statusTranslations.used];
-                        if (name === "available") return [value, statusTranslations.available];
-                        return [value, name];
-                      }} />
-                      <Legend formatter={(value) => {
-                        if (value === "used") return statusTranslations.used;
-                        if (value === "available") return statusTranslations.available;
-                        return value;
-                      }} />
-                      <Bar dataKey="used" name="used" fill="#0088FE" />
-                      <Bar dataKey="available" name="available" fill="#00C49F" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
+          <TabsContent value="charts">
+            <StatisticsCharts 
+              territoryStatusData={territoryStatusData}
+              territoryTypeData={territoryTypeData}
+              statusTranslations={statusTranslations}
+              colors={COLORS}
+            />
           </TabsContent>
 
           <TabsContent value="details">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border p-3 text-left">Type de territoire</th>
-                    <th className="border p-3 text-center">Total</th>
-                    <th className="border p-3 text-center">Utilisés</th>
-                    <th className="border p-3 text-center">Disponibles</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border p-3 font-medium">Immeubles</td>
-                    <td className="border p-3 text-center">{statistics.totalTerritoriesByType[TerritoryType.BUILDING] || 0}</td>
-                    <td className="border p-3 text-center">{statistics.usedTerritoriesByType[TerritoryType.BUILDING] || 0}</td>
-                    <td className="border p-3 text-center">{statistics.availableTerritoriesByType[TerritoryType.BUILDING] || 0}</td>
-                  </tr>
-                  <tr>
-                    <td className="border p-3 font-medium">Pavillons</td>
-                    <td className="border p-3 text-center">{statistics.totalTerritoriesByType[TerritoryType.HOUSE] || 0}</td>
-                    <td className="border p-3 text-center">{statistics.usedTerritoriesByType[TerritoryType.HOUSE] || 0}</td>
-                    <td className="border p-3 text-center">{statistics.availableTerritoriesByType[TerritoryType.HOUSE] || 0}</td>
-                  </tr>
-                  <tr className="bg-gray-50 font-semibold">
-                    <td className="border p-3">Total</td>
-                    <td className="border p-3 text-center">{statistics.totalTerritories}</td>
-                    <td className="border p-3 text-center">{statistics.usedTerritories}</td>
-                    <td className="border p-3 text-center">{statistics.availableTerritories}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <StatisticsTable 
+              statistics={statistics}
+              typeTranslations={typeTranslations}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>

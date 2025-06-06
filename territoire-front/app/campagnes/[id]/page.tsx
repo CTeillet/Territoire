@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Calendar, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -353,130 +354,140 @@ export default function CampaignDetailPage() {
         )}
       </div>
 
-      <Card className="shadow-md border-0">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-2xl font-bold mb-2">Territoires de la campagne</CardTitle>
-          <CardDescription className="text-base">
-            {campaign.closed
-              ? "Liste des territoires qui ont été utilisés pendant cette campagne"
-              : "Sélectionnez les territoires qui restent à la fin de la campagne"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {campaign.territories.length === 0 ? (
-            <div className="flex justify-center items-center h-40 bg-gray-50 rounded-lg">
-              <p className="text-lg text-gray-500">Aucun territoire dans cette campagne</p>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {/* Group territories by city */}
-              {Object.entries(
-                campaign.territories.reduce((acc, territory) => {
-                  const cityName = territory.cityName;
-                  if (!acc[cityName]) {
-                    acc[cityName] = [];
-                  }
-                  acc[cityName].push(territory);
-                  return acc;
-                }, {} as Record<string, SimplifiedTerritory[]>)
-              )
-              .sort(([cityNameA], [cityNameB]) => cityNameA.localeCompare(cityNameB))
-              .map(([cityName, territories]) => (
-                <div key={cityName} className="border rounded-lg p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-5 pb-2 border-b">
-                    <h3 className="text-xl font-semibold">{cityName}</h3>
-                    {!campaign.closed && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleSelectAllInCity(territories)}
-                        className="text-sm"
-                      >
-                        {territories.every(t => selectedTerritories.includes(t.territoryId))
-                          ? "Tout désélectionner"
-                          : "Tout sélectionner"}
-                      </Button>
-                    )}
-                  </div>
-                  <div className="max-h-60 overflow-auto">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-white z-10">
-                        <TableRow className="border-b-2 border-gray-200">
-                          {!campaign.closed && <TableHead className="w-12 py-3"></TableHead>}
-                          <TableHead className="py-3 text-base font-semibold">Nom du territoire</TableHead>
-                          {campaign.closed && <TableHead className="py-3 text-base font-semibold">Statut</TableHead>}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {[...territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => {
-                          console.log(territory)
-                          const isSelected = selectedTerritories.includes(territory.territoryId);
-                          const isUsed = campaign.closed && !campaign.remainingTerritories.some(t => t.territoryId === territory.territoryId);
+      <Tabs defaultValue="configuration" className="mt-8">
+        <TabsList className="mb-6 w-full max-w-md mx-auto">
+          <TabsTrigger value="configuration" className="flex-1">Configuration</TabsTrigger>
+          <TabsTrigger value="statistics" className="flex-1">Statistiques</TabsTrigger>
+        </TabsList>
 
-                          return (
-                            <TableRow key={territory.territoryId} className="hover:bg-gray-50">
-                              {!campaign.closed && (
-                                <TableCell className="py-3">
-                                  <Checkbox
-                                    checked={isSelected}
-                                    onCheckedChange={(checked) => {
-                                      if (!territory) {
-                                        console.error("Territory object is undefined in onCheckedChange");
-                                        return;
-                                      }
-                                      const id = territory.territoryId;
-                                      console.log("Checkbox onCheckedChange", id, checked);
-                                      if (id) {
-                                        handleToggleTerritory(id, checked as boolean);
-                                      } else {
-                                        console.error("Territory ID is undefined in onCheckedChange");
-                                      }
-                                    }}
-                                    disabled={campaign.closed}
-                                    className="h-5 w-5"
-                                  />
-                                </TableCell>
-                              )}
-                              <TableCell className="font-medium text-base py-3">{territory.name}</TableCell>
-                              {campaign.closed && (
-                                <TableCell className="py-3">
-                                  <span
-                                    className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
-                                      isUsed
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-gray-100 text-gray-800"
-                                    }`}
-                                  >
-                                    {isUsed ? "Utilisé" : "Non utilisé"}
-                                  </span>
-                                </TableCell>
-                              )}
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
+        <TabsContent value="configuration">
+          <Card className="shadow-md border-0">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-2xl font-bold mb-2">Territoires de la campagne</CardTitle>
+              <CardDescription className="text-base">
+                {campaign.closed
+                  ? "Liste des territoires qui ont été utilisés pendant cette campagne"
+                  : "Sélectionnez les territoires qui restent à la fin de la campagne"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {campaign.territories.length === 0 ? (
+                <div className="flex justify-center items-center h-40 bg-gray-50 rounded-lg">
+                  <p className="text-lg text-gray-500">Aucun territoire dans cette campagne</p>
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-8">
+                  {/* Group territories by city */}
+                  {Object.entries(
+                    campaign.territories.reduce((acc, territory) => {
+                      const cityName = territory.cityName;
+                      if (!acc[cityName]) {
+                        acc[cityName] = [];
+                      }
+                      acc[cityName].push(territory);
+                      return acc;
+                    }, {} as Record<string, SimplifiedTerritory[]>)
+                  )
+                  .sort(([cityNameA], [cityNameB]) => cityNameA.localeCompare(cityNameB))
+                  .map(([cityName, territories]) => (
+                    <div key={cityName} className="border rounded-lg p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-5 pb-2 border-b">
+                        <h3 className="text-xl font-semibold">{cityName}</h3>
+                        {!campaign.closed && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleSelectAllInCity(territories)}
+                            className="text-sm"
+                          >
+                            {territories.every(t => selectedTerritories.includes(t.territoryId))
+                              ? "Tout désélectionner"
+                              : "Tout sélectionner"}
+                          </Button>
+                        )}
+                      </div>
+                      <div className="max-h-60 overflow-auto">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-white z-10">
+                            <TableRow className="border-b-2 border-gray-200">
+                              {!campaign.closed && <TableHead className="w-12 py-3"></TableHead>}
+                              <TableHead className="py-3 text-base font-semibold">Nom du territoire</TableHead>
+                              {campaign.closed && <TableHead className="py-3 text-base font-semibold">Statut</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {[...territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => {
+                              console.log(territory)
+                              const isSelected = selectedTerritories.includes(territory.territoryId);
+                              const isUsed = campaign.closed && !campaign.remainingTerritories.some(t => t.territoryId === territory.territoryId);
+
+                              return (
+                                <TableRow key={territory.territoryId} className="hover:bg-gray-50">
+                                  {!campaign.closed && (
+                                    <TableCell className="py-3">
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={(checked) => {
+                                          if (!territory) {
+                                            console.error("Territory object is undefined in onCheckedChange");
+                                            return;
+                                          }
+                                          const id = territory.territoryId;
+                                          console.log("Checkbox onCheckedChange", id, checked);
+                                          if (id) {
+                                            handleToggleTerritory(id, checked as boolean);
+                                          } else {
+                                            console.error("Territory ID is undefined in onCheckedChange");
+                                          }
+                                        }}
+                                        disabled={campaign.closed}
+                                        className="h-5 w-5"
+                                      />
+                                    </TableCell>
+                                  )}
+                                  <TableCell className="font-medium text-base py-3">{territory.name}</TableCell>
+                                  {campaign.closed && (
+                                    <TableCell className="py-3">
+                                      <span
+                                        className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
+                                          isUsed
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-gray-100 text-gray-800"
+                                        }`}
+                                      >
+                                        {isUsed ? "Utilisé" : "Non utilisé"}
+                                      </span>
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {!campaign.closed && (
+            <div className="flex justify-center mt-8">
+              <Button 
+                onClick={handleSaveRemainingTerritories}
+                className="px-5 py-2.5 text-base font-medium h-auto"
+              >
+                Enregistrer les territoires restants
+              </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      {!campaign.closed && (
-        <div className="flex justify-center mt-8">
-          <Button 
-            onClick={handleSaveRemainingTerritories}
-            className="px-5 py-2.5 text-base font-medium h-auto"
-          >
-            Enregistrer les territoires restants
-          </Button>
-        </div>
-      )}
-
-      {/* Statistics Component */}
-      <CampaignStatisticsComponent campaignId={campaignId} />
+        <TabsContent value="statistics">
+          <CampaignStatisticsComponent campaignId={campaignId} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
