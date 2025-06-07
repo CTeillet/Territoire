@@ -21,39 +21,52 @@ const PersonDetails = ({ person }: PersonDetailsProps) => {
     }, [dispatch, person.id]);
 
     return (
-        <Card>
-            <CardContent>
-                <p className={"mt-2"}><strong>Prénom :</strong> {person.firstName}</p>
-                <p className={"mt-2"}><strong>Nom :</strong> {person.lastName}</p>
-                <p className={"mt-2"}><strong>Email :</strong> {person.email || "N/A"}</p>
-                <p className={"mt-2"}><strong>Téléphone :</strong> { (person.phoneNumber)? formatPhoneNumber(person.phoneNumber) : "N/A"}</p>
+        <div className="space-y-6">
+            {/* Carte des informations personnelles */}
+            <Card className="border-2 border-gray-200 shadow-sm">
+                <CardContent className="pt-6">
+                    <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Informations personnelles</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p className="mb-3"><strong className="text-gray-700">Prénom :</strong> {person.firstName}</p>
+                            <p className="mb-3"><strong className="text-gray-700">Nom :</strong> {person.lastName}</p>
+                        </div>
+                        <div>
+                            <p className="mb-3"><strong className="text-gray-700">Email :</strong> {person.email || "N/A"}</p>
+                            <p className="mb-3"><strong className="text-gray-700">Téléphone :</strong> {(person.phoneNumber) ? formatPhoneNumber(person.phoneNumber) : "N/A"}</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-                <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">Territoires assignés</h3>
+            {/* Carte des territoires assignés */}
+            <Card className="border-2 border-gray-200 shadow-sm">
+                <CardContent className="pt-6">
+                    <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Territoires assignés</h3>
                     {loadingAssignedTerritories ? (
-                        <p>Chargement des territoires...</p>
+                        <p className="text-center py-4">Chargement des territoires...</p>
                     ) : assignedTerritories.length > 0 ? (
-                        <ul className="list-disc pl-5">
+                        <ul className="space-y-4">
                             {assignedTerritories.map((assignment) => (
-                                <li key={assignment.id} className="mb-2">
-                                    <div>
+                                <li key={assignment.id} className="p-3 bg-gray-50 rounded-md">
+                                    <div className="font-medium text-gray-800">
                                         <strong>Territoire :</strong> {assignment.territory.name}
                                     </div>
-                                    <div className="text-sm text-gray-600">
+                                    <div className="text-sm text-gray-600 mt-1">
                                         <span>Assigné le : {new Date(assignment.assignmentDate).toLocaleDateString()}</span>
                                         {assignment.returnDate && (
-                                            <span> | Retourné le : {new Date(assignment.returnDate).toLocaleDateString()}</span>
+                                            <span className="ml-2 pl-2 border-l border-gray-300"> Retourné le : {new Date(assignment.returnDate).toLocaleDateString()}</span>
                                         )}
                                     </div>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <p>Aucun territoire assigné</p>
+                        <p className="text-center py-4 text-gray-500">Aucun territoire assigné</p>
                     )}
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 

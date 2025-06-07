@@ -6,14 +6,24 @@ import {Eye} from "lucide-react";
 import {TooltipProvider} from "@/components/ui/tooltip";
 
 const AssignmentsList = ({assignments}: { assignments: Assignment[] }) => {
+    // Sort assignments: completed assignments first, then campaigns, then current assignments
+    const sortedAssignments = [...assignments].sort((a, b) => {
+        // If one is current (returnDate is null) and the other is not, the completed one comes first
+        if (a.returnDate === null && b.returnDate !== null) return 1;
+        if (a.returnDate !== null && b.returnDate === null) return -1;
+
+        // If both are completed or both are current, sort by assignmentDate (most recent first)
+        return new Date(b.assignmentDate).getTime() - new Date(a.assignmentDate).getTime();
+    });
+
     return (
         <div className="mt-6 border border-gray-200 bg-white p-6 rounded-lg shadow-sm">
             <h2 className="text-lg font-semibold mb-2">📋 Historique</h2>
-            {assignments.length === 0 ? (
+            {sortedAssignments.length === 0 ? (
                 <p className="text-gray-500">Pas d&#39;historique pour ce territoire</p>
             ) : (
                 <ul>
-                    {assignments.map((assignment) => (
+                    {sortedAssignments.map((assignment) => (
                         <li key={assignment.id} className="p-2 border-b">
                             <div className="flex justify-between items-center">
                                 <div>
