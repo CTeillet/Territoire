@@ -1,48 +1,38 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { authFetch } from "@/utils/auth-fetch";
+import { useSelector } from "react-redux";
+import { RootState, useAppDispatch } from "@/store/store";
+import { fetchAverageAssignmentDurationByMonth, fetchOverallAverageAssignmentDuration } from "@/store/slices/territory-slice";
 
-interface AverageAssignmentDuration {
-    period: string;
-    averageDuration: number;
-}
+// Using AverageAssignmentDuration type from the Redux store
 
 export const AverageAssignmentDurationChart: React.FC = () => {
-    const [chartData, setChartData] = useState<AverageAssignmentDuration[]>([]);
-    const [overallAverage, setOverallAverage] = useState<number | null>(null);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useAppDispatch();
+    const { 
+        averageAssignmentDurationByMonth, 
+        overallAverageAssignmentDuration, 
+        statisticsLoading, 
+        error 
+    } = useSelector((state: RootState) => state.territories);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Fetch monthly data
-                const response = await authFetch("/api/territoires/statistiques/duree-moyenne-attribution/par-mois");
-                const data = await response.json();
+        dispatch(fetchAverageAssignmentDurationByMonth());
+        dispatch(fetchOverallAverageAssignmentDuration());
+    }, [dispatch]);
 
-                // Format the data for the chart
-                const formattedData = data.map((item: { period: string; averageDuration: number }) => ({
-                    period: formatYearMonth(item.period),
-                    averageDuration: Math.round(item.averageDuration)
-                }));
+    // Format the data for the chart
+    const chartData = averageAssignmentDurationByMonth.map(item => ({
+        period: formatYearMonth(item.period),
+        averageDuration: Math.round(item.averageDuration)
+    }));
 
-                setChartData(formattedData);
-
-                // Fetch overall average
-                const overallResponse = await authFetch("/api/territoires/statistiques/duree-moyenne-attribution/globale");
-                const overallData = await overallResponse.json();
-                setOverallAverage(Math.round(overallData));
-            } catch (error) {
-                console.error("Erreur lors de la récupération des données de durée d'attribution :", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
+    // Round the overall average
+    const overallAverage = overallAverageAssignmentDuration !== null 
+        ? Math.round(overallAverageAssignmentDuration) 
+        : null;
 
     // Helper function to format YearMonth (2023-01) to a more readable format (Jan 2023)
     const formatYearMonth = (yearMonth: string) => {
@@ -65,8 +55,10 @@ export const AverageAssignmentDurationChart: React.FC = () => {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {loading ? (
+                {statisticsLoading ? (
                     <p>Chargement des statistiques...</p>
+                ) : error ? (
+                    <p>Erreur: {error}</p>
                 ) : (
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={chartData}>

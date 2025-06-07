@@ -1,41 +1,20 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect} from "react";
 import {Card, CardHeader, CardTitle} from "../ui/card";
 import {Table, TableBody, TableCaption, TableCell, TableHeader, TableRow} from "../ui/table";
-import {Assignment} from "@/models/assignment";
 import AssignmentRow from "@/components/dashboard/assignment-row";
-import {authFetch} from "@/utils/auth-fetch";
+import {useSelector} from "react-redux";
+import {RootState, useAppDispatch} from "@/store/store";
+import {fetchLatestAssignments} from "@/store/slices/territory-slice";
 
 export const AssignmentsTable: React.FC = () => {
-    const [assignments, setAssignments] = useState<Assignment[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+    const dispatch = useAppDispatch();
+    const { latestAssignments, statisticsLoading, error } = useSelector((state: RootState) => state.territories);
 
     useEffect(() => {
-        const fetchAssignments = async () => {
-            try {
-                const response = await authFetch("/api/attributions/dernieres");
+        dispatch(fetchLatestAssignments());
+    }, [dispatch]);
 
-                // 🔹 Vérifie si la requête à échouer et retourne immédiatement une erreur
-                if (!response.ok) {
-                    setError("Erreur lors du chargement des assignments");
-                    return;
-                }
-
-                try {
-                    const data = await response.json();
-                    setAssignments(data);
-                } catch (error) {
-                    setError(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchAssignments();
-    }, []);
-
-    if (loading) return <p>Chargement...</p>;
+    if (statisticsLoading) return <p>Chargement...</p>;
     if (error) return <p>Erreur: {error}</p>;
 
     return (
@@ -58,7 +37,7 @@ export const AssignmentsTable: React.FC = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {assignments.map((assignment) => (
+                        {latestAssignments.map((assignment) => (
                             <AssignmentRow key={assignment.id} {...assignment} />
                         ))}
                     </TableBody>

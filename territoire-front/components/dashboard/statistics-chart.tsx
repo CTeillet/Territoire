@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect} from "react";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../ui/card";
 import {CartesianGrid, Line, LineChart, XAxis, YAxis, PieChart, Pie, Cell, Legend, Tooltip} from "recharts";
 import {
@@ -9,47 +9,33 @@ import {
     ChartTooltip,
     ChartTooltipContent
 } from "@/components/ui/chart";
-import {TerritoryStatusHistoryDto} from "@/models/territory-status-history";
-import {authFetch} from "@/utils/auth-fetch";
+import {useSelector} from "react-redux";
+import {RootState, useAppDispatch} from "@/store/store";
+import {fetchTerritories, fetchTerritoriesNotAssignedSince, fetchTerritoryStatusHistory} from "@/store/slices/territory-slice";
 
 export const StatisticsChart: React.FC = () => {
-    const [chartData, setChartData] = useState<TerritoryStatusHistoryDto[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [territoriesNotAssigned, setTerritoriesNotAssigned] = useState<number>(0);
-    const [totalTerritories, setTotalTerritories] = useState<number>(0);
+    const dispatch = useAppDispatch();
+    const { 
+        territoryStatusHistory, 
+        territoriesNotAssignedSince, 
+        statisticsLoading,
+        territoriesGeojson
+    } = useSelector((state: RootState) => state.territories);
+
+    const totalTerritories = territoriesGeojson ? territoriesGeojson.features.length : 0;
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await authFetch("/api/territoires/statistiques");
-                const data: TerritoryStatusHistoryDto[] = await response.json();
+        // Fetch territory status history
+        dispatch(fetchTerritoryStatusHistory());
 
-                setChartData(data); // On garde la structure attendue
-            } catch (error) {
-                console.error("Erreur lors de la récupération des statistiques :", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+        // Fetch territories not assigned since
+        dispatch(fetchTerritoriesNotAssignedSince());
 
-        const fetchTerritoriesNotAssigned = async () => {
-            try {
-                const response = await authFetch("/api/territoires/statistiques/non-assignes-depuis");
-                const count = await response.json();
-                setTerritoriesNotAssigned(count);
-
-                // Fetch total territories count
-                const territoriesResponse = await authFetch("/api/territoires");
-                const territories = await territoriesResponse.json();
-                setTotalTerritories(territories.length);
-            } catch (error) {
-                console.error("Erreur lors de la récupération des territoires non assignés :", error);
-            }
-        };
-
-        fetchData();
-        fetchTerritoriesNotAssigned();
-    }, []);
+        // Fetch all territories if not already loaded
+        if (!territoriesGeojson) {
+            dispatch(fetchTerritories());
+        }
+    }, [dispatch, territoriesGeojson]);
 
     const chartConfig = {
         available: {
@@ -71,7 +57,7 @@ export const StatisticsChart: React.FC = () => {
     } satisfies ChartConfig;
 
     // Transformation des données pour correspondre aux clés utilisées par Recharts
-    const formattedChartData = chartData.map((entry) => ({
+    const formattedChartData = territoryStatusHistory.map((entry) => ({
         date: new Date(entry.date).toLocaleDateString("fr-FR", {
             day: "2-digit",
             month: "short",
@@ -86,14 +72,14 @@ export const StatisticsChart: React.FC = () => {
     const pieChartData = [
         { 
             name: 'Territoires parcourus', 
-            value: totalTerritories - territoriesNotAssigned, 
-            count: totalTerritories - territoriesNotAssigned,
+            value: totalTerritories - territoriesNotAssignedSince, 
+            count: totalTerritories - territoriesNotAssignedSince,
             fill: "hsl(var(--chart-2))" // Using the same color as "Assigné" from chartConfig
         },
         { 
             name: 'Territoires non parcourus', 
-            value: territoriesNotAssigned, 
-            count: territoriesNotAssigned,
+            value: territoriesNotAssignedSince, 
+            count: territoriesNotAssignedSince,
             fill: "hsl(var(--chart-4))" // Using the same color as "Retard" from chartConfig
         }
     ];
@@ -109,7 +95,7 @@ export const StatisticsChart: React.FC = () => {
                         <CardDescription>Statistiques par date</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {loading ? (
+                        {statisticsLoading ? (
                             <p>Chargement des statistiques...</p>
                         ) : (
                             <ChartContainer config={chartConfig}>
@@ -143,7 +129,7 @@ export const StatisticsChart: React.FC = () => {
                         <CardDescription>Pourcentage des territoires parcourus depuis le 01/09</CardDescription>
                     </CardHeader>
                     <CardContent className="flex justify-center items-center flex-grow">
-                        {loading ? (
+                        {statisticsLoading ? (
                             <p>Chargement des statistiques...</p>
                         ) : (
                             <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

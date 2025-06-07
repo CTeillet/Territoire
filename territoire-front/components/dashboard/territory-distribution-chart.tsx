@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { authFetch } from "@/utils/auth-fetch";
+import { useSelector } from "react-redux";
+import { RootState, useAppDispatch } from "@/store/store";
+import { fetchTerritoryDistributionByCity } from "@/store/slices/territory-slice";
 
 interface TerritoryDistribution {
     cityName: string;
@@ -12,25 +14,12 @@ interface TerritoryDistribution {
 }
 
 export const TerritoryDistributionChart: React.FC = () => {
-    const [chartData, setChartData] = useState<TerritoryDistribution[]>([]);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useAppDispatch();
+    const { territoryDistributionByCity, statisticsLoading, error } = useSelector((state: RootState) => state.territories);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await authFetch("/api/territoires/statistiques/distribution-par-ville");
-                const data = await response.json();
-
-                setChartData(data);
-            } catch (error) {
-                console.error("Erreur lors de la récupération de la distribution des territoires :", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
+        dispatch(fetchTerritoryDistributionByCity());
+    }, [dispatch]);
 
     // Generate colors for the pie chart
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#6B66FF'];
@@ -65,13 +54,15 @@ export const TerritoryDistributionChart: React.FC = () => {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {loading ? (
+                {statisticsLoading ? (
                     <p>Chargement des statistiques...</p>
+                ) : error ? (
+                    <p>Erreur: {error}</p>
                 ) : (
                     <ResponsiveContainer width="100%" height={400}>
                         <PieChart>
                             <Pie
-                                data={chartData}
+                                data={territoryDistributionByCity}
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
@@ -81,7 +72,7 @@ export const TerritoryDistributionChart: React.FC = () => {
                                 nameKey="cityName"
                                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                             >
-                                {chartData.map((entry, index) => (
+                                {territoryDistributionByCity.map((entry, index) => (
                                     <Cell 
                                         key={`cell-${index}`} 
                                         fill={COLORS[index % COLORS.length]} 

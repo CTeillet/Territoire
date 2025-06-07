@@ -5,6 +5,18 @@ import {Assignment} from "@/models/assignment";
 import {authFetch} from "@/utils/auth-fetch";
 import {AddressNotToDoDto} from "@/models/AddressNotToDoDto";
 import {UpdateTerritoryDto} from "@/models/update-territory-dto";
+import {TerritoryStatusHistoryDto} from "@/models/territory-status-history";
+
+interface TerritoryDistribution {
+    cityName: string;
+    territoryCount: number;
+    percentage: number;
+}
+
+interface AverageAssignmentDuration {
+    period: string;
+    averageDuration: number;
+}
 
 type TerritoryState = {
     territoriesGeojson: TerritoryCollection | null,
@@ -12,6 +24,14 @@ type TerritoryState = {
     loading: boolean;
     updating: boolean;
     error: string | null;
+    // Statistics state
+    territoryStatusHistory: TerritoryStatusHistoryDto[];
+    territoriesNotAssignedSince: number;
+    averageAssignmentDurationByMonth: AverageAssignmentDuration[];
+    overallAverageAssignmentDuration: number | null;
+    territoryDistributionByCity: TerritoryDistribution[];
+    latestAssignments: Assignment[];
+    statisticsLoading: boolean;
 };
 
 // État initial
@@ -20,7 +40,15 @@ const initialState: TerritoryState = {
     selectedTerritory: null,
     loading: false,
     updating: false,
-    error: null
+    error: null,
+    // Statistics initial state
+    territoryStatusHistory: [],
+    territoriesNotAssignedSince: 0,
+    averageAssignmentDurationByMonth: [],
+    overallAverageAssignmentDuration: null,
+    territoryDistributionByCity: [],
+    latestAssignments: [],
+    statisticsLoading: false
 };
 
 const BASE_URL = `/api/territoires`;
@@ -259,6 +287,119 @@ export const deleteAddressNotToVisit = createAsyncThunk(
             }
 
             return {territoryId, addressId}; // Retourne les IDs pour modifier le state
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+// Statistics-related async thunks
+export const fetchTerritoryStatusHistory = createAsyncThunk(
+    "territories/fetchTerritoryStatusHistory",
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await authFetch(`${BASE_URL}/statistiques`);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération des statistiques de territoire");
+            }
+
+            return await response.json() as TerritoryStatusHistoryDto[];
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchTerritoriesNotAssignedSince = createAsyncThunk(
+    "territories/fetchTerritoriesNotAssignedSince",
+    async (params: { startDate?: string } | undefined, {rejectWithValue}) => {
+        try {
+            let url = `${BASE_URL}/statistiques/non-assignes-depuis`;
+            if (params?.startDate) {
+                url += `?startDate=${params.startDate}`;
+            }
+
+            const response = await authFetch(url);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération des territoires non assignés");
+            }
+
+            return await response.json() as number;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchAverageAssignmentDurationByMonth = createAsyncThunk(
+    "territories/fetchAverageAssignmentDurationByMonth",
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await authFetch(`${BASE_URL}/statistiques/duree-moyenne-attribution/par-mois`);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération de la durée moyenne d'attribution par mois");
+            }
+
+            return await response.json() as AverageAssignmentDuration[];
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchOverallAverageAssignmentDuration = createAsyncThunk(
+    "territories/fetchOverallAverageAssignmentDuration",
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await authFetch(`${BASE_URL}/statistiques/duree-moyenne-attribution/globale`);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération de la durée moyenne globale d'attribution");
+            }
+
+            return await response.json() as number;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchTerritoryDistributionByCity = createAsyncThunk(
+    "territories/fetchTerritoryDistributionByCity",
+    async (params: { startDate?: string } | undefined, {rejectWithValue}) => {
+        try {
+            let url = `${BASE_URL}/statistiques/distribution-par-ville`;
+            if (params?.startDate) {
+                url += `?startDate=${params.startDate}`;
+            }
+
+            const response = await authFetch(url);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération de la distribution des territoires par ville");
+            }
+
+            return await response.json() as TerritoryDistribution[];
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchLatestAssignments = createAsyncThunk(
+    "territories/fetchLatestAssignments",
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await authFetch(`/api/attributions/dernieres`);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération des dernières attributions");
+            }
+
+            return await response.json() as Assignment[];
         } catch (error) {
             return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
@@ -558,8 +699,86 @@ const territorySlice = createSlice({
             .addCase(extendTerritory.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
-            });
+            })
 
+            // Statistics-related reducers
+            .addCase(fetchTerritoryStatusHistory.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchTerritoryStatusHistory.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.territoryStatusHistory = action.payload;
+            })
+            .addCase(fetchTerritoryStatusHistory.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(fetchTerritoriesNotAssignedSince.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchTerritoriesNotAssignedSince.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.territoriesNotAssignedSince = action.payload;
+            })
+            .addCase(fetchTerritoriesNotAssignedSince.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(fetchAverageAssignmentDurationByMonth.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchAverageAssignmentDurationByMonth.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.averageAssignmentDurationByMonth = action.payload;
+            })
+            .addCase(fetchAverageAssignmentDurationByMonth.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(fetchOverallAverageAssignmentDuration.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchOverallAverageAssignmentDuration.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.overallAverageAssignmentDuration = action.payload;
+            })
+            .addCase(fetchOverallAverageAssignmentDuration.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(fetchTerritoryDistributionByCity.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchTerritoryDistributionByCity.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.territoryDistributionByCity = action.payload;
+            })
+            .addCase(fetchTerritoryDistributionByCity.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(fetchLatestAssignments.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchLatestAssignments.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.latestAssignments = action.payload;
+            })
+            .addCase(fetchLatestAssignments.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            });
     },
 });
 
