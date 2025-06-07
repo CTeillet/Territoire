@@ -74,7 +74,7 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
     };
 
 
-    // 🔹 Fonction pour gérer le retour du territoire
+    // 🔹 Fonction pour gérer le retour du  territoire
     const handleReturn = async () => {
         try {
             await dispatch(returnTerritory(territoryId)).unwrap();
