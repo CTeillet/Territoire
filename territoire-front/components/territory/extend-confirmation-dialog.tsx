@@ -98,6 +98,7 @@ const ExtendConfirmationDialog: React.FC<ExtendConfirmationDialogProps> = ({ isO
                                             setCalendarOpen(false);
                                         }}
                                         initialFocus
+                                        locale={fr}
                                         disabled={(date) => date < new Date()}
                                     />
                                 </PopoverContent>
