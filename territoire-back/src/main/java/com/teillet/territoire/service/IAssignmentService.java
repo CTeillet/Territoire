@@ -25,5 +25,8 @@ public interface IAssignmentService {
 	AssignmentDto extendTerritory(UUID territoryId);
 
 	@Transactional
+	AssignmentDto cancelAssignment(UUID territoryId);
+
+	@Transactional
 	void createCampaignAssignments(Campaign campaign, List<Territory> usedTerritories);
 }

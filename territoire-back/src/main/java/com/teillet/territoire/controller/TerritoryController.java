@@ -103,6 +103,15 @@ class TerritoryController {
 		return assignmentService.returnTerritory(territoryId);
 	}
 
+	@PostMapping("/{territoryId}/annuler-assignation")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
+	public AssignmentDto cancelAssignment(@PathVariable UUID territoryId) {
+		log.info("Début : Annulation de l'assignation du territoire {}", territoryId);
+		AssignmentDto result = assignmentService.cancelAssignment(territoryId);
+		log.info("Fin : Annulation de l'assignation du territoire {}", territoryId);
+		return result;
+	}
+
 	@PostMapping("/{territoryId}/prolongation")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
 	public AssignmentDto extendTerritory(@PathVariable UUID territoryId) {

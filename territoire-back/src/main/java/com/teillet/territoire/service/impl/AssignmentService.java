@@ -129,6 +129,26 @@ public class AssignmentService implements IAssignmentService {
 		return AssignmentMapper.toDto(result);
 	}
 
+	@Transactional
+	@Override
+	public AssignmentDto cancelAssignment(UUID territoryId) {
+		// Récupérer l'assignation en cours pour ce territoire
+		Assignment assignment = findAssignmentRunning(territoryId);
+
+		// Créer une copie de l'assignation pour le retour (car on va supprimer l'originale)
+		AssignmentDto assignmentDto = AssignmentMapper.toDto(assignment);
+
+		// Mettre à jour le statut du territoire à AVAILABLE
+		territoryService.updateTerritoryStatus(assignment.getTerritory(), TerritoryStatus.AVAILABLE);
+
+		// Supprimer l'assignation
+		assignmentRepository.delete(assignment);
+
+		log.info("Assignation du territoire {} annulée et supprimée", territoryId);
+
+		return assignmentDto;
+	}
+
 	@Override
 	@Transactional
 	public void createCampaignAssignments(Campaign campaign, List<Territory> usedTerritories) {

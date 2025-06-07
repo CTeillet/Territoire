@@ -65,6 +65,27 @@ export const returnTerritory = createAsyncThunk(
     }
 );
 
+export const cancelAssignment = createAsyncThunk(
+    "territories/cancelAssignment",
+    async (territoryId: string, {rejectWithValue}) => {
+        // Use the dedicated endpoint for canceling assignments
+        const response = await authFetch(`${BASE_URL}/${territoryId}/annuler-assignation`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+        });
+
+        if (!response.ok) {
+            return rejectWithValue(await response.text() || "Erreur lors de l'annulation de l'assignation");
+        }
+
+        try {
+            return await response.json();
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
 export const assignTerritory = createAsyncThunk(
     "territories/assignTerritory",
     async ({territoryId, personId}: { territoryId: string; personId: string }, {rejectWithValue}) => {
@@ -403,6 +424,42 @@ const territorySlice = createSlice({
                 }
             })
             .addCase(returnTerritory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(cancelAssignment.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(cancelAssignment.fulfilled, (state, action) => {
+                state.loading = false;
+                const updatedAssignment = action.payload;
+
+                if (!state.territoriesGeojson || !updatedAssignment || !updatedAssignment.territory.territoryId) {
+                    console.error("❌ Problème : Assignation ou territoireId est undefined", updatedAssignment);
+                    return;
+                }
+
+                const {territory, returnDate} = updatedAssignment;
+
+                // ✅ Recherche du territoire correspondant dans `FeatureCollection`
+                const feature = state.territoriesGeojson?.features.find(
+                    (f) => f.properties.id === territory.territoryId
+                );
+
+                if (feature) {
+                    feature.properties.status = "AVAILABLE";
+                    feature.properties.lastVisitedOn = returnDate
+                    feature.properties.assignments = [{
+                        ...updatedAssignment,
+                        returnDate, // Ajout de la date de retour mise à jour
+                    }];
+                    console.log(`✅ Assignation du territoire ${territory.territoryId} annulée et mis à jour dans le store`);
+                } else {
+                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${territory.territoryId}`);
+                }
+            })
+            .addCase(cancelAssignment.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
             })

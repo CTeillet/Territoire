@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect, useState} from "react";
-import {Download, Eye, IterationCcw, Upload} from "lucide-react";
+import {Ban, Download, Eye, IterationCcw, Upload} from "lucide-react";
 import {TooltipProvider} from "@/components/ui/tooltip";
 import AssignTerritoryDialog from "@/components/territory/assign-territory-dialog";
 import ReturnConfirmationDialog from "@/components/territory/return-confirmation-dialog";
@@ -10,9 +10,10 @@ import {TerritoryStatus} from "@/models/territory-status";
 import {useSelector} from "react-redux";
 import {createPerson, fetchPersons} from "@/store/slices/person-slice";
 import {RootState, useAppDispatch} from "@/store/store";
-import {assignTerritory, extendTerritory, returnTerritory} from "@/store/slices/territory-slice";
+import {assignTerritory, cancelAssignment, extendTerritory, returnTerritory} from "@/store/slices/territory-slice";
 import {Person} from "@/models/person";
 import ExtendConfirmationDialog from "@/components/territory/extend-confirmation-dialog";
+import CancelAssignmentDialog from "@/components/territory/cancel-assignment-dialog";
 
 interface TerritoryDataActionButtonsProps {
     territoryId: string;
@@ -31,9 +32,11 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
     const [isExtendDialogOpen, setIsExtendDialogOpen] = useState(false);
+    const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
     const showAssign = status === "AVAILABLE";
     const showReturn = status === "ASSIGNED" || status === "LATE";
+    const showCancel = status === "ASSIGNED" || status === "LATE";
 
     useEffect(() => {
         if (persons.length === 0 && !isFetchingPersons) {
@@ -80,6 +83,17 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
             console.error("❌ Erreur lors du retour du territoire :", error);
         }
         setIsReturnDialogOpen(false);
+    };
+
+    // 🔹 Fonction pour gérer l'annulation de l'assignation
+    const handleCancelAssignment = async () => {
+        try {
+            await dispatch(cancelAssignment(territoryId)).unwrap();
+            console.log(`✅ Assignation du territoire ${territoryId} annulée avec succès`);
+        } catch (error) {
+            console.error("❌ Erreur lors de l'annulation de l'assignation :", error);
+        }
+        setIsCancelDialogOpen(false);
     };
 
     const handleExtension = async () => {
@@ -130,6 +144,15 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
                     />
                 )}
 
+                {showCancel && (user?.role === "ADMIN" || user?.role === "SUPERVISEUR" || user?.role === "GESTIONNAIRE") && (
+                    <ActionButton
+                        icon={Ban}
+                        tooltip={"Annuler l'assignation"}
+                        onClick={() => setIsCancelDialogOpen(true)}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                    />
+                )}
+
                 {/* 🔹 Affichage conditionnel de la liste des personnes */}
                 {loading ? (
                     <p>Chargement des personnes...</p>
@@ -156,6 +179,13 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
                     isOpen={isExtendDialogOpen}
                     onClose={() => setIsExtendDialogOpen(false)}
                     onConfirm={handleExtension}
+                />
+
+                {/* Fenêtre de dialogue de confirmation d'annulation d'assignation */}
+                <CancelAssignmentDialog
+                    isOpen={isCancelDialogOpen}
+                    onClose={() => setIsCancelDialogOpen(false)}
+                    onConfirm={handleCancelAssignment}
                 />
             </div>
         </TooltipProvider>
