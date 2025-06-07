@@ -27,8 +27,14 @@ const BASE_URL = `/api/territoires`;
 
 export const extendTerritory = createAsyncThunk(
     "territories/extendTerritory",
-    async (territoryId: string, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}/${territoryId}/prolongation`, {
+    async ({ territoryId, dueDate }: { territoryId: string; dueDate?: string }, {rejectWithValue}) => {
+        // Construct URL with query parameter if dueDate is provided
+        let url = `${BASE_URL}/${territoryId}/prolongation`;
+        if (dueDate) {
+            url += `?dueDate=${dueDate}`;
+        }
+
+        const response = await authFetch(url, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
         });

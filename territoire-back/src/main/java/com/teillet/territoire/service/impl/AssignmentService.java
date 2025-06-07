@@ -114,17 +114,17 @@ public class AssignmentService implements IAssignmentService {
 
 	@Override
 	public AssignmentDto extendTerritory(UUID territoryId) {
-		Assignment assignment = findAssignmentRunning(territoryId);
-		assignment.setReturnDate(LocalDate.now());
-		assignmentRepository.save(assignment);
+		// Default extension is 4 months
+		return extendTerritory(territoryId, LocalDate.now().plusMonths(4));
+	}
 
-		Assignment extendedAssignment = new Assignment();
-		extendedAssignment.setAssignmentDate(LocalDate.now());
-		extendedAssignment.setDueDate(LocalDate.now().plusMonths(4));
-		extendedAssignment.setPerson(assignment.getPerson());
-		extendedAssignment.setTerritory(assignment.getTerritory());
-		extendedAssignment.setReturnDate(null);
-		Assignment result = assignmentRepository.save(extendedAssignment);
+	@Override
+	public AssignmentDto extendTerritory(UUID territoryId, LocalDate dueDate) {
+		Assignment assignment = findAssignmentRunning(territoryId);
+
+		// Instead of creating a new assignment, update the due date of the existing one
+		assignment.setDueDate(dueDate);
+		Assignment result = assignmentRepository.save(assignment);
 
 		return AssignmentMapper.toDto(result);
 	}

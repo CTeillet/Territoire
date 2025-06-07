@@ -114,8 +114,15 @@ class TerritoryController {
 
 	@PostMapping("/{territoryId}/prolongation")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
-	public AssignmentDto extendTerritory(@PathVariable UUID territoryId) {
-		return assignmentService.extendTerritory(territoryId);
+	public AssignmentDto extendTerritory(
+		@PathVariable UUID territoryId,
+		@RequestParam(required = false) LocalDate dueDate) {
+
+		if (dueDate != null) {
+			return assignmentService.extendTerritory(territoryId, dueDate);
+		} else {
+			return assignmentService.extendTerritory(territoryId);
+		}
 	}
 
 	@PostMapping("/{territoryId}/adresses-a-ne-pas-visiter")

@@ -96,13 +96,14 @@ export function TerritoryDataActionButtons({territoryId, status, showDetails = t
         setIsCancelDialogOpen(false);
     };
 
-    const handleExtension = async () => {
+    const handleExtension = async (dueDate?: string) => {
         try {
-            await dispatch(extendTerritory(territoryId)).unwrap();
-            console.log(`✅ Territoire ${territoryId} prolongé avec succès`);
+            await dispatch(extendTerritory({ territoryId, dueDate })).unwrap();
+            console.log(`✅ Territoire ${territoryId} prolongé avec succès jusqu'au ${dueDate || 'date par défaut'}`);
         } catch (error) {
             console.error("❌ Erreur lors de la prolongation du territoire :", error);
         }
+        setIsExtendDialogOpen(false);
     }
 
     return (

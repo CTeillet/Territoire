@@ -6,6 +6,7 @@ import com.teillet.territoire.model.Campaign;
 import com.teillet.territoire.model.Territory;
 import jakarta.transaction.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +24,8 @@ public interface IAssignmentService {
 	List<AssignmentDto> getLastAssignments();
 
 	AssignmentDto extendTerritory(UUID territoryId);
+
+	AssignmentDto extendTerritory(UUID territoryId, LocalDate dueDate);
 
 	@Transactional
 	AssignmentDto cancelAssignment(UUID territoryId);
