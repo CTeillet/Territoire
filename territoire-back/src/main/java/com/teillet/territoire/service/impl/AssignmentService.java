@@ -171,4 +171,17 @@ public class AssignmentService implements IAssignmentService {
 			log.info("Assignation créée avec succès pour le territoire '{}'", territory.getName());
 		}
 	}
+
+	@Override
+	public List<AssignmentDto> getAssignmentsByPersonId(UUID personId) {
+		log.info("Récupération des assignations pour la personne avec l'ID: {}", personId);
+
+		List<Assignment> assignments = assignmentRepository.findByPerson_Id(personId);
+
+		log.info("Nombre d'assignations trouvées: {}", assignments.size());
+
+		return assignments.stream()
+				.map(AssignmentMapper::toDto)
+				.toList();
+	}
 }

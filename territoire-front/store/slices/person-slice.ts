@@ -1,6 +1,7 @@
 import {createAsyncThunk, createSlice} from '@reduxjs/toolkit';
 import {Person} from "@/models/person";
 import {authFetch} from "@/utils/auth-fetch";
+import {Assignment} from "@/models/assignment";
 
 const BASE_URL = "/api/personnes";
 
@@ -12,6 +13,8 @@ interface PersonState {
     updating: boolean;
     error: string | null;
     isFetchingPersons: boolean;
+    assignedTerritories: Assignment[];
+    loadingAssignedTerritories: boolean;
 }
 
 const initialState: PersonState = {
@@ -22,6 +25,8 @@ const initialState: PersonState = {
     updating: false,
     error: null,
     isFetchingPersons: false,
+    assignedTerritories: [],
+    loadingAssignedTerritories: false,
 };
 
 
@@ -118,6 +123,25 @@ export const updatePerson = createAsyncThunk(
     }
 );
 
+// 🔹 Thunk pour récupérer les territoires assignés à une personne
+export const fetchAssignedTerritories = createAsyncThunk(
+    "persons/fetchAssignedTerritories",
+    async (personId: string, { rejectWithValue }) => {
+        const response = await authFetch(`${BASE_URL}/${personId}/territoires`);
+
+        // 🔹 Vérifie si la requête a échoué et retourne immédiatement `rejectWithValue`
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de la récupération des territoires assignés");
+        }
+
+        try {
+            return await response.json();
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
 
 const personSlice = createSlice({
     name: 'persons',
@@ -184,6 +208,20 @@ const personSlice = createSlice({
             })
             .addCase(updatePerson.rejected, (state, action) => {
                 state.updating = false;
+                state.error = action.payload as string;
+            })
+
+            // 🔹 Récupération des territoires assignés à une personne
+            .addCase(fetchAssignedTerritories.pending, (state) => {
+                state.loadingAssignedTerritories = true;
+                state.error = null;
+            })
+            .addCase(fetchAssignedTerritories.fulfilled, (state, action) => {
+                state.loadingAssignedTerritories = false;
+                state.assignedTerritories = action.payload;
+            })
+            .addCase(fetchAssignedTerritories.rejected, (state, action) => {
+                state.loadingAssignedTerritories = false;
                 state.error = action.payload as string;
             });
     },

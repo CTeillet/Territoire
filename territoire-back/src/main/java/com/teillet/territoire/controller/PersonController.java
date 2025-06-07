@@ -1,6 +1,8 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.model.Person;
+import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.IPersonService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import java.util.UUID;
 @Slf4j
 class PersonController {
 	private final IPersonService personService;
+	private final IAssignmentService assignmentService;
 
 	@GetMapping
 	public List<Person> getAllPersons() {
@@ -49,5 +52,13 @@ class PersonController {
 		Person modifiedPerson = personService.modifyPerson(id, person);
 		log.info("Fin : Modification personne");
 		return modifiedPerson;
+	}
+
+	@GetMapping("/{id}/territoires")
+	public List<AssignmentDto> getTerritoriesByPerson(@PathVariable UUID id) {
+		log.info("Début : Récupération des territoires assignés à la personne avec l'ID: {}", id);
+		List<AssignmentDto> assignments = assignmentService.getAssignmentsByPersonId(id);
+		log.info("Fin : Récupération des territoires assignés. Nombre trouvé: {}", assignments.size());
+		return assignments;
 	}
 }

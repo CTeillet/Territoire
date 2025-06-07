@@ -26,6 +26,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 
 	List<Assignment> findByReturnDateNotNull();
 
+	List<Assignment> findByPerson_Id(UUID personId);
 
 	/**
 	 * Calculates the overall average duration of assignments in days.

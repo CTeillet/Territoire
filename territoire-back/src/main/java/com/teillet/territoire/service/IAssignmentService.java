@@ -32,4 +32,6 @@ public interface IAssignmentService {
 
 	@Transactional
 	void createCampaignAssignments(Campaign campaign, List<Territory> usedTerritories);
+
+	List<AssignmentDto> getAssignmentsByPersonId(UUID personId);
 }
