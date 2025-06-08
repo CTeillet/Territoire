@@ -17,7 +17,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { authFetch } from "@/utils/auth-fetch";
 import { 
   Select,
   SelectContent,
@@ -25,7 +24,13 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { Campaign } from "@/models/campaign";
+// Using the Campaign type from the Redux state
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { 
+  fetchCampaigns, 
+  createCampaign, 
+  createCampaignWithRemainingTerritories 
+} from "@/store/slices/campaign-slice";
 
 interface CreateCampaignDialogProps {
   onCampaignCreated?: () => void;
@@ -33,9 +38,10 @@ interface CreateCampaignDialogProps {
 
 export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialogProps) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { campaigns, loading, error } = useAppSelector(state => state.campaigns);
+
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [closedCampaigns, setClosedCampaigns] = useState<Campaign[]>([]);
   const [selectedPreviousCampaign, setSelectedPreviousCampaign] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -44,34 +50,24 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
     endDate: "",
   });
 
-  // Fetch closed campaigns when the dialog opens
+  // Filtered closed campaigns with remaining territories
+  const closedCampaigns = campaigns.filter(campaign => 
+    campaign.closed && campaign.remainingTerritories.length > 0
+  );
+
+  // Fetch campaigns when the dialog opens
   useEffect(() => {
     if (open) {
-      fetchClosedCampaigns();
+      dispatch(fetchCampaigns());
     }
-  }, [open]);
+  }, [open, dispatch]);
 
-
-  const fetchClosedCampaigns = async () => {
-    try {
-      const response = await authFetch("/api/campagnes");
-      if (!response.ok) {
-        throw new Error("Failed to fetch campaigns");
-      }
-
-      const campaigns = await response.json();
-      // Filter only closed campaigns that have remaining territories
-      const closed = campaigns.filter((campaign: Campaign) => 
-        campaign.closed && campaign.remainingTerritories.length > 0
-      );
-
-      console.log("Closed campaigns:", closed);
-      setClosedCampaigns(closed);
-    } catch (error) {
-      console.error("Error fetching closed campaigns:", error);
-      toast.error("Impossible de récupérer les campagnes précédentes");
+  // Show error toast if there's an error in the Redux state
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
     }
-  };
+  }, [error]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -116,39 +112,22 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
       return;
     }
 
-    setLoading(true);
-
     try {
-      let response;
+      let campaign;
       let successMessage = `La campagne "${formData.name}" a été créée avec succès.`;
 
-      // Si une campagne précédente est sélectionnée, utiliser l'endpoint avec territoires restants
+      // Si une campagne précédente est sélectionnée, utiliser le thunk avec territoires restants
       if (selectedPreviousCampaign) {
-        response = await authFetch(`/api/campagnes/avec-territoires-restants/${selectedPreviousCampaign}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        });
+        campaign = await dispatch(createCampaignWithRemainingTerritories({
+          previousCampaignId: selectedPreviousCampaign,
+          newCampaign: formData
+        })).unwrap();
 
         successMessage = `La campagne "${formData.name}" a été créée avec succès avec les territoires restants de la campagne précédente.`;
       } else {
-        // Sinon, utiliser l'endpoint standard
-        response = await authFetch("/api/campagnes", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        });
+        // Sinon, utiliser le thunk standard
+        campaign = await dispatch(createCampaign(formData)).unwrap();
       }
-
-      if (!response.ok) {
-        throw new Error("Failed to create campaign");
-      }
-
-      const campaign = await response.json();
 
       toast.success(successMessage);
 
@@ -168,8 +147,6 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
     } catch (error) {
       console.error("Error creating campaign:", error);
       toast.error("Une erreur est survenue lors de la création de la campagne");
-    } finally {
-      setLoading(false);
     }
   };
 

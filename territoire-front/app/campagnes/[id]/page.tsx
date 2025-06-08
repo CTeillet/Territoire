@@ -33,9 +33,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { authFetch } from "@/utils/auth-fetch";
 import { SimplifiedTerritory } from "@/models/territory";
-import { Campaign } from "@/models/campaign";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { 
+  fetchCampaign, 
+  updateRemainingTerritories, 
+  closeCampaign, 
+  deleteCampaign 
+} from "@/store/slices/campaign-slice";
 import { CampaignStatisticsComponent } from "@/components/campaigns/campaign-statistics";
 
 export default function CampaignDetailPage() {
@@ -43,38 +48,34 @@ export default function CampaignDetailPage() {
   const params = useParams();
   const campaignId = params.id as string;
 
-  const [campaign, setCampaign] = useState<Campaign | null>(null);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+  const { currentCampaign: campaign, loading, closing: isClosing, deleting: isDeleting, error } = useAppSelector(state => state.campaigns);
+
   const [selectedTerritories, setSelectedTerritories] = useState<string[]>([]);
-  const [isClosing, setIsClosing] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
-    const fetchCampaign = async () => {
-      try {
-        const response = await authFetch(`/api/campagnes/${campaignId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch campaign");
-        }
-        const data = await response.json();
-        setCampaign(data);
-
+    dispatch(fetchCampaign(campaignId))
+      .unwrap()
+      .then((data) => {
         // Initialize selected territories with the remaining territories
         if (data.remainingTerritories && data.remainingTerritories.length > 0) {
           setSelectedTerritories(data.remainingTerritories.map((t: SimplifiedTerritory) => t.territoryId));
         }
-      } catch (error) {
+      })
+      .catch((error) => {
         console.error("Error fetching campaign:", error);
         toast.error("Impossible de charger les détails de la campagne");
-      } finally {
-        setLoading(false);
-      }
-    };
+      });
+  }, [campaignId, dispatch]);
 
-    fetchCampaign();
-  }, [campaignId]);
+  // Show error toast if there's an error in the Redux state
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   const handleToggleTerritory = (territoryId: string, checked?: boolean) => {
     // Ensure territoryId is not undefined
@@ -136,20 +137,10 @@ export default function CampaignDetailPage() {
         selectedTerritories.includes(territory.territoryId)
       );
 
-      const response = await authFetch(`/api/campagnes/${campaign.id}/territoires-restants`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(remainingTerritories),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update remaining territories");
-      }
-
-      const updatedCampaign = await response.json();
-      setCampaign(updatedCampaign);
+      await dispatch(updateRemainingTerritories({ 
+        campaignId: campaign.id, 
+        territories: remainingTerritories 
+      })).unwrap();
 
       toast.success("La liste des territoires restants a été mise à jour avec succès.");
     } catch (error) {
@@ -161,23 +152,12 @@ export default function CampaignDetailPage() {
   const handleCloseCampaign = async () => {
     if (!campaign) return;
 
-    setIsClosing(true);
-
     try {
       // First save the remaining territories
       await handleSaveRemainingTerritories();
 
       // Then close the campaign
-      const response = await authFetch(`/api/campagnes/${campaign.id}/fermer`, {
-        method: "PUT",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to close campaign");
-      }
-
-      const closedCampaign = await response.json();
-      setCampaign(closedCampaign);
+      await dispatch(closeCampaign(campaign.id)).unwrap();
 
       toast.success("La campagne a été clôturée avec succès et les assignations ont été créées.");
 
@@ -185,24 +165,14 @@ export default function CampaignDetailPage() {
     } catch (error) {
       console.error("Error closing campaign:", error);
       toast.error("Une erreur est survenue lors de la clôture de la campagne");
-    } finally {
-      setIsClosing(false);
     }
   };
 
   const handleDeleteCampaign = async () => {
     if (!campaign) return;
 
-    setIsDeleting(true);
-
     try {
-      const response = await authFetch(`/api/campagnes/${campaign.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete campaign");
-      }
+      await dispatch(deleteCampaign(campaign.id)).unwrap();
 
       toast.success("La campagne a été supprimée avec succès.");
 
@@ -212,7 +182,6 @@ export default function CampaignDetailPage() {
       console.error("Error deleting campaign:", error);
       toast.error("Une erreur est survenue lors de la suppression de la campagne");
     } finally {
-      setIsDeleting(false);
       setShowDeleteDialog(false);
     }
   };

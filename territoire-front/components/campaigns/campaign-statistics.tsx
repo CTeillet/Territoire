@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CampaignStatistics } from "@/models/campaign-statistics";
 import { TerritoryType } from "@/models/territory-type";
 import { TerritoryStatusData, TerritoryTypeData } from "@/models/chart-data";
-import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { fetchCampaignStatistics } from "@/store/slices/campaign-slice";
 
 // Import sub-components
 import { StatisticsSummary } from "./statistics/statistics-summary";
@@ -19,31 +19,26 @@ interface CampaignStatisticsProps {
 }
 
 export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsProps) {
-  const [statistics, setStatistics] = useState<CampaignStatistics | null>(null);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+  const { campaignStatistics: statistics, loadingStatistics: loading, error } = useAppSelector(state => state.campaigns);
 
   useEffect(() => {
-    const fetchStatistics = async () => {
-      try {
-        setLoading(true);
-        const response = await authFetch(`/api/campagnes/${campaignId}/statistiques`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch statistics");
-        }
-        const data = await response.json();
-        setStatistics(data);
-      } catch (error) {
-        console.error("Error fetching statistics:", error);
-        toast.error("Impossible de charger les statistiques");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (campaignId) {
-      fetchStatistics();
+      dispatch(fetchCampaignStatistics(campaignId))
+        .unwrap()
+        .catch((error) => {
+          console.error("Error fetching statistics:", error);
+          toast.error("Impossible de charger les statistiques");
+        });
     }
-  }, [campaignId]);
+  }, [campaignId, dispatch]);
+
+  // Show error toast if there's an error in the Redux state
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   if (loading) {
     return (

@@ -23,6 +23,13 @@ export const AverageAssignmentDurationChart: React.FC = () => {
         dispatch(fetchOverallAverageAssignmentDuration());
     }, [dispatch]);
 
+    // Helper function to format YearMonth (2023-01) to a more readable format (Jan 2023)
+    const formatYearMonth = (yearMonth: string) => {
+        const [year, month] = yearMonth.split('-');
+        const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+        return date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+    };
+
     // Format the data for the chart
     const chartData = averageAssignmentDurationByMonth.map(item => ({
         period: formatYearMonth(item.period),
@@ -33,13 +40,6 @@ export const AverageAssignmentDurationChart: React.FC = () => {
     const overallAverage = overallAverageAssignmentDuration !== null 
         ? Math.round(overallAverageAssignmentDuration) 
         : null;
-
-    // Helper function to format YearMonth (2023-01) to a more readable format (Jan 2023)
-    const formatYearMonth = (yearMonth: string) => {
-        const [year, month] = yearMonth.split('-');
-        const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-        return date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
-    };
 
     return (
         <Card>

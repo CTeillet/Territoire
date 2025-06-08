@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,32 +22,18 @@ import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campaigns/create-campaign-dialog";
-import { authFetch } from "@/utils/auth-fetch";
-import { Campaign } from "@/models/campaign";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { fetchCampaigns } from "@/store/slices/campaign-slice";
 
 export default function CampaignsPage() {
   const router = useRouter();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+  const { campaigns, loading } = useAppSelector(state => state.campaigns);
 
-  const fetchCampaigns = async () => {
-    setLoading(true);
-    try {
-      const response = await authFetch("/api/campagnes");
-      if (!response.ok) {
-        throw new Error("Failed to fetch campaigns");
-      }
-      const data = await response.json();
-      setCampaigns(data);
-    } catch (error) {
-      console.error("Error fetching campaigns:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch campaigns on component mount
   useEffect(() => {
-    fetchCampaigns();
+    dispatch(fetchCampaigns());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleViewCampaign = (id: string) => {
@@ -68,7 +54,7 @@ export default function CampaignsPage() {
             Gérez les campagnes d&apos;invitation et les assignations de territoires
           </p>
         </div>
-        <CreateCampaignDialog onCampaignCreated={fetchCampaigns} />
+        <CreateCampaignDialog onCampaignCreated={() => dispatch(fetchCampaigns())} />
       </div>
 
       {loading ? (
@@ -86,7 +72,7 @@ export default function CampaignsPage() {
               Créez votre première campagne pour commencer à gérer les
               assignations de territoires.
             </p>
-            <CreateCampaignDialog onCampaignCreated={fetchCampaigns} />
+            <CreateCampaignDialog onCampaignCreated={() => dispatch(fetchCampaigns())} />
           </CardContent>
         </Card>
       ) : (
