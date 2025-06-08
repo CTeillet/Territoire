@@ -31,7 +31,11 @@ const AssignmentRow: React.FC<Assignment> = (assignment: Assignment) => (
              assignment.campaign ? `Campagne: ${assignment.campaign.name}` : "N/A"}
         </TableCell>
         <TableCell >
-            <TerritoryDataActionButtons territoryId={assignment.territory.territoryId} status={assignment.territory.status}/>
+            <TerritoryDataActionButtons 
+                territoryId={assignment.territory.territoryId} 
+                status={assignment.territory.status}
+                territoryMapId={assignment.territory.territoryMapId}
+            />
         </TableCell>
     </TableRow>
 );

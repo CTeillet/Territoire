@@ -11,9 +11,13 @@ import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -206,5 +210,58 @@ class TerritoryController {
 
 		List<TerritoryDistributionByCityDto> result = territoryService.getTerritoryDistributionByCity(startDate);
 		return ResponseEntity.ok(result);
+	}
+
+	/**
+	 * Endpoint pour télécharger une carte de territoire
+	 * @param territoryId ID du territoire
+	 * @param file Fichier image de la carte
+	 * @return Message de confirmation
+	 */
+	@PostMapping("/{territoryId}/carte")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public ResponseEntity<String> uploadTerritoryMap(
+			@PathVariable UUID territoryId,
+			@RequestParam("file") MultipartFile file) {
+		log.info("Début : Upload de la carte du territoire {}", territoryId);
+
+		try {
+			territoryService.uploadTerritoryMap(territoryId, file);
+			log.info("Fin : Upload de la carte du territoire {}", territoryId);
+			return ResponseEntity.ok("Carte du territoire téléchargée avec succès");
+		} catch (Exception e) {
+			log.error("Erreur lors de l'upload de la carte du territoire {}: {}", territoryId, e.getMessage(), e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Erreur lors du téléchargement de la carte du territoire");
+		}
+	}
+
+	/**
+	 * Endpoint pour récupérer une carte de territoire
+	 * @param territoryId ID du territoire
+	 * @return Fichier image de la carte
+	 */
+	@GetMapping("/{territoryId}/carte")
+	public ResponseEntity<byte[]> getTerritoryMap(@PathVariable UUID territoryId) {
+		log.info("Début : Récupération de la carte du territoire {}", territoryId);
+
+		try {
+			Territory territory = territoryService.getTerritoryWithMap(territoryId);
+
+			if (territory.getTerritoryMap() == null || territory.getTerritoryMap().length == 0) {
+				log.info("Aucune carte trouvée pour le territoire {}", territoryId);
+				return ResponseEntity.notFound().build();
+			}
+
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.parseMediaType(territory.getTerritoryMapContentType()));
+			headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + territory.getTerritoryMapName() + "\"");
+
+			log.info("Fin : Récupération de la carte du territoire {}", territoryId);
+			return new ResponseEntity<>(territory.getTerritoryMap(), headers, HttpStatus.OK);
+		} catch (Exception e) {
+			log.error("Erreur lors de la récupération de la carte du territoire {}: {}", territoryId, e.getMessage(), e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+		}
 	}
 }

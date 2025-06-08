@@ -5,7 +5,9 @@ import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.proxy.HibernateProxy;
+import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.MultiPolygon;
 
 import java.time.LocalDate;
@@ -13,6 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Lob;
 
 @Entity
 @Getter
@@ -59,6 +64,19 @@ public class Territory {
 	@ManyToOne(optional = false)
 	@JoinColumn(name = "city_id", nullable = false)
 	private City city;
+
+	@Lob
+	@Column(name = "territory_map")
+	@Basic(fetch = FetchType.LAZY)
+	@JdbcTypeCode(SqlTypes.BINARY)
+	@ToString.Exclude
+	private byte[] territoryMap;
+
+	@Column(name = "territory_map_name")
+	private String territoryMapName;
+
+	@Column(name = "territory_map_content_type")
+	private String territoryMapContentType;
 
 	@Override
 	public final boolean equals(Object o) {

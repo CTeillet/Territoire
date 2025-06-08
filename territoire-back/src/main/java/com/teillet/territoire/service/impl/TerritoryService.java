@@ -19,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -218,5 +220,30 @@ public class TerritoryService implements ITerritoryService {
 		}
 
 		return distributionDtos;
+	}
+
+	@Override
+	@Transactional
+	public Territory uploadTerritoryMap(UUID territoryId, MultipartFile file) throws IOException {
+		log.info("Début : Upload de la carte du territoire {}", territoryId);
+
+		Territory territory = getTerritory(territoryId);
+
+		// Store the file data directly using getBytes()
+		territory.setTerritoryMap(file.getBytes());
+		territory.setTerritoryMapName(file.getOriginalFilename());
+		territory.setTerritoryMapContentType(file.getContentType());
+		territory.setLastModifiedDate(LocalDate.now());
+
+		Territory savedTerritory = territoryRepository.save(territory);
+
+		log.info("Fin : Upload de la carte du territoire {}", territoryId);
+		return savedTerritory;
+	}
+
+	@Override
+	public Territory getTerritoryWithMap(UUID territoryId) {
+		log.info("Récupération de la carte du territoire {}", territoryId);
+		return getTerritory(territoryId);
 	}
 }

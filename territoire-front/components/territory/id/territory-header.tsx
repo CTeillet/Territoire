@@ -35,9 +35,10 @@ interface TerritoryHeaderProps {
     type?: TerritoryType;
     lastModifiedDate: string | null;
     note?: string | null;
+    territoryMapId?: string;
 }
 
-const TerritoryHeader = ({ name, city, status, type, lastModifiedDate, note, territoryId }: TerritoryHeaderProps) => {
+const TerritoryHeader = ({ name, city, status, type, lastModifiedDate, note, territoryId, territoryMapId }: TerritoryHeaderProps) => {
     const dispatch = useDispatch<AppDispatch>();
     const router = useRouter();
     const user = useSelector((state: RootState) => state.auth.user);
@@ -214,7 +215,7 @@ const TerritoryHeader = ({ name, city, status, type, lastModifiedDate, note, ter
 
             {/* Actions */}
             <div className="mt-6 flex space-x-2 justify-start">
-                <TerritoryDataActionButtons territoryId={territoryId} showDetails={false} status={status} />
+                <TerritoryDataActionButtons territoryId={territoryId} showDetails={false} status={status} territoryMapId={territoryMapId} />
             </div>
         </div>
     );

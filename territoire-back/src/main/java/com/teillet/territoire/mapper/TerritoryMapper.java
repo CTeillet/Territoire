@@ -30,6 +30,11 @@ public class TerritoryMapper {
 		territoryDto.setAssignedTo(TerritoryUtils.getAssignedTo(territory));
 		territoryDto.setAssignedOn(TerritoryUtils.getAssignedOn(territory));
 		territoryDto.setWaitedFor(TerritoryUtils.getWaitedFor(territory));
+
+		// Set territory map ID if a map exists
+		if (territory.getTerritoryMap() != null && territory.getTerritoryMap().length > 0) {
+			territoryDto.setTerritoryMapId(territory.getId().toString());
+		}
 		return territoryDto;
 	}
 

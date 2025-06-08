@@ -7,6 +7,7 @@ import com.teillet.territoire.dto.UpdateTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.Territory;
 import jakarta.transaction.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -68,4 +69,21 @@ public interface ITerritoryService {
      * @return List of territory distributions by city
      */
     List<TerritoryDistributionByCityDto> getTerritoryDistributionByCity(LocalDate startDate);
+
+    /**
+     * Uploads a territory map image for a territory.
+     * @param territoryId The ID of the territory
+     * @param file The map image file
+     * @return The updated territory
+     * @throws IOException If there's an error processing the file
+     */
+    @Transactional
+    Territory uploadTerritoryMap(UUID territoryId, MultipartFile file) throws IOException;
+
+    /**
+     * Retrieves a territory map image.
+     * @param territoryId The ID of the territory
+     * @return The territory with the map image
+     */
+    Territory getTerritoryWithMap(UUID territoryId);
 }

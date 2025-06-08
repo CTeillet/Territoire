@@ -25,6 +25,7 @@ export interface Territory {
     assignedOn: string;
     waitedFor: string;
     assignedTo: string;
+    territoryMapId?: string;
 }
 
 export interface SimplifiedTerritory {
@@ -34,6 +35,7 @@ export interface SimplifiedTerritory {
     type?: TerritoryType;
     cityId: string;
     cityName: string;
+    territoryMapId?: string;
 }
 
 type PolygonType = "BLOCK" | "CONCAVE_HULL";

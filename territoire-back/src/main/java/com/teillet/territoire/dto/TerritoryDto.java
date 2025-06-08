@@ -23,4 +23,5 @@ public class TerritoryDto {
 	private String assignedTo;
 	private String assignedOn;
 	private String waitedFor;
+	private String territoryMapId; // ID to use for retrieving the map image
 }

@@ -201,8 +201,8 @@ const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) =
         <MapContainer
             // @ts-expect-error ce code marche parfaitement alors que le type est incorrect
             whenReady={(event: LeafletEvent) => handleMapCreated(event.target as Map)}
-            ref={mapRef} bounds={bounds} style={{height: "500px", width: "100%", zIndex: 0}}
-            className="mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm"
+            ref={mapRef} bounds={bounds} style={{height: "800px", width: "75%", zIndex: 0}}
+            className="mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm mx-auto"
         >
             <MapUpdater isSidebarOpen={sidebar.state === "expanded"}/> {/* Ajout pour gérer la sidebar */}
 

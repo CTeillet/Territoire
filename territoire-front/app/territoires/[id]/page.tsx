@@ -13,6 +13,8 @@ import Link from "next/link";
 import {Button} from "@/components/ui/button";
 import {ChevronLeft} from "lucide-react";
 import {useAuth} from "@/hooks/use-auth";
+import TerritoryMapViewer from "@/components/territory/id/territory-map-viewer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Chargement dynamique de la carte (évite les erreurs SSR)
 const TerritoryIdMap = dynamic(
@@ -74,10 +76,29 @@ const TerritoryPage = () => {
                 lastModifiedDate={selectedTerritory.lastModifiedDate}
                 note={selectedTerritory.note}
                 territoryId={selectedTerritory.id}
+                territoryMapId={selectedTerritory.territoryMapId}
             />
 
-            {/* Carte du territoire */}
+            {/* Carte du territoire (GeoJSON) */}
             <TerritoryIdMap territory={selectedTerritory} city={selectedTerritory.city}/>
+
+            {/* Carte du territoire (Image) */}
+            {selectedTerritory.territoryMapId ? (
+                <TerritoryMapViewer territoryMapId={selectedTerritory.territoryMapId} />
+            ) : (
+                <Card className="mb-6 max-w-4xl mx-auto">
+                    <CardHeader>
+                        <CardTitle className="text-xl font-bold flex items-center">
+                            <span className="mr-2">🗺️</span> Carte du territoire
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex justify-center">
+                        <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-md w-full">
+                            <p>Aucune carte n&apos;a été téléchargée pour ce territoire.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Liste des adresses à ne pas visiter */}
             <AddressNotToDoList/>

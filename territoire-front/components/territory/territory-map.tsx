@@ -76,7 +76,7 @@ const calculateCenter = (geoJsonData: TerritoryCollection): [number, number] => 
 
 const onEachFeature = (feature:  TerritoryFeature, layer: Layer) => {
     if (feature.properties) {
-        const { id, name, status } = feature.properties;
+        const { id, name, status, territoryMapId } = feature.properties;
 
         // Créer un conteneur pour le popup
         const container = document.createElement("div");
@@ -106,7 +106,7 @@ const onEachFeature = (feature:  TerritoryFeature, layer: Layer) => {
                 createRoot(reactContainer).render(
                     <Provider store={store}>
 
-                    <TerritoryDataActionButtons territoryId={id} status={status}/>
+                    <TerritoryDataActionButtons territoryId={id} status={status} territoryMapId={territoryMapId}/>
                     </Provider>
 
                 );
