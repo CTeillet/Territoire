@@ -41,7 +41,7 @@ export const StatisticsOverview: React.FC = () => {
             <StatCard title="Territoires disponibles" count={territories?.features.filter(f => f.properties.status === "AVAILABLE").length || 0} />
             <StatCard title="Territoires en retard" count={territories?.features.filter(f => f.properties.status === "LATE").length || 0} />
             <StatCard title="Territoires en attente" count={territories?.features.filter(f => f.properties.status === "PENDING").length || 0} />
-            <StatCard title="Territoires en circulation" count={territories?.features.filter(f => f.properties.status === "ASSIGNED").length || 0} />
+            <StatCard title="Territoires en circulation" count={territories?.features.filter(f => f.properties.status === "ASSIGNED" || f.properties.status === "LATE").length || 0} />
             <StatCard title="Territoires non parcourus depuis le 01/09" count={territoriesNotAssigned} />
             <StatCard title="Total des territoires" count={totalTerritories} />
         </div>
