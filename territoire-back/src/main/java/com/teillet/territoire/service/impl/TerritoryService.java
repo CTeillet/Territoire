@@ -79,7 +79,6 @@ public class TerritoryService implements ITerritoryService {
 	@Override
 	public void updateTerritoryStatus(Territory territory, TerritoryStatus newStatus) {
 		territory.setStatus(newStatus);
-		territory.setLastModifiedDate(LocalDate.now());
 		territoryRepository.save(territory);
 	}
 
@@ -129,7 +128,18 @@ public class TerritoryService implements ITerritoryService {
 	@Override
 	public TerritoryDto updateTerritory(UUID id, UpdateTerritoryDto updateDto) throws IOException {
 		Territory territory = getTerritory(id);
-		territory.setLastModifiedDate(LocalDate.now());
+
+		// Check if only the note is being modified
+		boolean onlyNoteModified = 
+			Objects.equals(territory.getName(), updateDto.getName()) &&
+			Objects.equals(territory.getType(), updateDto.getType()) &&
+			(updateDto.getCityId() == null || Objects.equals(territory.getCity().getId(), updateDto.getCityId()));
+
+		// Only update lastModifiedDate if fields other than note are modified
+		if (!onlyNoteModified) {
+			territory.setLastModifiedDate(LocalDate.now());
+		}
+
 		// ✅ Mise à jour des champs modifiables
 		territory.setName(updateDto.getName());
 		territory.setNote(updateDto.getNote());

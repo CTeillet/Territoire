@@ -1,6 +1,10 @@
 package com.teillet.territoire.utils;
 
+import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Territory;
+
+import java.time.LocalDate;
+import java.util.Objects;
 
 public class TerritoryUtils {
 
@@ -10,9 +14,9 @@ public class TerritoryUtils {
 	public static String getLastVisitedOn(Territory territory) {
 		return territory.getAssignments()
 				.stream()
-				.filter(assignment -> assignment.getReturnDate() != null)
-				.map(assignment -> assignment.getReturnDate().toString())
-				.findFirst()
+				.map(Assignment::getReturnDate)
+				.filter(Objects::nonNull).max(LocalDate::compareTo)
+				.map(LocalDate::toString)
 				.orElse(NOUVEAU);
 	}
 
