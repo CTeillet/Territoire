@@ -9,6 +9,7 @@ import cityReducer from './slices/city-slice';
 import campaignReducer from './slices/campaign-slice';
 import statisticsReducer from './slices/statistics-slice';
 import authReducer, {login} from './slices/auth-slice';
+import reminderReducer from './slices/reminder-slice';
 
 export const store = configureStore({
     reducer: {
@@ -19,6 +20,7 @@ export const store = configureStore({
         cities: cityReducer,
         campaigns: campaignReducer,
         statistics: statisticsReducer,
+        reminders: reminderReducer,
     },
 });
 

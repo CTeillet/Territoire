@@ -1,4 +1,4 @@
-const CACHE_NAME = "pwa-cache-v78";
+const CACHE_NAME = "pwa-cache-v82";
 
 self.addEventListener("install", (event) => {
     self.skipWaiting();
@@ -35,10 +35,23 @@ self.addEventListener("fetch", (event) => {
 
     const url = new URL(event.request.url);
 
-    // Ignore les requêtes externes et dynamiques
+    // For API requests, use a network-only strategy
+    if (url.pathname.startsWith("/api/")) {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => {
+                    return new Response(JSON.stringify({ error: "Network error" }), {
+                        status: 503,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                })
+        );
+        return;
+    }
+
+    // For non-API requests, continue with network-first strategy
     if (
         url.origin !== location.origin ||
-        url.pathname.startsWith("/api/") ||
         url.pathname.endsWith(".json") ||
         url.pathname.endsWith(".png") ||
         url.pathname.endsWith(".jpg") ||
@@ -63,7 +76,13 @@ self.addEventListener("fetch", (event) => {
                 return response;
             })
             .catch(() => {
-                return caches.match(event.request);
+                return caches.match(event.request).then(cachedResponse => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    // If there's no cached response, return a fallback
+                    return new Response("Offline", { status: 503, headers: { 'Content-Type': 'text/plain' } });
+                });
             })
     );
 });

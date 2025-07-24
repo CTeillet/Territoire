@@ -107,10 +107,11 @@ export function DataTable<TValue>(
     };
 
     return (
-        <div className="w-full overflow-hidden rounded-lg shadow-lg border border-gray-200">
-            <div className="flex justify-end mb-2">
-                <Button onClick={exportToExcel}>
-                    <FileDown/>
+        <div className="w-full">
+            <div className="flex justify-end mb-4">
+                <Button variant="outline" size="sm" onClick={exportToExcel} className="flex items-center gap-2">
+                    <FileDown className="h-4 w-4" />
+                    <span>Exporter</span>
                 </Button>
             </div>
             <div className="overflow-x-auto">

@@ -1,83 +1,134 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { toast } from "sonner";
-import { authFetch } from "@/utils/auth-fetch";
-import { Territory } from "@/models/territory";
-import { TerritoryReminder } from "@/models/territory-reminder";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { useAuth } from "@/hooks/use-auth";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2 } from "lucide-react";
+import {useEffect, useMemo} from "react";
+import {useRouter} from "next/navigation";
+import {toast} from "sonner";
+import {Territory} from "@/models/territory";
+import {TerritoryStatus} from "@/models/territory-status";
+import {format} from "date-fns";
+import {fr} from "date-fns/locale";
+import {useAuth} from "@/hooks/use-auth";
+import {useAppDispatch, useAppSelector} from "@/store/store";
+import {fetchTerritories} from "@/store/slices/territory-slice";
+import {createReminder, fetchReminders} from "@/store/slices/reminder-slice";
+import {PageHeader} from "@/components/late-territory/page-header";
+import {LoadingState} from "@/components/late-territory/loading-state";
+import {EmptyState} from "@/components/late-territory/empty-state";
+import {LateTerritoriesTable, createLateTerritoriesColumns} from "@/components/late-territory/late-territories-table";
 
 export default function LateTerritoriesPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [territories, setTerritories] = useState<Territory[]>([]);
-  const [reminders, setReminders] = useState<TerritoryReminder[]>([]);
+  const dispatch = useAppDispatch();
+  const territoriesData = useAppSelector(state => state.territories.territoriesGeojson);
+  const territoriesLoading = useAppSelector(state => state.territories.loading);
+  const reminders = useAppSelector(state => state.reminders.reminders);
+  const remindersLoading = useAppSelector(state => state.reminders.loading);
 
-  // Fetch late territories and reminders
-  const fetchData = async () => {
-    setLoading(true);
+  // Filter late territories from the store using useMemo
+  const territories = useMemo(() => {
+    console.log("[DEBUG_LOG] territoriesData:", territoriesData);
+
+    if (!territoriesData?.features) {
+      console.log("[DEBUG_LOG] No features in territoriesData");
+      return [];
+    }
+
+    // Log all statuses to see what's available
+    const statuses = territoriesData.features.map(f => f.properties.status);
+    console.log("[DEBUG_LOG] All territory statuses:", statuses);
+
+    // Count territories by status
+    const statusCounts = statuses.reduce<Record<TerritoryStatus, number>>((acc, status) => {
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<TerritoryStatus, number>);
+    console.log("[DEBUG_LOG] Territory counts by status:", statusCounts);
+
+    // Check if there are any territories with status containing "late" (case insensitive)
+    const hasLateStatusCaseInsensitive = statuses.some(
+      status => status && status.toLowerCase().includes("late")
+    );
+    console.log("[DEBUG_LOG] Has status containing 'late' (case insensitive):", hasLateStatusCaseInsensitive);
+
+    // More flexible filtering to handle potential issues
+    const filteredTerritories = territoriesData.features
+      .filter(feature => {
+        // Get the status, handling potential undefined/null values
+        const status = feature.properties?.status || "";
+
+        // Check if status is "LATE" (exact match) or contains "late" (case insensitive)
+        const isExactMatch = status === "LATE";
+        const isCaseInsensitiveMatch = status.toLowerCase().includes("late");
+
+        // For debugging
+        if (isExactMatch || isCaseInsensitiveMatch) {
+          console.log(`[DEBUG_LOG] Found late territory: ${feature.properties.name}, status: ${status}`);
+        }
+
+        // Use exact match for production, but log if there would be matches with case-insensitive comparison
+        const isLate = isExactMatch;
+        console.log(`[DEBUG_LOG] Territory ${feature.properties.name} status: ${status}, isLate: ${isLate}`);
+        return isLate;
+      })
+      .map(feature => ({
+        id: feature.properties.id,
+        name: feature.properties.name,
+        status: feature.properties.status,
+        city: feature.properties.city,
+        assignedTo: feature.properties.assignedTo,
+        assignedOn: feature.properties.assignedOn,
+        waitedFor: feature.properties.waitedFor,
+      })) as Territory[];
+
+    console.log("[DEBUG_LOG] Filtered territories count:", filteredTerritories.length);
+
+    // If no territories are found with status "LATE", check if there are any with status "ASSIGNED"
+    // that might be late but not properly marked
+    if (filteredTerritories.length === 0) {
+      console.log("[DEBUG_LOG] No territories with status LATE found. Checking for potentially late territories...");
+
+      // For debugging purposes only - don't actually use this in production without confirmation
+      const potentiallyLateTerritories = territoriesData.features
+        .filter(feature => {
+          const status = feature.properties?.status || "";
+          return status === "ASSIGNED";
+        })
+        .map(feature => ({
+          id: feature.properties.id,
+          name: feature.properties.name,
+          status: feature.properties.status,
+          city: feature.properties.city,
+          assignedTo: feature.properties.assignedTo,
+          assignedOn: feature.properties.assignedOn,
+          waitedFor: feature.properties.waitedFor,
+        })) as Territory[];
+
+      console.log("[DEBUG_LOG] Potentially late territories (status=ASSIGNED):", potentiallyLateTerritories.length);
+      console.log("[DEBUG_LOG] Sample potentially late territories:", potentiallyLateTerritories.slice(0, 3));
+    }
+
+    return filteredTerritories;
+  }, [territoriesData]);
+
+  // Fetch territories and reminders from Redux store when component mounts
+  useEffect(() => {
     try {
-      // Fetch all territories
-      const territoriesResponse = await authFetch("/api/territoires");
-      if (!territoriesResponse.ok) {
-        throw new Error("Failed to fetch territories");
-      }
-      const territoriesData = await territoriesResponse.json();
-
-      // Filter late territories
-      const lateTerritories = territoriesData.filter(
-        (territory: Territory) => territory.status === "LATE"
-      );
-      setTerritories(lateTerritories);
-
-      // Fetch all reminders
-      const remindersResponse = await authFetch("/api/territory-reminders");
-      if (!remindersResponse.ok) {
-        throw new Error("Failed to fetch reminders");
-      }
-      const remindersData = await remindersResponse.json();
-      setReminders(remindersData);
+      // Fetch territories and reminders using Redux
+      dispatch(fetchTerritories());
+      dispatch(fetchReminders());
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Impossible de récupérer les données");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [dispatch]);
 
+  // Redirect to login if not authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchData();
-    } else {
+    if (!isAuthenticated) {
       router.push("/login");
     }
   }, [isAuthenticated, router]);
-
-  useEffect(() => {
-    console.log(territories);
-  }, [territories]);
 
   // Format date
   const formatDate = (dateString: string | null) => {
@@ -101,22 +152,20 @@ export default function LateTerritoriesPage() {
     }
 
     try {
-      const response = await authFetch(
-        `/api/territory-reminders?territoryId=${territoryId}&personId=${personId}&remindedById=${user.id}`,
-        {
-          method: "POST",
-        }
+      // Use Redux action to create reminder
+      const resultAction = await dispatch(
+        createReminder({
+          territoryId,
+          personId,
+          remindedById: user.id,
+        })
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to send reminder");
+      if (createReminder.rejected.match(resultAction)) {
+        throw new Error(resultAction.payload as string || "Failed to send reminder");
       }
 
       toast.success("Rappel envoyé avec succès");
-
-      // Refresh data
-      fetchData();
     } catch (error: unknown) {
       console.error("Error sending reminder:", error);
       const errorMessage = error instanceof Error ? error.message : "Impossible d'envoyer le rappel";
@@ -124,96 +173,36 @@ export default function LateTerritoriesPage() {
     }
   };
 
+  // Create columns using the helper function
+  const columns = createLateTerritoriesColumns(formatDate, hasReminder, sendReminder);
+
+  // Log render conditions
+  console.log("[DEBUG_LOG] Render conditions:", {
+    territoriesLoading,
+    remindersLoading,
+    territoriesDataExists: !!territoriesData,
+    territoriesLength: territories.length,
+    showLoading: territoriesLoading || remindersLoading || !territoriesData,
+    showEmptyState: !territoriesLoading && !remindersLoading && !!territoriesData && territories.length === 0,
+    showTable: !territoriesLoading && !remindersLoading && !!territoriesData && territories.length > 0
+  });
+
   return (
     <div className="container mx-auto py-8 px-6">
-      <div className="flex justify-between items-center mb-10">
-        <div>
-          <h1 className="text-4xl font-bold mb-3">Territoires en retard</h1>
-          <p className="text-gray-500 text-lg">
-            Gérez les territoires en retard et envoyez des rappels
-          </p>
-        </div>
-      </div>
+      <PageHeader 
+        title="Territoires en retard" 
+        description="Gérez les territoires en retard et envoyez des rappels" 
+      />
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <p>Chargement des territoires en retard...</p>
-        </div>
+      {territoriesLoading || remindersLoading || !territoriesData ? (
+        <LoadingState />
       ) : territories.length === 0 ? (
-        <Card className="shadow-md border-0">
-          <CardContent className="flex flex-col items-center justify-center h-80 py-12">
-            <CheckCircle2 className="h-20 w-20 text-green-500 mb-6" />
-            <h3 className="text-2xl font-semibold mb-3">
-              Aucun territoire en retard
-            </h3>
-            <p className="text-gray-500 text-center text-lg mb-6 max-w-md">
-              Tous les territoires sont à jour. Revenez plus tard pour vérifier.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState />
       ) : (
-        <Card className="shadow-md border-0">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-bold mb-2">
-              Liste des territoires en retard
-            </CardTitle>
-            <CardDescription className="text-base">
-              Envoyez des rappels aux personnes ayant des territoires en retard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b-2 border-gray-200">
-                  <TableHead className="py-4 text-base font-semibold">Territoire</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Ville</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Assigné à</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Date d&apos;assignation</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Date d&apos;échéance</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Statut du rappel</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {territories.map((territory) => (
-                  <TableRow key={territory.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium text-base py-4">
-                      {territory.name}
-                    </TableCell>
-                    <TableCell className="py-4">{territory.city.name}</TableCell>
-                    <TableCell className="py-4">{territory.assignedTo}</TableCell>
-                    <TableCell className="py-4">{formatDate(territory.assignedOn)}</TableCell>
-                    <TableCell className="py-4">{formatDate(territory.waitedFor)}</TableCell>
-                    <TableCell className="py-4">
-                      {hasReminder(territory.id, territory.assignedTo) ? (
-                        <Badge className="bg-green-500 text-white px-2 py-1 rounded">
-                          Rappel envoyé
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-yellow-500 text-white px-2 py-1 rounded">
-                          Pas de rappel
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => sendReminder(territory.id, territory.assignedTo)}
-                        disabled={hasReminder(territory.id, territory.assignedTo)}
-                        className="px-4 py-2 font-medium"
-                      >
-                        {hasReminder(territory.id, territory.assignedTo)
-                          ? "Déjà rappelé"
-                          : "Envoyer un rappel"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <LateTerritoriesTable 
+          territories={territories} 
+          columns={columns} 
+        />
       )}
     </div>
   );
