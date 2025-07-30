@@ -529,7 +529,14 @@ const territorySlice = createSlice({
 
                 if (feature) {
                     feature.properties.status = "ASSIGNED";
-                    feature.properties.assignments = [assignment]; // Remplace l'assignation existante par la nouvelle
+                    feature.properties.assignments = [...feature.properties.assignments,  assignment]; // Remplace l'assignation existante par la nouvelle
+
+                    // Mise à jour de la personne et des dates
+                    if (assignment.person) {
+                        feature.properties.assignedTo = assignment.person.firstName + ' ' + assignment.person.lastName;
+                    }
+                    feature.properties.assignedOn = assignment.assignmentDate;
+                    feature.properties.waitedFor = assignment.dueDate;
                 } else {
                     console.warn(`⚠️ Territoire introuvable dans le store pour ID ${assignment.territory.territoryId}`);
                 }
@@ -560,11 +567,17 @@ const territorySlice = createSlice({
 
                 if (feature) {
                     feature.properties.status = "PENDING";
-                    feature.properties.lastVisitedOn = returnDate
+                    feature.properties.lastVisitedOn = returnDate;
                     feature.properties.assignments = [{
                         ...updatedAssignment,
                         returnDate, // Ajout de la date de retour mise à jour
                     }];
+
+                    // Mise à jour de la personne (réinitialisation car le territoire est retourné)
+                    feature.properties.assignedTo = "";
+                    feature.properties.assignedOn = "";
+                    feature.properties.waitedFor = "";
+
                     console.log(`✅ Territoire ${territory.territoryId} retourné et mis à jour dans le store`);
                 } else {
                     console.warn(`⚠️ Territoire introuvable dans le store pour ID ${territory.territoryId}`);
@@ -596,11 +609,17 @@ const territorySlice = createSlice({
 
                 if (feature) {
                     feature.properties.status = "AVAILABLE";
-                    feature.properties.lastVisitedOn = returnDate
+                    feature.properties.lastVisitedOn = returnDate;
                     feature.properties.assignments = [{
                         ...updatedAssignment,
                         returnDate, // Ajout de la date de retour mise à jour
                     }];
+
+                    // Mise à jour de la personne (réinitialisation car l'assignation est annulée)
+                    feature.properties.assignedTo = "";
+                    feature.properties.assignedOn = "";
+                    feature.properties.waitedFor = "";
+
                     console.log(`✅ Assignation du territoire ${territory.territoryId} annulée et mis à jour dans le store`);
                 } else {
                     console.warn(`⚠️ Territoire introuvable dans le store pour ID ${territory.territoryId}`);
