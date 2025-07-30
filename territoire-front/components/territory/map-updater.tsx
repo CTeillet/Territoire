@@ -1,14 +1,18 @@
 import React, { useEffect } from "react";
 import { useMap } from "react-leaflet";
 
-const MapUpdater: React.FC<{ isSidebarOpen: boolean }> = ({ isSidebarOpen }) => {
+const MapUpdater: React.FC<{ isSidebarOpen: boolean, isExpanded?: boolean }> = ({ isSidebarOpen, isExpanded }) => {
     const map = useMap();
 
     useEffect(() => {
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 300); // Légère pause pour laisser l'animation finir
-    }, [isSidebarOpen, map]);
+        const timeout = setTimeout(() => {
+            requestAnimationFrame(() => {
+                map.invalidateSize();
+            });
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [isSidebarOpen, isExpanded, map]);
 
     return null;
 };

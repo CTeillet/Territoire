@@ -1,7 +1,7 @@
 "use client"; // Indique que ce fichier doit être exécuté côté client
 
 import dynamic from "next/dynamic";
-import React, {useMemo} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import {TerritoryCollection, TerritoryFeature} from "@/models/territory";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
 import {getBadgeColor} from "@/components/territory/territory-data-columns";
@@ -13,6 +13,8 @@ import {Provider} from "react-redux";
 import {store} from "@/store/store";
 import MapUpdater from "@/components/territory/map-updater";
 import {useSidebar} from "@/components/ui/sidebar";
+import {Button} from "@/components/ui/button";
+import {Maximize2, Minimize2} from "lucide-react";
 
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), {ssr: false});
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), {ssr: false});
@@ -26,18 +28,56 @@ interface TerritoryCollectionProps {
 }
 
 const TerritoryMap: React.FC<TerritoryCollectionProps> = ({geoJsonData}) => {
+    const [isExpanded, setIsExpanded] = useState(false);
     const center = useMemo(() => calculateCenter(geoJsonData), [geoJsonData]);
     const sidebar = useSidebar();
 
+    const toggleExpand = () => {
+        setIsExpanded(!isExpanded);
+    };
+
+    const mapHeight = useMemo(() => {
+        if (isExpanded) {
+            return "1200px";
+        } else {
+            return "700px";
+        }
+    }, [isExpanded]) ;
+
+    useEffect(()=> {
+        console.log("Map height", mapHeight);
+    }, [mapHeight])
+
     return (
-        <MapContainer center={center} zoom={15} style={{ height: "500px", width: "100%", zIndex: 0 }}>
-            <MapUpdater isSidebarOpen={sidebar.state === "expanded"} /> {/* Ajout pour gérer la sidebar */}
-            <TileLayer
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
-                attribution='Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
-            />
-            <GeoJSON onEachFeature={onEachFeature} data={geoJsonData} style={territoryStyle} />
-        </MapContainer>
+        <div className="relative">
+            <div
+                className="transition-all duration-500"
+                style={{ height: mapHeight, width: "100%" }}
+            >
+                <MapContainer
+                    center={center}
+                    zoom={15}
+                    style={{ height: "100%", width: "100%", zIndex: 0 }}
+                >
+                    <MapUpdater isSidebarOpen={sidebar.state === "expanded"} isExpanded={isExpanded} />
+                    <TileLayer
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+                        attribution="..."
+                    />
+                    <GeoJSON onEachFeature={onEachFeature} data={geoJsonData} style={territoryStyle} />
+                </MapContainer>
+            </div>
+
+            <Button
+                variant="outline"
+                size="icon"
+                className="absolute top-3 right-3 z-10 bg-white shadow-md"
+                onClick={toggleExpand}
+                title={isExpanded ? "Réduire la carte" : "Agrandir la carte"}
+            >
+                {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+        </div>
     );
 };
 

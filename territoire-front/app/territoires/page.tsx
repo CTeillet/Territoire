@@ -55,12 +55,12 @@ const TerritoryPage = () => {
             ) : (
                 <>
                     {territoriesGeojson && <TerritoryMap geoJsonData={territoriesGeojson}/>}
-                    {territoriesGeojson && <DataTable columns={territoryDataColumns}
-                                                      data={territoriesGeojson.features.map(f => f.properties)}/>}
-
                     {(user?.role === "ADMIN" || user?.role === "SUPERVISEUR") && (
                         <CreateTerritoryModal/>
                     )}
+                    {territoriesGeojson && <DataTable columns={territoryDataColumns}
+                                                      data={territoriesGeojson.features.map(f => f.properties)}/>}
+
                 </>
             )}
         </div>

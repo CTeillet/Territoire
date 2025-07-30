@@ -44,7 +44,7 @@ export default function RootLayout(
             <SidebarProvider id={"sidebar"}>
                 <AppSidebar/>
                 <main className={"bg-gray-200 w-screen"}>
-                    <SidebarTrigger/>
+                    <SidebarTrigger className={"fixed top-0 left-0 z-50"}/>
                     {children}
                 </main>
                 <Toaster position="bottom-center" />
