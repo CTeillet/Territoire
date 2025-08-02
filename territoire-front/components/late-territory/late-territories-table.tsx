@@ -10,9 +10,10 @@ import { ReminderActionButton } from "./reminder-action-button";
 interface LateTerritoriesTableProps {
   territories: Territory[];
   columns: ColumnDef<Territory, unknown>[];
+  tableId?: string; // Identifiant unique pour la table
 }
 
-export function LateTerritoriesTable({ territories, columns }: LateTerritoriesTableProps) {
+export function LateTerritoriesTable({ territories, columns, tableId }: LateTerritoriesTableProps) {
   return (
     <Card className="shadow-md border-0">
       <CardHeader className="pb-6">
@@ -24,7 +25,7 @@ export function LateTerritoriesTable({ territories, columns }: LateTerritoriesTa
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <DataTable columns={columns} data={territories} />
+        <DataTable columns={columns} data={territories} tableId={tableId} />
       </CardContent>
     </Card>
   );

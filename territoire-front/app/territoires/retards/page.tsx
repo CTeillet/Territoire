@@ -201,7 +201,8 @@ export default function LateTerritoriesPage() {
       ) : (
         <LateTerritoriesTable 
           territories={territories} 
-          columns={columns} 
+          columns={columns}
+          tableId="late-territories" 
         />
       )}
     </div>

@@ -58,8 +58,10 @@ const TerritoryPage = () => {
                     {(user?.role === "ADMIN" || user?.role === "SUPERVISEUR") && (
                         <CreateTerritoryModal/>
                     )}
-                    {territoriesGeojson && <DataTable columns={territoryDataColumns}
-                                                      data={territoriesGeojson.features.map(f => f.properties)}/>}
+                    {territoriesGeojson && <DataTable 
+                                                      columns={territoryDataColumns}
+                                                      data={territoriesGeojson.features.map(f => f.properties)}
+                                                      tableId="territories" />}
 
                 </>
             )}

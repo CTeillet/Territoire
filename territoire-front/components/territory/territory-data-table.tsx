@@ -26,12 +26,14 @@ import {STATUS_TRANSLATIONS} from "@/models/territory-status";
 interface DataTableProps {
     columns: ColumnDef<Territory, unknown>[]
     data: Territory[]
+    tableId?: string // Identifiant unique pour la table
 }
 
 export function DataTable<TValue>(
     {
         columns,
         data,
+        tableId,
     }: DataTableProps) {
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
         id: false,
@@ -43,7 +45,8 @@ export function DataTable<TValue>(
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
         if (typeof window !== "undefined") {
-            const storedFilters = localStorage.getItem("tableFilters");
+            const storageKey = `tableFilters${tableId ? `-${tableId}` : ''}`;
+            const storedFilters = localStorage.getItem(storageKey);
             return storedFilters ? JSON.parse(storedFilters) : [];
         }
         return [];
@@ -56,9 +59,10 @@ export function DataTable<TValue>(
 
     useEffect(() => {
         if (typeof window !== "undefined") {
-            localStorage.setItem("tableFilters", JSON.stringify(columnFilters));
+            const storageKey = `tableFilters${tableId ? `-${tableId}` : ''}`;
+            localStorage.setItem(storageKey, JSON.stringify(columnFilters));
         }
-    }, [columnFilters]);
+    }, [columnFilters, tableId]);
 
     const table = useReactTable({
         data,
