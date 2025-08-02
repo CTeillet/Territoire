@@ -21,7 +21,7 @@ export function StatisticsSummary({ statistics }: StatisticsSummaryProps) {
         valueClassName="text-3xl font-bold text-green-600"
       />
       <StatCard 
-        title="Territoires disponibles" 
+        title="Territoires restants"
         value={statistics.availableTerritories} 
         valueClassName="text-3xl font-bold text-blue-600"
       />

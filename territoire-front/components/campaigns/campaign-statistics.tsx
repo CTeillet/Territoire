@@ -69,7 +69,7 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
   // Translation mapping for display
   const statusTranslations = {
     used: "Utilisés",
-    available: "Disponibles"
+    available: "Restants"
   };
 
   const typeTranslations = {
