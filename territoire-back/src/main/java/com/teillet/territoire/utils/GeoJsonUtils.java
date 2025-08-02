@@ -60,8 +60,6 @@ public class GeoJsonUtils {
 		return new FeatureJSON(geometryJSON).toString(featureCollection);
 	}
 
-
-
 	private static SimpleFeatureType createTerritoryFeatureType() {
 		SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
 		builder.setName("Territory");
@@ -73,6 +71,7 @@ public class GeoJsonUtils {
 		builder.add("assignedTo", String.class);
 		builder.add("assignedOn", String.class);
 		builder.add("waitedFor", String.class);
+		builder.add("type", String.class);
 		builder.add("geometry", MultiPolygon.class);
 		return builder.buildFeatureType();
 	}
@@ -104,6 +103,7 @@ public class GeoJsonUtils {
 		featureBuilder.add(TerritoryUtils.getAssignedTo(territory));
 		featureBuilder.add(TerritoryUtils.getAssignedOn(territory));
 		featureBuilder.add(TerritoryUtils.getWaitedFor(territory));
+		featureBuilder.add(territory.getType());
 		featureBuilder.add(territory.getConcaveHull());
 		return featureBuilder.buildFeature(null);
 	}

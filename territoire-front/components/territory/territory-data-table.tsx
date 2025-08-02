@@ -22,6 +22,7 @@ import {Button} from "@/components/ui/button";
 import {FileDown} from "lucide-react";
 import {COLUMNS_ID_TRANSLATIONS} from "@/components/territory/territory-data-columns";
 import {STATUS_TRANSLATIONS} from "@/models/territory-status";
+import {TYPE_TRANSLATIONS} from "@/models/territory-type";
 
 interface DataTableProps {
     columns: ColumnDef<Territory, unknown>[]
@@ -96,6 +97,11 @@ export function DataTable<TValue>(
                     // Traduire la valeur de la colonne "statut"
                     if (columnHeader === "status") {
                         cellValue = STATUS_TRANSLATIONS[cellValue as keyof typeof STATUS_TRANSLATIONS] as unknown as TValue;
+                    }
+
+                    // Traduire la valeur de la colonne "type"
+                    if (columnHeader === "type" && cellValue) {
+                        cellValue = TYPE_TRANSLATIONS[cellValue as keyof typeof TYPE_TRANSLATIONS] as unknown as TValue;
                     }
 
                     rowData[translatedHeader] = cellValue;
