@@ -1,5 +1,5 @@
 "use client";
-import {Building, ChartBar, Contact, Settings, Calendar, Clock, MapPin} from "lucide-react"
+import {Building, ChartBar, Contact, Settings, Calendar, Clock, MapPin, ChevronDown, ChevronRight} from "lucide-react"
 
 import {
     Sidebar,
@@ -17,15 +17,19 @@ import Image from "next/image";
 import NavUser from "@/components/nav-user";
 import {useSelector} from "react-redux";
 import {RootState} from "@/store/store";
-import React from "react";
+import React, {useState} from "react";
 
 // Menu items.
-const items = [
+const dashboardItems = [
     {
         title: "Dashboard",
         url: "/",
         icon: ChartBar,
-    },
+    }
+];
+
+// Territory-related items
+const territoryItems = [
     {
         title: "Territoires",
         url: "/territoires",
@@ -40,7 +44,11 @@ const items = [
         title: "Territoires non parcourus",
         url: "/territoires/non-parcourus",
         icon: MapPin,
-    },
+    }
+];
+
+// Other items
+const otherItems = [
     {
         title: "Personnes",
         url: "/personnes",
@@ -55,12 +63,47 @@ const items = [
         title: "Paramètres",
         url: "/parametres",
         icon: Settings,
-    },
-]
+    }
+];
 
 export function AppSidebar() {
     const pathname = usePathname();
     const user = useSelector((state: RootState) => state.auth.user);
+    const [territoryExpanded, setTerritoryExpanded] = useState(true);
+
+    // Check if any territory page is active
+    const isTerritoryActive = pathname.startsWith('/territoires');
+
+    // Helper function to check if a menu item is active
+    const isItemActive = (itemUrl) => {
+        // For root path, exact match; for others, check if it's the most specific match
+        const allItems = [...dashboardItems, ...territoryItems, ...otherItems];
+        return itemUrl === "/" 
+            ? pathname === "/" 
+            : pathname.startsWith(itemUrl) && 
+              // Make sure no other more specific item matches this path
+              !allItems.some(otherItem => 
+                otherItem.url !== itemUrl && 
+                pathname.startsWith(otherItem.url) && 
+                otherItem.url.startsWith(itemUrl)
+              );
+    };
+
+    // Render a menu item
+    const renderMenuItem = (item) => (
+        <SidebarMenuItem key={item.title} className="mb-4">
+            <SidebarMenuButton asChild>
+                <a
+                    href={item.url}
+                    className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200
+                        ${isItemActive(item.url) ? "bg-gray-400 text-primary font-bold shadow-sm" : "hover:bg-gray-200"}`}
+                >
+                    <item.icon className="h-5 w-5" />
+                    <span className="text-base">{item.title}</span>
+                </a>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+    );
 
     return (
         <Sidebar>
@@ -78,33 +121,36 @@ export function AppSidebar() {
                     </SidebarGroupLabel>
                     <SidebarGroupContent className="mt-12">
                         <SidebarMenu>
-                            {items.map((item) => {
-                                // For root path, exact match; for others, check if it's the most specific match
-                                const isActive = item.url === "/" 
-                                    ? pathname === "/" 
-                                    : pathname.startsWith(item.url) && 
-                                      // Make sure no other more specific item matches this path
-                                      !items.some(otherItem => 
-                                        otherItem !== item && 
-                                        pathname.startsWith(otherItem.url) && 
-                                        otherItem.url.startsWith(item.url)
-                                      );
-
-                                return (
-                                    <SidebarMenuItem key={item.title} className="mb-4">
-                                        <SidebarMenuButton asChild>
-                                            <a
-                                                href={item.url}
-                                                className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200
-                                                    ${isActive ? "bg-gray-400 text-primary font-bold shadow-sm" : "hover:bg-gray-200"}`}
-                                            >
-                                                <item.icon className="h-5 w-5" />
-                                                <span className="text-base">{item.title}</span>
-                                            </a>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                );
-                            })}
+                            {/* Dashboard item */}
+                            {dashboardItems.map(renderMenuItem)}
+                            
+                            {/* Territoire collapsible group */}
+                            <SidebarMenuItem className="mb-4">
+                                <button 
+                                    onClick={() => setTerritoryExpanded(!territoryExpanded)}
+                                    className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors duration-200
+                                        ${isTerritoryActive ? "bg-gray-400 text-primary font-bold shadow-sm" : "hover:bg-gray-200"}`}
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <Building className="h-5 w-5" />
+                                        <span className="text-base">Territoire</span>
+                                    </div>
+                                    {territoryExpanded ? 
+                                        <ChevronDown className="h-4 w-4" /> : 
+                                        <ChevronRight className="h-4 w-4" />
+                                    }
+                                </button>
+                            </SidebarMenuItem>
+                            
+                            {/* Territory sub-items */}
+                            {territoryExpanded && (
+                                <div className="ml-6 border-l-2 border-gray-400 pl-2">
+                                    {territoryItems.map(renderMenuItem)}
+                                </div>
+                            )}
+                            
+                            {/* Other items */}
+                            {otherItems.map(renderMenuItem)}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
