@@ -10,22 +10,21 @@ import {DataTableColumnHeader} from "@/components/territory/territory-data-heade
 import {
     TerritoryDataActionButtons
 } from "@/components/shared/territory-data-action-buttons";
-import { getBadgeColor } from "@/components/utils";
+import {getBadgeColor} from "@/components/utils";
 
+// Column translations
 export const COLUMNS_ID_TRANSLATIONS = {
-    actions:"Actions",
-    id:"Identifiant",
+    actions: "Actions",
+    id: "Identifiant",
     name: "Territoire",
     city: "Ville",
     status: "Statut",
     type: "Type",
-    lastVisitedOn: "Parcouru pour la dernière fois le",
-    assignedTo: "Assigné à",
-    assignedOn: "Assigné le",
-    waitedFor: "Attendu pour le"
+    lastVisitedOn: "Parcouru pour la dernière fois le"
 }
 
-export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
+// Hardcoded columns for non-visited territories page
+export const nonVisitedTerritoryColumns: ColumnDef<Territory, unknown>[] = [
     {
         id: "id",
         accessorKey: "id",
@@ -90,27 +89,6 @@ export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
         },
     },
     {
-        id: "assignedTo",
-        accessorKey: "assignedTo",
-        header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.assignedTo}/>)
-        },
-    },
-    {
-        id: "assignedOn",
-        accessorKey: "assignedOn",
-        header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.assignedOn}/>)
-        },
-    },
-    {
-        id: "waitedFor",
-        accessorKey: "waitedFor",
-        header: ({column}) => {
-            return (<DataTableColumnHeader className={"text-center"} column={column} title={COLUMNS_ID_TRANSLATIONS.waitedFor}/>)
-        },
-    },
-    {
         id: "actions",
         accessorKey: "actions",
         header: "Actions",
@@ -121,7 +99,5 @@ export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
                 territoryMapId={row.original.territoryMapId}
             />
         },
-
     },
 ]
-

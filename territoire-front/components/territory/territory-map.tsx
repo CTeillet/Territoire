@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import React, {useEffect, useMemo, useState} from "react";
 import {TerritoryCollection, TerritoryFeature} from "@/models/territory";
 import {STATUS_TRANSLATIONS, TerritoryStatus} from "@/models/territory-status";
-import {getBadgeColor} from "@/components/territory/territory-data-columns";
 import {TerritoryDataActionButtons} from "@/components/shared/territory-data-action-buttons";
 import {createRoot} from "react-dom/client";
 import {Layer, PathOptions, PopupEvent} from "leaflet";
@@ -15,6 +14,7 @@ import MapUpdater from "@/components/territory/map-updater";
 import {useSidebar} from "@/components/ui/sidebar";
 import {Button} from "@/components/ui/button";
 import {Maximize2, Minimize2} from "lucide-react";
+import {getBadgeColor} from "@/components/utils";
 
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), {ssr: false});
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), {ssr: false});

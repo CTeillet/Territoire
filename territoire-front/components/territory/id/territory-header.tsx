@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
 import {CalendarIcon, CheckCircleIcon, CheckIcon, EditIcon, MapPinIcon, TrashIcon, XIcon} from "lucide-react";
-import { getBadgeColor } from "@/components/territory/territory-data-columns";
 import { STATUS_TRANSLATIONS, TerritoryStatus } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS, TerritoryType } from "@/models/territory-type";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
@@ -26,6 +25,7 @@ import {
     AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import {useRouter} from "next/navigation";
+import {getBadgeColor} from "@/components/utils";
 
 interface TerritoryHeaderProps {
     territoryId: string;
