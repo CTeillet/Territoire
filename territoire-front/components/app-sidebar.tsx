@@ -75,7 +75,7 @@ export function AppSidebar() {
     const isTerritoryActive = pathname.startsWith('/territoires');
 
     // Helper function to check if a menu item is active
-    const isItemActive = (itemUrl) => {
+    const isItemActive = (itemUrl: string) => {
         // For root path, exact match; for others, check if it's the most specific match
         const allItems = [...dashboardItems, ...territoryItems, ...otherItems];
         return itemUrl === "/" 
@@ -90,7 +90,8 @@ export function AppSidebar() {
     };
 
     // Render a menu item
-    const renderMenuItem = (item) => (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const renderMenuItem = (item: { title: string; url: string; icon: any; }) => (
         <SidebarMenuItem key={item.title} className="mb-4">
             <SidebarMenuButton asChild>
                 <a
