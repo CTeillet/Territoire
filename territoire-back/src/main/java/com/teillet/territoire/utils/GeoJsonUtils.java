@@ -73,6 +73,7 @@ public class GeoJsonUtils {
 		builder.add("waitedFor", String.class);
 		builder.add("type", String.class);
 		builder.add("geometry", MultiPolygon.class);
+		builder.add("assignments", List.class);
 		return builder.buildFeatureType();
 	}
 
@@ -105,6 +106,7 @@ public class GeoJsonUtils {
 		featureBuilder.add(TerritoryUtils.getWaitedFor(territory));
 		featureBuilder.add(territory.getType());
 		featureBuilder.add(territory.getConcaveHull());
+		featureBuilder.add(territory.getAssignments());
 		return featureBuilder.buildFeature(null);
 	}
 
