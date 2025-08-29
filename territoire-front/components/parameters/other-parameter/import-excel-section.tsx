@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { FileUp } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
 
-export const ImportExcelSection = () => {
+type Props = { showTitle?: boolean };
+
+export const ImportExcelSection = ({ showTitle = true }: Props) => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export const ImportExcelSection = () => {
 
     return (
         <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">Importer</h2>
+            {showTitle && <h2 className="text-lg font-semibold">Importer</h2>}
             <Input type="file" accept=".xlsx" onChange={handleFileChange} />
             <Button onClick={uploadFile} disabled={!selectedFile} className="flex items-center gap-2">
                 <FileUp className="w-5 h-5" />

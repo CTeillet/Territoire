@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
 
-export const ExportExcelButton = () => {
+type Props = { showTitle?: boolean };
+
+export const ExportExcelButton = ({ showTitle = true }: Props) => {
     const downloadExcel = async () => {
         try {
             const response = await authFetch("/api/excel");
@@ -27,7 +29,7 @@ export const ExportExcelButton = () => {
 
     return (
         <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">Exporter</h2>
+            {showTitle && <h2 className="text-lg font-semibold">Exporter</h2>}
             <Button onClick={downloadExcel} className="flex items-center gap-2">
                 <FileDown className="w-5 h-5" />
                 Exporter en Excel

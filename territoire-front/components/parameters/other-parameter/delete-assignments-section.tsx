@@ -14,7 +14,9 @@ import { Building2, Trash2 } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
 
-export const DeleteAssignmentsSection = () => {
+type Props = { showTitle?: boolean };
+
+export const DeleteAssignmentsSection = ({ showTitle = true }: Props) => {
     const { cities } = useSelector((state: RootState) => state.cities);
     const user = useSelector((state: RootState) => state.auth.user);
     const [selectedCity, setSelectedCity] = useState<string | undefined>(undefined);
@@ -51,7 +53,7 @@ export const DeleteAssignmentsSection = () => {
 
     return (
         <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">Suppression</h2>
+            {showTitle && <h2 className="text-lg font-semibold">Suppression</h2>}
             <div className="flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-muted-foreground" />
                 <Select value={selectedCity} onValueChange={(value) => setSelectedCity(value)}>

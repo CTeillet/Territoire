@@ -5,7 +5,9 @@ import { ShieldCheck } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
 
-export const CheckAvailableTerritoriesButton = () => {
+type Props = { showTitle?: boolean };
+
+export const CheckAvailableTerritoriesButton = ({ showTitle = true }: Props) => {
     const checkAvailableTerritories = async () => {
         const response = await authFetch("/api/territoires/verification-disponible", { method: "PUT" });
 
@@ -18,7 +20,7 @@ export const CheckAvailableTerritoriesButton = () => {
 
     return (
         <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">Vérifications</h2>
+            {showTitle && <h2 className="text-lg font-semibold">Vérifications</h2>}
             <Button onClick={checkAvailableTerritories} variant="secondary" className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5" />
                 Vérification des territoires en attente

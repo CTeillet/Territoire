@@ -21,9 +21,10 @@ type Props = {
     /** Optionnel: pour filtrer la carte sur une ville */
     cityId?: string; // UUID
     className?: string;
+    showTitle?: boolean;
 };
 
-export const ExportTerritoriesMapButton: React.FC<Props> = ({ cityId, className }) => {
+export const ExportTerritoriesMapButton: React.FC<Props> = ({ cityId, className, showTitle = true }) => {
     const [paper, setPaper] = useState<Paper>("A3");
     const [orientation, setOrientation] = useState<Orientation>("landscape");
     const [dpi, setDpi] = useState<number>(300);
@@ -82,7 +83,7 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({ cityId, className 
 
     return (
         <div className={cn("flex flex-col gap-2", className)}>
-            <h2 className="text-lg font-semibold">Exporter</h2>
+            {showTitle && <h2 className="text-lg font-semibold">Exporter</h2>}
 
             <div className="flex items-center gap-2">
                 <Button onClick={downloadPng} disabled={loading} className="flex items-center gap-2">
