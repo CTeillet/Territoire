@@ -1,6 +1,6 @@
 package com.teillet.territoire.service.impl;
 
-import com.teillet.territoire.dto.TerritoryStatisticsProjection;
+import com.teillet.territoire.repository.projection.TerritoryStatisticsProjection;
 import com.teillet.territoire.dto.TerritoryStatusHistoryDto;
 import com.teillet.territoire.mapper.TerritoryStatusHistoryMapper;
 import com.teillet.territoire.model.TerritoryStatusHistory;

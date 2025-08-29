@@ -1,6 +1,8 @@
 package com.teillet.territoire.repository;
 
-import com.teillet.territoire.dto.TerritoryStatisticsProjection;
+import com.teillet.territoire.repository.projection.Bbox4326;
+import com.teillet.territoire.repository.projection.TerritoryHullRow;
+import com.teillet.territoire.repository.projection.TerritoryStatisticsProjection;
 import com.teillet.territoire.model.Territory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,81 +17,123 @@ import java.util.UUID;
 @Repository
 public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
 
-	@Modifying
-	@Query(nativeQuery = true, value = """
-			UPDATE territory
-			SET concave_hull = (
-				SELECT ST_Transform(
-							   ST_Buffer(
-									   ST_Union(
-											   ST_Buffer(
-													   ST_Transform(b.block, 2154), 7
-											   )
-									   ),
-									   -8
-							   ),
-							   4326
-					   )
-				FROM block b
-				WHERE b.territory_id = territory.id
-			)
-			WHERE territory.id = :id;
-			""")
-	void updateConcaveHullTerritory(UUID id);
+    @Modifying
+    @Query(nativeQuery = true, value = """
+            UPDATE territory
+            SET concave_hull = (
+            	SELECT ST_Transform(
+            				   ST_Buffer(
+            						   ST_Union(
+            								   ST_Buffer(
+            										   ST_Transform(b.block, 2154), 7
+            								   )
+            						   ),
+            						   -8
+            				   ),
+            				   4326
+            		   )
+            	FROM block b
+            	WHERE b.territory_id = territory.id
+            )
+            WHERE territory.id = :id;
+            """)
+    void updateConcaveHullTerritory(UUID id);
 
-	@Query(value = """
-        SELECT t.status AS status, COUNT(*) AS total
-        FROM Territory t
-        GROUP BY t.status
-    """)
-	List<TerritoryStatisticsProjection> getCurrentTerritoryStats();
+    @Query(value = """
+                SELECT t.status AS status, COUNT(*) AS total
+                FROM Territory t
+                GROUP BY t.status
+            """)
+    List<TerritoryStatisticsProjection> getCurrentTerritoryStats();
 
     Territory findByName(String name);
 
-	List<Territory> findByCity_Name(String cityName);
+    List<Territory> findByCity_Name(String cityName);
 
-	@Query(value = """
-        SELECT COUNT(t)
-        FROM Territory t
-        WHERE t.id NOT IN (
-            SELECT DISTINCT a.territory.id
-            FROM Assignment a
-            WHERE
-                a.assignmentDate >= :startDate
-                OR
-                (a.assignmentDate < :startDate AND a.returnDate >= :startDate)
-                OR
-                (a.assignmentDate < :startDate AND a.returnDate IS NULL)
-        )
-    """)
-	long countTerritoriesNotAssignedSince(LocalDate startDate);
+    @Query(value = """
+                SELECT COUNT(t)
+                FROM Territory t
+                WHERE t.id NOT IN (
+                    SELECT DISTINCT a.territory.id
+                    FROM Assignment a
+                    WHERE
+                        a.assignmentDate >= :startDate
+                        OR
+                        (a.assignmentDate < :startDate AND a.returnDate >= :startDate)
+                        OR
+                        (a.assignmentDate < :startDate AND a.returnDate IS NULL)
+                )
+            """)
+    long countTerritoriesNotAssignedSince(LocalDate startDate);
 
-	/**
-	 * Calculates the distribution of territories by city.
-	 * Returns the city name, count of territories, and percentage of total.
-	 * 
-	 * @param startDate Optional date to filter territories assigned since a specific date
-	 * @return List of objects containing city name, territory count, and percentage
-	 */
-	@Query(nativeQuery = true, value = """
-		SELECT
-			c.name as cityName,
-			COUNT(t.id) as territoryCount,
-			(COUNT(t.id) * 100.0 / (SELECT COUNT(*) FROM territory)) as percentage
-		FROM territory t
-		JOIN city c ON t.city_id = c.id
-		WHERE (CAST(:startDate AS DATE) IS NULL OR t.id IN (
-			SELECT DISTINCT a.territory_id
-			FROM assignment a
-			WHERE
-				a.assignment_date >= CAST(:startDate AS DATE)
-				OR
-				(a.assignment_date < CAST(:startDate AS DATE) AND a.return_date >= CAST(:startDate AS DATE))
-				OR
-				(a.assignment_date < CAST(:startDate AS DATE) AND a.return_date IS NULL)
-		))
-		GROUP BY c.name
-		ORDER BY COUNT(t.id) DESC
-	""")
-	List<Object[]> calculateTerritoryDistributionByCity(@Param("startDate") LocalDate startDate);
+    /**
+     * Calculates the distribution of territories by city.
+     * Returns the city name, count of territories, and percentage of total.
+     *
+     * @param startDate Optional date to filter territories assigned since a specific date
+     * @return List of objects containing city name, territory count, and percentage
+     */
+    @Query(nativeQuery = true, value = """
+            	SELECT
+            		c.name as cityName,
+            		COUNT(t.id) as territoryCount,
+            		(COUNT(t.id) * 100.0 / (SELECT COUNT(*) FROM territory)) as percentage
+            	FROM territory t
+            	JOIN city c ON t.city_id = c.id
+            	WHERE (CAST(:startDate AS DATE) IS NULL OR t.id IN (
+            		SELECT DISTINCT a.territory_id
+            		FROM assignment a
+            		WHERE
+            			a.assignment_date >= CAST(:startDate AS DATE)
+            			OR
+            			(a.assignment_date < CAST(:startDate AS DATE) AND a.return_date >= CAST(:startDate AS DATE))
+            			OR
+            			(a.assignment_date < CAST(:startDate AS DATE) AND a.return_date IS NULL)
+            	))
+            	GROUP BY c.name
+            	ORDER BY COUNT(t.id) DESC
+            """)
+    List<Object[]> calculateTerritoryDistributionByCity(@Param("startDate") LocalDate startDate);
+
+    @Query(value = """
+        SELECT t.name AS name,
+               ST_AsBinary(ST_Transform(t.concave_hull, 3857))                    AS hull_wkb,
+               ST_AsBinary(ST_PointOnSurface(ST_Transform(t.concave_hull, 3857))) AS label_wkb
+        FROM territory t
+        WHERE t.concave_hull IS NOT NULL
+        """, nativeQuery = true)
+    List<TerritoryHullRow> findAllProjected3857();
+
+    @Query(value = """
+        SELECT t.name AS name,
+               ST_AsBinary(ST_Transform(t.concave_hull, 3857))                    AS hull_wkb,
+               ST_AsBinary(ST_PointOnSurface(ST_Transform(t.concave_hull, 3857))) AS label_wkb
+        FROM territory t
+        WHERE t.concave_hull IS NOT NULL
+          AND t.city_id = :cityId
+        """, nativeQuery = true)
+    List<TerritoryHullRow> findAllProjected3857ByCityId(UUID cityId);
+
+    @Query(value = """
+      SELECT ST_XMin(ext)::float8 AS minx,
+             ST_YMin(ext)::float8 AS miny,
+             ST_XMax(ext)::float8 AS maxx,
+             ST_YMax(ext)::float8 AS maxy
+      FROM ( SELECT ST_Extent(concave_hull) AS ext
+             FROM territory
+             WHERE concave_hull IS NOT NULL ) s
+      """, nativeQuery = true)
+    Bbox4326 findBbox4326();
+
+    @Query(value = """
+      SELECT ST_XMin(ext)::float8 AS minx,
+             ST_YMin(ext)::float8 AS miny,
+             ST_XMax(ext)::float8 AS maxx,
+             ST_YMax(ext)::float8 AS maxy
+      FROM ( SELECT ST_Extent(concave_hull) AS ext
+             FROM territory
+             WHERE concave_hull IS NOT NULL
+               AND city_id = :cityId ) s
+      """, nativeQuery = true)
+    Bbox4326 findBbox4326ByCityId(UUID cityId);
 }

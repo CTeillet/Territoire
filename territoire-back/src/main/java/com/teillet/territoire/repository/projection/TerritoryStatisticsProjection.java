@@ -1,4 +1,4 @@
-package com.teillet.territoire.dto;
+package com.teillet.territoire.repository.projection;
 
 import com.teillet.territoire.enums.TerritoryStatus;
 
