@@ -18,6 +18,10 @@ const formSchema = z.object({
         .string()
         .min(5, "Le code postal doit contenir au moins 5 caractères")
         .max(10, "Le code postal est trop long"),
+    colorHex: z
+        .string()
+        .regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Couleur hexadécimale invalide")
+        .optional(),
 })
 
 type CityFormValues = z.infer<typeof formSchema>
@@ -30,6 +34,7 @@ const FormAddCity: React.FC = () => {
         defaultValues: {
             name: "",
             zipCode: "",
+            colorHex: "#0088ff",
         },
     })
 
@@ -69,6 +74,20 @@ const FormAddCity: React.FC = () => {
                                         <FormLabel>Code postal</FormLabel>
                                         <FormControl>
                                             <Input placeholder="Code postal" className="w-64" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="colorHex"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Couleur</FormLabel>
+                                        <FormControl>
+                                            <Input type="color" className="w-16 p-0 h-10" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

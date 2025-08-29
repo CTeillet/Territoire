@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "map.ign")
 public class IgnWmtsProperties {
     /**
-     * Base WMTS URL, ex: https://data.geopf.fr/wmts
+     * Base WMTS URL, ex: <a href="https://data.geopf.fr/wmts">lien IGN</a>
      */
     private String wmtsBase;
 

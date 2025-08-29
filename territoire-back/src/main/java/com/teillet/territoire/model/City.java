@@ -30,6 +30,10 @@ public class City implements Comparable<City> {
 	@Column(name = "zip_code", nullable = false)
 	private String zipCode;
 
+	// Hex color code representing the city (e.g., #FF0000)
+	@Column(name = "color_hex")
+	private String colorHex;
+
 	@JsonSerialize(using = GeometrySerializer.class)
 	@JsonDeserialize(using = GeometryDeserializer.class)
 	@Column(name = "center", columnDefinition = "geometry(Point, 4326)", nullable = false)

@@ -21,6 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.List;
 
+import static com.teillet.territoire.utils.Utils.parseColor;
+
 @Service
 @RequiredArgsConstructor
 public class TerritoryMapService implements ITerritoryMapService {
@@ -71,16 +73,20 @@ public class TerritoryMapService implements ITerritoryMapService {
         // 6) overlay (polygons + labels)
         WKBReader reader = new WKBReader();
         g.setStroke(new BasicStroke(1.4f));
-        Color fill = new Color(120,120,220,110);
-        Color stroke = new Color(45,45,45,200);
         Color halo = new Color(255,255,255,220);
         g.setFont(new Font("SansSerif", Font.PLAIN, 18));
 
         for (TerritoryHullRow r : rows) {
             Geometry geom3857 = reader.read(r.getHullWkb());
             Shape shp = RenderUtils.toShape(geom3857, scale, ox, oy);
-            g.setColor(fill);   g.fill(shp);
-            g.setColor(stroke); g.draw(shp);
+
+            // couleur de la ville ou fallback
+            Color fill = parseColor(r.getCityColorHex(), new Color(120, 120, 220, 110));
+            g.setColor(fill);
+            g.fill(shp);
+
+            g.setColor(new Color(45, 45, 45, 200)); // contour fixe
+            g.draw(shp);
         }
 
         for (TerritoryHullRow r : rows) {

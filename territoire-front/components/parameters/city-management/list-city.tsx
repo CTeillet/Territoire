@@ -1,7 +1,7 @@
 import React, {useEffect} from "react";
 import {City} from "@/models/city";
 import {useAppDispatch} from "@/store/store";
-import {fetchCities, removeCity} from "@/store/slices/city-slice";
+import {fetchCities, removeCity, updateCityColor} from "@/store/slices/city-slice";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {Button} from "@/components/ui/button";
@@ -27,14 +27,31 @@ const ListCity = ({cities}: {cities: City[]}) => {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-3/4">Nom</TableHead>
+                            <TableHead className="w-1/2">Nom</TableHead>
+                            <TableHead className="w-1/4 text-center">Couleur</TableHead>
                             <TableHead className="w-1/4 text-center">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {cities.map((city) => (
                             <TableRow key={city.id}>
-                                <TableCell>{city.name}</TableCell>
+                                <TableCell className="flex items-center gap-3">
+                                    <span
+                                        className="inline-block w-4 h-4 rounded-full border"
+                                        style={{ backgroundColor: city.colorHex || "#cccccc" }}
+                                        title={city.colorHex || "#cccccc"}
+                                    />
+                                    {city.name}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <input
+                                        type="color"
+                                        value={city.colorHex || "#cccccc"}
+                                        onChange={(e) => dispatch(updateCityColor({ id: city.id, colorHex: e.target.value }))}
+                                        className="w-10 h-10 p-0 border rounded"
+                                        aria-label={`Choisir couleur pour ${city.name}`}
+                                    />
+                                </TableCell>
                                 <TableCell className="text-center">
                                     <Button
                                         variant="ghost"

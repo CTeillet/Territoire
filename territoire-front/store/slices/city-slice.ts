@@ -27,11 +27,11 @@ export const fetchCities = createAsyncThunk("cities/fetchCities", async () => {
 
 // ✅ Thunk pour ajouter une ville
 export const addCity = createAsyncThunk("cities/addCity",
-    async ({name, zipCode}:{name: string, zipCode: string}) => {
+    async ({name, zipCode, colorHex}:{name: string, zipCode: string, colorHex?: string}) => {
         const response = await authFetch(API_URL, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({name: name, zipCode: zipCode}),
+            body: JSON.stringify({name: name, zipCode: zipCode, colorHex: colorHex}),
         });
 
         if (!response.ok) {
@@ -51,6 +51,22 @@ export const removeCity = createAsyncThunk("cities/removeCity", async (id: strin
 
     return id;
 });
+
+// ✅ Thunk pour mettre à jour la couleur d'une ville
+export const updateCityColor = createAsyncThunk(
+    "cities/updateCityColor",
+    async ({id, colorHex}: {id: string; colorHex: string | null}) => {
+        const response = await authFetch(`${API_URL}/${id}/couleur`, {
+            method: "PATCH",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({colorHex}),
+        });
+        if (!response.ok) {
+            throw new Error("Erreur lors de la mise à jour de la couleur");
+        }
+        return response.json() as Promise<City>;
+    }
+);
 
 const citySlice = createSlice({
     name: "cities",
@@ -80,6 +96,14 @@ const citySlice = createSlice({
             // 📌 Gestion de la suppression d'une ville
             .addCase(removeCity.fulfilled, (state, action: PayloadAction<string>) => {
                 state.cities = state.cities.filter(city => city.id !== action.payload);
+            })
+            // 📌 Gestion de la mise à jour de la couleur
+            .addCase(updateCityColor.fulfilled, (state, action: PayloadAction<City>) => {
+                const updated = action.payload;
+                const idx = state.cities.findIndex(c => c.id === updated.id);
+                if (idx !== -1) {
+                    state.cities[idx] = updated;
+                }
             });
     },
 });

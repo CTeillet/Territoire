@@ -11,4 +11,5 @@ public interface ICityService {
 	City addCity(AddCityDto city);
 	List<City> getCities();
 	void deleteCity(UUID cityId);
+	City updateCityColor(UUID cityId, String colorHex);
 }

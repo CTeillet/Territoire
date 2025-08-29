@@ -1,6 +1,7 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.AddCityDto;
+import com.teillet.territoire.dto.UpdateCityColorDto;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.service.ICityService;
 import lombok.RequiredArgsConstructor;
@@ -43,5 +44,15 @@ public class CityController {
 		log.info("📌 Demande de suppression de la ville {}", cityId);
 		cityService.deleteCity(cityId);
 		log.info("✅ Ville supprimée avec succès");
+	}
+
+	// 🔹 Mise à jour de la couleur de la ville
+	@PatchMapping("/{cityId}/couleur")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public City updateCityColor(@PathVariable UUID cityId, @RequestBody UpdateCityColorDto dto) {
+		log.info("📌 Demande de mise à jour de la couleur pour la ville {}", cityId);
+		City updated = cityService.updateCityColor(cityId, dto.getColorHex());
+		log.info("✅ Couleur mise à jour avec succès");
+		return updated;
 	}
 }

@@ -25,8 +25,8 @@ public final class MapMath {
 
     /** EPSG:4326 lat -> tile Y */
     public static int lat2tileY(double latDeg, int z) {
-        double φ = Math.toRadians(Math.max(-85.05112878, Math.min(85.05112878, latDeg)));
-        double my = Math.log(Math.tan(Math.PI/4 + φ/2)) * 6378137.0;
+        double phi = Math.toRadians(Math.max(-85.05112878, Math.min(85.05112878, latDeg)));
+        double my = Math.log(Math.tan(Math.PI/4 + phi/2)) * 6378137.0;
         double res = resolution(z);
         return (int) Math.floor((ORIGIN_SHIFT - my) / (TILE_SIZE * res));
     }

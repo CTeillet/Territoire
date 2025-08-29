@@ -32,7 +32,7 @@ public class WmtsClient {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-    public TileImage fetchTiles(Envelope env4326, int z) throws Exception {
+    public TileImage fetchTiles(Envelope env4326, int z) {
         z = Math.max(0, Math.min(19, z));
 
         int xMin = MapMath.lon2tileX(env4326.getMinX(), z);

@@ -40,6 +40,8 @@ public class CityService implements ICityService {
 		City cityEntity = new City();
 		cityEntity.setName(city.getName());
 		cityEntity.setZipCode(city.getZipCode());
+		// set color if provided
+		cityEntity.setColorHex(city.getColorHex());
 
 		Point center = getCityCoordinates(city.getZipCode());
 
@@ -80,7 +82,22 @@ public class CityService implements ICityService {
 			log.error("Problème lors de la récupération de la ville via geo.api.gouv.fr", e);
 		}
 
-		return null; // Si la ville n'est pas trouvée
+ 	return null; // Si la ville n'est pas trouvée
+	}
+
+	@Override
+	public City updateCityColor(UUID cityId, String colorHex) {
+		City city = getCity(cityId);
+		if (colorHex != null) {
+			String trimmed = colorHex.trim();
+			if (!trimmed.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) {
+				throw new IllegalArgumentException("Code couleur hexadécimal invalide");
+			}
+			city.setColorHex(trimmed);
+		} else {
+			city.setColorHex(null);
+		}
+		return cityRepository.save(city);
 	}
 
 }
