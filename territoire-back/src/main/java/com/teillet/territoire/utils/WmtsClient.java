@@ -1,6 +1,5 @@
 package com.teillet.territoire.utils;
 
-
 import com.teillet.territoire.config.IgnWmtsProperties;
 import com.teillet.territoire.record.TileImage;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +31,21 @@ public class WmtsClient {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
+    // ------------------- API publique -------------------
+
+    /** Emprise en EPSG:3857 -> fetch, mosaïque alignée */
+    public TileImage fetchTiles3857(Envelope env3857, int z) {
+        // convertir bbox 3857 -> bbox 4326 pour calculer les indices de tuiles
+        double minLon = Math.toDegrees(env3857.getMinX() / 6378137.0);
+        double maxLon = Math.toDegrees(env3857.getMaxX() / 6378137.0);
+        double minLat = Math.toDegrees(2 * Math.atan(Math.exp(env3857.getMinY() / 6378137.0)) - Math.PI/2);
+        double maxLat = Math.toDegrees(2 * Math.atan(Math.exp(env3857.getMaxY() / 6378137.0)) - Math.PI/2);
+
+        Envelope env4326 = new Envelope(minLon, maxLon, minLat, maxLat);
+        return fetchTiles(env4326, z);
+    }
+
+    /** Emprise en EPSG:4326 -> assemble les tuiles WMTS alignées */
     public TileImage fetchTiles(Envelope env4326, int z) {
         z = Math.max(0, Math.min(19, z));
 
@@ -45,7 +59,7 @@ public class WmtsClient {
         int mosaicW = cols * MapMath.TILE_SIZE;
         int mosaicH = rows * MapMath.TILE_SIZE;
 
-        // exact mosaic extent in meters (EPSG:3857)
+        // emprise exacte de la mosaïque (mètres, EPSG:3857)
         Envelope tl = MapMath.tileBoundsMeters(xMin, yMin, z);
         Envelope tr = MapMath.tileBoundsMeters(xMax, yMin, z);
         Envelope br = MapMath.tileBoundsMeters(xMax, yMax, z);

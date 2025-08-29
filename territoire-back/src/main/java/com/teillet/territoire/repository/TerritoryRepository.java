@@ -1,6 +1,6 @@
 package com.teillet.territoire.repository;
 
-import com.teillet.territoire.repository.projection.Bbox4326;
+import com.teillet.territoire.repository.projection.Bbox3857;
 import com.teillet.territoire.repository.projection.TerritoryHullRow;
 import com.teillet.territoire.repository.projection.TerritoryStatisticsProjection;
 import com.teillet.territoire.model.Territory;
@@ -120,31 +120,31 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
             """, nativeQuery = true)
     List<TerritoryHullRow> findAllProjected3857ByCityId(UUID cityId);
 
-    // ————— BBOX 4326 pour récupérer l’emprise en degrés —————
     @Query(value = """
-            SELECT ST_XMin(ext)::float8 AS minx,
-                   ST_YMin(ext)::float8 AS miny,
-                   ST_XMax(ext)::float8 AS maxx,
-                   ST_YMax(ext)::float8 AS maxy
+            SELECT
+                ST_XMin(ext)::float8 AS minx,
+                ST_YMin(ext)::float8 AS miny,
+                ST_XMax(ext)::float8 AS maxx,
+                ST_YMax(ext)::float8 AS maxy
             FROM (
-              SELECT ST_Extent(concave_hull) AS ext
-              FROM territory
-              WHERE concave_hull IS NOT NULL
+                SELECT ST_Extent(ST_Transform(concave_hull, 3857)) AS ext
+                FROM territory
+                WHERE concave_hull IS NOT NULL
             ) s
             """, nativeQuery = true)
-    Bbox4326 findBbox4326();
+    Bbox3857 findBbox3857();
 
     @Query(value = """
-            SELECT ST_XMin(ext)::float8 AS minx,
-                   ST_YMin(ext)::float8 AS miny,
-                   ST_XMax(ext)::float8 AS maxx,
-                   ST_YMax(ext)::float8 AS maxy
-            FROM (
-              SELECT ST_Extent(concave_hull) AS ext
-              FROM territory
-              WHERE concave_hull IS NOT NULL
-                AND city_id = :cityId
-            ) s
+                SELECT ST_XMin(ext)::float8 AS minx,
+                       ST_YMin(ext)::float8 AS miny,
+                       ST_XMax(ext)::float8 AS maxx,
+                       ST_YMax(ext)::float8 AS maxy
+                FROM (
+                  SELECT ST_Extent(ST_Transform(concave_hull, 3857)) AS ext
+            FROM territory
+            WHERE concave_hull IS NOT NULL
+                    AND city_id = :cityId
+                ) s
             """, nativeQuery = true)
-    Bbox4326 findBbox4326ByCityId(UUID cityId);
+    Bbox3857 findBbox3857ByCityId(UUID cityId);
 }
