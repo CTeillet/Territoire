@@ -4,10 +4,15 @@ import { CheckLateTerritoriesButton } from "@/components/parameters/other-parame
 import { CheckAvailableTerritoriesButton } from "@/components/parameters/other-parameter/check-available-territories-button";
 import { DeleteAssignmentsSection } from "@/components/parameters/other-parameter/delete-assignments-section";
 import { ExportTerritoriesMapButton } from "@/components/parameters/other-parameter/export-map-button";
+import { PublishersCountSection } from "@/components/parameters/other-parameter/publishers-count-section";
 
 export default function OtherParameter() {
     return (
         <div className="p-6 space-y-8">
+            <section className="border rounded-2xl shadow-sm bg-white p-4">
+                <PublishersCountSection />
+            </section>
+
             <section className="border rounded-2xl shadow-sm bg-white p-4">
                 <h2 className="text-xl font-bold mb-4">Données Excel</h2>
                 <div className="space-y-4">
