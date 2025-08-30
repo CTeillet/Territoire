@@ -9,6 +9,7 @@ import com.teillet.territoire.repository.TerritoryStatusHistoryRepository;
 import com.teillet.territoire.service.ITerritoryStatusHistoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TerritoryStatusHistoryService implements ITerritoryStatusHistoryService {
 	private final TerritoryRepository territoryRepository;
 	private final TerritoryStatusHistoryRepository territoryStatusHistoryRepository;
@@ -50,7 +52,7 @@ public class TerritoryStatusHistoryService implements ITerritoryStatusHistorySer
 
 		territoryStatusHistoryRepository.save(history);
 
-		System.out.println("📊 Statistiques enregistrées : " + history);
+		log.info("📊 Statistiques enregistrées : {}", history);
 	}
 
 	@Override
