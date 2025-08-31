@@ -12,7 +12,7 @@ exporters:
   debug:
     verbosity: detailed
   otlp:
-    endpoint: tempo:5317
+    endpoint: tempo:4317
     tls:
       insecure: true
   loki:

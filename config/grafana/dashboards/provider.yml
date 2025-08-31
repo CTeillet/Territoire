@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: default-dashboards
+    type: file
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards   # ← dossier déjà monté
+      foldersFromFilesStructure: true
