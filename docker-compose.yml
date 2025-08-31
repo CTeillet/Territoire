@@ -68,6 +68,16 @@ services:
     volumes:
       - ./config/grafana:/etc/grafana/provisioning
       - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SERVER_DOMAIN=grafana-tms.cteillet.fr
+      - GF_SERVER_ROOT_URL=https://grafana-tms.cteillet.fr
+      - GF_SERVER_ENFORCE_DOMAIN=true
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      # sécurité
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASS}
 
   tempo:
     image: grafana/tempo:latest
