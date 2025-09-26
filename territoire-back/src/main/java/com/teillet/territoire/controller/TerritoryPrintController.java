@@ -23,9 +23,10 @@ public class TerritoryPrintController {
             @RequestParam(defaultValue = "landscape") String orientation,
             @RequestParam(defaultValue = "300") int dpi,
             @RequestParam(required = false) UUID cityId,
-            @RequestParam(defaultValue = "14") int zoom
+            @RequestParam(defaultValue = "14") int zoom,
+            @RequestParam(defaultValue = "true") boolean showLabels
     ) throws Exception {
-        byte[] png = mapService.generatePng(paper, orientation, dpi, cityId, zoom);
+        byte[] png = mapService.generatePng(paper, orientation, dpi, cityId, zoom, showLabels);
         return ResponseEntity.ok(png);
     }
 }

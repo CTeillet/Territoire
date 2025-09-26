@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {authFetch} from "@/utils/auth-fetch";
 
 type Paper = "A4" | "A3";
@@ -29,6 +30,7 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({ cityId, className,
     const [orientation, setOrientation] = useState<Orientation>("landscape");
     const [dpi, setDpi] = useState<number>(300);
     const [zoom, setZoom] = useState<number>(14);
+    const [showLabels, setShowLabels] = useState<boolean>(true);
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -49,6 +51,7 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({ cityId, className,
                 orientation,
                 dpi: String(dpi),
                 zoom: String(zoom),
+                showLabels: String(showLabels),
             });
             if (cityId) params.set("cityId", cityId);
 
@@ -147,6 +150,15 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({ cityId, className,
                                     value={zoom}
                                     onChange={(e) => setZoom(Number(e.target.value || 14))}
                                 />
+                            </div>
+
+                            <div className="col-span-2 flex items-center gap-3">
+                                <Checkbox
+                                    id="show-labels"
+                                    checked={showLabels}
+                                    onCheckedChange={(v) => setShowLabels(Boolean(v))}
+                                />
+                                <Label htmlFor="show-labels">Afficher les étiquettes</Label>
                             </div>
 
                             {cityId && (

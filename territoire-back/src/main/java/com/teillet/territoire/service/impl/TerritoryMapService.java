@@ -31,7 +31,7 @@ public class TerritoryMapService implements ITerritoryMapService {
     private final WmtsClient wmtsClient;
 
     @Override
-    public byte[] generatePng(String paper, String orientation, int dpi, UUID cityId, int zoom) throws Exception {
+    public byte[] generatePng(String paper, String orientation, int dpi, UUID cityId, int zoom, boolean showLabels) throws Exception {
         // 1) Taille de sortie
         Dimension outDim = RenderUtils.paperToPixels(paper, orientation, dpi);
         int width = outDim.width, height = outDim.height;
@@ -91,20 +91,22 @@ public class TerritoryMapService implements ITerritoryMapService {
             g.setColor(new Color(45, 45, 45, 200)); g.draw(shp);
         }
 
-        for (TerritoryHullRow r : rows) {
-            Point p = (Point) reader.read(r.getLabelWkb());
-            String text = r.getName() == null ? "" : r.getName();
+        if (showLabels) {
+            for (TerritoryHullRow r : rows) {
+                Point p = (Point) reader.read(r.getLabelWkb());
+                String text = r.getName() == null ? "" : r.getName();
 
-            int x = (int) Math.round(p.getX() * scale + ox);
-            int y = (int) Math.round(oy - p.getY() * scale);
+                int x = (int) Math.round(p.getX() * scale + ox);
+                int y = (int) Math.round(oy - p.getY() * scale);
 
-            FontMetrics fm = g.getFontMetrics();
-            int w = fm.stringWidth(text), h = fm.getAscent();
+                FontMetrics fm = g.getFontMetrics();
+                int w = fm.stringWidth(text), h = fm.getAscent();
 
-            g.setColor(halo);
-            g.fillRoundRect(x - w/2 - 4, y - h, w + 8, h + 6, 6, 6);
-            g.setColor(Color.BLACK);
-            g.drawString(text, x - w/2, y);
+                g.setColor(halo);
+                g.fillRoundRect(x - w/2 - 4, y - h, w + 8, h + 6, 6, 6);
+                g.setColor(Color.BLACK);
+                g.drawString(text, x - w/2, y);
+            }
         }
 
         g.dispose();
