@@ -38,7 +38,7 @@ public class JwtService implements IJwtService {
 				.setSubject(user.getEmail())
 				.claim("role", user.getRole().name())
 				.setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + expirationTime * 60 * 60 * 10)) // 10h
+				.setExpiration(new Date(System.currentTimeMillis() + expirationTime)) // expirationTime in ms (configurable)
 				.signWith(key, SignatureAlgorithm.HS256)
 				.compact();
 	}

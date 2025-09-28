@@ -19,8 +19,9 @@ const authSlice = createSlice({
             state.user = action.payload.user;
             state.token = action.payload.token;
             // Stocke dans les cookies au lieu de localStorage
-            document.cookie = `token=${action.payload.token}; path=/;`;
-            document.cookie = `user=${JSON.stringify(action.payload.user)}; path=/;`;
+            // Persist cookies for 30 days so the user stays logged in across browser restarts
+            document.cookie = `token=${action.payload.token}; Path=/; Max-Age=2592000; SameSite=Lax`;
+            document.cookie = `user=${encodeURIComponent(JSON.stringify(action.payload.user))}; Path=/; Max-Age=2592000; SameSite=Lax`;
         },
         logout: (state) => {
             state.user = null;
