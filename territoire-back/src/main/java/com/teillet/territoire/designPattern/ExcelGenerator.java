@@ -9,15 +9,17 @@ import java.util.List;
 public class ExcelGenerator {
 
 	private final Workbook workbook;
+	private final int startYear;
 
-	public ExcelGenerator(Workbook workbook) {
+	public ExcelGenerator(Workbook workbook, int startYear) {
 		this.workbook = workbook;
+		this.startYear = startYear;
 	}
 
 	public void generate(List<City> cities) {
 		for (City city : cities) {
 			Sheet sheet = workbook.createSheet(city.getName());
-			new ExcelSheetBuilder(workbook, sheet)
+			new ExcelSheetBuilder(workbook, sheet, startYear)
 					.addCityHeader(city)
 					.addTerritories(city.getTerritories())
 					.setColumnWidth(1, 6000) // Définir la largeur de la colonne 1 à 6000

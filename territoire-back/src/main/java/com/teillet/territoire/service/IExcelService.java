@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.List;
 
 public interface IExcelService {
-	void generateExcel(List<City> cities, ByteArrayOutputStream outputStream) throws IOException;
+	void generateExcel(List<City> cities, ByteArrayOutputStream outputStream, int startYear) throws IOException;
+	byte[] exportExcel(Integer year) throws IOException;
 	void importExcel(MultipartFile file) throws IOException;
 }
