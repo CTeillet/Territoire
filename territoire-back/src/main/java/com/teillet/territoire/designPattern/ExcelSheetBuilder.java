@@ -3,6 +3,7 @@ package com.teillet.territoire.designPattern;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Territory;
+import com.teillet.territoire.utils.TerritoryUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 
@@ -10,7 +11,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 public class ExcelSheetBuilder {
 	private static final int TERRITORY_NAME_COL = 0;
@@ -20,13 +20,15 @@ public class ExcelSheetBuilder {
 
 	private final Workbook workbook;
 	private final Sheet sheet;
+	private final int startYear;
 	private int rowNum;
 
 	public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-	public ExcelSheetBuilder(Workbook workbook, Sheet sheet) {
+	public ExcelSheetBuilder(Workbook workbook, Sheet sheet, int startYear) {
 		this.workbook = workbook;
 		this.sheet = sheet;
+		this.startYear = startYear;
 		this.rowNum = 0;
 	}
 
@@ -38,7 +40,8 @@ public class ExcelSheetBuilder {
 	public ExcelSheetBuilder addCityHeader(City city) {
 		CellStyle yearStyle = CellStyleFactory.createYearStyle(workbook);
 		createMergedCell(rowNum, rowNum, 0, 9, city.getName(), yearStyle);
-		createMergedCell(rowNum + 1, rowNum + 1, 0, 9, "2024-2025", yearStyle);
+		String yearLabel = startYear + "-" + (startYear + 1);
+		createMergedCell(rowNum + 1, rowNum + 1, 0, 9, yearLabel, yearStyle);
 		rowNum += 2; // Move to the next row after adding the header
 		return this;
 	}
@@ -66,7 +69,8 @@ public class ExcelSheetBuilder {
 
 	private void createTerritoryCells(Row territoryRow, Row dateRow, Territory territory, CellStyle fillStyle) {
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), TERRITORY_NAME_COL, TERRITORY_NAME_COL, territory.getName(), fillStyle);
-		String lastVisitDate = formatDate(territory.getAssignments().stream().map(Assignment::getReturnDate).filter(Objects::nonNull).max(LocalDate::compareTo).orElse(null), "nouveau");
+		// Toujours afficher la dernière date de rendu (ou "nouveau" s'il n'y en a jamais eu), même si le territoire est actuellement attribué.
+		String lastVisitDate = TerritoryUtils.getLastVisitedOn(territory);
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastVisitDate, fillStyle);
 
 		List<Assignment> assignments = territory.getAssignments().stream().sorted(Comparator.comparing(Assignment::getAssignmentDate)).toList();

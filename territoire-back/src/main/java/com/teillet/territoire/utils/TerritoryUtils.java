@@ -15,7 +15,8 @@ public class TerritoryUtils {
 		return territory.getAssignments()
 				.stream()
 				.map(Assignment::getReturnDate)
-				.filter(Objects::nonNull).max(LocalDate::compareTo)
+				.filter(Objects::nonNull)
+				.max(LocalDate::compareTo)
 				.map(LocalDate::toString)
 				.orElse(NOUVEAU);
 	}

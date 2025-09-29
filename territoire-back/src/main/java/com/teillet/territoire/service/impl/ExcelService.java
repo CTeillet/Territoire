@@ -7,8 +7,11 @@ import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
+import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.IExcelService;
+import com.teillet.territoire.utils.ExcelExportUtils;
+import com.teillet.territoire.utils.SchoolYearUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -31,14 +34,29 @@ public class ExcelService implements IExcelService {
 	private final PersonService personService;
 	private final TerritoryRepository territoryRepository;
 	private final AssignmentRepository assignmentRepository;
+	private final CityRepository cityRepository;
 
 	@Override
-	public void generateExcel(List<City> cities, ByteArrayOutputStream outputStream) throws IOException {
+	public void generateExcel(List<City> cities, ByteArrayOutputStream outputStream, int startYear) throws IOException {
 		try (Workbook workbook = new XSSFWorkbook()) {
-			ExcelGenerator excelGenerator = new ExcelGenerator(workbook);
+			ExcelGenerator excelGenerator = new ExcelGenerator(workbook, startYear);
 			excelGenerator.generate(cities);
 			workbook.write(outputStream);
 		}
+	}
+
+	@Override
+	public byte[] exportExcel(Integer year) throws IOException {
+		int startYear = SchoolYearUtils.resolveStartYear(year);
+		LocalDate start = SchoolYearUtils.getStartDate(startYear);
+		LocalDate end = SchoolYearUtils.getEndDate(startYear);
+
+		List<City> cities = cityRepository.findAll();
+		cities = ExcelExportUtils.prepareCitiesForExport(cities, start, end);
+
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		generateExcel(cities, outputStream, startYear);
+		return outputStream.toByteArray();
 	}
 
 	@Override
@@ -130,9 +148,9 @@ public class ExcelService implements IExcelService {
 					.replaceAll("[’']", "") // supprime les apostrophes typographiques ou simples
 					.toUpperCase()
 					.trim();
-		}
+			}
 
-		private String getCellValue(Cell cell) {
+			private String getCellValue(Cell cell) {
 			if (cell == null) return null;
 			switch (cell.getCellType()) {
 				case STRING: return cell.getStringCellValue();
