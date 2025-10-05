@@ -53,6 +53,17 @@ const initialState: TerritoryState = {
 
 const BASE_URL = `/api/territoires`;
 
+// --- Small helpers to reduce duplication inside reducers ---
+const findFeatureById = (state: TerritoryState, id: string) => {
+    return state.territoriesGeojson?.features.find((f) => f.properties.id === id);
+};
+
+const updateSelectedIfSame = (state: TerritoryState, affectedId: string, updater: (t: Territory) => void) => {
+    if (state.selectedTerritory && state.selectedTerritory.id === affectedId) {
+        updater(state.selectedTerritory);
+    }
+};
+
 export const extendTerritory = createAsyncThunk(
     "territories/extendTerritory",
     async ({ territoryId, dueDate }: { territoryId: string; dueDate?: string }, {rejectWithValue}) => {
@@ -470,8 +481,6 @@ const territorySlice = createSlice({
             })
             .addCase(fetchTerritoryById.fulfilled, (state, action) => {
                 state.selectedTerritory = action.payload;
-                console.log(" recuperation territoire", state.selectedTerritory.addressesNotToDo)
-                console.log(" recuperation territoire2", state.selectedTerritory)
                 state.loading = false;
             })
             .addCase(fetchTerritoryById.rejected, (state, action) => {
@@ -522,14 +531,14 @@ const territorySlice = createSlice({
                     return;
                 }
 
+                const affectedId = assignment.territory.territoryId;
+
                 // ✅ Recherche du territoire correspondant dans `FeatureCollection`
-                const feature = state.territoriesGeojson?.features.find(
-                    (f) => f.properties.id === assignment.territory.territoryId
-                );
+                const feature = findFeatureById(state, affectedId);
 
                 if (feature) {
                     feature.properties.status = "ASSIGNED";
-                    feature.properties.assignments = [...feature.properties.assignments,  assignment]; // Remplace l'assignation existante par la nouvelle
+                    feature.properties.assignments = [...feature.properties.assignments, assignment];
 
                     // Mise à jour de la personne et des dates
                     if (assignment.person) {
@@ -538,8 +547,19 @@ const territorySlice = createSlice({
                     feature.properties.assignedOn = assignment.assignmentDate;
                     feature.properties.waitedFor = assignment.dueDate;
                 } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${assignment.territory.territoryId}`);
+                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${affectedId}`);
                 }
+
+                // ✅ Met à jour aussi le territoire sélectionné si c'est le même
+                updateSelectedIfSame(state, affectedId, (t) => {
+                    t.status = "ASSIGNED";
+                    t.assignments = [...t.assignments, assignment];
+                    if (assignment.person) {
+                        t.assignedTo = assignment.person.firstName + ' ' + assignment.person.lastName;
+                    }
+                    t.assignedOn = assignment.assignmentDate;
+                    t.waitedFor = assignment.dueDate;
+                });
             })
             .addCase(assignTerritory.rejected, (state, action) => {
                 state.loading = false;
@@ -559,18 +579,17 @@ const territorySlice = createSlice({
                 }
 
                 const {territory, returnDate} = updatedAssignment;
+                const affectedId = territory.territoryId;
 
                 // ✅ Recherche du territoire correspondant dans `FeatureCollection`
-                const feature = state.territoriesGeojson?.features.find(
-                    (f) => f.properties.id === territory.territoryId
-                );
+                const feature = findFeatureById(state, affectedId);
 
                 if (feature) {
                     feature.properties.status = "PENDING";
                     feature.properties.lastVisitedOn = returnDate;
                     feature.properties.assignments = [{
                         ...updatedAssignment,
-                        returnDate, // Ajout de la date de retour mise à jour
+                        returnDate,
                     }];
 
                     // Mise à jour de la personne (réinitialisation car le territoire est retourné)
@@ -578,10 +597,23 @@ const territorySlice = createSlice({
                     feature.properties.assignedOn = "";
                     feature.properties.waitedFor = "";
 
-                    console.log(`✅ Territoire ${territory.territoryId} retourné et mis à jour dans le store`);
+                    console.log(`✅ Territoire ${affectedId} retourné et mis à jour dans le store`);
                 } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${territory.territoryId}`);
+                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${affectedId}`);
                 }
+
+                // ✅ Met à jour aussi le territoire sélectionné si c'est le même
+                updateSelectedIfSame(state, affectedId, (t) => {
+                    t.status = "PENDING";
+                    t.lastVisitedOn = returnDate;
+                    t.assignments = [{
+                        ...updatedAssignment,
+                        returnDate,
+                    }];
+                    t.assignedTo = "";
+                    t.assignedOn = "";
+                    t.waitedFor = "";
+                });
             })
             .addCase(returnTerritory.rejected, (state, action) => {
                 state.loading = false;
@@ -601,18 +633,17 @@ const territorySlice = createSlice({
                 }
 
                 const {territory, returnDate} = updatedAssignment;
+                const affectedId = territory.territoryId;
 
                 // ✅ Recherche du territoire correspondant dans `FeatureCollection`
-                const feature = state.territoriesGeojson?.features.find(
-                    (f) => f.properties.id === territory.territoryId
-                );
+                const feature = findFeatureById(state, affectedId);
 
                 if (feature) {
                     feature.properties.status = "AVAILABLE";
                     feature.properties.lastVisitedOn = returnDate;
                     feature.properties.assignments = [{
                         ...updatedAssignment,
-                        returnDate, // Ajout de la date de retour mise à jour
+                        returnDate,
                     }];
 
                     // Mise à jour de la personne (réinitialisation car l'assignation est annulée)
@@ -620,10 +651,23 @@ const territorySlice = createSlice({
                     feature.properties.assignedOn = "";
                     feature.properties.waitedFor = "";
 
-                    console.log(`✅ Assignation du territoire ${territory.territoryId} annulée et mis à jour dans le store`);
+                    console.log(`✅ Assignation du territoire ${affectedId} annulée et mis à jour dans le store`);
                 } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${territory.territoryId}`);
+                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${affectedId}`);
                 }
+
+                // ✅ Met à jour aussi le territoire sélectionné si c'est le même
+                updateSelectedIfSame(state, affectedId, (t) => {
+                    t.status = "AVAILABLE";
+                    t.lastVisitedOn = returnDate;
+                    t.assignments = [{
+                        ...updatedAssignment,
+                        returnDate,
+                    }];
+                    t.assignedTo = "";
+                    t.assignedOn = "";
+                    t.waitedFor = "";
+                });
             })
             .addCase(cancelAssignment.rejected, (state, action) => {
                 state.loading = false;
@@ -697,23 +741,32 @@ const territorySlice = createSlice({
                 }
 
                 const {territory, returnDate, assignmentDate} = updatedAssignment;
+                const affectedId = territory.territoryId;
 
                 // ✅ Recherche du territoire correspondant dans `FeatureCollection`
-                const feature = state.territoriesGeojson?.features.find(
-                    (f) => f.properties.id === territory.territoryId
-                );
+                const feature = findFeatureById(state, affectedId);
 
                 if (feature) {
                     feature.properties.status = "ASSIGNED";
                     feature.properties.lastVisitedOn = assignmentDate;
                     feature.properties.assignments = [{
                         ...updatedAssignment,
-                        returnDate, // Ajout de la date de retour mise à jour
+                        returnDate,
                     }];
-                    console.log(`✅ Territoire ${territory.territoryId} retourné et mis à jour dans le store`);
+                    console.log(`✅ Territoire ${affectedId} retourné et mis à jour dans le store`);
                 } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${territory.territoryId}`);
+                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${affectedId}`);
                 }
+
+                // ✅ Met à jour aussi le territoire sélectionné si c'est le même
+                updateSelectedIfSame(state, affectedId, (t) => {
+                    t.status = "ASSIGNED";
+                    t.lastVisitedOn = assignmentDate;
+                    t.assignments = [{
+                        ...updatedAssignment,
+                        returnDate,
+                    }];
+                });
             })
             .addCase(extendTerritory.rejected, (state, action) => {
                 state.loading = false;
