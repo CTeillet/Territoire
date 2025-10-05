@@ -6,6 +6,7 @@ services:
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      WAHA_DB_PASSWORD: ${WAHA_DB_PASSWORD}
       POSTGRES_DB: territoire
     ports:
       - "5432:5432"
@@ -121,37 +122,39 @@ services:
   waha:
     restart: always
     image: devlikeapro/waha:latest
-    # Add "dns" if you have a problem with resolving "web.whatsapp.com"
+    # DNS utile si résolution de web.whatsapp.com capricieuse
     dns:
       - 1.1.1.1
       - 8.8.8.8
     logging:
-      driver: 'json-file'
+      driver: "json-file"
       options:
-        max-size: '100m'
-        max-file: '10'
+        max-size: "100m"
+        max-file: "10"
     ports:
-      - '20080:3000/tcp'
-    volumes:
-      - './config/waha/sessions:/app/.sessions'
-      - './config/waha/media:/app/.media'
+      - "20080:3000/tcp"
     environment:
+      # --- Base publique (génération d'URLs, webhooks, etc.)
       - WAHA_BASE_URL=https://waha-tms.cteillet.fr
+      # --- Dashboard & Swagger (non secrets ici ; mots de passe en variables)
       - WAHA_DASHBOARD_ENABLED=True
       - WAHA_DASHBOARD_USERNAME=admin
       - WHATSAPP_SWAGGER_ENABLED=True
       - WHATSAPP_SWAGGER_USERNAME=admin
+      # --- Moteur / logs
       - WHATSAPP_DEFAULT_ENGINE=WEBJS
       - WAHA_LOG_FORMAT=JSON
       - WAHA_LOG_LEVEL=info
       - WAHA_PRINT_QR=False
-      - WAHA_MEDIA_STORAGE=LOCAL
-      - WHATSAPP_FILES_LIFETIME=0
-      - WHATSAPP_FILES_FOLDER=/app/.media
+      # --- Sessions en PostgreSQL
+      - WHATSAPP_SESSIONS_POSTGRESQL_URL=postgres://waha:${WAHA_DB_PASSWORD}@postgis:5432/waha?sslmode=disable
+      # --- Médias en PostgreSQL (tout en DB)
+      - WAHA_MEDIA_STORAGE=POSTGRESQL
+      - WAHA_MEDIA_POSTGRESQL_URL=postgres://waha:${WAHA_DB_PASSWORD}@postgis:5432/waha?sslmode=disable
+      # --- Secrets (fournis via .env / variables d'environnement)
       - WAHA_API_KEY=${WAHA_API_KEY}
       - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD}
       - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD}
-
 volumes:
   postgis_data:
   grafana_data:
