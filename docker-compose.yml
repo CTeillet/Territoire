@@ -118,6 +118,39 @@ services:
     ports:
       - "9187:9187"
 
+  waha:
+    restart: always
+    image: devlikeapro/waha:latest
+    # Add "dns" if you have a problem with resolving "web.whatsapp.com"
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '100m'
+        max-file: '10'
+    ports:
+      - '20080:3000/tcp'
+    volumes:
+      - './config/waha/sessions:/app/.sessions'
+      - './config/waha/media:/app/.media'
+    environment:
+      - WAHA_BASE_URL=https://waha-tms.cteillet.fr
+      - WAHA_DASHBOARD_ENABLED=True
+      - WAHA_DASHBOARD_USERNAME=admin
+      - WHATSAPP_SWAGGER_ENABLED=True
+      - WHATSAPP_SWAGGER_USERNAME=admin
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+      - WAHA_LOG_FORMAT=JSON
+      - WAHA_LOG_LEVEL=info
+      - WAHA_PRINT_QR=False
+      - WAHA_MEDIA_STORAGE=LOCAL
+      - WHATSAPP_FILES_LIFETIME=0
+      - WHATSAPP_FILES_FOLDER=/app/.media
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD}
+      - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD}
 
 volumes:
   postgis_data:
