@@ -10,30 +10,53 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      back: ${{ steps.filter.outputs.back }}
+      front: ${{ steps.filter.outputs.front }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            back:
+              - 'territoire-back/**'
+            front:
+              - 'territoire-front/**'
+
   build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
+    needs: changes
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
+        if: ${{ needs.changes.outputs.back == 'true' || needs.changes.outputs.front == 'true' }}
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Build and Push Backend Image
+        if: ${{ needs.changes.outputs.back == 'true' }}
         run: |
           docker build -t ghcr.io/cteillet/territoire-back:latest ./territoire-back
           docker push ghcr.io/cteillet/territoire-back:latest
 
       - name: Build and Push Frontend Image
+        if: ${{ needs.changes.outputs.front == 'true' }}
         run: |
           docker build -t ghcr.io/cteillet/territoire-front:latest ./territoire-front
           docker push ghcr.io/cteillet/territoire-front:latest
 
   deploy:
     name: Deploy to VPS
-    needs: build-and-push
+    needs: [changes, build-and-push]
     runs-on: ubuntu-latest
 
     steps:
@@ -74,9 +97,15 @@ jobs:
           username: ${{ secrets.VPS_SSH_ID }}
           password: ${{ secrets.VPS_SSH_PASSWORD }}
           script: |
-            docker login ghcr.io -u cteillet --password ${{ secrets.GITHUB_TOKEN }}
-            docker pull ghcr.io/cteillet/territoire-back:latest
-            docker pull ghcr.io/cteillet/territoire-front:latest
+            if [ "${{ needs.changes.outputs.back }}" = "true" ] || [ "${{ needs.changes.outputs.front }}" = "true" ]; then
+              docker login ghcr.io -u cteillet --password ${{ secrets.GITHUB_TOKEN }}
+            fi
+            if [ "${{ needs.changes.outputs.back }}" = "true" ]; then
+              docker pull ghcr.io/cteillet/territoire-back:latest
+            fi
+            if [ "${{ needs.changes.outputs.front }}" = "true" ]; then
+              docker pull ghcr.io/cteillet/territoire-front:latest
+            fi
             cd /home/${{ secrets.VPS_SSH_ID }}/territoire
             docker compose up -d --force-recreate
 
