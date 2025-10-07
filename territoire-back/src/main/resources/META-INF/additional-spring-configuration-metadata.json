@@ -1,0 +1,13 @@
+{
+  "properties": [
+    {
+      "name": "waha.apiKey",
+      "type": "java.lang.String",
+      "description": "Waha API key."
+    },
+    {
+      "name": "waha.baseUrl",
+      "type": "java.lang.String",
+      "description": "Waha url."
+    }
+  ] }
