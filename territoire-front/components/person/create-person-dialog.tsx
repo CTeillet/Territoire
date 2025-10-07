@@ -19,6 +19,7 @@ import {zodResolver} from "@hookform/resolvers/zod";
 import {Person} from "@/models/person";
 import {toast} from "sonner";
 import {Plus} from "lucide-react";
+import {PhoneInput} from "@/components/ui/phone-input";
 
 type CreatePersonDialogProps = {
     onCreate: (person: Person) => Promise<void>;
@@ -134,16 +135,21 @@ const CreatePersonDialog: React.FC<CreatePersonDialogProps> = (
                         <FormField
                             control={form.control}
                             name="phoneNumber"
-                            render={({field}) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Téléphone</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Téléphone (optionnel)" type="tel" {...field} />
+                                        <PhoneInput
+                                            value={field.value}
+                                            onChange={(val) => field.onChange(val)}
+                                            placeholder="Téléphone (optionnel)"
+                                            defaultCountry="FR"
+                                        />
                                     </FormControl>
                                     <FormDescription>
-                                        Numéro de contact (facultatif).
+                                        Choisissez l&#39;indicatif du pays puis saisissez le numéro.
                                     </FormDescription>
-                                    <FormMessage/>
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />

@@ -1,5 +1,6 @@
 import {Card, CardContent} from "@/components/ui/card";
 import React from "react";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 interface PersonEditFormProps {
     formData: {
@@ -9,9 +10,10 @@ interface PersonEditFormProps {
         phoneNumber: string | undefined;
     };
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onPhoneChange: (value: string) => void;
 }
 
-const PersonEditForm = ({ formData, onChange }: PersonEditFormProps) => {
+const PersonEditForm = ({ formData, onChange, onPhoneChange }: PersonEditFormProps) => {
     return (
         <Card>
             <CardContent>
@@ -48,12 +50,11 @@ const PersonEditForm = ({ formData, onChange }: PersonEditFormProps) => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium mt-2">Téléphone :</label>
-                        <input
-                            type="text"
-                            name="phoneNumber"
+                        <PhoneInput
                             value={formData.phoneNumber}
-                            onChange={onChange}
-                            className="w-full px-3 py-2 border rounded mt-1"
+                            onChange={onPhoneChange}
+                            placeholder="Téléphone (optionnel)"
+                            defaultCountry="FR"
                         />
                     </div>
                 </div>

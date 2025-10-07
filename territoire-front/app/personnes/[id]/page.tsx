@@ -95,7 +95,11 @@ const PersonDetail = () => {
             </h1>
 
             {editing ? (
-                <PersonEditForm formData={formData} onChange={handleInputChange} />
+                <PersonEditForm
+                    formData={formData}
+                    onChange={handleInputChange}
+                    onPhoneChange={(value) => setFormData({ ...formData, phoneNumber: value })}
+                />
             ) : (
                 <PersonDetails person={person} />
             )}
