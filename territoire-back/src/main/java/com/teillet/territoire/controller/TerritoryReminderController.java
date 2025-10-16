@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,13 +21,24 @@ public class TerritoryReminderController {
     private final ITerritoryReminderService territoryReminderService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     public ResponseEntity<TerritoryReminderDto> createReminder(
             @RequestParam UUID territoryId,
             @RequestParam UUID personId,
-            @RequestParam UUID remindedById,
             @RequestParam(required = false) String notes) {
         log.info("Création d'un rappel pour le territoire {} et la personne {}", territoryId, personId);
-        TerritoryReminderDto reminder = territoryReminderService.createReminder(territoryId, personId, remindedById, notes);
+        TerritoryReminderDto reminder = territoryReminderService.createReminder(territoryId, personId, notes);
+        return new ResponseEntity<>(reminder, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/whatsapp")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+    public ResponseEntity<TerritoryReminderDto> sendWhatsAppReminder(
+            @RequestParam UUID territoryId,
+            @RequestParam UUID personId,
+            @RequestBody String message) {
+        log.info("Envoi d'un rappel WhatsApp pour le territoire {} et la personne {}", territoryId, personId);
+        TerritoryReminderDto reminder = territoryReminderService.sendWhatsAppReminder(territoryId, personId, message);
         return new ResponseEntity<>(reminder, HttpStatus.CREATED);
     }
 

@@ -10,10 +10,13 @@ import com.teillet.territoire.repository.TerritoryReminderRepository;
 import com.teillet.territoire.service.IPersonService;
 import com.teillet.territoire.service.ITerritoryReminderService;
 import com.teillet.territoire.service.ITerritoryService;
+import com.teillet.territoire.service.IWahaClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,13 +28,25 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TerritoryReminderService implements ITerritoryReminderService {
 
+    private Person getAuthenticatedPerson() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new IllegalStateException("Utilisateur non authentifié");
+        }
+        String email = authentication.getName();
+        return personRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("Aucune personne liée à l'utilisateur authentifié"));
+    }
+
     private final TerritoryReminderRepository territoryReminderRepository;
     private final ITerritoryService territoryService;
     private final IPersonService personService;
+    private final IWahaClient wahaClient;
+    private final com.teillet.territoire.repository.PersonRepository personRepository;
 
     @Override
     @Transactional
-    public TerritoryReminderDto createReminder(UUID territoryId, UUID personId, UUID remindedById, String notes) {
+    public TerritoryReminderDto createReminder(UUID territoryId, UUID personId, String notes) {
         Territory territory = territoryService.getTerritory(territoryId);
         
         // Check if territory is late
@@ -40,7 +55,7 @@ public class TerritoryReminderService implements ITerritoryReminderService {
         }
         
         Person person = personService.getPerson(personId);
-        Person remindedBy = personService.getPerson(remindedById);
+        Person remindedBy = getAuthenticatedPerson();
         
         // Check if reminder already exists
         if (hasReminder(territoryId, personId)) {
@@ -60,6 +75,42 @@ public class TerritoryReminderService implements ITerritoryReminderService {
                 person.getFirstName() + " " + person.getLastName());
         
         return TerritoryReminderMapper.toDto(savedReminder);
+    }
+
+    @Override
+    @Transactional
+    public TerritoryReminderDto sendWhatsAppReminder(UUID territoryId, UUID personId, String message) {
+        Territory territory = territoryService.getTerritory(territoryId);
+
+        if (territory.getStatus() != TerritoryStatus.LATE) {
+            throw new IllegalStateException("Le territoire n'est pas en retard");
+        }
+
+        Person person = personService.getPerson(personId);
+        Person remindedBy = getAuthenticatedPerson();
+
+        if (person.getPhoneNumber() == null || person.getPhoneNumber().isBlank()) {
+            throw new IllegalStateException("Aucun numéro de téléphone pour la personne");
+        }
+        if (message == null || message.isBlank()) {
+            throw new IllegalArgumentException("Le message ne peut pas être vide");
+        }
+
+        // send WhatsApp message
+        wahaClient.sendMessage(person.getPhoneNumber(), message);
+
+        // persist reminder with messageSend
+        TerritoryReminder reminder = TerritoryReminder.builder()
+                .territory(territory)
+                .person(person)
+                .remindedBy(remindedBy)
+                .reminderDate(LocalDate.now())
+                .messageSend(message)
+                .build();
+
+        TerritoryReminder saved = territoryReminderRepository.save(reminder);
+        log.info("Rappel WhatsApp envoyé à {} pour le territoire {}", person.getPhoneNumber(), territory.getName());
+        return TerritoryReminderMapper.toDto(saved);
     }
 
     @Override

@@ -45,18 +45,16 @@ export const createReminder = createAsyncThunk(
     {
       territoryId,
       personId,
-      remindedById,
       notes,
     }: {
       territoryId: string;
       personId: string;
-      remindedById: string;
       notes?: string;
     },
     { rejectWithValue }
   ) => {
     try {
-      let url = `${BASE_URL}?territoryId=${territoryId}&personId=${personId}&remindedById=${remindedById}`;
+      let url = `${BASE_URL}?territoryId=${territoryId}&personId=${personId}`;
       if (notes) {
         url += `&notes=${encodeURIComponent(notes)}`;
       }
@@ -66,8 +64,20 @@ export const createReminder = createAsyncThunk(
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to send reminder");
+        let message = "Failed to send reminder";
+        try {
+          const contentType = response.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const errorData = await response.json();
+            message = (errorData && (errorData.message || errorData.error)) || message;
+          } else {
+            const text = await response.text();
+            message = text || message;
+          }
+        } catch (_) {
+          // ignore parsing errors and keep default message
+        }
+        throw new Error(message);
       }
 
       return await response.json();

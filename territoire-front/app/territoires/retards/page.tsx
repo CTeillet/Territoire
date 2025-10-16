@@ -1,10 +1,9 @@
 "use client";
 
-import {useEffect, useMemo} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
 import {toast} from "sonner";
 import {Territory} from "@/models/territory";
-import {TerritoryStatus} from "@/models/territory-status";
 import {format} from "date-fns";
 import {fr} from "date-fns/locale";
 import {useAuth} from "@/hooks/use-auth";
@@ -14,7 +13,10 @@ import {createReminder, fetchReminders} from "@/store/slices/reminder-slice";
 import {PageHeader} from "@/components/late-territory/page-header";
 import {LoadingState} from "@/components/late-territory/loading-state";
 import {EmptyState} from "@/components/late-territory/empty-state";
-import {LateTerritoriesTable, createLateTerritoriesColumns} from "@/components/late-territory/late-territories-table";
+import {createLateTerritoriesColumns, LateTerritoriesTable} from "@/components/late-territory/late-territories-table";
+import {fetchPersons} from "@/store/slices/person-slice";
+import {authFetch} from "@/utils/auth-fetch";
+import {ReminderDialog} from "@/components/late-territory/reminder-dialog";
 
 export default function LateTerritoriesPage() {
   const router = useRouter();
@@ -24,99 +26,40 @@ export default function LateTerritoriesPage() {
   const territoriesLoading = useAppSelector(state => state.territories.loading);
   const reminders = useAppSelector(state => state.reminders.reminders);
   const remindersLoading = useAppSelector(state => state.reminders.loading);
+  const persons = useAppSelector(state => state.persons.persons);
 
   // Filter late territories from the store using useMemo
   const territories = useMemo(() => {
-    console.log("[DEBUG_LOG] territoriesData:", territoriesData);
 
     if (!territoriesData?.features) {
-      console.log("[DEBUG_LOG] No features in territoriesData");
       return [];
     }
 
-    // Log all statuses to see what's available
-    const statuses = territoriesData.features.map(f => f.properties.status);
-    console.log("[DEBUG_LOG] All territory statuses:", statuses);
-
-    // Count territories by status
-    const statusCounts = statuses.reduce<Record<TerritoryStatus, number>>((acc, status) => {
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {} as Record<TerritoryStatus, number>);
-    console.log("[DEBUG_LOG] Territory counts by status:", statusCounts);
-
-    // Check if there are any territories with status containing "late" (case insensitive)
-    const hasLateStatusCaseInsensitive = statuses.some(
-      status => status && status.toLowerCase().includes("late")
-    );
-    console.log("[DEBUG_LOG] Has status containing 'late' (case insensitive):", hasLateStatusCaseInsensitive);
-
     // More flexible filtering to handle potential issues
-    const filteredTerritories = territoriesData.features
-      .filter(feature => {
-        // Get the status, handling potential undefined/null values
-        const status = feature.properties?.status || "";
-
-        // Check if status is "LATE" (exact match) or contains "late" (case insensitive)
-        const isExactMatch = status === "LATE";
-        const isCaseInsensitiveMatch = status.toLowerCase().includes("late");
-
-        // For debugging
-        if (isExactMatch || isCaseInsensitiveMatch) {
-          console.log(`[DEBUG_LOG] Found late territory: ${feature.properties.name}, status: ${status}`);
-        }
-
-        // Use exact match for production, but log if there would be matches with case-insensitive comparison
-        const isLate = isExactMatch;
-        console.log(`[DEBUG_LOG] Territory ${feature.properties.name} status: ${status}, isLate: ${isLate}`);
-        return isLate;
-      })
-      .map(feature => ({
-        id: feature.properties.id,
-        name: feature.properties.name,
-        status: feature.properties.status,
-        city: feature.properties.city,
-        assignedTo: feature.properties.assignedTo,
-        assignedOn: feature.properties.assignedOn,
-        waitedFor: feature.properties.waitedFor,
-      })) as Territory[];
-
-    console.log("[DEBUG_LOG] Filtered territories count:", filteredTerritories.length);
-
-    // If no territories are found with status "LATE", check if there are any with status "ASSIGNED"
-    // that might be late but not properly marked
-    if (filteredTerritories.length === 0) {
-      console.log("[DEBUG_LOG] No territories with status LATE found. Checking for potentially late territories...");
-
-      // For debugging purposes only - don't actually use this in production without confirmation
-      const potentiallyLateTerritories = territoriesData.features
+      return territoriesData.features
         .filter(feature => {
-          const status = feature.properties?.status || "";
-          return status === "ASSIGNED";
+            // Get the status, handling potential undefined/null values
+            const status = feature.properties?.status || "";
+            return status == "LATE";
         })
         .map(feature => ({
-          id: feature.properties.id,
-          name: feature.properties.name,
-          status: feature.properties.status,
-          city: feature.properties.city,
-          assignedTo: feature.properties.assignedTo,
-          assignedOn: feature.properties.assignedOn,
-          waitedFor: feature.properties.waitedFor,
+            id: feature.properties.id,
+            name: feature.properties.name,
+            status: feature.properties.status,
+            city: feature.properties.city,
+            assignedTo: feature.properties.assignedTo,
+            assignedOn: feature.properties.assignedOn,
+            waitedFor: feature.properties.waitedFor,
         })) as Territory[];
-
-      console.log("[DEBUG_LOG] Potentially late territories (status=ASSIGNED):", potentiallyLateTerritories.length);
-      console.log("[DEBUG_LOG] Sample potentially late territories:", potentiallyLateTerritories.slice(0, 3));
-    }
-
-    return filteredTerritories;
   }, [territoriesData]);
 
   // Fetch territories and reminders from Redux store when component mounts
   useEffect(() => {
     try {
-      // Fetch territories and reminders using Redux
+      // Fetch territories, reminders and persons using Redux
       dispatch(fetchTerritories());
       dispatch(fetchReminders());
+      dispatch(fetchPersons());
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Impossible de récupérer les données");
@@ -157,7 +100,6 @@ export default function LateTerritoriesPage() {
         createReminder({
           territoryId,
           personId,
-          remindedById: user.id,
         })
       );
 
@@ -174,18 +116,111 @@ export default function LateTerritoriesPage() {
   };
 
   // Create columns using the helper function
-  const columns = createLateTerritoriesColumns(formatDate, hasReminder, sendReminder);
+  const onWhatsAppSuccess = () => {
+    try {
+      dispatch(fetchReminders());
+    } catch (e) {
+      // ignore
+    }
+  };
+  const hasPhoneNumber = (personId: string): boolean => {
+      const p = persons?.find(p => (p.firstName + " " + p.lastName) === personId.toUpperCase());
+      if (!p) return true; // si non chargé/inconnu, ne pas bloquer l'action, la validation sera faite côté backend
+      return !!p.phoneNumber && p.phoneNumber.trim().length > 0;
+  };
+  const columns = createLateTerritoriesColumns(formatDate, hasReminder, sendReminder, onWhatsAppSuccess, hasPhoneNumber);
 
-  // Log render conditions
-  console.log("[DEBUG_LOG] Render conditions:", {
-    territoriesLoading,
-    remindersLoading,
-    territoriesDataExists: !!territoriesData,
-    territoriesLength: territories.length,
-    showLoading: territoriesLoading || remindersLoading || !territoriesData,
-    showEmptyState: !territoriesLoading && !remindersLoading && !!territoriesData && territories.length === 0,
-    showTable: !territoriesLoading && !remindersLoading && !!territoriesData && territories.length > 0
-  });
+  // Toggle view: by territory (default) or by person (accordion)
+  const [viewMode, setViewMode] = useState<"territory" | "person">("territory");
+
+  // Group late territories by person
+  const groups = useMemo(() => {
+    const map = new Map<string, { personId: string; personName: string; phone?: string; territories: Territory[]; oldest?: string }>();
+    const fullName = (pid: string) => {
+      const p = persons?.find(pp => pp.id === pid);
+      return p ? `${p.firstName} ${p.lastName}` : pid;
+    };
+    const phoneOf = (pid: string) => persons?.find(pp => pp.id === pid)?.phoneNumber;
+
+    for (const t of territories) {
+      const key = t.assignedTo;
+      const current = map.get(key) ?? { personId: key, personName: fullName(key), phone: phoneOf(key), territories: [], oldest: undefined };
+      current.territories.push(t);
+      const curDate = t.waitedFor;
+      if (curDate) {
+        if (!current.oldest) current.oldest = curDate;
+        else current.oldest = new Date(curDate) < new Date(current.oldest) ? curDate : current.oldest;
+      }
+      current.phone = current.phone ?? phoneOf(key);
+      current.personName = current.personName || fullName(key);
+      map.set(key, current);
+    }
+    return Array.from(map.values()).sort((a, b) => a.personName.localeCompare(b.personName));
+  }, [territories, persons]);
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (pid: string) => setOpenGroups(prev => ({ ...prev, [pid]: !prev[pid] }));
+
+  // State for group dialog
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [activeGroupPersonId, setActiveGroupPersonId] = useState<string | null>(null);
+  const openGroupDialog = (personId: string) => {
+    setActiveGroupPersonId(personId);
+    setGroupDialogOpen(true);
+  };
+
+  const group = (pid: string | null) => groups.find(g => g.personId === pid);
+
+  const handleGroupManualReminders = async () => {
+    if (!activeGroupPersonId) return;
+    const g = group(activeGroupPersonId);
+    if (!g) return;
+
+    //setGroupSending(true);
+    try {
+      // iterate only territories without reminder
+      for (const t of g.territories) {
+        if (!hasReminder(t.id, g.personId)) {
+          const resultAction = await dispatch(createReminder({ territoryId: t.id, personId: g.personId }));
+          if (createReminder.rejected.match(resultAction)) {
+            const msg = (resultAction.payload as string) || `Échec pour ${t.name}`;
+            toast.error(msg);
+          }
+        }
+      }
+      toast.success("Rappels enregistrés pour ce groupe");
+      dispatch(fetchReminders());
+      setGroupDialogOpen(false);
+    } finally {
+      //setGroupSending(false);
+    }
+  };
+
+  const handleGroupWhatsApp = async (msg: string) => {
+    if (!activeGroupPersonId) return;
+    const g = group(activeGroupPersonId);
+    if (!g) return;
+    let failures = 0;
+    for (const t of g.territories) {
+      if (hasReminder(t.id, g.personId)) continue; // skip already reminded
+      try {
+        const url = `/api/territory-reminders/whatsapp?territoryId=${t.id}&personId=${g.personId}`;
+        const res = await authFetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: msg });
+        if (!res.ok) {
+          failures++;
+        }
+      } catch {
+        failures++;
+      }
+    }
+    if (failures === 0) {
+      toast.success("Messages WhatsApp envoyés et rappels enregistrés");
+    } else {
+      toast.error(`Certains envois ont échoué (${failures})`);
+    }
+    dispatch(fetchReminders());
+    setGroupDialogOpen(false);
+  };
 
   return (
     <div className="container mx-auto py-8 px-6">
@@ -194,17 +229,60 @@ export default function LateTerritoriesPage() {
         description="Gérez les territoires en retard et envoyez des rappels" 
       />
 
+      {/* View toggle */}
+      <div className="mb-4 flex gap-2">
+        <button onClick={() => setViewMode("territory")} className={`px-3 py-1 rounded border ${viewMode === "territory" ? "bg-primary text-white" : "bg-white"}`}>Par territoire</button>
+        <button onClick={() => setViewMode("person")} className={`px-3 py-1 rounded border ${viewMode === "person" ? "bg-primary text-white" : "bg-white"}`}>Par personne</button>
+      </div>
+
       {territoriesLoading || remindersLoading || !territoriesData ? (
         <LoadingState />
       ) : territories.length === 0 ? (
         <EmptyState />
-      ) : (
+      ) : viewMode === "territory" ? (
         <LateTerritoriesTable 
           territories={territories} 
           columns={columns}
           tableId="late-territories" 
         />
+      ) : (
+        // Accordion per person
+        <div className="space-y-3">
+          {groups.map(g => (
+            <div key={g.personId} className="border rounded-lg bg-white shadow-sm">
+              {/* Header */}
+              <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => toggleGroup(g.personId)}>
+                <div className="flex items-center gap-4">
+                  <div className="font-medium">{g.personName}</div>
+                  <div className="text-sm text-muted-foreground">{g.territories.length} territoire(s)</div>
+                  <div className="text-sm text-muted-foreground">Plus ancien retard: {g.oldest ? format(new Date(g.oldest), "dd MMM yyyy", { locale: fr }) : "N/A"}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="px-3 py-1 text-sm rounded border" onClick={(e) => { e.stopPropagation(); openGroupDialog(g.personId); }}>Rappeler tout</button>
+                </div>
+              </div>
+              {/* Panel */}
+              {openGroups[g.personId] && (
+                <div className="p-3 border-t">
+                  {/* Reuse table for this person's territories */}
+                  <LateTerritoriesTable territories={g.territories} columns={columns} tableId={`late-${g.personId}`} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
+
+      {/* Group action dialog */}
+      <ReminderDialog
+        open={groupDialogOpen}
+        onOpenChange={setGroupDialogOpen}
+        title="Rappeler tout"
+        description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
+        canSendWhatsApp={activeGroupPersonId ? hasPhoneNumber(activeGroupPersonId) : true}
+        onManualReminders={handleGroupManualReminders}
+        onSendWhatsApp={handleGroupWhatsApp}
+      />
     </div>
   );
 }

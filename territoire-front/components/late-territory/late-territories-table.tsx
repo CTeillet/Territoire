@@ -35,7 +35,9 @@ export function LateTerritoriesTable({ territories, columns, tableId }: LateTerr
 export function createLateTerritoriesColumns(
   formatDate: (dateString: string | null) => string,
   hasReminder: (territoryId: string, personId: string) => boolean,
-  sendReminder: (territoryId: string, personId: string) => void
+  sendReminder: (territoryId: string, personId: string) => void,
+  onSuccess?: () => void,
+  hasPhoneNumber?: (personId: string) => boolean,
 ): ColumnDef<Territory, unknown>[] {
   return [
     {
@@ -83,7 +85,11 @@ export function createLateTerritoriesColumns(
       cell: ({row}) => (
         <ReminderActionButton
           hasReminder={hasReminder(row.original.id, row.original.assignedTo)}
-          onClick={() => sendReminder(row.original.id, row.original.assignedTo)}
+          territoryId={row.original.id}
+          personId={row.original.assignedTo}
+          onManualReminder={() => sendReminder(row.original.id, row.original.assignedTo)}
+          onSuccess={onSuccess}
+          canSendWhatsApp={hasPhoneNumber ? hasPhoneNumber(row.original.assignedTo) : true}
         />
       ),
     },

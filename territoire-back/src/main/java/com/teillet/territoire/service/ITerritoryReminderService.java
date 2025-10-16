@@ -11,11 +11,19 @@ public interface ITerritoryReminderService {
      * Create a new reminder for a late territory
      * @param territoryId the territory ID
      * @param personId the person ID (who has the territory)
-     * @param remindedById the person ID who is sending the reminder
      * @param notes optional notes about the reminder
      * @return the created reminder DTO
      */
-    TerritoryReminderDto createReminder(UUID territoryId, UUID personId, UUID remindedById, String notes);
+    TerritoryReminderDto createReminder(UUID territoryId, UUID personId, String notes);
+
+    /**
+     * Send a WhatsApp reminder and persist it with the message sent
+     * @param territoryId territory ID
+     * @param personId person ID (recipient)
+     * @param message message content to send
+     * @return the created reminder DTO with messageSend populated
+     */
+    TerritoryReminderDto sendWhatsAppReminder(UUID territoryId, UUID personId, String message);
     
     /**
      * Get all reminders for a specific territory

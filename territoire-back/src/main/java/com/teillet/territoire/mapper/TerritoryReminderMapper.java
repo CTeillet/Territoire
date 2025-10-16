@@ -21,10 +21,9 @@ public class TerritoryReminderMapper {
                 .territoryName(reminder.getTerritory().getName())
                 .personId(reminder.getPerson().getId())
                 .personName(reminder.getPerson().getFirstName() + " " + reminder.getPerson().getLastName())
-                .remindedById(reminder.getRemindedBy().getId())
-                .remindedByName(reminder.getRemindedBy().getFirstName() + " " + reminder.getRemindedBy().getLastName())
                 .reminderDate(reminder.getReminderDate())
                 .notes(reminder.getNotes())
+                .messageSend(reminder.getMessageSend())
                 .build();
     }
 }

@@ -18,8 +18,7 @@ public class TerritoryReminderDto {
     private String territoryName;
     private UUID personId;
     private String personName;
-    private UUID remindedById;
-    private String remindedByName;
     private LocalDate reminderDate;
     private String notes;
+    private String messageSend;
 }

@@ -17,4 +17,7 @@ public class Setting {
 
     @Column(name = "publishers_count")
     private Integer publishersCount;
+
+    @Column(name = "late_reminder_message", columnDefinition = "TEXT")
+    private String lateReminderMessage;
 }

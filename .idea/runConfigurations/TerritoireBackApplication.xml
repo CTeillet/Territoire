@@ -7,7 +7,7 @@
     <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
     <module name="territoire-back" />
     <option name="SPRING_BOOT_MAIN_CLASS" value="com.teillet.territoire.TerritoireBackApplication" />
-    <option name="VM_PARAMETERS" value="-javaagent:territoire-back/opentelemetry-javaagent.jar -Dotel.service.name=territoire-back -Dotel.exporter.otlp.endpoint=http://localhost:4317 -Dotel.exporter.otlp.protocol=grpc -Dotel.traces.exporter=otlp -Dotel.metrics.exporter=otlp -Dotel.logs.exporter=otlp -Dotel.instrumentation.logs.enabled=true -Dotel.resource.attributes=deployment.environment=local,service.version=dev" />
+    <option name="VM_PARAMETERS" value="-javaagent:territoire-back/opentelemetry-javaagent.jar -Dotel.service.name=territoire-back -Dotel.exporter.otlp.endpoint=http://localhost:43170 -Dotel.exporter.otlp.protocol=grpc -Dotel.traces.exporter=otlp -Dotel.metrics.exporter=otlp -Dotel.logs.exporter=otlp -Dotel.instrumentation.logs.enabled=true -Dotel.resource.attributes=deployment.environment=local,service.version=dev" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="com.teillet.territoire.*" />

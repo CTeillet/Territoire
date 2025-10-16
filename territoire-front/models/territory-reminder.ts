@@ -4,8 +4,7 @@ export interface TerritoryReminder {
     territoryName: string;
     personId: string;
     personName: string;
-    remindedById: string;
-    remindedByName: string;
     reminderDate: string;
     notes?: string;
+    messageSend?: string;
 }

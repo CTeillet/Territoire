@@ -12,6 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString
 public class TerritoryReminder {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -33,15 +34,7 @@ public class TerritoryReminder {
 
     private String notes;
 
-    @Override
-    public String toString() {
-        return "TerritoryReminder{" +
-                "id=" + id +
-                ", territory=" + (territory != null ? territory.getId() : null) +
-                ", person=" + (person != null ? person.getId() : null) +
-                ", remindedBy=" + (remindedBy != null ? remindedBy.getId() : null) +
-                ", reminderDate=" + reminderDate +
-                ", notes='" + notes + '\'' +
-                '}';
-    }
+    @Column(name = "message_send", columnDefinition = "TEXT")
+    private String messageSend;
+
 }

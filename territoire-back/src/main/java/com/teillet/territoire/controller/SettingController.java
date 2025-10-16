@@ -26,4 +26,17 @@ class SettingController {
         }
         return ResponseEntity.ok(settingService.updatePublishersCount(count));
     }
+
+    @GetMapping("/late-reminder-message")
+    public ResponseEntity<String> getLateReminderMessage() {
+        return ResponseEntity.ok(settingService.getLateReminderMessage());
+    }
+
+    @PutMapping("/late-reminder-message")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+    public ResponseEntity<String> updateLateReminderMessage(@RequestBody String message) {
+        // Allow empty message to reset; trim excessive whitespace
+        String sanitized = message == null ? "" : message.trim();
+        return ResponseEntity.ok(settingService.updateLateReminderMessage(sanitized));
+    }
 }

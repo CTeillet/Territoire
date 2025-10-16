@@ -46,8 +46,6 @@ export default function NonVisitedTerritoriesPage() {
     const referenceYear = currentMonth < 9 ? currentYear - 1 : currentYear;
     const referenceDate = new Date(`${referenceYear}-09-01`);
 
-    console.log("[DEBUG_LOG] Reference date for non-visited territories:", referenceDate.toISOString().split('T')[0]);
-
     return territoriesData.features
         .map(f => f.properties)
         .filter(t => {
@@ -63,40 +61,17 @@ export default function NonVisitedTerritoriesPage() {
           // Parse the lastVisitedOn date and compare with reference date
           try {
             const lastVisitDate = new Date(lastVisitedOn);
-            console.log(`[DEBUG_LOG] Last visited on date: ${lastVisitDate.toISOString().split('T')[0]}, status: ${t.status}, reference date: ${referenceDate.toISOString().split('T')[0]}, ${lastVisitDate < referenceDate ? 'before' : 'after'} reference date`);
             // Only include territories that are AVAILABLE or PENDING and were last visited before the reference date
             // Explicitly exclude ASSIGNED and LATE territories
             return (t.status === "AVAILABLE" || t.status === "PENDING") &&
                    lastVisitDate < referenceDate;
           } catch (e) {
-            console.error(`[DEBUG_LOG] Error parsing date: ${lastVisitedOn}`, e);
             // Only include if it's not assigned or late, even when we can't parse the date
             return t.status !== "ASSIGNED" && t.status !== "LATE"; // Only include non-assigned and non-late territories when date parsing fails
           }
         });
     // Filter territories that haven't been visited since the reference date
   }, [territoriesData]);
-
-  useEffect(() => {
-    console.log("[DEBUG_LOG] Non-visited territories:", nonVisitedTerritories);
-    console.log("[DEBUG_LOG] Non-visited territories length:", nonVisitedTerritories.length);
-    
-    // Log any territories with status ASSIGNED or LATE that might have slipped through
-    const assignedTerritories = nonVisitedTerritories.filter(t => t.status === "ASSIGNED");
-    const lateTerritories = nonVisitedTerritories.filter(t => t.status === "LATE");
-    
-    if (assignedTerritories.length > 0) {
-      console.log("[DEBUG_LOG] WARNING: Found ASSIGNED territories in the non-visited list:", assignedTerritories);
-    } else {
-      console.log("[DEBUG_LOG] No ASSIGNED territories found in the non-visited list - filtering working correctly");
-    }
-    
-    if (lateTerritories.length > 0) {
-      console.log("[DEBUG_LOG] WARNING: Found LATE territories in the non-visited list:", lateTerritories);
-    } else {
-      console.log("[DEBUG_LOG] No LATE territories found in the non-visited list - filtering working correctly");
-    }
-  }, [nonVisitedTerritories]);
 
   // Redirect to login if not authenticated
   useEffect(() => {

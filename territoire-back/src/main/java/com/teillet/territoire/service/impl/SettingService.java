@@ -31,4 +31,17 @@ public class SettingService implements ISettingService {
         settingRepository.save(s);
         return s.getPublishersCount();
     }
+
+    @Override
+    public String getLateReminderMessage() {
+        return Optional.ofNullable(getSingleton().getLateReminderMessage()).orElse("");
+    }
+
+    @Override
+    public String updateLateReminderMessage(String message) {
+        Setting s = getSingleton();
+        s.setLateReminderMessage(message);
+        settingRepository.save(s);
+        return s.getLateReminderMessage();
+    }
 }
