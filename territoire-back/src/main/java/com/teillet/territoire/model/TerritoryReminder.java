@@ -26,10 +26,6 @@ public class TerritoryReminder {
     @JoinColumn(name = "person_id", nullable = false)
     private Person person;
 
-    @ManyToOne
-    @JoinColumn(name = "reminded_by_id", nullable = false)
-    private Person remindedBy;
-
     private LocalDate reminderDate;
 
     private String notes;

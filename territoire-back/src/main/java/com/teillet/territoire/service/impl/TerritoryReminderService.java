@@ -65,7 +65,6 @@ public class TerritoryReminderService implements ITerritoryReminderService {
         TerritoryReminder reminder = TerritoryReminder.builder()
                 .territory(territory)
                 .person(person)
-                .remindedBy(remindedBy)
                 .reminderDate(LocalDate.now())
                 .notes(notes)
                 .build();
@@ -87,7 +86,6 @@ public class TerritoryReminderService implements ITerritoryReminderService {
         }
 
         Person person = personService.getPerson(personId);
-        Person remindedBy = getAuthenticatedPerson();
 
         if (person.getPhoneNumber() == null || person.getPhoneNumber().isBlank()) {
             throw new IllegalStateException("Aucun numéro de téléphone pour la personne");
@@ -103,7 +101,6 @@ public class TerritoryReminderService implements ITerritoryReminderService {
         TerritoryReminder reminder = TerritoryReminder.builder()
                 .territory(territory)
                 .person(person)
-                .remindedBy(remindedBy)
                 .reminderDate(LocalDate.now())
                 .messageSend(message)
                 .build();

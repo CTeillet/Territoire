@@ -1,10 +1,13 @@
 package com.teillet.territoire.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teillet.territoire.service.IWahaClient;
 import okhttp3.*;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 public class WahaClientOkHttp implements IWahaClient {
 	public static final int CONNECTION_TIMEOUT = 5;
@@ -13,6 +16,8 @@ public class WahaClientOkHttp implements IWahaClient {
 	private final String baseUrl;
 	private final String apiKey;
 	private final String defaultSession;
+	private static final ObjectMapper mapper = new ObjectMapper();
+
 
 	public WahaClientOkHttp(String baseUrl, String apiKey, String defaultSession) {
 		this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
@@ -28,13 +33,18 @@ public class WahaClientOkHttp implements IWahaClient {
 	@Override
 	public void sendMessage(String phone, String message) {
 		String chatId = phone.replace("+", "") + "@c.us";
-		String json = """
-            {
-              "session": "%s",
-              "chatId": "%s",
-              "text": "%s"
-            }
-            """.formatted(defaultSession, chatId, message.replace("\"", "\\\""));
+		// Construire l'objet puis le sérialiser proprement
+		Map<String, Object> payload = new HashMap<>();
+		payload.put("session", defaultSession);
+		payload.put("chatId", chatId);
+		payload.put("text", message); // Jackson échappera \n en \\n
+
+		String json;
+		try {
+			json = mapper.writeValueAsString(payload);
+		} catch (Exception e) {
+			throw new RuntimeException("Impossible de sérialiser la requête WAHA", e);
+		}
 
 		RequestBody body = RequestBody.create(json, MediaType.parse("application/json"));
 		Request.Builder builder = new Request.Builder()

@@ -17,6 +17,7 @@ import {createLateTerritoriesColumns, LateTerritoriesTable} from "@/components/l
 import {fetchPersons} from "@/store/slices/person-slice";
 import {authFetch} from "@/utils/auth-fetch";
 import {ReminderDialog} from "@/components/late-territory/reminder-dialog";
+import {Person} from "@/models/person";
 
 export default function LateTerritoriesPage() {
 	const router = useRouter();
@@ -134,40 +135,57 @@ export default function LateTerritoriesPage() {
 	const [viewMode, setViewMode] = useState<"territory" | "person">("territory");
 
 	// Group late territories by person
-	const groups = useMemo(() => {
-		const map = new Map<string, {
-			personId: string;
-			personName: string;
-			phone?: string;
-			territories: Territory[];
-			oldest?: string
-		}>();
-		const fullName = (pid: string) => {
-			const p = persons?.find(pp => pp.id === pid);
-			return p ? `${p.firstName} ${p.lastName}` : pid;
-		};
-		const phoneOf = (pid: string) => persons?.find(pp => pp.id === pid)?.phoneNumber;
+	type Group = {
+		personId: string;
+		personName: string;
+		phone?: string;
+		territories: Territory[];
+		oldest?: string;
+	};
+
+	function getPersonIdFromFullName(fullName: string): string | null {
+		return persons.find(p => p.firstName + " " + p.lastName === fullName.toUpperCase())?.id || null;
+	}
+
+	function getPhone(persons: Person[], personId: string): string | undefined {
+		return persons.find(pp => pp.id === personId)?.phoneNumber;
+	}
+
+	function earlierIso(a?: string, b?: string): string | undefined {
+		if (!a) return b;
+		if (!b) return a;
+		return new Date(a) <= new Date(b) ? a : b;
+	}
+
+	const groups = useMemo<Group[]>(() => {
+		if (!territories?.length) return [];
+
+		const map = new Map<string, Group>();
 
 		for (const t of territories) {
-			const key = t.assignedTo;
-			const current = map.get(key) ?? {
+			const key = getPersonIdFromFullName(t.assignedTo) ?? t.assignedTo;
+			const existing = map.get(key);
+
+			const next: Group = existing ?? {
 				personId: key,
-				personName: fullName(key),
-				phone: phoneOf(key),
+				personName: t.assignedTo,
+				phone: getPhone(persons, key),
 				territories: [],
-				oldest: undefined
+				oldest: undefined,
 			};
-			current.territories.push(t);
-			const curDate = t.waitedFor;
-			if (curDate) {
-				if (!current.oldest) current.oldest = curDate;
-				else current.oldest = new Date(curDate) < new Date(current.oldest) ? curDate : current.oldest;
-			}
-			current.phone = current.phone ?? phoneOf(key);
-			current.personName = current.personName || fullName(key);
-			map.set(key, current);
+
+			next.territories.push(t);
+			next.oldest = earlierIso(next.oldest, t.waitedFor);
+
+			if (!next.phone) next.phone = getPhone(persons, key);
+			if (!next.personName) next.personName = t.assignedTo;
+
+			map.set(key, next);
 		}
-		return Array.from(map.values()).sort((a, b) => a.personName.localeCompare(b.personName));
+
+		return Array.from(map.values()).sort((a, b) =>
+			a.personName.localeCompare(b.personName, 'fr', { sensitivity: 'base' })
+		);
 	}, [territories, persons]);
 
 	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -211,6 +229,7 @@ export default function LateTerritoriesPage() {
 		for (const t of g.territories) {
 			if (hasReminder(t.id, g.personId)) continue; // skip already reminded
 			try {
+				console.log("Person ID", g.personId)
 				const url = `/api/territory-reminders/whatsapp?territoryId=${t.id}&personId=${g.personId}`;
 				const res = await authFetch(url, {
 					method: "POST",
@@ -237,6 +256,7 @@ export default function LateTerritoriesPage() {
 		if (!activeGroupPersonId) return undefined;
 		const g = group(activeGroupPersonId);
 		if (!g) return undefined;
+		console.log("activeGroupData", g)
 		return {
 			person: { id: g.personId, name: g.personName, phone: g.phone },
 			territories: g.territories.map(t => ({ id: t.id, name: t.name, assignedOn: t.assignedOn, waitedFor: t.waitedFor })),
