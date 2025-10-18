@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
+import {renderTemplate} from "@/lib/nunjucks";
 
 export interface ReminderDialogProps {
   open: boolean;
@@ -15,9 +16,10 @@ export interface ReminderDialogProps {
   canSendWhatsApp: boolean;
   onManualReminders: () => Promise<void> | void;
   onSendWhatsApp: (message: string) => Promise<void> | void;
+  data?: unknown; // contexte pour le rendu du message (ex: group/person/territories)
 }
 
-export function ReminderDialog({ open, onOpenChange, title = "Rappeler tout", description = "Vous pouvez envoyer un message WhatsApp ou simplement enregistrer les rappels.", canSendWhatsApp, onManualReminders, onSendWhatsApp }: ReminderDialogProps) {
+export function ReminderDialog({ open, onOpenChange, title = "Rappeler tout", description = "Vous pouvez envoyer un message WhatsApp ou simplement enregistrer les rappels.", canSendWhatsApp, onManualReminders, onSendWhatsApp, data }: ReminderDialogProps) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -36,7 +38,15 @@ export function ReminderDialog({ open, onOpenChange, title = "Rappeler tout", de
         const res = await authFetch("/api/settings/late-reminder-message");
         if (res.ok) {
           const text = await res.text();
-          if (!cancelled) setMessage(text ?? "");
+          if (!cancelled) {
+              let result: string;
+              if (text === null || text === undefined) {
+                  result = "";
+              } else {
+                  result = renderTemplate(text, data);
+              }
+              setMessage(result);
+          }
         }
       } catch (_) {
         // ignore but show a gentle toast so user knows
@@ -47,7 +57,7 @@ export function ReminderDialog({ open, onOpenChange, title = "Rappeler tout", de
     };
     load();
     return () => { cancelled = true; };
-  }, [open, canSendWhatsApp]);
+  }, [open, canSendWhatsApp, data]);
 
   const handleWhatsApp = async () => {
     if (!message.trim()) {
@@ -74,7 +84,7 @@ export function ReminderDialog({ open, onOpenChange, title = "Rappeler tout", de
         )}
         {!canSendWhatsApp && (
           <div className="text-sm text-muted-foreground mb-2">
-            Aucun numéro de téléphone n'est associé à cette personne. L'envoi WhatsApp est indisponible.
+            Aucun numéro de téléphone n&#39;est associé à cette personne. L&#39;envoi WhatsApp est indisponible.
           </div>
         )}
         <Textarea

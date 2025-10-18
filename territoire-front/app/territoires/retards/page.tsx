@@ -19,270 +19,304 @@ import {authFetch} from "@/utils/auth-fetch";
 import {ReminderDialog} from "@/components/late-territory/reminder-dialog";
 
 export default function LateTerritoriesPage() {
-  const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
-  const dispatch = useAppDispatch();
-  const territoriesData = useAppSelector(state => state.territories.territoriesGeojson);
-  const territoriesLoading = useAppSelector(state => state.territories.loading);
-  const reminders = useAppSelector(state => state.reminders.reminders);
-  const remindersLoading = useAppSelector(state => state.reminders.loading);
-  const persons = useAppSelector(state => state.persons.persons);
+	const router = useRouter();
+	const {user, isAuthenticated} = useAuth();
+	const dispatch = useAppDispatch();
+	const territoriesData = useAppSelector(state => state.territories.territoriesGeojson);
+	const territoriesLoading = useAppSelector(state => state.territories.loading);
+	const reminders = useAppSelector(state => state.reminders.reminders);
+	const remindersLoading = useAppSelector(state => state.reminders.loading);
+	const persons = useAppSelector(state => state.persons.persons);
 
-  // Filter late territories from the store using useMemo
-  const territories = useMemo(() => {
+	// Filter late territories from the store using useMemo
+	const territories = useMemo(() => {
 
-    if (!territoriesData?.features) {
-      return [];
-    }
+		if (!territoriesData?.features) {
+			return [];
+		}
 
-    // More flexible filtering to handle potential issues
-      return territoriesData.features
-        .filter(feature => {
-            // Get the status, handling potential undefined/null values
-            const status = feature.properties?.status || "";
-            return status == "LATE";
-        })
-        .map(feature => ({
-            id: feature.properties.id,
-            name: feature.properties.name,
-            status: feature.properties.status,
-            city: feature.properties.city,
-            assignedTo: feature.properties.assignedTo,
-            assignedOn: feature.properties.assignedOn,
-            waitedFor: feature.properties.waitedFor,
-        })) as Territory[];
-  }, [territoriesData]);
+		// More flexible filtering to handle potential issues
+		return territoriesData.features
+			.filter(feature => {
+				// Get the status, handling potential undefined/null values
+				const status = feature.properties?.status || "";
+				return status == "LATE";
+			})
+			.map(feature => ({
+				id: feature.properties.id,
+				name: feature.properties.name,
+				status: feature.properties.status,
+				city: feature.properties.city,
+				assignedTo: feature.properties.assignedTo,
+				assignedOn: feature.properties.assignedOn,
+				waitedFor: feature.properties.waitedFor,
+			})) as Territory[];
+	}, [territoriesData]);
 
-  // Fetch territories and reminders from Redux store when component mounts
-  useEffect(() => {
-    try {
-      // Fetch territories, reminders and persons using Redux
-      dispatch(fetchTerritories());
-      dispatch(fetchReminders());
-      dispatch(fetchPersons());
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Impossible de récupérer les données");
-    }
-  }, [dispatch]);
+	// Fetch territories and reminders from Redux store when component mounts
+	useEffect(() => {
+		try {
+			// Fetch territories, reminders and persons using Redux
+			dispatch(fetchTerritories());
+			dispatch(fetchReminders());
+			dispatch(fetchPersons());
+		} catch (error) {
+			console.error("Error fetching data:", error);
+			toast.error("Impossible de récupérer les données");
+		}
+	}, [dispatch]);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, router]);
+	// Redirect to login if not authenticated
+	useEffect(() => {
+		if (!isAuthenticated) {
+			router.push("/login");
+		}
+	}, [isAuthenticated, router]);
 
-  // Format date
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    return format(new Date(dateString), "dd MMMM yyyy", { locale: fr });
-  };
+	// Format date
+	const formatDate = (dateString: string | null) => {
+		if (!dateString) return "N/A";
+		return format(new Date(dateString), "dd MMMM yyyy", {locale: fr});
+	};
 
-  // Check if a territory has a reminder for the assigned person
-  const hasReminder = (territoryId: string, personId: string) => {
-    return reminders.some(
-      (reminder) =>
-        reminder.territoryId === territoryId && reminder.personId === personId
-    );
-  };
+	// Check if a territory has a reminder for the assigned person
+	const hasReminder = (territoryId: string, personId: string) => {
+		return reminders.some(
+			(reminder) =>
+				reminder.territoryId === territoryId && reminder.personId === personId
+		);
+	};
 
-  // Send a reminder
-  const sendReminder = async (territoryId: string, personId: string) => {
-    if (!user?.id) {
-      toast.error("Vous devez être connecté pour envoyer un rappel");
-      return;
-    }
+	// Send a reminder
+	const sendReminder = async (territoryId: string, personId: string) => {
+		if (!user?.id) {
+			toast.error("Vous devez être connecté pour envoyer un rappel");
+			return;
+		}
 
-    try {
-      // Use Redux action to create reminder
-      const resultAction = await dispatch(
-        createReminder({
-          territoryId,
-          personId,
-        })
-      );
+		try {
+			// Use Redux action to create reminder
+			const resultAction = await dispatch(
+				createReminder({
+					territoryId,
+					personId,
+				})
+			);
 
-      if (createReminder.rejected.match(resultAction)) {
-        throw new Error(resultAction.payload as string || "Failed to send reminder");
-      }
+			if (createReminder.rejected.match(resultAction)) {
+				throw new Error(resultAction.payload as string || "Failed to send reminder");
+			}
 
-      toast.success("Rappel envoyé avec succès");
-    } catch (error: unknown) {
-      console.error("Error sending reminder:", error);
-      const errorMessage = error instanceof Error ? error.message : "Impossible d'envoyer le rappel";
-      toast.error(errorMessage);
-    }
-  };
+			toast.success("Rappel envoyé avec succès");
+		} catch (error: unknown) {
+			console.error("Error sending reminder:", error);
+			const errorMessage = error instanceof Error ? error.message : "Impossible d'envoyer le rappel";
+			toast.error(errorMessage);
+		}
+	};
 
-  // Create columns using the helper function
-  const onWhatsAppSuccess = () => {
-    try {
-      dispatch(fetchReminders());
-    } catch (e) {
-      // ignore
-    }
-  };
-  const hasPhoneNumber = (personId: string): boolean => {
-      const p = persons?.find(p => (p.firstName + " " + p.lastName) === personId.toUpperCase());
-      if (!p) return true; // si non chargé/inconnu, ne pas bloquer l'action, la validation sera faite côté backend
-      return !!p.phoneNumber && p.phoneNumber.trim().length > 0;
-  };
-  const columns = createLateTerritoriesColumns(formatDate, hasReminder, sendReminder, onWhatsAppSuccess, hasPhoneNumber);
+	// Create columns using the helper function
+	const onWhatsAppSuccess = () => {
+		try {
+			dispatch(fetchReminders());
+		} catch (e) {
+			// ignore
+		}
+	};
+	const hasPhoneNumber = (personId: string): boolean => {
+		const p = persons?.find(p => (p.firstName + " " + p.lastName) === personId.toUpperCase());
+		if (!p) return true; // si non chargé/inconnu, ne pas bloquer l'action, la validation sera faite côté backend
+		return !!p.phoneNumber && p.phoneNumber.trim().length > 0;
+	};
+	const columns = createLateTerritoriesColumns(formatDate, hasReminder, sendReminder, onWhatsAppSuccess, hasPhoneNumber);
 
-  // Toggle view: by territory (default) or by person (accordion)
-  const [viewMode, setViewMode] = useState<"territory" | "person">("territory");
+	// Toggle view: by territory (default) or by person (accordion)
+	const [viewMode, setViewMode] = useState<"territory" | "person">("territory");
 
-  // Group late territories by person
-  const groups = useMemo(() => {
-    const map = new Map<string, { personId: string; personName: string; phone?: string; territories: Territory[]; oldest?: string }>();
-    const fullName = (pid: string) => {
-      const p = persons?.find(pp => pp.id === pid);
-      return p ? `${p.firstName} ${p.lastName}` : pid;
-    };
-    const phoneOf = (pid: string) => persons?.find(pp => pp.id === pid)?.phoneNumber;
+	// Group late territories by person
+	const groups = useMemo(() => {
+		const map = new Map<string, {
+			personId: string;
+			personName: string;
+			phone?: string;
+			territories: Territory[];
+			oldest?: string
+		}>();
+		const fullName = (pid: string) => {
+			const p = persons?.find(pp => pp.id === pid);
+			return p ? `${p.firstName} ${p.lastName}` : pid;
+		};
+		const phoneOf = (pid: string) => persons?.find(pp => pp.id === pid)?.phoneNumber;
 
-    for (const t of territories) {
-      const key = t.assignedTo;
-      const current = map.get(key) ?? { personId: key, personName: fullName(key), phone: phoneOf(key), territories: [], oldest: undefined };
-      current.territories.push(t);
-      const curDate = t.waitedFor;
-      if (curDate) {
-        if (!current.oldest) current.oldest = curDate;
-        else current.oldest = new Date(curDate) < new Date(current.oldest) ? curDate : current.oldest;
-      }
-      current.phone = current.phone ?? phoneOf(key);
-      current.personName = current.personName || fullName(key);
-      map.set(key, current);
-    }
-    return Array.from(map.values()).sort((a, b) => a.personName.localeCompare(b.personName));
-  }, [territories, persons]);
+		for (const t of territories) {
+			const key = t.assignedTo;
+			const current = map.get(key) ?? {
+				personId: key,
+				personName: fullName(key),
+				phone: phoneOf(key),
+				territories: [],
+				oldest: undefined
+			};
+			current.territories.push(t);
+			const curDate = t.waitedFor;
+			if (curDate) {
+				if (!current.oldest) current.oldest = curDate;
+				else current.oldest = new Date(curDate) < new Date(current.oldest) ? curDate : current.oldest;
+			}
+			current.phone = current.phone ?? phoneOf(key);
+			current.personName = current.personName || fullName(key);
+			map.set(key, current);
+		}
+		return Array.from(map.values()).sort((a, b) => a.personName.localeCompare(b.personName));
+	}, [territories, persons]);
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const toggleGroup = (pid: string) => setOpenGroups(prev => ({ ...prev, [pid]: !prev[pid] }));
+	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+	const toggleGroup = (pid: string) => setOpenGroups(prev => ({...prev, [pid]: !prev[pid]}));
 
-  // State for group dialog
-  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
-  const [activeGroupPersonId, setActiveGroupPersonId] = useState<string | null>(null);
-  const openGroupDialog = (personId: string) => {
-    setActiveGroupPersonId(personId);
-    setGroupDialogOpen(true);
-  };
+	// State for group dialog
+	const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+	const [activeGroupPersonId, setActiveGroupPersonId] = useState<string | null>(null);
+	const openGroupDialog = (personId: string) => {
+		setActiveGroupPersonId(personId);
+		setGroupDialogOpen(true);
+	};
 
-  const group = (pid: string | null) => groups.find(g => g.personId === pid);
+	const group = (pid: string | null) => groups.find(g => g.personId === pid);
 
-  const handleGroupManualReminders = async () => {
-    if (!activeGroupPersonId) return;
-    const g = group(activeGroupPersonId);
-    if (!g) return;
+	const handleGroupManualReminders = async () => {
+		if (!activeGroupPersonId) return;
+		const g = group(activeGroupPersonId);
+		if (!g) return;
 
-    //setGroupSending(true);
-    try {
-      // iterate only territories without reminder
-      for (const t of g.territories) {
-        if (!hasReminder(t.id, g.personId)) {
-          const resultAction = await dispatch(createReminder({ territoryId: t.id, personId: g.personId }));
-          if (createReminder.rejected.match(resultAction)) {
-            const msg = (resultAction.payload as string) || `Échec pour ${t.name}`;
-            toast.error(msg);
-          }
-        }
-      }
-      toast.success("Rappels enregistrés pour ce groupe");
-      dispatch(fetchReminders());
-      setGroupDialogOpen(false);
-    } finally {
-      //setGroupSending(false);
-    }
-  };
+		// iterate only territories without reminder
+		for (const t of g.territories) {
+			if (!hasReminder(t.id, g.personId)) {
+				const resultAction = await dispatch(createReminder({territoryId: t.id, personId: g.personId}));
+				if (createReminder.rejected.match(resultAction)) {
+					const msg = (resultAction.payload as string) || `Échec pour ${t.name}`;
+					toast.error(msg);
+				}
+			}
+		}
+		toast.success("Rappels enregistrés pour ce groupe");
+		dispatch(fetchReminders());
+		setGroupDialogOpen(false);
+	};
 
-  const handleGroupWhatsApp = async (msg: string) => {
-    if (!activeGroupPersonId) return;
-    const g = group(activeGroupPersonId);
-    if (!g) return;
-    let failures = 0;
-    for (const t of g.territories) {
-      if (hasReminder(t.id, g.personId)) continue; // skip already reminded
-      try {
-        const url = `/api/territory-reminders/whatsapp?territoryId=${t.id}&personId=${g.personId}`;
-        const res = await authFetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: msg });
-        if (!res.ok) {
-          failures++;
-        }
-      } catch {
-        failures++;
-      }
-    }
-    if (failures === 0) {
-      toast.success("Messages WhatsApp envoyés et rappels enregistrés");
-    } else {
-      toast.error(`Certains envois ont échoué (${failures})`);
-    }
-    dispatch(fetchReminders());
-    setGroupDialogOpen(false);
-  };
+	const handleGroupWhatsApp = async (msg: string) => {
+		if (!activeGroupPersonId) return;
+		const g = group(activeGroupPersonId);
+		if (!g) return;
+		let failures = 0;
+		for (const t of g.territories) {
+			if (hasReminder(t.id, g.personId)) continue; // skip already reminded
+			try {
+				const url = `/api/territory-reminders/whatsapp?territoryId=${t.id}&personId=${g.personId}`;
+				const res = await authFetch(url, {
+					method: "POST",
+					headers: {"Content-Type": "text/plain;charset=UTF-8"},
+					body: msg
+				});
+				if (!res.ok) {
+					failures++;
+				}
+			} catch {
+				failures++;
+			}
+		}
+		if (failures === 0) {
+			toast.success("Messages WhatsApp envoyés et rappels enregistrés");
+		} else {
+			toast.error(`Certains envois ont échoué (${failures})`);
+		}
+		dispatch(fetchReminders());
+		setGroupDialogOpen(false);
+	};
 
-  return (
-    <div className="container mx-auto py-8 px-6">
-      <PageHeader 
-        title="Territoires en retard" 
-        description="Gérez les territoires en retard et envoyez des rappels" 
-      />
+	const activeGroupData = useMemo(() => {
+		if (!activeGroupPersonId) return undefined;
+		const g = group(activeGroupPersonId);
+		if (!g) return undefined;
+		return {
+			person: { id: g.personId, name: g.personName, phone: g.phone },
+			territories: g.territories.map(t => ({ id: t.id, name: t.name, assignedOn: t.assignedOn, waitedFor: t.waitedFor })),
+		};
+	}, [activeGroupPersonId, groups]);
 
-      {/* View toggle */}
-      <div className="mb-4 flex gap-2">
-        <button onClick={() => setViewMode("territory")} className={`px-3 py-1 rounded border ${viewMode === "territory" ? "bg-primary text-white" : "bg-white"}`}>Par territoire</button>
-        <button onClick={() => setViewMode("person")} className={`px-3 py-1 rounded border ${viewMode === "person" ? "bg-primary text-white" : "bg-white"}`}>Par personne</button>
-      </div>
+	return (
+		<div className="container mx-auto py-8 px-6">
+			<PageHeader
+				title="Territoires en retard"
+				description="Gérez les territoires en retard et envoyez des rappels"
+			/>
 
-      {territoriesLoading || remindersLoading || !territoriesData ? (
-        <LoadingState />
-      ) : territories.length === 0 ? (
-        <EmptyState />
-      ) : viewMode === "territory" ? (
-        <LateTerritoriesTable 
-          territories={territories} 
-          columns={columns}
-          tableId="late-territories" 
-        />
-      ) : (
-        // Accordion per person
-        <div className="space-y-3">
-          {groups.map(g => (
-            <div key={g.personId} className="border rounded-lg bg-white shadow-sm">
-              {/* Header */}
-              <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => toggleGroup(g.personId)}>
-                <div className="flex items-center gap-4">
-                  <div className="font-medium">{g.personName}</div>
-                  <div className="text-sm text-muted-foreground">{g.territories.length} territoire(s)</div>
-                  <div className="text-sm text-muted-foreground">Plus ancien retard: {g.oldest ? format(new Date(g.oldest), "dd MMM yyyy", { locale: fr }) : "N/A"}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="px-3 py-1 text-sm rounded border" onClick={(e) => { e.stopPropagation(); openGroupDialog(g.personId); }}>Rappeler tout</button>
-                </div>
-              </div>
-              {/* Panel */}
-              {openGroups[g.personId] && (
-                <div className="p-3 border-t">
-                  {/* Reuse table for this person's territories */}
-                  <LateTerritoriesTable territories={g.territories} columns={columns} tableId={`late-${g.personId}`} />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+			{/* View toggle */}
+			<div className="mb-4 flex gap-2">
+				<button onClick={() => setViewMode("territory")}
+				        className={`px-3 py-1 rounded border ${viewMode === "territory" ? "bg-primary text-white" : "bg-white"}`}>Par
+					territoire
+				</button>
+				<button onClick={() => setViewMode("person")}
+				        className={`px-3 py-1 rounded border ${viewMode === "person" ? "bg-primary text-white" : "bg-white"}`}>Par
+					personne
+				</button>
+			</div>
 
-      {/* Group action dialog */}
-      <ReminderDialog
-        open={groupDialogOpen}
-        onOpenChange={setGroupDialogOpen}
-        title="Rappeler tout"
-        description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
-        canSendWhatsApp={activeGroupPersonId ? hasPhoneNumber(activeGroupPersonId) : true}
-        onManualReminders={handleGroupManualReminders}
-        onSendWhatsApp={handleGroupWhatsApp}
-      />
-    </div>
-  );
+			{territoriesLoading || remindersLoading || !territoriesData ? (
+				<LoadingState/>
+			) : territories.length === 0 ? (
+				<EmptyState/>
+			) : viewMode === "territory" ? (
+				<LateTerritoriesTable
+					territories={territories}
+					columns={columns}
+					tableId="late-territories"
+				/>
+			) : (
+				// Accordion per person
+				<div className="space-y-3">
+					{groups.map(g => (
+						<div key={g.personId} className="border rounded-lg bg-white shadow-sm">
+							{/* Header */}
+							<div className="flex items-center justify-between p-3 cursor-pointer"
+							     onClick={() => toggleGroup(g.personId)}>
+								<div className="flex items-center gap-4">
+									<div className="font-medium">{g.personName}</div>
+									<div className="text-sm text-muted-foreground">{g.territories.length} territoire(s)</div>
+									<div className="text-sm text-muted-foreground">Plus ancien
+										retard: {g.oldest ? format(new Date(g.oldest), "dd MMM yyyy", {locale: fr}) : "N/A"}</div>
+								</div>
+								<div className="flex items-center gap-2">
+									<button className="px-3 py-1 text-sm rounded border" onClick={(e) => {
+										e.stopPropagation();
+										openGroupDialog(g.personId);
+									}}>Rappeler tout
+									</button>
+								</div>
+							</div>
+							{/* Panel */}
+							{openGroups[g.personId] && (
+								<div className="p-3 border-t">
+									{/* Reuse table for this person's territories */}
+									<LateTerritoriesTable territories={g.territories} columns={columns} tableId={`late-${g.personId}`}/>
+								</div>
+							)}
+						</div>
+					))}
+				</div>
+			)}
+
+			{/* Group action dialog */}
+	  <ReminderDialog
+                open={groupDialogOpen}
+                onOpenChange={setGroupDialogOpen}
+                title="Rappeler tout"
+                description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
+                canSendWhatsApp={activeGroupPersonId ? hasPhoneNumber(activeGroupPersonId) : true}
+                onManualReminders={handleGroupManualReminders}
+                onSendWhatsApp={handleGroupWhatsApp}
+                data={activeGroupData}
+            />
+		</div>
+	);
 }
