@@ -1,7 +1,11 @@
 package com.teillet.territoire.mapper;
 
 import com.teillet.territoire.dto.TerritoryReminderDto;
+import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.model.TerritoryReminder;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TerritoryReminderMapper {
 
@@ -15,15 +19,20 @@ public class TerritoryReminderMapper {
             return null;
         }
 
-        return TerritoryReminderDto.builder()
+        TerritoryReminderDto.TerritoryReminderDtoBuilder builder = TerritoryReminderDto.builder()
                 .id(reminder.getId())
-                .territoryId(reminder.getTerritory().getId())
-                .territoryName(reminder.getTerritory().getName())
-                .personId(reminder.getPerson().getId())
-                .personName(reminder.getPerson().getFirstName() + " " + reminder.getPerson().getLastName())
+                .personId(reminder.getPerson() != null ? reminder.getPerson().getId() : null)
+                .personName(reminder.getPerson() != null ? (reminder.getPerson().getFirstName() + " " + reminder.getPerson().getLastName()) : null)
                 .reminderDate(reminder.getReminderDate())
                 .notes(reminder.getNotes())
-                .messageSend(reminder.getMessageSend())
-                .build();
+                .messageSend(reminder.getMessageSend());
+
+        List<Territory> territories = reminder.getTerritories();
+        if (territories != null && !territories.isEmpty()) {
+            builder.territoryIds(territories.stream().map(Territory::getId).collect(Collectors.toList()))
+                   .territoryNames(territories.stream().map(Territory::getName).collect(Collectors.toList()));
+        }
+
+        return builder.build();
     }
 }

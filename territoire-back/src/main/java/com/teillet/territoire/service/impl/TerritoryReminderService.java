@@ -15,8 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,16 +26,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TerritoryReminderService implements ITerritoryReminderService {
 
-    private Person getAuthenticatedPerson() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getName() == null) {
-            throw new IllegalStateException("Utilisateur non authentifié");
-        }
-        String email = authentication.getName();
-        return personRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("Aucune personne liée à l'utilisateur authentifié"));
-    }
-
     private final TerritoryReminderRepository territoryReminderRepository;
     private final ITerritoryService territoryService;
     private final IPersonService personService;
@@ -46,31 +34,22 @@ public class TerritoryReminderService implements ITerritoryReminderService {
 
     @Override
     @Transactional
-    public TerritoryReminderDto createReminder(UUID territoryId, UUID personId, String notes) {
-        Territory territory = territoryService.getTerritory(territoryId);
-        
-        // Check if territory is late
-        if (territory.getStatus() != TerritoryStatus.LATE) {
-            throw new IllegalStateException("Le territoire n'est pas en retard");
-        }
+    public TerritoryReminderDto createReminder(List<UUID> territoryIds, UUID personId, String notes) {
+        List<Territory> territories = territoryIds.stream()
+                .map(territoryService::getTerritory)
+                .collect(Collectors.toList());
         
         Person person = personService.getPerson(personId);
-        Person remindedBy = getAuthenticatedPerson();
-        
-        // Check if reminder already exists
-        if (hasReminder(territoryId, personId)) {
-            throw new IllegalStateException("Un rappel a déjà été envoyé pour ce territoire et cette personne");
-        }
-        
+
         TerritoryReminder reminder = TerritoryReminder.builder()
-                .territory(territory)
+                .territories(territories)
                 .person(person)
                 .reminderDate(LocalDate.now())
                 .notes(notes)
                 .build();
         
         TerritoryReminder savedReminder = territoryReminderRepository.save(reminder);
-        log.info("Rappel créé pour le territoire {} et la personne {}", territory.getName(), 
+        log.info("Rappel créé pour le territoire {} et la personne {}", territories,
                 person.getFirstName() + " " + person.getLastName());
         
         return TerritoryReminderMapper.toDto(savedReminder);
@@ -78,15 +57,12 @@ public class TerritoryReminderService implements ITerritoryReminderService {
 
     @Override
     @Transactional
-    public TerritoryReminderDto sendWhatsAppReminder(UUID territoryId, UUID personId, String message) {
-        Territory territory = territoryService.getTerritory(territoryId);
-
-        if (territory.getStatus() != TerritoryStatus.LATE) {
-            throw new IllegalStateException("Le territoire n'est pas en retard");
+    public TerritoryReminderDto sendWhatsAppReminder(List<UUID> territoryIds, UUID personId, String message) {
+        if (territoryIds == null || territoryIds.isEmpty()) {
+            throw new IllegalArgumentException("La liste des territoires ne peut pas être vide");
         }
 
         Person person = personService.getPerson(personId);
-
         if (person.getPhoneNumber() == null || person.getPhoneNumber().isBlank()) {
             throw new IllegalStateException("Aucun numéro de téléphone pour la personne");
         }
@@ -94,19 +70,30 @@ public class TerritoryReminderService implements ITerritoryReminderService {
             throw new IllegalArgumentException("Le message ne peut pas être vide");
         }
 
-        // send WhatsApp message
+        // Load and validate territories
+        List<Territory> territories = territoryIds.stream()
+                .map(territoryService::getTerritory)
+                .collect(Collectors.toList());
+
+        for (Territory t : territories) {
+            if (t.getStatus() != TerritoryStatus.LATE) {
+                throw new IllegalStateException("Le territoire n'est pas en retard: " + t.getName());
+            }
+        }
+
+        // send WhatsApp message once
         wahaClient.sendMessage(person.getPhoneNumber(), message);
 
-        // persist reminder with messageSend
+        // persist reminder with messageSend and territories list
         TerritoryReminder reminder = TerritoryReminder.builder()
-                .territory(territory)
                 .person(person)
                 .reminderDate(LocalDate.now())
                 .messageSend(message)
+                .territories(territories)
                 .build();
 
         TerritoryReminder saved = territoryReminderRepository.save(reminder);
-        log.info("Rappel WhatsApp envoyé à {} pour le territoire {}", person.getPhoneNumber(), territory.getName());
+        log.info("Rappel WhatsApp envoyé à {} pour {} territoire(s)", person.getPhoneNumber(), territories.size());
         return TerritoryReminderMapper.toDto(saved);
     }
 
@@ -115,7 +102,7 @@ public class TerritoryReminderService implements ITerritoryReminderService {
         // Verify territory exists
         territoryService.getTerritory(territoryId);
         
-        List<TerritoryReminder> reminders = territoryReminderRepository.findByTerritory_Id(territoryId);
+        List<TerritoryReminder> reminders = territoryReminderRepository.findByTerritories_Id(territoryId);
         return reminders.stream()
                 .map(TerritoryReminderMapper::toDto)
                 .collect(Collectors.toList());
@@ -142,6 +129,6 @@ public class TerritoryReminderService implements ITerritoryReminderService {
 
     @Override
     public boolean hasReminder(UUID territoryId, UUID personId) {
-        return territoryReminderRepository.existsByTerritory_IdAndPerson_Id(territoryId, personId);
+        return territoryReminderRepository.existsByTerritories_IdAndPerson_Id(territoryId, personId);
     }
 }

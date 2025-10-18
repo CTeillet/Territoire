@@ -54,7 +54,7 @@ export const createReminder = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      let url = `${BASE_URL}?territoryId=${territoryId}&personId=${personId}`;
+      let url = `${BASE_URL}?territoryIds=${territoryId}&personId=${personId}`;
       if (notes) {
         url += `&notes=${encodeURIComponent(notes)}`;
       }

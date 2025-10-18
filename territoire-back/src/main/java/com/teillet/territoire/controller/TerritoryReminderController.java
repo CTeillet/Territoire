@@ -23,22 +23,22 @@ public class TerritoryReminderController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     public ResponseEntity<TerritoryReminderDto> createReminder(
-            @RequestParam UUID territoryId,
+            @RequestParam List<UUID> territoryIds,
             @RequestParam UUID personId,
             @RequestParam(required = false) String notes) {
-        log.info("Création d'un rappel pour le territoire {} et la personne {}", territoryId, personId);
-        TerritoryReminderDto reminder = territoryReminderService.createReminder(territoryId, personId, notes);
+        log.info("Création d'un rappel pour le territoire {} et la personne {}", territoryIds, personId);
+        TerritoryReminderDto reminder = territoryReminderService.createReminder(territoryIds, personId, notes);
         return new ResponseEntity<>(reminder, HttpStatus.CREATED);
     }
 
     @PostMapping("/whatsapp")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     public ResponseEntity<TerritoryReminderDto> sendWhatsAppReminder(
-            @RequestParam UUID territoryId,
+            @RequestParam(name = "territoryIds") List<UUID> territoryIds,
             @RequestParam UUID personId,
             @RequestBody String message) {
-        log.info("Envoi d'un rappel WhatsApp pour le territoire {} et la personne {}", territoryId, personId);
-        TerritoryReminderDto reminder = territoryReminderService.sendWhatsAppReminder(territoryId, personId, message);
+        log.info("Envoi d'un rappel WhatsApp pour les territoires {} et la personne {}", territoryIds, personId);
+        TerritoryReminderDto reminder = territoryReminderService.sendWhatsAppReminder(territoryIds, personId, message);
         return new ResponseEntity<>(reminder, HttpStatus.CREATED);
     }
 

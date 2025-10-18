@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -19,10 +21,6 @@ public class TerritoryReminder {
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "territory_id", nullable = false)
-    private Territory territory;
-
-    @ManyToOne
     @JoinColumn(name = "person_id", nullable = false)
     private Person person;
 
@@ -33,4 +31,13 @@ public class TerritoryReminder {
     @Column(name = "message_send", columnDefinition = "TEXT")
     private String messageSend;
 
+    // New: support for multiple territories in the same reminder (for WhatsApp bulk reminders)
+    @ManyToMany
+    @JoinTable(
+            name = "territory_reminder_territories",
+            joinColumns = @JoinColumn(name = "reminder_id"),
+            inverseJoinColumns = @JoinColumn(name = "territory_id")
+    )
+    @ToString.Exclude
+    private List<Territory> territories = new ArrayList<>();
 }

@@ -226,22 +226,18 @@ export default function LateTerritoriesPage() {
 		const g = group(activeGroupPersonId);
 		if (!g) return;
 		let failures = 0;
-		for (const t of g.territories) {
-			if (hasReminder(t.id, g.personId)) continue; // skip already reminded
-			try {
-				console.log("Person ID", g.personId)
-				const url = `/api/territory-reminders/whatsapp?territoryId=${t.id}&personId=${g.personId}`;
-				const res = await authFetch(url, {
-					method: "POST",
-					headers: {"Content-Type": "text/plain;charset=UTF-8"},
-					body: msg
-				});
-				if (!res.ok) {
-					failures++;
-				}
-			} catch {
+		try {
+			const url = `/api/territory-reminders/whatsapp?territoryIds=${g.territories.map(value => value.id)}&personId=${g.personId}`;
+			const res = await authFetch(url, {
+				method: "POST",
+				headers: {"Content-Type": "text/plain;charset=UTF-8"},
+				body: msg
+			});
+			if (!res.ok) {
 				failures++;
 			}
+		} catch {
+			failures++;
 		}
 		if (failures === 0) {
 			toast.success("Messages WhatsApp envoyés et rappels enregistrés");

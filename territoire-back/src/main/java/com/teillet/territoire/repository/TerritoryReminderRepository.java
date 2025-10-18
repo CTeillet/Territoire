@@ -15,8 +15,8 @@ public interface TerritoryReminderRepository extends JpaRepository<TerritoryRemi
      * @param territoryId the territory ID
      * @return list of reminders for the territory
      */
-    List<TerritoryReminder> findByTerritory_Id(UUID territoryId);
-    
+    List<TerritoryReminder> findByTerritories_Id(UUID territoryId);
+
     /**
      * Find all reminders for a specific person
      * @param personId the person ID
@@ -30,5 +30,6 @@ public interface TerritoryReminderRepository extends JpaRepository<TerritoryRemi
      * @param personId the person ID
      * @return true if a reminder exists
      */
-    boolean existsByTerritory_IdAndPerson_Id(UUID territoryId, UUID personId);
+    boolean existsByTerritories_IdAndPerson_Id(UUID territoryId, UUID personId);
+
 }
