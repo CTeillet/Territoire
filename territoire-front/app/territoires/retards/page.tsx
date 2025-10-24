@@ -18,6 +18,8 @@ import {fetchPersons} from "@/store/slices/person-slice";
 import {authFetch} from "@/utils/auth-fetch";
 import {ReminderDialog} from "@/components/late-territory/reminder-dialog";
 import {Person} from "@/models/person";
+import {Button} from "@/components/ui/button";
+import {ChevronDown} from "lucide-react";
 
 export default function LateTerritoriesPage() {
 	const router = useRouter();
@@ -126,8 +128,11 @@ export default function LateTerritoriesPage() {
 	};
 	const hasPhoneNumber = (personId: string): boolean => {
 		const p = persons?.find(p => (p.firstName + " " + p.lastName) === personId.toUpperCase());
-		if (!p) return true; // si non chargé/inconnu, ne pas bloquer l'action, la validation sera faite côté backend
-		return !!p.phoneNumber && p.phoneNumber.trim().length > 0;
+		if (!p) {
+			return false;
+		} // si non chargé/inconnu, ne pas bloquer l'action, la validation sera faite côté backend
+		const b = !!p.phoneNumber && p.phoneNumber.trim().length > 0;
+		return b;
 	};
 	const columns = createLateTerritoriesColumns(formatDate, hasReminder, sendReminder, onWhatsAppSuccess, hasPhoneNumber);
 
@@ -184,20 +189,15 @@ export default function LateTerritoriesPage() {
 		}
 
 		return Array.from(map.values()).sort((a, b) =>
-			a.personName.localeCompare(b.personName, 'fr', { sensitivity: 'base' })
+			a.personName.localeCompare(b.personName, 'fr', {sensitivity: 'base'})
 		);
 	}, [territories, persons]);
 
 	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 	const toggleGroup = (pid: string) => setOpenGroups(prev => ({...prev, [pid]: !prev[pid]}));
 
-	// State for group dialog
-	const [groupDialogOpen, setGroupDialogOpen] = useState(false);
-	const [activeGroupPersonId, setActiveGroupPersonId] = useState<string | null>(null);
-	const openGroupDialog = (personId: string) => {
-		setActiveGroupPersonId(personId);
-		setGroupDialogOpen(true);
-	};
+	// Active group for dialog context
+	const [activeGroupPersonId] = useState<string | null>(null);
 
 	const group = (pid: string | null) => groups.find(g => g.personId === pid);
 
@@ -218,12 +218,11 @@ export default function LateTerritoriesPage() {
 		}
 		toast.success("Rappels enregistrés pour ce groupe");
 		dispatch(fetchReminders());
-		setGroupDialogOpen(false);
 	};
 
-	const handleGroupWhatsApp = async (msg: string) => {
-		if (!activeGroupPersonId) return;
-		const g = group(activeGroupPersonId);
+	const handleGroupWhatsApp = async (personId:string, msg: string) => {
+		if (!personId) return;
+		const g = group(personId);
 		if (!g) return;
 		let failures = 0;
 		try {
@@ -245,19 +244,7 @@ export default function LateTerritoriesPage() {
 			toast.error(`Certains envois ont échoué (${failures})`);
 		}
 		dispatch(fetchReminders());
-		setGroupDialogOpen(false);
 	};
-
-	const activeGroupData = useMemo(() => {
-		if (!activeGroupPersonId) return undefined;
-		const g = group(activeGroupPersonId);
-		if (!g) return undefined;
-		console.log("activeGroupData", g)
-		return {
-			person: { id: g.personId, name: g.personName, phone: g.phone },
-			territories: g.territories.map(t => ({ id: t.id, name: t.name, assignedOn: t.assignedOn, waitedFor: t.waitedFor })),
-		};
-	}, [activeGroupPersonId, groups]);
 
 	return (
 		<div className="container mx-auto py-8 px-6">
@@ -294,8 +281,22 @@ export default function LateTerritoriesPage() {
 					{groups.map(g => (
 						<div key={g.personId} className="border rounded-lg bg-white shadow-sm">
 							{/* Header */}
-							<div className="flex items-center justify-between p-3 cursor-pointer"
-							     onClick={() => toggleGroup(g.personId)}>
+							<div className="flex items-center justify-between p-3 cursor-pointer">
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={() => { toggleGroup(g.personId); }}
+									aria-expanded={openGroups[g.personId]}
+									aria-controls={`group-${g.personId}`}
+									aria-label={openGroups[g.personId] ? "Replier le groupe" : "Déplier le groupe"}
+								>
+									<ChevronDown
+										className={`h-4 w-4 transition-transform ${
+											openGroups[g.personId] ? "rotate-180" : ""
+										}`}
+									/>
+								</Button>
 								<div className="flex items-center gap-4">
 									<div className="font-medium">{g.personName}</div>
 									<div className="text-sm text-muted-foreground">{g.territories.length} territoire(s)</div>
@@ -303,11 +304,22 @@ export default function LateTerritoriesPage() {
 										retard: {g.oldest ? format(new Date(g.oldest), "dd MMM yyyy", {locale: fr}) : "N/A"}</div>
 								</div>
 								<div className="flex items-center gap-2">
-									<button className="px-3 py-1 text-sm rounded border" onClick={(e) => {
-										e.stopPropagation();
-										openGroupDialog(g.personId);
-									}}>Rappeler tout
-									</button>
+									<ReminderDialog
+										title="Rappeler tout"
+										description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
+										canSendWhatsApp={!!g.phone}
+										onManualReminders={handleGroupManualReminders}
+										onSendWhatsApp={handleGroupWhatsApp}
+										data={{
+											person: {id: g.personId, name: g.personName, phone: g.phone},
+											territories: g.territories.map(t => ({
+												id: t.id,
+												name: t.name,
+												assignedOn: t.assignedOn,
+												waitedFor: t.waitedFor
+											}))
+										}}
+									/>
 								</div>
 							</div>
 							{/* Panel */}
@@ -322,17 +334,6 @@ export default function LateTerritoriesPage() {
 				</div>
 			)}
 
-			{/* Group action dialog */}
-	  <ReminderDialog
-                open={groupDialogOpen}
-                onOpenChange={setGroupDialogOpen}
-                title="Rappeler tout"
-                description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
-                canSendWhatsApp={activeGroupPersonId ? hasPhoneNumber(activeGroupPersonId) : true}
-                onManualReminders={handleGroupManualReminders}
-                onSendWhatsApp={handleGroupWhatsApp}
-                data={activeGroupData}
-            />
 		</div>
 	);
 }
