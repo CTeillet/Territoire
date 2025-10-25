@@ -1,14 +1,11 @@
 package com.teillet.territoire.designPattern;
 
-import com.teillet.territoire.model.Assignment;
-import com.teillet.territoire.model.City;
-import com.teillet.territoire.model.Territory;
-import com.teillet.territoire.utils.TerritoryUtils;
+import com.teillet.territoire.dto.exportExcel.AssignmentExportDto;
+import com.teillet.territoire.dto.exportExcel.CityExportDto;
+import com.teillet.territoire.dto.exportExcel.TerritoryExportDto;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 
@@ -23,8 +20,6 @@ public class ExcelSheetBuilder {
 	private final int startYear;
 	private int rowNum;
 
-	public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
 	public ExcelSheetBuilder(Workbook workbook, Sheet sheet, int startYear) {
 		this.workbook = workbook;
 		this.sheet = sheet;
@@ -37,7 +32,7 @@ public class ExcelSheetBuilder {
 		return this;
 	}
 
-	public ExcelSheetBuilder addCityHeader(City city) {
+	public ExcelSheetBuilder addCityHeader(CityExportDto city) {
 		CellStyle yearStyle = CellStyleFactory.createYearStyle(workbook);
 		createMergedCell(rowNum, rowNum, 0, 9, city.getName(), yearStyle);
 		String yearLabel = startYear + "-" + (startYear + 1);
@@ -46,7 +41,7 @@ public class ExcelSheetBuilder {
 		return this;
 	}
 
-	public ExcelSheetBuilder addTerritories(List<Territory> territories) {
+	public ExcelSheetBuilder addTerritories(List<TerritoryExportDto> territories) {
 		CellStyle subHeaderStyle = CellStyleFactory.createSubHeaderStyle(workbook);
 		CellStyle wrappedHeaderStyle = CellStyleFactory.createWrappedHeaderStyle(workbook);
 		createHeaderRow(subHeaderStyle, wrappedHeaderStyle);
@@ -55,7 +50,7 @@ public class ExcelSheetBuilder {
 		CellStyle blueFillStyle = CellStyleFactory.createBlueRowStyle(workbook);
 
 		boolean isBlue = false;
-		for (Territory territory : territories) {
+		for (TerritoryExportDto territory : territories) {
 			Row territoryRow = sheet.createRow(rowNum++);
 			Row dateRow = sheet.createRow(rowNum++);
 
@@ -67,13 +62,13 @@ public class ExcelSheetBuilder {
 		return this;
 	}
 
-	private void createTerritoryCells(Row territoryRow, Row dateRow, Territory territory, CellStyle fillStyle) {
+	private void createTerritoryCells(Row territoryRow, Row dateRow, TerritoryExportDto territory, CellStyle fillStyle) {
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), TERRITORY_NAME_COL, TERRITORY_NAME_COL, territory.getName(), fillStyle);
 		// Toujours afficher la dernière date de rendu (ou "nouveau" s'il n'y en a jamais eu), même si le territoire est actuellement attribué.
-		String lastVisitDate = TerritoryUtils.getLastVisitedOn(territory);
+		String lastVisitDate = territory.getLastReturnedOn();
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastVisitDate, fillStyle);
 
-		List<Assignment> assignments = territory.getAssignments().stream().sorted(Comparator.comparing(Assignment::getAssignmentDate)).toList();
+		List<AssignmentExportDto> assignments = territory.getAssignments().stream().sorted(Comparator.comparing(AssignmentExportDto::getAssignmentDate)).toList();
 		for (int i = 0; i < MAX_ASSIGNMENTS; i++) {
 			int colStart = ASSIGNMENT_START_COL + (i * 2);
 			if (i < assignments.size()) {
@@ -84,10 +79,10 @@ public class ExcelSheetBuilder {
 		}
 	}
 
-	private void createAssignmentCells(Row territoryRow, Row dateRow, int colStart, Assignment assignment, CellStyle fillStyle) {
-		String personName = getPersonName(assignment);
-		String assignedDate = formatDate(assignment.getAssignmentDate(), "");
-		String returnDate = formatDate(assignment.getReturnDate(), "");
+	private void createAssignmentCells(Row territoryRow, Row dateRow, int colStart, AssignmentExportDto assignment, CellStyle fillStyle) {
+		String personName = assignment.getAssignedToName();
+		String assignedDate = assignment.getAssignmentDate();
+		String returnDate = assignment.getReturnDate();
 
 		createMergedCell(territoryRow.getRowNum(), territoryRow.getRowNum(), colStart, colStart + 1, personName, fillStyle);
 		createCell(dateRow, colStart, assignedDate, fillStyle);
@@ -196,19 +191,6 @@ public class ExcelSheetBuilder {
 				applyBorders(cell);
 			}
 		}
-	}
-
-	private String getPersonName(Assignment assignment) {
-		if (assignment.getPerson() != null) {
-			return assignment.getPerson().getFirstName() + " " + assignment.getPerson().getLastName();
-		} else if(assignment.getCampaign() != null) {
-			return "-- " + assignment.getCampaign().getName() + " --";
-		}
-		return "";
-	}
-
-	private String formatDate(LocalDate date, String alternative) {
-		return date != null ? date.format(DATE_FORMATTER) : alternative;
 	}
 
 	public Sheet build() {

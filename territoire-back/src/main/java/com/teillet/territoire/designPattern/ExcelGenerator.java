@@ -1,6 +1,6 @@
 package com.teillet.territoire.designPattern;
 
-import com.teillet.territoire.model.City;
+import com.teillet.territoire.dto.exportExcel.CityExportDto;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
@@ -16,8 +16,8 @@ public class ExcelGenerator {
 		this.startYear = startYear;
 	}
 
-	public void generate(List<City> cities) {
-		for (City city : cities) {
+	public void generate(List<CityExportDto> cities) {
+		for (CityExportDto city : cities) {
 			Sheet sheet = workbook.createSheet(city.getName());
 			new ExcelSheetBuilder(workbook, sheet, startYear)
 					.addCityHeader(city)

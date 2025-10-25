@@ -1,6 +1,7 @@
 package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.designPattern.ExcelGenerator;
+import com.teillet.territoire.dto.exportExcel.CityExportDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
@@ -10,7 +11,6 @@ import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.IExcelService;
-import com.teillet.territoire.utils.ExcelExportUtils;
 import com.teillet.territoire.utils.SchoolYearUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +26,8 @@ import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.List;
 
+import static com.teillet.territoire.mapper.ExportMappers.toExportDtos;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -37,7 +39,7 @@ public class ExcelService implements IExcelService {
 	private final CityRepository cityRepository;
 
 	@Override
-	public void generateExcel(List<City> cities, ByteArrayOutputStream outputStream, int startYear) throws IOException {
+	public void generateExcel(List<CityExportDto> cities, ByteArrayOutputStream outputStream, int startYear) throws IOException {
 		try (Workbook workbook = new XSSFWorkbook()) {
 			ExcelGenerator excelGenerator = new ExcelGenerator(workbook, startYear);
 			excelGenerator.generate(cities);
@@ -52,10 +54,11 @@ public class ExcelService implements IExcelService {
 		LocalDate end = SchoolYearUtils.getEndDate(startYear);
 
 		List<City> cities = cityRepository.findAll();
-		cities = ExcelExportUtils.prepareCitiesForExport(cities, start, end);
+
+		List<CityExportDto> cityExportDtos = toExportDtos(cities, start, end);
 
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		generateExcel(cities, outputStream, startYear);
+		generateExcel(cityExportDtos, outputStream, startYear);
 		return outputStream.toByteArray();
 	}
 
