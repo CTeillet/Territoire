@@ -4,24 +4,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
-	private final UserDetailsService userDetailsService; // Injecte UserDetailsService
-	private final PasswordEncoder passwordEncoder;
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -29,8 +22,8 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 				.cors(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/api/authentification/connexion").permitAll() // Permet l'authentification
-						.anyRequest().authenticated() // Protège toutes les autres routes
+						.requestMatchers("/api/authentification/connexion", "/api/authentification/refresh").permitAll()
+						.anyRequest().authenticated()
 				)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -42,13 +35,4 @@ public class SecurityConfig {
 	public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
 		return configuration.getAuthenticationManager();
 	}
-
-	@Bean
-	public AuthenticationProvider authenticationProvider() {
-		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-		authProvider.setUserDetailsService(userDetailsService); // Utilise UserDetailsService
-		authProvider.setPasswordEncoder(passwordEncoder);
-		return authProvider;
-	}
-
 }
