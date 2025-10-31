@@ -72,6 +72,7 @@ export function DataTableColumnHeader<TData, TValue>({
                                 onChange={(e) => handleFilterChange(e.target.value)}
                                 className="p-1 text-sm border rounded-md w-full"
                                 onPointerDown={(e) => e.stopPropagation()} // Empêche la fermeture du menu
+                                onKeyDown={(e) => e.stopPropagation()}     // Empêche le typeahead du menu
                             >
                                 <option value="">Tous</option>
                                 <option value="AVAILABLE">Disponible</option>
@@ -88,6 +89,7 @@ export function DataTableColumnHeader<TData, TValue>({
                                 placeholder={`Filtrer ${title}`}
                                 className="p-1 text-sm border rounded-md w-full"
                                 onPointerDown={(e) => e.stopPropagation()} // Empêche la fermeture du menu
+                                onKeyDown={(e) => e.stopPropagation()}     // Empêche le typeahead du menu
                             />
                         )}
                     </div>

@@ -43,7 +43,18 @@ export function DataTable<TValue>(
         status: true,
         actions: true,
     });
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>(() => {
+        if (typeof window !== "undefined") {
+            const storageKey = `tableSorting${tableId ? `-${tableId}` : ''}`;
+            const stored = localStorage.getItem(storageKey);
+            try {
+                return stored ? JSON.parse(stored) : [];
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    });
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
         if (typeof window !== "undefined") {
             const storageKey = `tableFilters${tableId ? `-${tableId}` : ''}`;
@@ -64,6 +75,14 @@ export function DataTable<TValue>(
             localStorage.setItem(storageKey, JSON.stringify(columnFilters));
         }
     }, [columnFilters, tableId]);
+
+    // Persist sorting in localStorage so sort order is restored across reloads
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const storageKey = `tableSorting${tableId ? `-${tableId}` : ''}`;
+            localStorage.setItem(storageKey, JSON.stringify(sorting));
+        }
+    }, [sorting, tableId]);
 
     const table = useReactTable({
         data,
