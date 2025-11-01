@@ -24,7 +24,7 @@ export function LateReminderMessage({ showTitle = true }: { showTitle?: boolean 
         } else {
           toast.error("Impossible de charger le message de relance");
         }
-      } catch (e) {
+      } catch {
         toast.error("Erreur réseau lors du chargement");
       } finally {
         if (!cancelled) setLoading(false);
@@ -40,7 +40,7 @@ export function LateReminderMessage({ showTitle = true }: { showTitle?: boolean 
     try {
       await navigator.clipboard.writeText(message);
       toast.success("Message copié dans le presse-papiers");
-    } catch (e) {
+    } catch {
       toast.error("Impossible de copier le message");
     }
   };
@@ -58,7 +58,7 @@ export function LateReminderMessage({ showTitle = true }: { showTitle?: boolean 
       } else {
         toast.error("Échec de l'enregistrement du message");
       }
-    } catch (e) {
+    } catch {
       toast.error("Erreur réseau lors de l'enregistrement");
     } finally {
       setSaving(false);

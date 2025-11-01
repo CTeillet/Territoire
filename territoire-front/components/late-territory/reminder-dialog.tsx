@@ -16,6 +16,22 @@ import {authFetch} from "@/utils/auth-fetch";
 import {toast} from "sonner";
 import {renderTemplate} from "@/lib/nunjucks";
 
+export interface ReminderDialogData {
+	person: {
+		id: string;
+		name: string;
+  phone: string | null;
+	};
+	territories: Array<{
+		id: string;
+		name: string;
+		assignedOn: string | null;
+		waitedFor: string | null;
+	}>;
+	// Champs supplémentaires éventuels pour le rendu du template
+	[key: string]: unknown;
+}
+
 export interface ReminderDialogProps {
 	onOpenChange?: (v: boolean) => void; // optional
 	title?: string;
@@ -23,7 +39,7 @@ export interface ReminderDialogProps {
 	canSendWhatsApp: boolean;
 	onManualReminders: () => Promise<void> | void;
 	onSendWhatsApp: (personId:string, message: string) => Promise<void> | void;
-	data?: unknown; // contexte pour le rendu du message (ex: group/person/territories)
+	data: ReminderDialogData; // contexte pour le rendu du message (ex: group/person/territories)
 }
 
 export function ReminderDialog(
@@ -63,7 +79,7 @@ export function ReminderDialog(
 						setMessage(result);
 					}
 				}
-			} catch (_) {
+			} catch {
 				// ignore but show a gentle toast so user knows
 				toast.error("Impossible de charger le message type");
 			} finally {
@@ -83,7 +99,6 @@ export function ReminderDialog(
 		}
 		setSending(true);
 		try {
-			// @ts-ignore
 			await onSendWhatsApp(data.person.id, message);
 		} finally {
 			setSending(false);

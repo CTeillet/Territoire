@@ -23,7 +23,7 @@ import {ChevronDown} from "lucide-react";
 
 export default function LateTerritoriesPage() {
 	const router = useRouter();
-	const {user, isAuthenticated} = useAuth();
+	const {isAuthenticated} = useAuth();
 	const dispatch = useAppDispatch();
 	const territoriesData = useAppSelector(state => state.territories.territoriesGeojson);
 	const territoriesLoading = useAppSelector(state => state.territories.loading);
@@ -90,51 +90,7 @@ export default function LateTerritoriesPage() {
 		);
 	};
 
-	// Send a reminder
-	const sendReminder = async (territoryId: string, personId: string) => {
-		if (!user?.id) {
-			toast.error("Vous devez être connecté pour envoyer un rappel");
-			return;
-		}
-
-		try {
-			// Use Redux action to create reminder
-			const resultAction = await dispatch(
-				createReminder({
-					territoryId,
-					personId,
-				})
-			);
-
-			if (createReminder.rejected.match(resultAction)) {
-				throw new Error(resultAction.payload as string || "Failed to send reminder");
-			}
-
-			toast.success("Rappel envoyé avec succès");
-		} catch (error: unknown) {
-			console.error("Error sending reminder:", error);
-			const errorMessage = error instanceof Error ? error.message : "Impossible d'envoyer le rappel";
-			toast.error(errorMessage);
-		}
-	};
-
-	// Create columns using the helper function
-	const onWhatsAppSuccess = () => {
-		try {
-			dispatch(fetchReminders());
-		} catch (e) {
-			// ignore
-		}
-	};
-	const hasPhoneNumber = (personId: string): boolean => {
-		const p = persons?.find(p => (p.firstName + " " + p.lastName) === personId.toUpperCase());
-		if (!p) {
-			return false;
-		} // si non chargé/inconnu, ne pas bloquer l'action, la validation sera faite côté backend
-		const b = !!p.phoneNumber && p.phoneNumber.trim().length > 0;
-		return b;
-	};
-	const columns = createLateTerritoriesColumns(formatDate, hasReminder, sendReminder, onWhatsAppSuccess, hasPhoneNumber);
+	const columns = createLateTerritoriesColumns(formatDate, hasReminder);
 
 	// Toggle view: by territory (default) or by person (accordion)
 	const [viewMode, setViewMode] = useState<"territory" | "person">("territory");
@@ -148,10 +104,6 @@ export default function LateTerritoriesPage() {
 		oldest?: string;
 	};
 
-	function getPersonIdFromFullName(fullName: string): string | null {
-		return persons.find(p => p.firstName + " " + p.lastName === fullName.toUpperCase())?.id || null;
-	}
-
 	function getPhone(persons: Person[], personId: string): string | undefined {
 		return persons.find(pp => pp.id === personId)?.phoneNumber;
 	}
@@ -163,6 +115,10 @@ export default function LateTerritoriesPage() {
 	}
 
 	const groups = useMemo<Group[]>(() => {
+		function getPersonIdFromFullName(fullName: string): string | null {
+			return persons.find(p => p.firstName + " " + p.lastName === fullName.toUpperCase())?.id || null;
+		}
+
 		if (!territories?.length) return [];
 
 		const map = new Map<string, Group>();
@@ -220,7 +176,7 @@ export default function LateTerritoriesPage() {
 		dispatch(fetchReminders());
 	};
 
-	const handleGroupWhatsApp = async (personId:string, msg: string) => {
+	const handleGroupWhatsApp = async (personId: string, msg: string) => {
 		if (!personId) return;
 		const g = group(personId);
 		if (!g) return;
@@ -286,7 +242,9 @@ export default function LateTerritoriesPage() {
 									type="button"
 									variant="ghost"
 									size="icon"
-									onClick={() => { toggleGroup(g.personId); }}
+									onClick={() => {
+										toggleGroup(g.personId);
+									}}
 									aria-expanded={openGroups[g.personId]}
 									aria-controls={`group-${g.personId}`}
 									aria-label={openGroups[g.personId] ? "Replier le groupe" : "Déplier le groupe"}
@@ -311,7 +269,7 @@ export default function LateTerritoriesPage() {
 										onManualReminders={handleGroupManualReminders}
 										onSendWhatsApp={handleGroupWhatsApp}
 										data={{
-											person: {id: g.personId, name: g.personName, phone: g.phone},
+											person: {id: g.personId, name: g.personName, phone: g.phone ?? null},
 											territories: g.territories.map(t => ({
 												id: t.id,
 												name: t.name,

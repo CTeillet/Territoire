@@ -35,9 +35,6 @@ export function LateTerritoriesTable({ territories, columns, tableId }: LateTerr
 export function createLateTerritoriesColumns(
   formatDate: (dateString: string | null) => string,
   hasReminder: (territoryId: string, personId: string) => boolean,
-  sendReminder: (territoryId: string, personId: string) => void,
-  onSuccess?: () => void,
-  hasPhoneNumber?: (personId: string) => boolean,
 ): ColumnDef<Territory, unknown>[] {
   return [
     {
@@ -92,6 +89,21 @@ export function createLateTerritoriesColumns(
           }}
           onSendWhatsApp={() => {
             return
+          }}
+          data={{
+            person: {
+              id: "",
+              name: row.original.assignedTo,
+              phone: null,
+            },
+            territories: [
+              {
+                id: row.original.id,
+                name: row.original.name,
+                assignedOn: row.original.assignedOn,
+                waitedFor: row.original.waitedFor,
+              },
+            ],
           }}
         />
       ),
