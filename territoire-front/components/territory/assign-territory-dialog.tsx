@@ -12,7 +12,7 @@ import {
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form";
-import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,} from "@/components/ui/command";
 import {ChevronsUpDown} from "lucide-react";
 import {useForm} from "react-hook-form";
@@ -117,8 +117,8 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = (
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Personne existante</FormLabel>
-                                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                                        <PopoverTrigger asChild>
+                                    <PopoverPrimitive.Root modal={false} open={popoverOpen} onOpenChange={setPopoverOpen}>
+                                        <PopoverPrimitive.Trigger asChild>
                                             <Button
                                                 variant="outline"
                                                 role="combobox"
@@ -131,8 +131,13 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = (
                                                     : "Sélectionner une personne ou aucune"}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50"/>
                                             </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
+                                        </PopoverPrimitive.Trigger>
+                                        {/* Rendu inline (sans Portal) à l’intérieur de la modale pour éviter les conflits d’overlay */}
+                                        <PopoverPrimitive.Content
+                                            align="center"
+                                            sideOffset={4}
+                                            className="z-[60] w-full p-0 bg-popover text-popover-foreground rounded-md border shadow-md"
+                                        >
                                             <Command>
                                                 <CommandInput placeholder="Rechercher une personne..." className="h-9"/>
                                                 <CommandList>
@@ -162,8 +167,8 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = (
                                                     </CommandGroup>
                                                 </CommandList>
                                             </Command>
-                                        </PopoverContent>
-                                    </Popover>
+                                        </PopoverPrimitive.Content>
+                                    </PopoverPrimitive.Root>
                                 </FormItem>
                             )}
                         />
