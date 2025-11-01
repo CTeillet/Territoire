@@ -80,6 +80,9 @@ export const nonVisitedTerritoryColumns: ColumnDef<Territory, unknown>[] = [
             )
         },
         enableColumnFilter: true,
+        filterFn: (row, columnId, filterValue) => {
+            return filterValue === "" || row.getValue(columnId) === filterValue;
+        },
     },
     {
         id: "lastVisitedOn",

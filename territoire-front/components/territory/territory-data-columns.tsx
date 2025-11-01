@@ -81,6 +81,9 @@ export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
             )
         },
         enableColumnFilter: true,
+        filterFn: (row, columnId, filterValue) => {
+            return filterValue === "" || row.getValue(columnId) === filterValue;
+        },
     },
     {
         id: "lastVisitedOn",

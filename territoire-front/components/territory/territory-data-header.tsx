@@ -80,6 +80,19 @@ export function DataTableColumnHeader<TData, TValue>({
                                 <option value="LATE">En retard</option>
                                 <option value="PENDING">En attente</option>
                             </select>
+                        ) : column.id === "type" ? (
+                            // Select pour filtrer les types de territoire
+                            <select
+                                value={filterValue as string}
+                                onChange={(e) => handleFilterChange(e.target.value)}
+                                className="p-1 text-sm border rounded-md w-full"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                            >
+                                <option value="">Tous</option>
+                                <option value="BUILDING">Immeuble</option>
+                                <option value="HOUSE">Pavillon</option>
+                            </select>
                         ) : (
                             // Input texte pour les autres colonnes
                             <input
