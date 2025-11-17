@@ -34,24 +34,30 @@ export interface ReminderDialogData {
 }
 
 export interface ReminderDialogProps {
-	onOpenChange?: (v: boolean) => void; // optional
-	title?: string;
-	description?: string;
-	canSendWhatsApp: boolean;
-	onManualReminders: () => Promise<void> | void;
-	onSendWhatsApp: (personId: string, message: string) => Promise<void> | void;
-	data: ReminderDialogData; // contexte pour le rendu du message (ex: group/person/territories)
+    onOpenChange?: (v: boolean) => void; // optional
+    title?: string;
+    description?: string;
+    canSendWhatsApp: boolean;
+    // Désactive le bouton d'ouverture "Rappeler tout" (préféré par le produit)
+    triggerDisabled?: boolean;
+    // Si vrai: toutes les attributions de la personne ont déjà un rappel → on désactive les actions
+    disabledBecauseAllReminded?: boolean;
+    onManualReminders: () => Promise<void> | void;
+    onSendWhatsApp: (personId: string, message: string) => Promise<void> | void;
+    data: ReminderDialogData; // contexte pour le rendu du message (ex: group/person/territories)
 }
 
 export function ReminderDialog(
 	{
 		title,
 		description = "Vous pouvez envoyer un message WhatsApp ou simplement enregistrer les rappels.",
-		canSendWhatsApp,
-		onManualReminders,
-		onSendWhatsApp,
-		data
-	}: ReminderDialogProps) {
+        canSendWhatsApp,
+        triggerDisabled = false,
+        disabledBecauseAllReminded = false,
+        onManualReminders,
+        onSendWhatsApp,
+        data
+    }: ReminderDialogProps) {
 
 	const [message, setMessage] = useState("");
 	const [loading, setLoading] = useState(false);
@@ -106,43 +112,52 @@ export function ReminderDialog(
 		}
 	};
 
-	return (
-		<Dialog>
-			<DialogTrigger asChild>
-				<Button className="px-3 py-2 font-medium inline-flex items-center gap-2">
-					{title}
-				</Button>
-			</DialogTrigger>
-			<DialogContent>
-				<DialogHeader>
+ return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button
+                    className="px-3 py-2 font-medium inline-flex items-center gap-2"
+                    disabled={triggerDisabled}
+                    title={triggerDisabled ? "Tous les territoires de cette personne ont déjà été rappelés" : undefined}
+                >
+                    {title}
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 				</DialogHeader>
-				{description && (
-					<p className="text-sm text-muted-foreground">{description}</p>
-				)}
-				{!canSendWhatsApp && (
-					<div className="text-sm text-muted-foreground ">
-						Aucun numéro de téléphone n&#39;est associé à cette personne. L&#39;envoi WhatsApp est indisponible.
-					</div>
-				)}
-				<Textarea
-					value={message}
-					onChange={(e) => setMessage(e.target.value)}
-					rows={8}
-					placeholder={canSendWhatsApp ? "Message WhatsApp (option WhatsApp)" : "Aucun numéro de téléphone — envoi WhatsApp indisponible"}
-					disabled={loading || sending || !canSendWhatsApp}
-					className="min-h-32"
-				/>
-				<DialogFooter>
-					<DialogClose asChild>
-						<Button variant="secondary" disabled={sending}>Annuler</Button>
-					</DialogClose>
-					<Button variant="outline" onClick={onManualReminders} disabled={sending}>Marquer rappels envoyés</Button>
-					<Button onClick={handleWhatsApp}
-					        disabled={sending || loading || !canSendWhatsApp || message.trim().length === 0}>Envoyer par
-						WhatsApp</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
-	);
+                {description && (
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                )}
+                {disabledBecauseAllReminded && (
+                    <div className="text-sm text-muted-foreground">
+                        Tous les territoires de cette personne ont déjà été rappelés. Aucune action n&#39;est possible.
+                    </div>
+                )}
+                {!canSendWhatsApp && (
+                    <div className="text-sm text-muted-foreground ">
+                        Aucun numéro de téléphone n&#39;est associé à cette personne. L&#39;envoi WhatsApp est indisponible.
+                    </div>
+                )}
+                <Textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={8}
+                    placeholder={canSendWhatsApp ? "Message WhatsApp (option WhatsApp)" : "Aucun numéro de téléphone — envoi WhatsApp indisponible"}
+                    disabled={loading || sending || !canSendWhatsApp || disabledBecauseAllReminded}
+                    className="min-h-32"
+                />
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="secondary" disabled={sending}>Annuler</Button>
+                    </DialogClose>
+                    <Button variant="outline" onClick={onManualReminders} disabled={sending || disabledBecauseAllReminded}>Marquer rappels envoyés</Button>
+                    <Button onClick={handleWhatsApp}
+                            disabled={sending || loading || !canSendWhatsApp || disabledBecauseAllReminded || message.trim().length === 0}>Envoyer par
+                        WhatsApp</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }

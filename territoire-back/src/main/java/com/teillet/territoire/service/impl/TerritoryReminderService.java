@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -37,8 +39,15 @@ public class TerritoryReminderService implements ITerritoryReminderService {
         List<Territory> territories = territoryIds.stream()
                 .map(territoryService::getTerritory)
                 .collect(Collectors.toList());
-        
+
         Person person = personService.getPerson(personId);
+
+        // Si tous les territoires fournis ont déjà un rappel pour cette personne, on bloque
+        boolean allAlreadyReminded = territories.stream()
+                .allMatch(t -> territoryReminderRepository.existsByTerritories_IdAndPerson_Id(t.getId(), personId));
+        if (allAlreadyReminded) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tous les territoires sélectionnés ont déjà un rappel pour cette personne");
+        }
 
         TerritoryReminder reminder = TerritoryReminder.builder()
                 .territories(territories)
@@ -78,6 +87,13 @@ public class TerritoryReminderService implements ITerritoryReminderService {
             if (t.getStatus() != TerritoryStatus.LATE) {
                 throw new IllegalStateException("Le territoire n'est pas en retard: " + t.getName());
             }
+        }
+
+        // Bloquer si tous les territoires de la requête ont déjà un rappel pour cette personne
+        boolean allAlreadyReminded = territories.stream()
+                .allMatch(t -> territoryReminderRepository.existsByTerritories_IdAndPerson_Id(t.getId(), personId));
+        if (allAlreadyReminded) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tous les territoires sélectionnés ont déjà un rappel pour cette personne");
         }
 
         // send WhatsApp message once

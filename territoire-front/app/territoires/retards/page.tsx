@@ -82,11 +82,13 @@ export default function LateTerritoriesPage() {
 		return format(new Date(dateString), "dd MMMM yyyy", {locale: fr});
 	};
 
-	// Check if a territory has a reminder for the assigned person
-	const hasReminder = (territoryId: string, personId: string) => {
-		return reminders.some(
-			(reminder) =>
-				reminder.territoryId === territoryId && reminder.personId === personId
+	// Vérifie si un territoire a déjà un rappel pour la personne (nouveau format uniquement)
+	// Hypothèses: 
+	// - personKey est un UUID de personne (plus de résolution par nom complet)
+	// - les rappels utilisent uniquement `territoryIds: string[]`
+	const hasReminder = (territoryId: string, personKey: string) => {
+		return reminders.some((reminder) =>
+			reminder.personId === personKey && Array.isArray(reminder.territoryIds) && reminder.territoryIds.includes(territoryId)
 		);
 	};
 
@@ -112,21 +114,22 @@ export default function LateTerritoriesPage() {
 	}
 
 	const groups = useMemo<Group[]>(() => {
-		function getPersonIdFromFullName(fullName: string): string | null {
-			return persons.find(p => p.firstName + " " + p.lastName === fullName.toUpperCase())?.id || null;
-		}
-
 		if (!territories?.length) return [];
 
 		const map = new Map<string, Group>();
 
 		for (const t of territories) {
-			const key = getPersonIdFromFullName(t.assignedTo) ?? t.assignedTo;
+			// Dans le nouveau format, `assignedTo` est l'UUID de la personne
+			const key = t.assignedTo;
 			const existing = map.get(key);
+
+			// Récupérer un nom lisible depuis la liste des personnes
+			const person = persons.find(p => p.id === key);
+			const displayName = person ? `${person.firstName} ${person.lastName}` : t.assignedTo;
 
 			const next: Group = existing ?? {
 				personId: key,
-				personName: t.assignedTo,
+				personName: displayName,
 				phone: getPhone(persons, key),
 				territories: [],
 				oldest: undefined,
@@ -136,7 +139,7 @@ export default function LateTerritoriesPage() {
 			next.oldest = earlierIso(next.oldest, t.waitedFor);
 
 			if (!next.phone) next.phone = getPhone(persons, key);
-			if (!next.personName) next.personName = t.assignedTo;
+			if (!next.personName) next.personName = displayName;
 
 			map.set(key, next);
 		}
@@ -159,6 +162,13 @@ export default function LateTerritoriesPage() {
 		const g = group(activeGroupPersonId);
 		if (!g) return;
 
+		// Si tout est déjà rappelé, on bloque
+		const allReminded = g.territories.every(t => hasReminder(t.id, g.personId));
+		if (allReminded) {
+			toast.info("Tous les territoires de cette personne ont déjà été rappelés");
+			return;
+		}
+
 		// iterate only territories without reminder
 		for (const t of g.territories) {
 			if (!hasReminder(t.id, g.personId)) {
@@ -177,6 +187,12 @@ export default function LateTerritoriesPage() {
 		if (!personId) return;
 		const g = group(personId);
 		if (!g) return;
+		// Si tout est déjà rappelé, on bloque
+		const allReminded = g.territories.every(t => hasReminder(t.id, g.personId));
+		if (allReminded) {
+			toast.info("Tous les territoires de cette personne ont déjà été rappelés");
+			return;
+		}
 		let failures = 0;
 		try {
 			const url = `/api/territory-reminders/whatsapp?territoryIds=${g.territories.map(value => value.id)}&personId=${g.personId}`;
@@ -240,24 +256,25 @@ export default function LateTerritoriesPage() {
 									<div className="text-sm text-muted-foreground">Plus ancien
 										retard: {g.oldest ? format(new Date(g.oldest), "dd MMM yyyy", {locale: fr}) : "N/A"}</div>
 								</div>
-								<div className="flex items-center gap-2">
-									<ReminderDialog
-										title="Rappeler tout"
-										description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
-										canSendWhatsApp={!!g.phone}
-										onManualReminders={handleGroupManualReminders}
-										onSendWhatsApp={handleGroupWhatsApp}
-										data={{
-											person: {id: g.personId, name: g.personName, phone: g.phone ?? null},
-											territories: g.territories.map(t => ({
-												id: t.id,
-												name: t.name,
-												assignedOn: t.assignedOn,
-												waitedFor: t.waitedFor
-											}))
-										}}
-									/>
-								</div>
+        <div className="flex items-center gap-2">
+                    <ReminderDialog
+                        title="Rappeler tout"
+                        description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
+                        canSendWhatsApp={!!g.phone}
+                        triggerDisabled={g.territories.every(t => hasReminder(t.id, g.personId))}
+                        onManualReminders={handleGroupManualReminders}
+                        onSendWhatsApp={handleGroupWhatsApp}
+                        data={{
+                            person: {id: g.personId, name: g.personName, phone: g.phone ?? null},
+                            territories: g.territories.map(t => ({
+                                            id: t.id,
+                                            name: t.name,
+                                            assignedOn: t.assignedOn,
+                                            waitedFor: t.waitedFor
+                                        }))
+                                    }}
+                                />
+                            </div>
 							</div>
 							{/* Panel */}
 							{openGroups[g.personId] && (
