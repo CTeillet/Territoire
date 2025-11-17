@@ -90,10 +90,7 @@ export default function LateTerritoriesPage() {
 		);
 	};
 
-	const columns = createLateTerritoriesColumns(formatDate, hasReminder);
-
-	// Toggle view: by territory (default) or by person (accordion)
-	const [viewMode, setViewMode] = useState<"territory" | "person">("territory");
+ const columns = createLateTerritoriesColumns(formatDate, hasReminder);
 
 	// Group late territories by person
 	type Group = {
@@ -209,33 +206,15 @@ export default function LateTerritoriesPage() {
 				description="Gérez les territoires en retard et envoyez des rappels"
 			/>
 
-			{/* View toggle */}
-			<div className="mb-4 flex gap-2">
-				<button onClick={() => setViewMode("territory")}
-				        className={`px-3 py-1 rounded border ${viewMode === "territory" ? "bg-primary text-white" : "bg-white"}`}>Par
-					territoire
-				</button>
-				<button onClick={() => setViewMode("person")}
-				        className={`px-3 py-1 rounded border ${viewMode === "person" ? "bg-primary text-white" : "bg-white"}`}>Par
-					personne
-				</button>
-			</div>
-
-			{territoriesLoading || remindersLoading || !territoriesData ? (
-				<LoadingState/>
-			) : territories.length === 0 ? (
-				<EmptyState/>
-			) : viewMode === "territory" ? (
-				<LateTerritoriesTable
-					territories={territories}
-					columns={columns}
-					tableId="late-territories"
-				/>
-			) : (
-				// Accordion per person
-				<div className="space-y-3">
-					{groups.map(g => (
-						<div key={g.personId} className="border rounded-lg bg-white shadow-sm">
+   {territoriesLoading || remindersLoading || !territoriesData ? (
+       <LoadingState/>
+   ) : territories.length === 0 ? (
+       <EmptyState/>
+   ) : (
+       // Accordion per person
+       <div className="space-y-3">
+           {groups.map(g => (
+               <div key={g.personId} className="border rounded-lg bg-white shadow-sm">
 							{/* Header */}
 							<div className="flex items-center justify-between p-3 cursor-pointer">
 								<Button

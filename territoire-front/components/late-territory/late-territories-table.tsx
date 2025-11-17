@@ -5,7 +5,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Territory } from "@/models/territory";
 import { DataTableColumnHeader } from "@/components/territory/territory-data-header";
 import { ReminderStatusBadge } from "./reminder-status-badge";
-import {ReminderDialog} from "@/components/late-territory/reminder-dialog";
+// import {ReminderDialog} from "@/components/late-territory/reminder-dialog";
 
 interface LateTerritoriesTableProps {
   territories: Territory[];
@@ -73,38 +73,6 @@ export function createLateTerritoriesColumns(
       cell: ({row}) => (
         <ReminderStatusBadge 
           hasReminder={hasReminder(row.original.id, row.original.assignedTo)} 
-        />
-      ),
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({row}) => (
-        <ReminderDialog
-          title="Envoyer un rappel"
-          description="Envoyez un message WhatsApp ou enregistrez le rappel."
-          canSendWhatsApp={false}
-          onManualReminders={() => {
-            return
-          }}
-          onSendWhatsApp={() => {
-            return
-          }}
-          data={{
-            person: {
-              id: "",
-              name: row.original.assignedTo,
-              phone: null,
-            },
-            territories: [
-              {
-                id: row.original.id,
-                name: row.original.name,
-                assignedOn: row.original.assignedOn,
-                waitedFor: row.original.waitedFor,
-              },
-            ],
-          }}
         />
       ),
     },

@@ -30,9 +30,8 @@ public class TerritoryReminderService implements ITerritoryReminderService {
     private final ITerritoryService territoryService;
     private final IPersonService personService;
     private final IWahaClient wahaClient;
-    private final com.teillet.territoire.repository.PersonRepository personRepository;
 
-    @Override
+	@Override
     @Transactional
     public TerritoryReminderDto createReminder(List<UUID> territoryIds, UUID personId, String notes) {
         List<Territory> territories = territoryIds.stream()

@@ -20,7 +20,7 @@ export interface ReminderDialogData {
 	person: {
 		id: string;
 		name: string;
-  phone: string | null;
+		phone: string | null;
 	};
 	territories: Array<{
 		id: string;
@@ -28,6 +28,7 @@ export interface ReminderDialogData {
 		assignedOn: string | null;
 		waitedFor: string | null;
 	}>;
+
 	// Champs supplémentaires éventuels pour le rendu du template
 	[key: string]: unknown;
 }
@@ -38,7 +39,7 @@ export interface ReminderDialogProps {
 	description?: string;
 	canSendWhatsApp: boolean;
 	onManualReminders: () => Promise<void> | void;
-	onSendWhatsApp: (personId:string, message: string) => Promise<void> | void;
+	onSendWhatsApp: (personId: string, message: string) => Promise<void> | void;
 	data: ReminderDialogData; // contexte pour le rendu du message (ex: group/person/territories)
 }
 
@@ -108,7 +109,7 @@ export function ReminderDialog(
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button className="px-3 py-2 font-medium inline-flex items-center gap-2" >
+				<Button className="px-3 py-2 font-medium inline-flex items-center gap-2">
 					{title}
 				</Button>
 			</DialogTrigger>
@@ -117,10 +118,10 @@ export function ReminderDialog(
 					<DialogTitle>{title}</DialogTitle>
 				</DialogHeader>
 				{description && (
-					<p className="text-sm text-muted-foreground mb-2">{description}</p>
+					<p className="text-sm text-muted-foreground">{description}</p>
 				)}
 				{!canSendWhatsApp && (
-					<div className="text-sm text-muted-foreground mb-2">
+					<div className="text-sm text-muted-foreground ">
 						Aucun numéro de téléphone n&#39;est associé à cette personne. L&#39;envoi WhatsApp est indisponible.
 					</div>
 				)}
@@ -132,7 +133,7 @@ export function ReminderDialog(
 					disabled={loading || sending || !canSendWhatsApp}
 					className="min-h-32"
 				/>
-				<DialogFooter className="gap-2">
+				<DialogFooter>
 					<DialogClose asChild>
 						<Button variant="secondary" disabled={sending}>Annuler</Button>
 					</DialogClose>
