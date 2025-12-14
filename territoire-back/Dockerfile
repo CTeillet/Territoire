@@ -22,7 +22,7 @@ ENV JAVA_TOOL_OPTIONS="-javaagent:/app/opentelemetry-javaagent.jar"
 
 # Vars OTel (quotes pour éviter les soucis)
 ENV OTEL_SERVICE_NAME="territoire-back" \
-    OTEL_EXPORTER_OTLP_ENDPOINT="http://collector:4317" \
+    OTEL_EXPORTER_OTLP_ENDPOINT="http://otel-collector:4317" \
     OTEL_EXPORTER_OTLP_PROTOCOL="grpc" \
     OTEL_TRACES_EXPORTER="otlp" \
     OTEL_METRICS_EXPORTER="otlp" \
