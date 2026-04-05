@@ -1,7 +1,7 @@
 "use client";
 
 import { CampaignStatistics } from "@/models/campaign-statistics";
-import { Table, TableHeader, TableBody, TableRow, TableHead } from "@/components/ui/table";
+import {Table, TableHeader, TableBody, TableRow, TableHead, TableCell} from "@/components/ui/table";
 import { TableWrapper } from "@/components/shared/ui/table-wrapper";
 import { TerritoryTypeRow } from "./territory-type-row";
 
