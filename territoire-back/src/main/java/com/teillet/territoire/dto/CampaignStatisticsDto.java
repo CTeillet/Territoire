@@ -29,4 +29,9 @@ public class CampaignStatisticsDto {
     private Map<TerritoryType, Integer> totalTerritoriesByType;
     private Map<TerritoryType, Integer> usedTerritoriesByType;
     private Map<TerritoryType, Integer> availableTerritoriesByType;
+
+    // Counts by city name
+    private Map<String, Integer> totalTerritoriesByCity;
+    private Map<String, Integer> usedTerritoriesByCity;
+    private Map<String, Integer> availableTerritoriesByCity;
 }

@@ -13,6 +13,7 @@ import { fetchCampaignStatistics } from "@/store/slices/campaign-slice";
 import { StatisticsSummary } from "./statistics/statistics-summary";
 import { StatisticsCharts } from "./statistics/statistics-charts";
 import { StatisticsTable } from "./statistics/statistics-table";
+import { CityStatisticsTable } from "./statistics/city-statistics-table";
 
 interface CampaignStatisticsProps {
   campaignId: string;
@@ -115,6 +116,7 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
           <TabsList className="mb-6">
             <TabsTrigger value="charts">Graphiques</TabsTrigger>
             <TabsTrigger value="details">Détails par type</TabsTrigger>
+            <TabsTrigger value="cities">Détails par ville</TabsTrigger>
           </TabsList>
 
           <TabsContent value="charts">
@@ -130,6 +132,12 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
             <StatisticsTable 
               statistics={statistics}
               typeTranslations={typeTranslations}
+            />
+          </TabsContent>
+
+          <TabsContent value="cities">
+            <CityStatisticsTable 
+              statistics={statistics}
             />
           </TabsContent>
         </Tabs>

@@ -316,6 +316,11 @@ public class CampaignService implements ICampaignService {
         Map<TerritoryType, Integer> usedTerritoriesByType = new HashMap<>();
         Map<TerritoryType, Integer> availableTerritoriesByType = new HashMap<>();
 
+        // Initialize maps for territory counts by city
+        Map<String, Integer> totalTerritoriesByCity = new HashMap<>();
+        Map<String, Integer> usedTerritoriesByCity = new HashMap<>();
+        Map<String, Integer> availableTerritoriesByCity = new HashMap<>();
+
         // Initialize counts for each territory type
         for (TerritoryType type : TerritoryType.values()) {
             totalTerritoriesByType.put(type, 0);
@@ -323,12 +328,15 @@ public class CampaignService implements ICampaignService {
             availableTerritoriesByType.put(type, 0);
         }
 
-        // Count territories by type
+        // Count territories by type and city
         for (Territory territory : allTerritories) {
             TerritoryType type = territory.getType();
             if (type != null) {
                 totalTerritoriesByType.put(type, totalTerritoriesByType.get(type) + 1);
             }
+            
+            String cityName = territory.getCity().getName();
+            totalTerritoriesByCity.put(cityName, totalTerritoriesByCity.getOrDefault(cityName, 0) + 1);
         }
 
         for (Territory territory : usedTerritories) {
@@ -336,6 +344,9 @@ public class CampaignService implements ICampaignService {
             if (type != null) {
                 usedTerritoriesByType.put(type, usedTerritoriesByType.get(type) + 1);
             }
+            
+            String cityName = territory.getCity().getName();
+            usedTerritoriesByCity.put(cityName, usedTerritoriesByCity.getOrDefault(cityName, 0) + 1);
         }
 
         for (Territory territory : availableTerritories) {
@@ -343,6 +354,9 @@ public class CampaignService implements ICampaignService {
             if (type != null) {
                 availableTerritoriesByType.put(type, availableTerritoriesByType.get(type) + 1);
             }
+            
+            String cityName = territory.getCity().getName();
+            availableTerritoriesByCity.put(cityName, availableTerritoriesByCity.getOrDefault(cityName, 0) + 1);
         }
 
         // Build and return the statistics DTO
@@ -355,6 +369,9 @@ public class CampaignService implements ICampaignService {
                 .totalTerritoriesByType(totalTerritoriesByType)
                 .usedTerritoriesByType(usedTerritoriesByType)
                 .availableTerritoriesByType(availableTerritoriesByType)
+                .totalTerritoriesByCity(totalTerritoriesByCity)
+                .usedTerritoriesByCity(usedTerritoriesByCity)
+                .availableTerritoriesByCity(availableTerritoriesByCity)
                 .build();
 
         log.info("Statistiques calculées pour la campagne '{}': {} territoires au total, {} utilisés, {} disponibles",

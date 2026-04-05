@@ -13,4 +13,9 @@ export interface CampaignStatistics {
   totalTerritoriesByType: Record<TerritoryType, number>;
   usedTerritoriesByType: Record<TerritoryType, number>;
   availableTerritoriesByType: Record<TerritoryType, number>;
+
+  // Counts by city name
+  totalTerritoriesByCity: Record<string, number>;
+  usedTerritoriesByCity: Record<string, number>;
+  availableTerritoriesByCity: Record<string, number>;
 }
