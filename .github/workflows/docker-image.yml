@@ -18,7 +18,7 @@ jobs:
       front: ${{ steps.filter.outputs.front }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Filter paths
         id: filter
         uses: dorny/paths-filter@v3
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to GitHub Container Registry
         if: ${{ needs.changes.outputs.back == 'true' || needs.changes.outputs.front == 'true' }}
@@ -61,7 +61,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Copy docker-compose.yml to VPS
         uses: appleboy/scp-action@master
