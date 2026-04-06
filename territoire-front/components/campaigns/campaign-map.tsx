@@ -52,8 +52,6 @@ const CampaignMap: React.FC<CampaignMapProps> = ({ campaignId, remainingTerritor
     setIsExpanded(!isExpanded);
   };
 
-  const mapHeight = isExpanded ? "800px" : "500px";
-
   const calculateCenter = (): [number, number] => {
     if (!currentCampaignGeoJson || currentCampaignGeoJson.features.length === 0) return defaultCenter;
 
@@ -178,7 +176,7 @@ const CampaignMap: React.FC<CampaignMapProps> = ({ campaignId, remainingTerritor
         )}
         <div
           className="transition-all duration-500"
-          style={{ height: mapHeight, width: "100%" }}
+          style={{ height: '780px', width: "100%" }}
         >
           <MapContainer
             center={center}
