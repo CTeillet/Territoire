@@ -60,6 +60,22 @@ public class GeoJsonUtils {
 		return new FeatureJSON(geometryJSON).toString(featureCollection);
 	}
 
+	public static String convertToGeoJSONCampaign(List<Territory> territories, List<Territory> remainingTerritories) throws IOException {
+		// Définir le type de feature
+		SimpleFeatureType featureType = createTerritoryFeatureTypeCampaign();
+
+		// Créer une collection de features
+		ListFeatureCollection featureCollection = new ListFeatureCollection(featureType);
+		for (Territory territory : territories) {
+			featureCollection.add(createTerritoryFeatureCampaign(featureType, territory, !remainingTerritories.contains(territory)));
+		}
+
+		// Convertir en GeoJSON
+		GeometryJSON geometryJSON = new GeometryJSON(DECIMAL_PRECISION);
+		FeatureJSON featureJSON = new FeatureJSON(geometryJSON);
+		return featureJSON.toString(featureCollection);
+	}
+
 	private static SimpleFeatureType createTerritoryFeatureType() {
 		SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
 		builder.setName("Territory");
@@ -74,6 +90,17 @@ public class GeoJsonUtils {
 		builder.add("type", String.class);
 		builder.add("geometry", MultiPolygon.class);
 		builder.add("assignments", List.class);
+		return builder.buildFeatureType();
+	}
+
+	private static SimpleFeatureType createTerritoryFeatureTypeCampaign() {
+		SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+		builder.setName("Territory");
+		builder.add("id", String.class);
+		builder.add("name", String.class);
+		builder.add("type", String.class);
+		builder.add("usedInCampaign", Boolean.class);
+		builder.add("geometry", MultiPolygon.class);
 		return builder.buildFeatureType();
 	}
 
@@ -107,6 +134,15 @@ public class GeoJsonUtils {
 		featureBuilder.add(territory.getType());
 		featureBuilder.add(territory.getConcaveHull());
 		featureBuilder.add(territory.getAssignments());
+		return featureBuilder.buildFeature(null);
+	}
+	private static SimpleFeature createTerritoryFeatureCampaign(SimpleFeatureType featureType, Territory territory, boolean usedInCampaign) {
+		SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureType);
+		featureBuilder.add(territory.getId().toString());
+		featureBuilder.add(territory.getName());
+		featureBuilder.add(territory.getType());
+		featureBuilder.add(usedInCampaign);
+		featureBuilder.add(territory.getConcaveHull());
 		return featureBuilder.buildFeature(null);
 	}
 

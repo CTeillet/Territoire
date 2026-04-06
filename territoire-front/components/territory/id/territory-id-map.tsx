@@ -206,29 +206,12 @@ const TerritoryMap = ({territory, city}: { territory: Territory, city: City }) =
         >
             <MapUpdater isSidebarOpen={sidebar.state === "expanded"}/> {/* Ajout pour gérer la sidebar */}
 
+            <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; OpenStreetMap contributors'
+            />
+
             <LayersControl position="topright">
-                {/* Fonds de carte sélectionnables */}
-                <LayersControl.BaseLayer name="Carte OpenStreetMap" checked>
-                    <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; OpenStreetMap contributors'
-                    />
-                </LayersControl.BaseLayer>
-
-                <LayersControl.BaseLayer name="Esri World Street Map">
-                    <TileLayer
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
-                        attribution="Tiles © Esri &mdash; Source: Esri, DeLorme, NAVTEQ"
-                    />
-                </LayersControl.BaseLayer>
-
-                <LayersControl.BaseLayer name="Satellite">
-                    <TileLayer
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                        attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
-                    />
-                </LayersControl.BaseLayer>
-
                 {/* Couches spécifiques à l'application */}
                 <LayersControl.Overlay name="Territoire" checked>
                     <LayerGroup>

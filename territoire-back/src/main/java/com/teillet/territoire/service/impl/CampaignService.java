@@ -11,11 +11,13 @@ import com.teillet.territoire.repository.CampaignRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.ICampaignService;
+import com.teillet.territoire.utils.GeoJsonUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -379,5 +381,12 @@ public class CampaignService implements ICampaignService {
                 statisticsDto.getAvailableTerritories());
 
         return statisticsDto;
+    }
+
+    @Override
+    public String getCampaignGeoJson(UUID id) throws IOException {
+        Campaign campaign = getCampaignEntityById(id);
+
+        return GeoJsonUtils.convertToGeoJSONCampaign(campaign.getTerritories(), campaign.getRemainingTerritories());
     }
 }

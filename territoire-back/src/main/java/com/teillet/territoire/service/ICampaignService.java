@@ -6,6 +6,7 @@ import com.teillet.territoire.dto.SimplifiedTerritoryDto;
 import com.teillet.territoire.model.Territory;
 import jakarta.transaction.Transactional;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,4 +54,6 @@ public interface ICampaignService {
      * @return Statistics for the campaign
      */
     CampaignStatisticsDto getCampaignStatistics(UUID campaignId);
+
+    String getCampaignGeoJson(UUID id) throws IOException;
 }

@@ -17,6 +17,8 @@ interface CampaignState {
     updating: boolean;
     closing: boolean;
     loadingStatistics: boolean;
+    loadingMap: boolean;
+    currentCampaignGeoJson: any | null;
     error: string | null;
     isFetchingCampaigns: boolean;
     isFetchingCampaign: boolean;
@@ -32,6 +34,8 @@ const initialState: CampaignState = {
     updating: false,
     closing: false,
     loadingStatistics: false,
+    loadingMap: false,
+    currentCampaignGeoJson: null,
     error: null,
     isFetchingCampaigns: false,
     isFetchingCampaign: false,
@@ -213,10 +217,33 @@ export const fetchCampaignStatistics = createAsyncThunk(
     }
 );
 
+// Thunk pour récupérer le GeoJSON de la campagne pour la carte
+export const fetchCampaignMap = createAsyncThunk(
+    "campaigns/fetchCampaignMap",
+    async (campaignId: string, { rejectWithValue }) => {
+        const response = await authFetch(`${BASE_URL}/${campaignId}/geojson`);
+
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de la récupération du GeoJSON de la campagne");
+        }
+
+        try {
+            return await response.json();
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
 const campaignSlice = createSlice({
     name: 'campaigns',
     initialState,
-    reducers: {},
+    reducers: {
+        clearCampaignMap: (state) => {
+            state.currentCampaignGeoJson = null;
+            state.loadingMap = false;
+        }
+    },
     extraReducers: (builder) => {
         builder
             // Récupération de toutes les campagnes
@@ -358,8 +385,24 @@ const campaignSlice = createSlice({
                 state.loadingStatistics = false;
                 state.error = action.payload as string;
                 toast.error(state.error || "Erreur lors de la récupération des statistiques de la campagne");
+            })
+
+            // Récupération du GeoJSON de la campagne
+            .addCase(fetchCampaignMap.pending, (state) => {
+                state.loadingMap = true;
+                state.error = null;
+            })
+            .addCase(fetchCampaignMap.fulfilled, (state, action) => {
+                state.loadingMap = false;
+                state.currentCampaignGeoJson = action.payload;
+            })
+            .addCase(fetchCampaignMap.rejected, (state, action) => {
+                state.loadingMap = false;
+                state.error = action.payload as string;
+                toast.error(state.error || "Erreur lors de la récupération du GeoJSON de la campagne");
             });
     },
 });
 
+export const { clearCampaignMap } = campaignSlice.actions;
 export default campaignSlice.reducer;

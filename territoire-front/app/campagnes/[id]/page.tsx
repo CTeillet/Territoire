@@ -43,6 +43,7 @@ import {
 } from "@/store/slices/campaign-slice";
 import { CampaignStatisticsComponent } from "@/components/campaigns/campaign-statistics";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
+import CampaignMap from "@/components/campaigns/campaign-map";
 
 export default function CampaignDetailPage() {
   const router = useRouter();
@@ -325,8 +326,9 @@ export default function CampaignDetailPage() {
       </div>
 
       <Tabs defaultValue="configuration" className="mt-8">
-        <TabsList className="mb-6 w-full max-w-md mx-auto">
+        <TabsList className="mb-6 w-full max-w-lg mx-auto">
           <TabsTrigger value="configuration" className="flex-1">Configuration</TabsTrigger>
+          <TabsTrigger value="map" className="flex-1">Vue Carte</TabsTrigger>
           <TabsTrigger value="statistics" className="flex-1">Statistiques</TabsTrigger>
         </TabsList>
 
@@ -388,7 +390,6 @@ export default function CampaignDetailPage() {
                           </TableHeader>
                           <TableBody>
                             {[...territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => {
-                              console.log(territory)
                               const isSelected = selectedTerritories.includes(territory.territoryId);
                               const isUsed = campaign.closed && !campaign.remainingTerritories.some(t => t.territoryId === territory.territoryId);
 
@@ -456,6 +457,26 @@ export default function CampaignDetailPage() {
               </Button>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="map">
+          <Card className="shadow-md border-0">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-2xl font-bold mb-2">Carte de la campagne</CardTitle>
+              <CardDescription className="text-base">
+                Visualisez la couverture géographique et l'avancement de la campagne
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CampaignMap 
+                campaignId={campaignId}
+                remainingTerritoryIds={campaign.closed 
+                  ? campaign.remainingTerritories.map(t => t.territoryId)
+                  : selectedTerritories
+                } 
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="statistics">

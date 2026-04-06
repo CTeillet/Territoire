@@ -61,8 +61,8 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({geoJsonData}) => {
                 >
                     <MapUpdater isSidebarOpen={sidebar.state === "expanded"} isExpanded={isExpanded} />
                     <TileLayer
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
-                        attribution="..."
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; OpenStreetMap contributors'
                     />
                     <GeoJSON onEachFeature={onEachFeature} data={geoJsonData} style={territoryStyle} />
                 </MapContainer>
