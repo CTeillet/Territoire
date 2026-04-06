@@ -42,6 +42,7 @@ import {
   deleteCampaign 
 } from "@/store/slices/campaign-slice";
 import { CampaignStatisticsComponent } from "@/components/campaigns/campaign-statistics";
+import { TYPE_TRANSLATIONS } from "@/models/territory-type";
 
 export default function CampaignDetailPage() {
   const router = useRouter();
@@ -381,6 +382,7 @@ export default function CampaignDetailPage() {
                             <TableRow className="border-b-2 border-gray-200">
                               {!campaign.closed && <TableHead className="w-12 py-3"></TableHead>}
                               <TableHead className="py-3 text-base font-semibold">Nom du territoire</TableHead>
+                              <TableHead className="py-3 text-base font-semibold">Type</TableHead>
                               {campaign.closed && <TableHead className="py-3 text-base font-semibold">Statut</TableHead>}
                             </TableRow>
                           </TableHeader>
@@ -415,6 +417,9 @@ export default function CampaignDetailPage() {
                                     </TableCell>
                                   )}
                                   <TableCell className="font-medium text-base py-3">{territory.name}</TableCell>
+                                  <TableCell className="py-3 text-base">
+                                    {territory.type ? TYPE_TRANSLATIONS[territory.type] : "N/A"}
+                                  </TableCell>
                                   {campaign.closed && (
                                     <TableCell className="py-3">
                                       <span

@@ -2,12 +2,14 @@
 
 import { TerritoryStatusPieChart } from "./territory-status-pie-chart";
 import { TerritoryTypeBarChart } from "./territory-type-bar-chart";
-import { TerritoryStatusData, TerritoryTypeData } from "@/models/chart-data";
+import { CityBarChart } from "./city-bar-chart";
+import { TerritoryStatusData, TerritoryTypeData, CityData } from "@/models/chart-data";
 import { GridContainer } from "@/components/shared/ui/grid-container";
 
 interface StatisticsChartsProps {
   territoryStatusData: TerritoryStatusData[];
   territoryTypeData: TerritoryTypeData[];
+  cityData: CityData[];
   statusTranslations: Record<string, string>;
   colors: string[];
 }
@@ -15,6 +17,7 @@ interface StatisticsChartsProps {
 export function StatisticsCharts({ 
   territoryStatusData, 
   territoryTypeData, 
+  cityData,
   statusTranslations, 
   colors 
 }: StatisticsChartsProps) {
@@ -24,6 +27,9 @@ export function StatisticsCharts({
         <TerritoryStatusPieChart data={territoryStatusData} colors={colors} />
         <TerritoryTypeBarChart data={territoryTypeData} statusTranslations={statusTranslations} />
       </GridContainer>
+      <div className="w-full">
+        <CityBarChart data={cityData} statusTranslations={statusTranslations} />
+      </div>
     </div>
   );
 }

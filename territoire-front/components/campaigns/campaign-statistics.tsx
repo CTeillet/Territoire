@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TerritoryType } from "@/models/territory-type";
-import { TerritoryStatusData, TerritoryTypeData } from "@/models/chart-data";
+import { TerritoryStatusData, TerritoryTypeData, CityData } from "@/models/chart-data";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchCampaignStatistics } from "@/store/slices/campaign-slice";
@@ -97,6 +97,12 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
     },
   ];
 
+  const cityData: CityData[] = Object.keys(statistics.totalTerritoriesByCity).map(cityName => ({
+    name: cityName,
+    used: statistics.usedTerritoriesByCity[cityName] || 0,
+    available: statistics.availableTerritoriesByCity[cityName] || 0,
+  }));
+
   // Colors for charts
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -123,6 +129,7 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
             <StatisticsCharts 
               territoryStatusData={territoryStatusData}
               territoryTypeData={territoryTypeData}
+              cityData={cityData}
               statusTranslations={statusTranslations}
               colors={COLORS}
             />

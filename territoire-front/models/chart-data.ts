@@ -17,3 +17,12 @@ export interface TerritoryTypeData {
   used: number;
   available: number;
 }
+
+/**
+ * Data structure for city-wise territory bar chart
+ */
+export interface CityData {
+  name: string;
+  used: number;
+  available: number;
+}
