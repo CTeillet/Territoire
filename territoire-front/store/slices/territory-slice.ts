@@ -801,8 +801,9 @@ const territorySlice = createSlice({
             .addCase(updateAssignmentDate.fulfilled, (state, action) => {
                 state.loading = false;
                 const updatedAssignment = action.payload;
+                console.log("✅ Assignation mise à jour avec succès", updatedAssignment);
 
-                if (!state.territoriesGeojson || !updatedAssignment || !updatedAssignment.territory.territoryId) {
+                if (!updatedAssignment || !updatedAssignment.territory || !updatedAssignment.territory.territoryId) {
                     console.error("❌ Problème : Assignation ou territoireId est undefined", updatedAssignment);
                     return;
                 }
@@ -810,23 +811,36 @@ const territorySlice = createSlice({
                 const affectedId = updatedAssignment.territory.territoryId;
 
                 // Mettre à jour dans GeoJSON
-                const feature = findFeatureById(state, affectedId);
-                if (feature) {
-                    feature.properties.assignedOn = updatedAssignment.assignmentDate;
-                    feature.properties.status = updatedAssignment.territory.status;
-                    const assignments = feature.properties.assignments || [];
-                    feature.properties.assignments = assignments.map((a: Assignment) =>
-                        a.id === updatedAssignment.id ? updatedAssignment : a
-                    );
+                if (state.territoriesGeojson) {
+                    const feature = findFeatureById(state, affectedId);
+                    if (feature) {
+                        feature.properties.assignedOn = updatedAssignment.assignmentDate;
+                        feature.properties.status = updatedAssignment.territory.status;
+                        feature.properties.waitedFor = updatedAssignment.dueDate;
+                        // Ne pas oublier lastModifiedDate si présent dans la réponse
+                        const assignments = feature.properties.assignments || [];
+                        if (Array.isArray(assignments)) {
+                            feature.properties.assignments = assignments.map((a: Assignment) =>
+                                a.id === updatedAssignment.id ? updatedAssignment : a
+                            );
+                        } else {
+                            feature.properties.assignments = [updatedAssignment];
+                        }
+                    }
                 }
 
                 // Mettre à jour dans le territoire sélectionné
                 updateSelectedIfSame(state, affectedId, (t) => {
                     t.assignedOn = updatedAssignment.assignmentDate;
                     t.status = updatedAssignment.territory.status;
-                    t.assignments = t.assignments.map((a: Assignment) =>
-                        a.id === updatedAssignment.id ? updatedAssignment : a
-                    );
+                    t.waitedFor = updatedAssignment.dueDate;
+                    if (Array.isArray(t.assignments)) {
+                        t.assignments = t.assignments.map((a: Assignment) =>
+                            a.id === updatedAssignment.id ? updatedAssignment : a
+                        );
+                    } else {
+                        t.assignments = [updatedAssignment];
+                    }
                 });
             })
             .addCase(updateAssignmentDate.rejected, (state, action) => {

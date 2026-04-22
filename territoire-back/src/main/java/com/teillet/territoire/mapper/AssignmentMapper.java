@@ -9,7 +9,11 @@ public class AssignmentMapper {
 	public static AssignmentDto toDto(Assignment assignment) {
 		return AssignmentDto.builder()
 				.id(assignment.getId())
-				.territory(SimplifiedTerritoryDto.builder().territoryId(assignment.getTerritory().getId()).name(assignment.getTerritory().getName()).status(assignment.getTerritory().getStatus()).build()) // Seul l'ID est récupéré
+				.territory(SimplifiedTerritoryDto.builder()
+						.territoryId(assignment.getTerritory().getId())
+						.name(assignment.getTerritory().getName())
+						.status(assignment.getTerritory().getStatus())
+						.build()) // Seul l'ID est récupéré
 				.person(assignment.getPerson())
 				.assignmentDate(assignment.getAssignmentDate())
 				.dueDate(assignment.getDueDate())
