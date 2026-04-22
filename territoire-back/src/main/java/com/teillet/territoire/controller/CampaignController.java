@@ -6,7 +6,9 @@ import com.teillet.territoire.dto.SimplifiedTerritoryDto;
 import com.teillet.territoire.service.ICampaignService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -109,5 +111,17 @@ public class CampaignController {
     @GetMapping(value = "/{id}/geojson", produces = "application/geo+json")
     public String getCampaignTerritoriesGeoJson(@PathVariable UUID id) throws IOException {
         return campaignService.getCampaignGeoJson(id);
+    }
+
+    @GetMapping("/{id}/export/excel")
+    public ResponseEntity<byte[]> exportCampaignStatistics(@PathVariable UUID id) throws IOException {
+        log.info("Requête reçue : GET /api/campagnes/{}/export/excel", id);
+        byte[] excelContent = campaignService.exportCampaignStatisticsToExcel(id);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", "Statistiques_Campagne_" + id + ".xlsx");
+        
+        return new ResponseEntity<>(excelContent, headers, HttpStatus.OK);
     }
 }

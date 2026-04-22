@@ -55,5 +55,7 @@ public interface ICampaignService {
      */
     CampaignStatisticsDto getCampaignStatistics(UUID campaignId);
 
+    byte[] exportCampaignStatisticsToExcel(UUID campaignId) throws IOException;
+
     String getCampaignGeoJson(UUID id) throws IOException;
 }

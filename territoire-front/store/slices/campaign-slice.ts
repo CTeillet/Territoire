@@ -4,6 +4,7 @@ import {authFetch} from "@/utils/auth-fetch";
 import {SimplifiedTerritory} from "@/models/territory";
 import {CampaignStatistics} from "@/models/campaign-statistics";
 import { toast } from "sonner";
+import { saveAs } from 'file-saver';
 
 const BASE_URL = "/api/campagnes";
 
@@ -214,6 +215,13 @@ export const fetchCampaignStatistics = createAsyncThunk(
         } catch (error) {
             return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
+    },
+    {
+        condition: (_, { getState }) => {
+            const state = getState() as { campaigns: CampaignState };
+            return !state.campaigns.loadingStatistics;
+
+        }
     }
 );
 
@@ -231,6 +239,34 @@ export const fetchCampaignMap = createAsyncThunk(
             return await response.json();
         } catch (error) {
             return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    },
+    {
+        condition: (_, { getState }) => {
+            const state = getState() as { campaigns: CampaignState };
+            return !state.campaigns.loadingMap;
+
+        }
+    }
+);
+
+// Thunk pour exporter les statistiques d'une campagne en Excel
+export const exportCampaignStatistics = createAsyncThunk(
+    "campaigns/exportCampaignStatistics",
+    async ({ campaignId, campaignName }: { campaignId: string, campaignName: string }, { rejectWithValue }) => {
+        const response = await authFetch(`${BASE_URL}/${campaignId}/export/excel`);
+
+        if (!response.ok) {
+            return rejectWithValue("Erreur lors de l'exportation des statistiques");
+        }
+
+        try {
+            const blob = await response.blob();
+            const fileName = `Statistiques_Campagne_${campaignName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            saveAs(blob, fileName);
+            return campaignId;
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur lors du téléchargement du fichier");
         }
     }
 );
@@ -260,6 +296,7 @@ const campaignSlice = createSlice({
             .addCase(fetchCampaigns.rejected, (state, action) => {
                 state.loading = false;
                 state.isFetchingCampaigns = false;
+                if (action.meta.condition) return;
                 state.error = action.payload as string;
                 toast.error(state.error || "Erreur lors de la récupération des campagnes");
             })
@@ -278,6 +315,7 @@ const campaignSlice = createSlice({
             .addCase(fetchCampaign.rejected, (state, action) => {
                 state.loading = false;
                 state.isFetchingCampaign = false;
+                if (action.meta.condition) return;
                 state.error = action.payload as string;
                 toast.error(state.error || "Erreur lors de la récupération de la campagne");
             })
@@ -383,6 +421,7 @@ const campaignSlice = createSlice({
             })
             .addCase(fetchCampaignStatistics.rejected, (state, action) => {
                 state.loadingStatistics = false;
+                if (action.meta.condition) return;
                 state.error = action.payload as string;
                 toast.error(state.error || "Erreur lors de la récupération des statistiques de la campagne");
             })
@@ -398,6 +437,7 @@ const campaignSlice = createSlice({
             })
             .addCase(fetchCampaignMap.rejected, (state, action) => {
                 state.loadingMap = false;
+                if (action.meta.condition) return;
                 state.error = action.payload as string;
                 toast.error(state.error || "Erreur lors de la récupération du GeoJSON de la campagne");
             });

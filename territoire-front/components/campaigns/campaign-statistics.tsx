@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TerritoryType } from "@/models/territory-type";
 import { TerritoryStatusData, TerritoryTypeData, CityData } from "@/models/chart-data";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { fetchCampaignStatistics } from "@/store/slices/campaign-slice";
+import { fetchCampaignStatistics, exportCampaignStatistics } from "@/store/slices/campaign-slice";
 
 // Import sub-components
 import { StatisticsSummary } from "./statistics/statistics-summary";
 import { StatisticsCharts } from "./statistics/statistics-charts";
 import { StatisticsTable } from "./statistics/statistics-table";
 import { CityStatisticsTable } from "./statistics/city-statistics-table";
+import { Download } from "lucide-react";
 
 interface CampaignStatisticsProps {
   campaignId: string;
@@ -22,24 +24,40 @@ interface CampaignStatisticsProps {
 export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsProps) {
   const dispatch = useAppDispatch();
   const { campaignStatistics: statistics, loadingStatistics: loading, error } = useAppSelector(state => state.campaigns);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!statistics) return;
+    
+    setIsExporting(true);
+    const toastId = toast.loading("Génération de l'export Excel natif avec graphiques...");
+    
+    try {
+      await dispatch(exportCampaignStatistics({ 
+        campaignId: statistics.campaignId, 
+        campaignName: statistics.campaignName 
+      })).unwrap();
+      
+      toast.success("Export Excel terminé", { id: toastId });
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      toast.error("Erreur lors de la génération de l'export", { id: toastId });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (campaignId) {
       dispatch(fetchCampaignStatistics(campaignId))
         .unwrap()
         .catch((error) => {
+          if (error.name === 'ConditionError') return;
           console.error("Error fetching statistics:", error);
-          toast.error("Impossible de charger les statistiques");
         });
     }
   }, [campaignId, dispatch]);
 
-  // Show error toast if there's an error in the Redux state
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
-  }, [error]);
 
   if (loading) {
     return (
@@ -108,11 +126,22 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
 
   return (
     <Card className="shadow-md border-0 mt-8">
-      <CardHeader className="pb-6">
-        <CardTitle className="text-2xl font-bold mb-2">Statistiques</CardTitle>
-        <CardDescription className="text-base">
-          Statistiques des territoires pour cette campagne
-        </CardDescription>
+      <CardHeader className="pb-6 flex flex-row items-start justify-between">
+        <div>
+          <CardTitle className="text-2xl font-bold mb-2">Statistiques</CardTitle>
+          <CardDescription className="text-base">
+            Statistiques des territoires pour cette campagne
+          </CardDescription>
+        </div>
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2"
+          onClick={handleExport}
+          disabled={isExporting}
+        >
+          <Download className="h-4 w-4" />
+          {isExporting ? "Export en cours..." : "Exporter en Excel"}
+        </Button>
       </CardHeader>
       <CardContent>
         {/* Summary Cards */}

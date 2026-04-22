@@ -1,5 +1,6 @@
 package com.teillet.territoire.service.impl;
 
+import com.teillet.territoire.designPattern.CampaignStatisticsExcelGenerator;
 import com.teillet.territoire.dto.CampaignDto;
 import com.teillet.territoire.dto.CampaignStatisticsDto;
 import com.teillet.territoire.dto.SimplifiedTerritoryDto;
@@ -388,5 +389,13 @@ public class CampaignService implements ICampaignService {
         Campaign campaign = getCampaignEntityById(id);
 
         return GeoJsonUtils.convertToGeoJSONCampaign(campaign.getTerritories(), campaign.getRemainingTerritories());
+    }
+
+    @Override
+    public byte[] exportCampaignStatisticsToExcel(UUID campaignId) throws IOException {
+        log.info("Exportation des statistiques Excel pour la campagne avec l'ID: {}", campaignId);
+        CampaignStatisticsDto statisticsDto = getCampaignStatistics(campaignId);
+        CampaignStatisticsExcelGenerator generator = new CampaignStatisticsExcelGenerator(statisticsDto);
+        return generator.generate();
     }
 }

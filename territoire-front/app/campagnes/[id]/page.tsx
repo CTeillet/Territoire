@@ -67,17 +67,11 @@ export default function CampaignDetailPage() {
         }
       })
       .catch((error) => {
+        if (error.name === 'ConditionError') return;
         console.error("Error fetching campaign:", error);
-        toast.error("Impossible de charger les détails de la campagne");
       });
   }, [campaignId, dispatch]);
 
-  // Show error toast if there's an error in the Redux state
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
-  }, [error]);
 
   const handleToggleTerritory = (territoryId: string, checked?: boolean) => {
     // Ensure territoryId is not undefined
