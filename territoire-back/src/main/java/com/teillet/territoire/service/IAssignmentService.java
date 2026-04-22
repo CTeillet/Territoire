@@ -34,4 +34,6 @@ public interface IAssignmentService {
 	void createCampaignAssignments(Campaign campaign, List<Territory> usedTerritories);
 
 	List<AssignmentDto> getAssignmentsByPersonId(UUID personId);
+	@Transactional
+	AssignmentDto updateAssignmentDate(UUID territoryId, LocalDate assignmentDate);
 }

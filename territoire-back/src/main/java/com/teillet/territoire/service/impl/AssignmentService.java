@@ -184,4 +184,28 @@ public class AssignmentService implements IAssignmentService {
 				.map(AssignmentMapper::toDto)
 				.toList();
 	}
+
+	@Override
+	@Transactional
+	public AssignmentDto updateAssignmentDate(UUID territoryId, LocalDate assignmentDate) {
+		Assignment assignment = findAssignmentRunning(territoryId);
+		assignment.setAssignmentDate(assignmentDate);
+		
+		// Mettre à jour la date d'échéance pour que la vérification des retards soit cohérente (4 mois par défaut)
+		LocalDate newDueDate = assignmentDate.plusMonths(4);
+		assignment.setDueDate(newDueDate);
+
+		// Mettre à jour le statut du territoire en fonction de la nouvelle date d'échéance
+		Territory territory = assignment.getTerritory();
+		if (newDueDate.isBefore(LocalDate.now())) {
+			if (territory.getStatus() != TerritoryStatus.LATE) {
+				territoryService.updateTerritoryStatus(territory, TerritoryStatus.LATE);
+			}
+		} else if (territory.getStatus() == TerritoryStatus.LATE) {
+			territoryService.updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
+		}
+
+		Assignment result = assignmentRepository.save(assignment);
+		return AssignmentMapper.toDto(result);
+	}
 }

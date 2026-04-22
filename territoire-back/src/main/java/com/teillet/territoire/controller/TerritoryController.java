@@ -129,6 +129,17 @@ class TerritoryController {
 		}
 	}
 
+	@PostMapping("/{territoryId}/modifier-date-attribution")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
+	public AssignmentDto updateAssignmentDate(
+			@PathVariable UUID territoryId,
+			@RequestParam LocalDate assignmentDate) {
+		log.info("Début : Modification de la date d'attribution du territoire {} à {}", territoryId, assignmentDate);
+		AssignmentDto result = assignmentService.updateAssignmentDate(territoryId, assignmentDate);
+		log.info("Fin : Modification de la date d'attribution du territoire {}", territoryId);
+		return result;
+	}
+
 	@PostMapping("/{territoryId}/adresses-a-ne-pas-visiter")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public AddressNotToDo addAddressNotToDo(@PathVariable UUID territoryId, @RequestBody AddAddressNotToDoDto addressNotToDoDto) {

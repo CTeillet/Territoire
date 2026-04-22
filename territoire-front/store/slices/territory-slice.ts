@@ -151,6 +151,28 @@ export const assignTerritory = createAsyncThunk(
     }
 );
 
+export const updateAssignmentDate = createAsyncThunk(
+    "territories/updateAssignmentDate",
+    async ({ territoryId, assignmentDate }: { territoryId: string; assignmentDate: string }, { rejectWithValue }) => {
+        const url = `${BASE_URL}/${territoryId}/modifier-date-attribution?assignmentDate=${assignmentDate}`;
+
+        const response = await authFetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) {
+            return rejectWithValue(await response.text() || "Erreur lors de la modification de la date d'attribution");
+        }
+
+        try {
+            return await response.json();
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
 export const deleteTerritory = createAsyncThunk(
     "territories/deleteTerritory",
     async (territoryId: string, {rejectWithValue}) => {
@@ -769,6 +791,45 @@ const territorySlice = createSlice({
                 });
             })
             .addCase(extendTerritory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(updateAssignmentDate.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(updateAssignmentDate.fulfilled, (state, action) => {
+                state.loading = false;
+                const updatedAssignment = action.payload;
+
+                if (!state.territoriesGeojson || !updatedAssignment || !updatedAssignment.territory.territoryId) {
+                    console.error("❌ Problème : Assignation ou territoireId est undefined", updatedAssignment);
+                    return;
+                }
+
+                const affectedId = updatedAssignment.territory.territoryId;
+
+                // Mettre à jour dans GeoJSON
+                const feature = findFeatureById(state, affectedId);
+                if (feature) {
+                    feature.properties.assignedOn = updatedAssignment.assignmentDate;
+                    feature.properties.status = updatedAssignment.territory.status;
+                    const assignments = feature.properties.assignments || [];
+                    feature.properties.assignments = assignments.map((a: Assignment) =>
+                        a.id === updatedAssignment.id ? updatedAssignment : a
+                    );
+                }
+
+                // Mettre à jour dans le territoire sélectionné
+                updateSelectedIfSame(state, affectedId, (t) => {
+                    t.assignedOn = updatedAssignment.assignmentDate;
+                    t.status = updatedAssignment.territory.status;
+                    t.assignments = t.assignments.map((a: Assignment) =>
+                        a.id === updatedAssignment.id ? updatedAssignment : a
+                    );
+                });
+            })
+            .addCase(updateAssignmentDate.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
             })

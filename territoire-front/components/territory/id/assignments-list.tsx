@@ -2,10 +2,19 @@
 
 import {Assignment} from "@/models/assignment";
 import ActionButton from "@/components/shared/action-button";
-import {Eye} from "lucide-react";
+import {Calendar, Edit, Eye, Check, X} from "lucide-react";
 import {TooltipProvider} from "@/components/ui/tooltip";
+import {useState} from "react";
+import {Input} from "@/components/ui/input";
+import {useDispatch} from "react-redux";
+import {AppDispatch} from "@/store/store";
+import {updateAssignmentDate} from "@/store/slices/territory-slice";
 
 const AssignmentsList = ({assignments}: { assignments: Assignment[] }) => {
+    const dispatch = useDispatch<AppDispatch>();
+    const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+    const [tempDate, setTempDate] = useState<string>("");
+
     // Sort assignments: completed assignments first, then campaigns, then current assignments
     const sortedAssignments = [...assignments].sort((a, b) => {
         // If one is current (returnDate is null) and the other is not, the completed one comes first
@@ -15,6 +24,22 @@ const AssignmentsList = ({assignments}: { assignments: Assignment[] }) => {
         // If both are completed or both are current, sort by assignmentDate (most recent first)
         return new Date(b.assignmentDate).getTime() - new Date(a.assignmentDate).getTime();
     });
+
+    const handleEditClick = (assignment: Assignment) => {
+        setEditingAssignmentId(assignment.id);
+        setTempDate(assignment.assignmentDate);
+    };
+
+    const handleSave = (territoryId: string) => {
+        if (editingAssignmentId) {
+            dispatch(updateAssignmentDate({ territoryId, assignmentDate: tempDate }));
+            setEditingAssignmentId(null);
+        }
+    };
+
+    const handleCancel = () => {
+        setEditingAssignmentId(null);
+    };
 
     return (
         <div className="mt-6 border border-gray-200 bg-white p-6 rounded-lg shadow-sm">
@@ -36,7 +61,36 @@ const AssignmentsList = ({assignments}: { assignments: Assignment[] }) => {
                                     </strong>
                                     <br/>
                                     <span className="text-sm text-gray-600">
-                                        📅 {new Date(assignment.assignmentDate).toLocaleDateString()} →{" "}
+                                        📅 {editingAssignmentId === assignment.id ? (
+                                            <div className="inline-flex items-center gap-2">
+                                                <Input 
+                                                    type="date" 
+                                                    value={tempDate} 
+                                                    onChange={(e) => setTempDate(e.target.value)}
+                                                    className="w-40 h-8 text-sm"
+                                                />
+                                                <button onClick={() => handleSave(assignment.territory.territoryId)} className="text-green-600 hover:text-green-800">
+                                                    <Check className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={handleCancel} className="text-red-600 hover:text-red-800">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {new Date(assignment.assignmentDate).toLocaleDateString()}
+                                                {assignment.returnDate === null && (
+                                                    <button 
+                                                        onClick={() => handleEditClick(assignment)} 
+                                                        className="ml-2 text-blue-500 hover:text-blue-700"
+                                                        title="Modifier la date d'attribution"
+                                                    >
+                                                        <Edit className="w-3 h-3 inline" />
+                                                    </button>
+                                                )}
+                                            </>
+                                        )}
+                                        {" "}→{" "}
                                         {assignment.returnDate ? new Date(assignment.returnDate).toLocaleDateString() : "En cours"}
                                     </span>
                                 </div>
