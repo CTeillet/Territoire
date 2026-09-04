@@ -19,7 +19,7 @@ import {DataTablePagination} from "@/components/ui/data-table-pagination";
 import * as XLSX from 'xlsx';
 import {Territory} from "@/models/territory";
 import {Button} from "@/components/ui/button";
-import {FileDown} from "lucide-react";
+import {FileDown, FilterX} from "lucide-react";
 import {COLUMNS_ID_TRANSLATIONS} from "@/components/territory/territory-data-columns";
 import {STATUS_TRANSLATIONS} from "@/models/territory-status";
 import {TYPE_TRANSLATIONS} from "@/models/territory-type";
@@ -137,7 +137,18 @@ export function DataTable<TValue>(
 
     return (
         <div className="w-full">
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-4 gap-2">
+                {table.getState().columnFilters.length > 0 && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => table.resetColumnFilters()}
+                        className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                        <FilterX className="h-4 w-4" />
+                        <span>Réinitialiser les filtres</span>
+                    </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={exportToExcel} className="flex items-center gap-2">
                     <FileDown className="h-4 w-4" />
                     <span>Exporter</span>
