@@ -4,10 +4,13 @@ import com.teillet.territoire.dto.TerritoryStatusHistoryDto;
 import com.teillet.territoire.service.ITerritoryStatusHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,7 +21,9 @@ public class TerritoryStatusHistoryController {
 	private final ITerritoryStatusHistoryService territoryStatusHistoryService;
 
 	@GetMapping
-	public List<TerritoryStatusHistoryDto> getStatusHistory() {
-		return territoryStatusHistoryService.getHistoryStatus();
+	public List<TerritoryStatusHistoryDto> getStatusHistory(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+		return territoryStatusHistoryService.getHistoryStatus(startDate, endDate);
 	}
 }

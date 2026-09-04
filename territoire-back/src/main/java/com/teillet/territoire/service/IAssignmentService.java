@@ -23,6 +23,8 @@ public interface IAssignmentService {
 
 	List<AssignmentDto> getLastAssignments();
 
+	List<AssignmentDto> getAssignmentsInPeriod(LocalDate startDate, LocalDate endDate);
+
 	AssignmentDto extendTerritory(UUID territoryId);
 
 	AssignmentDto extendTerritory(UUID territoryId, LocalDate dueDate);

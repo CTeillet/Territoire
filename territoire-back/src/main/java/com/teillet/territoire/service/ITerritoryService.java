@@ -1,9 +1,6 @@
 package com.teillet.territoire.service;
 
-import com.teillet.territoire.dto.AverageAssignmentDurationDto;
-import com.teillet.territoire.dto.TerritoryDistributionByCityDto;
-import com.teillet.territoire.dto.TerritoryDto;
-import com.teillet.territoire.dto.UpdateTerritoryDto;
+import com.teillet.territoire.dto.*;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.Territory;
 import jakarta.transaction.Transactional;
@@ -44,31 +41,15 @@ public interface ITerritoryService {
     @Transactional
     void revokeAssignmentsBulk(String cityName);
 
-    /**
-     * Counts territories that haven't been assigned since the given start date.
-     * @param startDate The start date (typically September 1st of the previous year)
-     * @return The count of territories not assigned since the start date
-     */
-    long countTerritoriesNotAssignedSince(LocalDate startDate);
+    long countTerritoriesNotAssignedSince(LocalDate startDate, LocalDate endDate);
 
-    /**
-     * Gets the average duration of territory assignments, grouped by month.
-     * @return List of average assignment durations by month
-     */
-    List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth();
+    List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth(LocalDate startDate, LocalDate endDate);
 
-    /**
-     * Gets the overall average duration of territory assignments.
-     * @return The overall average assignment duration in days
-     */
-    Double getOverallAverageAssignmentDuration();
+    Double getOverallAverageAssignmentDuration(LocalDate startDate, LocalDate endDate);
 
-    /**
-     * Gets the distribution of territories by city.
-     * @param startDate Optional date to filter territories assigned since a specific date
-     * @return List of territory distributions by city
-     */
-    List<TerritoryDistributionByCityDto> getTerritoryDistributionByCity(LocalDate startDate);
+    List<TerritoryDistributionByCityDto> getTerritoryDistributionByCity(LocalDate startDate, LocalDate endDate);
+
+    List<SchoolYearPeriodDto> getAvailableSchoolYears();
 
     /**
      * Uploads a territory map image for a territory.

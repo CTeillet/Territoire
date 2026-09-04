@@ -1,9 +1,6 @@
 package com.teillet.territoire.service.impl;
 
-import com.teillet.territoire.dto.AverageAssignmentDurationDto;
-import com.teillet.territoire.dto.TerritoryDistributionByCityDto;
-import com.teillet.territoire.dto.TerritoryDto;
-import com.teillet.territoire.dto.UpdateTerritoryDto;
+import com.teillet.territoire.dto.*;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.mapper.TerritoryMapper;
 import com.teillet.territoire.model.Assignment;
@@ -14,6 +11,7 @@ import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.ICampaignService;
 import com.teillet.territoire.service.ICityService;
 import com.teillet.territoire.service.ITerritoryService;
+import com.teillet.territoire.utils.SchoolYearUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -182,13 +180,17 @@ public class TerritoryService implements ITerritoryService {
 	}
 
 	@Override
-	public long countTerritoriesNotAssignedSince(LocalDate startDate) {
-		return territoryRepository.countTerritoriesNotAssignedSince(startDate);
+	public long countTerritoriesNotAssignedSince(LocalDate startDate, LocalDate endDate) {
+		return territoryRepository.countTerritoriesNotAssignedBetween(startDate, endDate);
 	}
 
 	@Override
-	public List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth() {
+	public List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth(LocalDate startDate, LocalDate endDate) {
 		return assignmentRepository.findByReturnDateNotNull().stream()
+				.filter(a -> {
+					if (startDate != null && a.getAssignmentDate().isBefore(startDate)) return false;
+                    return endDate == null || !a.getAssignmentDate().isAfter(endDate);
+                })
 				.collect(Collectors.groupingBy(
 						a -> YearMonth.from(a.getAssignmentDate()),
 						Collectors.averagingDouble(a ->
@@ -204,15 +206,17 @@ public class TerritoryService implements ITerritoryService {
 				.toList();
 	}
 
-
 	@Override
-	public Double getOverallAverageAssignmentDuration() {
-		return assignmentRepository.calculateOverallAverageAssignmentDuration();
+	public Double getOverallAverageAssignmentDuration(LocalDate startDate, LocalDate endDate) {
+		if (startDate == null && endDate == null) {
+			return assignmentRepository.calculateOverallAverageAssignmentDuration();
+		}
+		return assignmentRepository.calculateOverallAverageAssignmentDurationBetween(startDate, endDate);
 	}
 
 	@Override
-	public List<TerritoryDistributionByCityDto> getTerritoryDistributionByCity(LocalDate startDate) {
-		List<Object[]> results = territoryRepository.calculateTerritoryDistributionByCity(startDate);
+	public List<TerritoryDistributionByCityDto> getTerritoryDistributionByCity(LocalDate startDate, LocalDate endDate) {
+		List<Object[]> results = territoryRepository.calculateTerritoryDistributionByCity(startDate, endDate);
 		List<TerritoryDistributionByCityDto> distributionDtos = new ArrayList<>();
 
 		for (Object[] result : results) {
@@ -230,6 +234,32 @@ public class TerritoryService implements ITerritoryService {
 		}
 
 		return distributionDtos;
+	}
+
+	@Override
+	public List<SchoolYearPeriodDto> getAvailableSchoolYears() {
+		int currentStartYear = SchoolYearUtils.resolveStartYear(null);
+		LocalDate minDate = assignmentRepository.findMinAssignmentDate();
+		int minStartYear = currentStartYear - 5;
+		if (minDate != null) {
+			int earliestYear = SchoolYearUtils.resolveStartYear(minDate.getYear());
+			if (earliestYear < minStartYear) {
+				minStartYear = earliestYear;
+			}
+		}
+
+		List<SchoolYearPeriodDto> periods = new ArrayList<>();
+		for (int y = currentStartYear; y >= minStartYear; y--) {
+			periods.add(SchoolYearPeriodDto.builder()
+					.startYear(y)
+					.endYear(y + 1)
+					.label(y + " - " + (y + 1))
+					.startDate(SchoolYearUtils.getStartDate(y))
+					.endDate(SchoolYearUtils.getEndDate(y))
+					.current(y == currentStartYear)
+					.build());
+		}
+		return periods;
 	}
 
 	@Override

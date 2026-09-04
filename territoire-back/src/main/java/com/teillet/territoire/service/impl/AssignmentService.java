@@ -113,6 +113,19 @@ public class AssignmentService implements IAssignmentService {
 	}
 
 	@Override
+	public List<AssignmentDto> getAssignmentsInPeriod(LocalDate startDate, LocalDate endDate) {
+		log.debug("Début de récupération des attributions dans la période {} - {}", startDate, endDate);
+
+		List<Assignment> assignments = assignmentRepository.findAssignmentsInPeriod(startDate, endDate);
+
+		log.debug("Attributions récupérées pour la période : {}", assignments.size());
+
+		return assignments.stream()
+				.map(AssignmentMapper::toDto)
+				.toList();
+	}
+
+	@Override
 	public AssignmentDto extendTerritory(UUID territoryId) {
 		// Default extension is 4 months
 		return extendTerritory(territoryId, LocalDate.now().plusMonths(4));

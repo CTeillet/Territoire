@@ -1,5 +1,5 @@
 "use client";
-import {Building, ChartBar, Contact, Settings, Calendar, Clock, MapPin, ChevronDown, ChevronRight} from "lucide-react"
+import {Building, ChartBar, Contact, Settings, Calendar, Clock, MapPin, ChevronDown, ChevronRight, BarChart3} from "lucide-react"
 
 import {
     Sidebar,
@@ -58,6 +58,11 @@ const otherItems = [
         title: "Campagnes",
         url: "/campagnes",
         icon: Calendar,
+    },
+    {
+        title: "Statistiques",
+        url: "/statistiques",
+        icon: BarChart3,
     },
     {
         title: "Paramètres",

@@ -9,8 +9,10 @@ import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.ICityService;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
+import com.teillet.territoire.utils.SchoolYearUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -164,17 +166,14 @@ class TerritoryController {
 	}
 
 	@GetMapping("/statistiques/non-assignes-depuis")
-	public long getTerritoriesNotAssignedSince(@RequestParam(required = false) LocalDate startDate) {
-		// Si la date n'est pas fournie, utiliser le 1er septembre de l'année précédente
+	public long getTerritoriesNotAssignedSince(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 		if (startDate == null) {
-			int year = LocalDate.now().getYear();
-			// Si on est avant septembre, utiliser l'année précédente - 1, sinon l'année précédente
-			if (LocalDate.now().getMonthValue() < 9) {
-				year = year - 1;
-			}
-			startDate = LocalDate.of(year, 9, 1);
+			int year = SchoolYearUtils.resolveStartYear(null);
+			startDate = SchoolYearUtils.getStartDate(year);
 		}
-		return territoryService.countTerritoriesNotAssignedSince(startDate);
+		return territoryService.countTerritoriesNotAssignedSince(startDate, endDate);
 	}
 
 	/**
@@ -182,9 +181,11 @@ class TerritoryController {
 	 * @return Liste des durées moyennes d'attribution par mois
 	 */
 	@GetMapping("/statistiques/duree-moyenne-attribution/par-mois")
-	public ResponseEntity<List<AverageAssignmentDurationDto>> getAverageAssignmentDurationByMonth() {
-		log.info("Récupération de la durée moyenne d'attribution des territoires par mois");
-		List<AverageAssignmentDurationDto> result = territoryService.getAverageAssignmentDurationByMonth();
+	public ResponseEntity<List<AverageAssignmentDurationDto>> getAverageAssignmentDurationByMonth(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+		log.info("Récupération de la durée moyenne d'attribution des territoires par mois (start: {}, end: {})", startDate, endDate);
+		List<AverageAssignmentDurationDto> result = territoryService.getAverageAssignmentDurationByMonth(startDate, endDate);
 		return ResponseEntity.ok(result);
 	}
 
@@ -193,34 +194,43 @@ class TerritoryController {
 	 * @return Durée moyenne globale d'attribution en jours
 	 */
 	@GetMapping("/statistiques/duree-moyenne-attribution/globale")
-	public ResponseEntity<Double> getOverallAverageAssignmentDuration() {
-		log.info("Récupération de la durée moyenne globale d'attribution des territoires");
-		Double result = territoryService.getOverallAverageAssignmentDuration();
+	public ResponseEntity<Double> getOverallAverageAssignmentDuration(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+		log.info("Récupération de la durée moyenne globale d'attribution des territoires (start: {}, end: {})", startDate, endDate);
+		Double result = territoryService.getOverallAverageAssignmentDuration(startDate, endDate);
 		return ResponseEntity.ok(result != null ? result : 0.0);
 	}
 
 	/**
 	 * Endpoint pour récupérer la distribution des territoires par ville
 	 * @param startDate Date de début pour filtrer les territoires (optionnel)
+	 * @param endDate Date de fin pour filtrer les territoires (optionnel)
 	 * @return Liste des distributions de territoires par ville
 	 */
 	@GetMapping("/statistiques/distribution-par-ville")
 	public ResponseEntity<List<TerritoryDistributionByCityDto>> getTerritoryDistributionByCity(
-			@RequestParam(required = false) LocalDate startDate) {
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 		log.info("Récupération de la distribution des territoires par ville");
 
-		// Si la date n'est pas fournie, utiliser le 1er septembre de l'année précédente
 		if (startDate == null) {
-			int year = LocalDate.now().getYear();
-			// Si on est avant septembre, utiliser l'année précédente - 1, sinon l'année précédente
-			if (LocalDate.now().getMonthValue() < 9) {
-				year = year - 1;
-			}
-			startDate = LocalDate.of(year, 9, 1);
+			int year = SchoolYearUtils.resolveStartYear(null);
+			startDate = SchoolYearUtils.getStartDate(year);
 		}
 
-		List<TerritoryDistributionByCityDto> result = territoryService.getTerritoryDistributionByCity(startDate);
+		List<TerritoryDistributionByCityDto> result = territoryService.getTerritoryDistributionByCity(startDate, endDate);
 		return ResponseEntity.ok(result);
+	}
+
+	/**
+	 * Endpoint pour récupérer les périodes scolaires disponibles
+	 * @return Liste des périodes scolaires
+	 */
+	@GetMapping("/statistiques/periodes")
+	public ResponseEntity<List<SchoolYearPeriodDto>> getSchoolYearPeriods() {
+		log.info("Récupération des périodes scolaires disponibles");
+		return ResponseEntity.ok(territoryService.getAvailableSchoolYears());
 	}
 
 	/**

@@ -13,29 +13,39 @@ import {useSelector} from "react-redux";
 import {RootState, useAppDispatch} from "@/store/store";
 import {fetchTerritories, fetchTerritoriesNotAssignedSince, fetchTerritoryStatusHistory} from "@/store/slices/territory-slice";
 
-export const StatisticsChart: React.FC = () => {
+interface StatisticsChartProps {
+    startDate?: string;
+    endDate?: string;
+    periodLabel?: string;
+}
+
+export const StatisticsChart: React.FC<StatisticsChartProps> = ({
+    startDate,
+    endDate,
+    periodLabel
+}) => {
     const dispatch = useAppDispatch();
     const { 
         territoryStatusHistory, 
         territoriesNotAssignedSince, 
-        statisticsLoading,
-        territoriesGeojson
+        statisticsLoading, 
+        territoriesGeojson 
     } = useSelector((state: RootState) => state.territories);
 
     const totalTerritories = territoriesGeojson ? territoriesGeojson.features.length : 0;
 
     useEffect(() => {
         // Fetch territory status history
-        dispatch(fetchTerritoryStatusHistory());
+        dispatch(fetchTerritoryStatusHistory(startDate || endDate ? { startDate, endDate } : undefined));
 
         // Fetch territories not assigned since
-        dispatch(fetchTerritoriesNotAssignedSince());
+        dispatch(fetchTerritoriesNotAssignedSince(startDate || endDate ? { startDate, endDate } : undefined));
 
         // Fetch all territories if not already loaded
         if (!territoriesGeojson) {
             dispatch(fetchTerritories());
         }
-    }, [dispatch, territoriesGeojson]);
+    }, [dispatch, territoriesGeojson, startDate, endDate]);
 
     const chartConfig = {
         available: {
@@ -125,8 +135,8 @@ export const StatisticsChart: React.FC = () => {
             <div className="col-span-1 h-full">
                 <Card className="h-full flex flex-col">
                     <CardHeader>
-                        <CardTitle>Territoires parcourus depuis le 01/09</CardTitle>
-                        <CardDescription>Pourcentage des territoires parcourus depuis le 01/09</CardDescription>
+                        <CardTitle>{periodLabel ? `Territoires parcourus (${periodLabel})` : "Territoires parcourus depuis le 01/09"}</CardTitle>
+                        <CardDescription>{periodLabel ? `Pourcentage des territoires parcourus (${periodLabel})` : "Pourcentage des territoires parcourus depuis le 01/09"}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex justify-center items-center flex-grow">
                         {statisticsLoading ? (

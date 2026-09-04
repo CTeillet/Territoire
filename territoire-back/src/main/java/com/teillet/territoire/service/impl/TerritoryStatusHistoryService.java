@@ -56,8 +56,8 @@ public class TerritoryStatusHistoryService implements ITerritoryStatusHistorySer
 	}
 
 	@Override
-	public List<TerritoryStatusHistoryDto> getHistoryStatus() {
-		List<TerritoryStatusHistory> result = territoryStatusHistoryRepository.findAll();
+	public List<TerritoryStatusHistoryDto> getHistoryStatus(LocalDate startDate, LocalDate endDate) {
+		List<TerritoryStatusHistory> result = territoryStatusHistoryRepository.findByDateBetween(startDate, endDate);
 		return result.stream().map(TerritoryStatusHistoryMapper::toDto).toList();
 	}
 }

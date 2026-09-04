@@ -5,9 +5,11 @@ import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.ITerritoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -25,6 +27,18 @@ public class AssignmentController {
 		List<AssignmentDto> assignments = assignmentService.getLastAssignments();
 
 		log.info("Réponse envoyée : {} attributions trouvées", assignments.size());
+		return assignments;
+	}
+
+	@GetMapping("/periode")
+	public List<AssignmentDto> getAssignmentsInPeriod(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+		log.info("Requête reçue : GET /api/attributions/periode?startDate={}&endDate={}", startDate, endDate);
+
+		List<AssignmentDto> assignments = assignmentService.getAssignmentsInPeriod(startDate, endDate);
+
+		log.info("Réponse envoyée : {} attributions trouvées pour la période", assignments.size());
 		return assignments;
 	}
 

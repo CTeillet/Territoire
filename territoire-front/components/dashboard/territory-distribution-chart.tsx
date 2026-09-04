@@ -13,13 +13,19 @@ interface TerritoryDistribution {
     percentage: number;
 }
 
-export const TerritoryDistributionChart: React.FC = () => {
+interface TerritoryDistributionChartProps {
+    startDate?: string;
+    endDate?: string;
+    periodLabel?: string;
+}
+
+export const TerritoryDistributionChart: React.FC<TerritoryDistributionChartProps> = ({ startDate, endDate, periodLabel }) => {
     const dispatch = useAppDispatch();
     const { territoryDistributionByCity, statisticsLoading, error } = useSelector((state: RootState) => state.territories);
 
     useEffect(() => {
-        dispatch(fetchTerritoryDistributionByCity());
-    }, [dispatch]);
+        dispatch(fetchTerritoryDistributionByCity(startDate || endDate ? { startDate, endDate } : undefined));
+    }, [dispatch, startDate, endDate]);
 
     // Generate colors for the pie chart
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#6B66FF'];
@@ -45,12 +51,16 @@ export const TerritoryDistributionChart: React.FC = () => {
         return null;
     };
 
+    const descriptionText = periodLabel
+        ? `Répartition des territoires par ville pour la période ${periodLabel}`
+        : "Répartition des territoires par ville depuis le 01/09";
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Distribution par ville</CardTitle>
                 <CardDescription>
-                    Répartition des territoires par ville depuis le 01/09
+                    {descriptionText}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -58,6 +68,10 @@ export const TerritoryDistributionChart: React.FC = () => {
                     <p>Chargement des statistiques...</p>
                 ) : error ? (
                     <p>Erreur: {error}</p>
+                ) : territoryDistributionByCity.length === 0 ? (
+                    <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                        Aucune donnée pour cette période
+                    </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={400}>
                         <PieChart>

@@ -5,7 +5,19 @@ import {RootState, useAppDispatch} from "@/store/store";
 import {fetchTerritories} from "@/store/slices/territory-slice";
 import {authFetch} from "@/utils/auth-fetch";
 
-export const StatisticsOverview: React.FC = () => {
+interface StatisticsOverviewProps {
+    startDate?: string;
+    endDate?: string;
+    periodLabel?: string;
+    isCurrentPeriod?: boolean;
+}
+
+export const StatisticsOverview: React.FC<StatisticsOverviewProps> = ({
+    startDate,
+    endDate,
+    periodLabel,
+    isCurrentPeriod = true
+}) => {
     const dispatch = useAppDispatch();
     const territories = useSelector((state: RootState) => state.territories.territoriesGeojson);
     const [territoriesNotAssigned, setTerritoriesNotAssigned] = useState<number>(0);
@@ -14,27 +26,34 @@ export const StatisticsOverview: React.FC = () => {
 
     useEffect(() => {
         if (!territories) {
-            dispatch(fetchTerritories())
+            dispatch(fetchTerritories());
+        } else {
+            setTotalTerritories(territories.features.length);
         }
     }, [dispatch, territories]);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await authFetch("/api/territoires/statistiques/non-assignes-depuis");
+                let url = "/api/territoires/statistiques/non-assignes-depuis";
+                const searchParams = new URLSearchParams();
+                if (startDate) searchParams.append("startDate", startDate);
+                if (endDate) searchParams.append("endDate", endDate);
+                const queryString = searchParams.toString();
+                if (queryString) {
+                    url += `?${queryString}`;
+                }
+
+                const response = await authFetch(url);
                 const count = await response.json();
                 setTerritoriesNotAssigned(count);
-
-                if (territories) {
-                    setTotalTerritories(territories.features.length);
-                }
             } catch (error) {
                 console.error("Erreur lors de la récupération des territoires non assignés :", error);
             }
         };
 
         fetchStats();
-    }, [territories]);
+    }, [startDate, endDate]);
 
     useEffect(() => {
         const fetchPublishers = async () => {
@@ -60,13 +79,29 @@ export const StatisticsOverview: React.FC = () => {
         return Number((territoriesInCirculation / publishersCount).toFixed(2));
     }, [territoriesInCirculation, publishersCount]);
 
+    const territoriesVisited = Math.max(0, totalTerritories - territoriesNotAssigned);
+    const percentageVisited = totalTerritories > 0
+        ? ((territoriesVisited / totalTerritories) * 100).toFixed(1) + "%"
+        : "0%";
+
+    if (!isCurrentPeriod) {
+        return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatCard title={`Territoires parcourus (${periodLabel || "période"})`} count={territoriesVisited} />
+                <StatCard title={`Territoires non parcourus (${periodLabel || "période"})`} count={territoriesNotAssigned} />
+                <StatCard title="Taux de couverture" count={percentageVisited} />
+                <StatCard title="Total des territoires" count={totalTerritories} />
+            </div>
+        );
+    }
+
     return (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <StatCard title="Territoires disponibles" count={territories?.features.filter(f => f.properties.status === "AVAILABLE").length || 0} />
             <StatCard title="Territoires en retard" count={territories?.features.filter(f => f.properties.status === "LATE").length || 0} />
-            <StatCard title="Territoires moyens par proclamateur" count={avgPerPublisher} />
+            <StatCard title="Moyenne par proclamateur" count={avgPerPublisher} />
             <StatCard title="Territoires en circulation" count={territoriesInCirculation} />
-            <StatCard title="Territoires non parcourus depuis le 01/09" count={territoriesNotAssigned} />
+            <StatCard title={periodLabel ? `Non parcourus (${periodLabel})` : "Non parcourus depuis le 01/09"} count={territoriesNotAssigned} />
             <StatCard title="Total des territoires" count={totalTerritories} />
         </div>
     );

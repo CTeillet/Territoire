@@ -6,6 +6,7 @@ import {authFetch} from "@/utils/auth-fetch";
 import {AddressNotToDoDto} from "@/models/AddressNotToDoDto";
 import {UpdateTerritoryDto} from "@/models/update-territory-dto";
 import {TerritoryStatusHistoryDto} from "@/models/territory-status-history";
+import {SchoolYearPeriod} from "@/models/school-year-period";
 
 interface TerritoryDistribution {
     cityName: string;
@@ -31,6 +32,8 @@ type TerritoryState = {
     overallAverageAssignmentDuration: number | null;
     territoryDistributionByCity: TerritoryDistribution[];
     latestAssignments: Assignment[];
+    schoolYearPeriods: SchoolYearPeriod[];
+    periodAssignments: Assignment[];
     statisticsLoading: boolean;
 };
 
@@ -48,6 +51,8 @@ const initialState: TerritoryState = {
     overallAverageAssignmentDuration: null,
     territoryDistributionByCity: [],
     latestAssignments: [],
+    schoolYearPeriods: [],
+    periodAssignments: [],
     statisticsLoading: false
 };
 
@@ -329,9 +334,18 @@ export const deleteAddressNotToVisit = createAsyncThunk(
 // Statistics-related async thunks
 export const fetchTerritoryStatusHistory = createAsyncThunk(
     "territories/fetchTerritoryStatusHistory",
-    async (_, {rejectWithValue}) => {
+    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
         try {
-            const response = await authFetch(`${BASE_URL}/statistiques`);
+            let url = `${BASE_URL}/statistiques`;
+            const searchParams = new URLSearchParams();
+            if (params?.startDate) searchParams.append("startDate", params.startDate);
+            if (params?.endDate) searchParams.append("endDate", params.endDate);
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+
+            const response = await authFetch(url);
 
             if (!response.ok) {
                 return rejectWithValue("Erreur lors de la récupération des statistiques de territoire");
@@ -346,11 +360,15 @@ export const fetchTerritoryStatusHistory = createAsyncThunk(
 
 export const fetchTerritoriesNotAssignedSince = createAsyncThunk(
     "territories/fetchTerritoriesNotAssignedSince",
-    async (params: { startDate?: string } | undefined, {rejectWithValue}) => {
+    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
         try {
             let url = `${BASE_URL}/statistiques/non-assignes-depuis`;
-            if (params?.startDate) {
-                url += `?startDate=${params.startDate}`;
+            const searchParams = new URLSearchParams();
+            if (params?.startDate) searchParams.append("startDate", params.startDate);
+            if (params?.endDate) searchParams.append("endDate", params.endDate);
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
             }
 
             const response = await authFetch(url);
@@ -368,9 +386,18 @@ export const fetchTerritoriesNotAssignedSince = createAsyncThunk(
 
 export const fetchAverageAssignmentDurationByMonth = createAsyncThunk(
     "territories/fetchAverageAssignmentDurationByMonth",
-    async (_, {rejectWithValue}) => {
+    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
         try {
-            const response = await authFetch(`${BASE_URL}/statistiques/duree-moyenne-attribution/par-mois`);
+            let url = `${BASE_URL}/statistiques/duree-moyenne-attribution/par-mois`;
+            const searchParams = new URLSearchParams();
+            if (params?.startDate) searchParams.append("startDate", params.startDate);
+            if (params?.endDate) searchParams.append("endDate", params.endDate);
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+
+            const response = await authFetch(url);
 
             if (!response.ok) {
                 return rejectWithValue("Erreur lors de la récupération de la durée moyenne d'attribution par mois");
@@ -385,9 +412,18 @@ export const fetchAverageAssignmentDurationByMonth = createAsyncThunk(
 
 export const fetchOverallAverageAssignmentDuration = createAsyncThunk(
     "territories/fetchOverallAverageAssignmentDuration",
-    async (_, {rejectWithValue}) => {
+    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
         try {
-            const response = await authFetch(`${BASE_URL}/statistiques/duree-moyenne-attribution/globale`);
+            let url = `${BASE_URL}/statistiques/duree-moyenne-attribution/globale`;
+            const searchParams = new URLSearchParams();
+            if (params?.startDate) searchParams.append("startDate", params.startDate);
+            if (params?.endDate) searchParams.append("endDate", params.endDate);
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+
+            const response = await authFetch(url);
 
             if (!response.ok) {
                 return rejectWithValue("Erreur lors de la récupération de la durée moyenne globale d'attribution");
@@ -402,11 +438,15 @@ export const fetchOverallAverageAssignmentDuration = createAsyncThunk(
 
 export const fetchTerritoryDistributionByCity = createAsyncThunk(
     "territories/fetchTerritoryDistributionByCity",
-    async (params: { startDate?: string } | undefined, {rejectWithValue}) => {
+    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
         try {
             let url = `${BASE_URL}/statistiques/distribution-par-ville`;
-            if (params?.startDate) {
-                url += `?startDate=${params.startDate}`;
+            const searchParams = new URLSearchParams();
+            if (params?.startDate) searchParams.append("startDate", params.startDate);
+            if (params?.endDate) searchParams.append("endDate", params.endDate);
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
             }
 
             const response = await authFetch(url);
@@ -430,6 +470,49 @@ export const fetchLatestAssignments = createAsyncThunk(
 
             if (!response.ok) {
                 return rejectWithValue("Erreur lors de la récupération des dernières attributions");
+            }
+
+            return await response.json() as Assignment[];
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchSchoolYearPeriods = createAsyncThunk(
+    "territories/fetchSchoolYearPeriods",
+    async (_, {rejectWithValue}) => {
+        try {
+            const response = await authFetch(`${BASE_URL}/statistiques/periodes`);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération des périodes scolaires");
+            }
+
+            return await response.json() as SchoolYearPeriod[];
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchAssignmentsInPeriod = createAsyncThunk(
+    "territories/fetchAssignmentsInPeriod",
+    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
+        try {
+            let url = `/api/attributions/periode`;
+            const searchParams = new URLSearchParams();
+            if (params?.startDate) searchParams.append("startDate", params.startDate);
+            if (params?.endDate) searchParams.append("endDate", params.endDate);
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+
+            const response = await authFetch(url);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération des attributions de la période");
             }
 
             return await response.json() as Assignment[];
@@ -923,6 +1006,32 @@ const territorySlice = createSlice({
                 state.latestAssignments = action.payload;
             })
             .addCase(fetchLatestAssignments.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(fetchSchoolYearPeriods.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchSchoolYearPeriods.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.schoolYearPeriods = action.payload;
+            })
+            .addCase(fetchSchoolYearPeriods.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(fetchAssignmentsInPeriod.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchAssignmentsInPeriod.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.periodAssignments = action.payload;
+            })
+            .addCase(fetchAssignmentsInPeriod.rejected, (state, action) => {
                 state.statisticsLoading = false;
                 state.error = action.payload as string;
             });
