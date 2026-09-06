@@ -57,15 +57,15 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
                     SELECT DISTINCT a.territory.id
                     FROM Assignment a
                     WHERE
-                        (:endDate IS NULL AND (
-                            a.assignmentDate >= :startDate
+                        (CAST(:endDate AS date) IS NULL AND (
+                            a.assignmentDate >= CAST(:startDate AS date)
                             OR
-                            (a.assignmentDate < :startDate AND (a.returnDate >= :startDate OR a.returnDate IS NULL))
+                            (a.assignmentDate < CAST(:startDate AS date) AND (a.returnDate >= CAST(:startDate AS date) OR a.returnDate IS NULL))
                         ))
                         OR
-                        (:endDate IS NOT NULL AND (
-                            a.assignmentDate <= :endDate
-                            AND (a.returnDate >= :startDate OR a.returnDate IS NULL)
+                        (CAST(:endDate AS date) IS NOT NULL AND (
+                            a.assignmentDate <= CAST(:endDate AS date)
+                            AND (a.returnDate >= CAST(:startDate AS date) OR a.returnDate IS NULL)
                         ))
                 )
             """)
