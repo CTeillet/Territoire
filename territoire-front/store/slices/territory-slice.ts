@@ -7,6 +7,7 @@ import {AddressNotToDoDto} from "@/models/AddressNotToDoDto";
 import {UpdateTerritoryDto} from "@/models/update-territory-dto";
 import {TerritoryStatusHistoryDto} from "@/models/territory-status-history";
 import {SchoolYearPeriod} from "@/models/school-year-period";
+import {TerritoryStatisticsBreakdown} from "@/models/campaign-statistics";
 
 interface TerritoryDistribution {
     cityName: string;
@@ -28,9 +29,12 @@ type TerritoryState = {
     // Statistics state
     territoryStatusHistory: TerritoryStatusHistoryDto[];
     territoriesNotAssignedSince: number;
+    territoryCoverageGeojson: any | null;
+    loadingCoverageMap: boolean;
     averageAssignmentDurationByMonth: AverageAssignmentDuration[];
     overallAverageAssignmentDuration: number | null;
     territoryDistributionByCity: TerritoryDistribution[];
+    periodStatistics: TerritoryStatisticsBreakdown | null;
     latestAssignments: Assignment[];
     schoolYearPeriods: SchoolYearPeriod[];
     periodAssignments: Assignment[];
@@ -47,9 +51,12 @@ const initialState: TerritoryState = {
     // Statistics initial state
     territoryStatusHistory: [],
     territoriesNotAssignedSince: 0,
+    territoryCoverageGeojson: null,
+    loadingCoverageMap: false,
     averageAssignmentDurationByMonth: [],
     overallAverageAssignmentDuration: null,
     territoryDistributionByCity: [],
+    periodStatistics: null,
     latestAssignments: [],
     schoolYearPeriods: [],
     periodAssignments: [],
@@ -222,6 +229,32 @@ export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
         }
 
         try {
+            return await response.json();
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchTerritoryCoverageMap = createAsyncThunk<any, { startDate?: string; endDate?: string } | undefined>(
+    "territories/fetchTerritoryCoverageMap",
+    async (params, {rejectWithValue}) => {
+        try {
+            let url = `${BASE_URL}/statistiques/carte-couverture`;
+            const searchParams = new URLSearchParams();
+            if (params?.startDate) searchParams.append("startDate", params.startDate);
+            if (params?.endDate) searchParams.append("endDate", params.endDate);
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+
+            const response = await authFetch(url);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération de la carte de couverture des territoires");
+            }
+
             return await response.json();
         } catch (error) {
             return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
@@ -456,6 +489,32 @@ export const fetchTerritoryDistributionByCity = createAsyncThunk(
             }
 
             return await response.json() as TerritoryDistribution[];
+        } catch (error) {
+            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+        }
+    }
+);
+
+export const fetchTerritoryPeriodStatistics = createAsyncThunk(
+    "territories/fetchTerritoryPeriodStatistics",
+    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
+        try {
+            let url = `${BASE_URL}/statistiques/resume-periode`;
+            const searchParams = new URLSearchParams();
+            if (params?.startDate) searchParams.append("startDate", params.startDate);
+            if (params?.endDate) searchParams.append("endDate", params.endDate);
+            const queryString = searchParams.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+
+            const response = await authFetch(url);
+
+            if (!response.ok) {
+                return rejectWithValue("Erreur lors de la récupération des statistiques de la période");
+            }
+
+            return await response.json() as TerritoryStatisticsBreakdown;
         } catch (error) {
             return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
         }
@@ -958,6 +1017,19 @@ const territorySlice = createSlice({
                 state.error = action.payload as string;
             })
 
+            .addCase(fetchTerritoryCoverageMap.pending, (state) => {
+                state.loadingCoverageMap = true;
+                state.error = null;
+            })
+            .addCase(fetchTerritoryCoverageMap.fulfilled, (state, action) => {
+                state.loadingCoverageMap = false;
+                state.territoryCoverageGeojson = action.payload;
+            })
+            .addCase(fetchTerritoryCoverageMap.rejected, (state, action) => {
+                state.loadingCoverageMap = false;
+                state.error = action.payload as string;
+            })
+
             .addCase(fetchAverageAssignmentDurationByMonth.pending, (state) => {
                 state.statisticsLoading = true;
                 state.error = null;
@@ -993,6 +1065,19 @@ const territorySlice = createSlice({
                 state.territoryDistributionByCity = action.payload;
             })
             .addCase(fetchTerritoryDistributionByCity.rejected, (state, action) => {
+                state.statisticsLoading = false;
+                state.error = action.payload as string;
+            })
+
+            .addCase(fetchTerritoryPeriodStatistics.pending, (state) => {
+                state.statisticsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchTerritoryPeriodStatistics.fulfilled, (state, action) => {
+                state.statisticsLoading = false;
+                state.periodStatistics = action.payload;
+            })
+            .addCase(fetchTerritoryPeriodStatistics.rejected, (state, action) => {
                 state.statisticsLoading = false;
                 state.error = action.payload as string;
             })

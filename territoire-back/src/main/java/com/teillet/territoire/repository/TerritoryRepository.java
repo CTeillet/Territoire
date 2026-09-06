@@ -71,6 +71,27 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
             """)
     long countTerritoriesNotAssignedBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
+    @Query(value = """
+                SELECT t.id
+                FROM Territory t
+                WHERE t.id NOT IN (
+                    SELECT DISTINCT a.territory.id
+                    FROM Assignment a
+                    WHERE
+                        (CAST(:endDate AS date) IS NULL AND (
+                            a.assignmentDate >= CAST(:startDate AS date)
+                            OR
+                            (a.assignmentDate < CAST(:startDate AS date) AND (a.returnDate >= CAST(:startDate AS date) OR a.returnDate IS NULL))
+                        ))
+                        OR
+                        (CAST(:endDate AS date) IS NOT NULL AND (
+                            a.assignmentDate <= CAST(:endDate AS date)
+                            AND (a.returnDate >= CAST(:startDate AS date) OR a.returnDate IS NULL)
+                        ))
+                )
+            """)
+    List<UUID> findTerritoryIdsNotAssignedBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
     /**
      * Calculates the distribution of territories by city.
      * Returns the city name, count of territories, and percentage of total.

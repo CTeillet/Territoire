@@ -2,6 +2,7 @@ package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.*;
 import com.teillet.territoire.enums.TerritoryStatus;
+import com.teillet.territoire.enums.TerritoryType;
 import com.teillet.territoire.mapper.TerritoryMapper;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Territory;
@@ -11,6 +12,7 @@ import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.ICampaignService;
 import com.teillet.territoire.service.ICityService;
 import com.teillet.territoire.service.ITerritoryService;
+import com.teillet.territoire.utils.GeoJsonUtils;
 import com.teillet.territoire.utils.SchoolYearUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -182,6 +184,72 @@ public class TerritoryService implements ITerritoryService {
 	@Override
 	public long countTerritoriesNotAssignedSince(LocalDate startDate, LocalDate endDate) {
 		return territoryRepository.countTerritoriesNotAssignedBetween(startDate, endDate);
+	}
+
+	@Override
+	public String getTerritoryCoverageGeoJson(LocalDate startDate, LocalDate endDate) throws IOException {
+		List<Territory> territories = territoryRepository.findAll();
+		Set<UUID> notAssignedTerritoryIds = new HashSet<>(territoryRepository.findTerritoryIdsNotAssignedBetween(startDate, endDate));
+		return GeoJsonUtils.convertToGeoJSONCoverage(territories, notAssignedTerritoryIds);
+	}
+
+	@Override
+	public TerritoryPeriodStatisticsDto getPeriodStatistics(LocalDate startDate, LocalDate endDate) {
+		List<Territory> allTerritories = territoryRepository.findAll();
+		Set<UUID> notAssignedTerritoryIds = new HashSet<>(territoryRepository.findTerritoryIdsNotAssignedBetween(startDate, endDate));
+
+		List<Territory> usedTerritories = allTerritories.stream()
+				.filter(t -> !notAssignedTerritoryIds.contains(t.getId()))
+				.toList();
+		List<Territory> availableTerritories = allTerritories.stream()
+				.filter(t -> notAssignedTerritoryIds.contains(t.getId()))
+				.toList();
+
+		Map<TerritoryType, Integer> totalTerritoriesByType = new HashMap<>();
+		Map<TerritoryType, Integer> usedTerritoriesByType = new HashMap<>();
+		Map<TerritoryType, Integer> availableTerritoriesByType = new HashMap<>();
+		for (TerritoryType type : TerritoryType.values()) {
+			totalTerritoriesByType.put(type, 0);
+			usedTerritoriesByType.put(type, 0);
+			availableTerritoriesByType.put(type, 0);
+		}
+
+		Map<String, Integer> totalTerritoriesByCity = new HashMap<>();
+		Map<String, Integer> usedTerritoriesByCity = new HashMap<>();
+		Map<String, Integer> availableTerritoriesByCity = new HashMap<>();
+
+		for (Territory territory : allTerritories) {
+			if (territory.getType() != null) {
+				totalTerritoriesByType.merge(territory.getType(), 1, Integer::sum);
+			}
+			totalTerritoriesByCity.merge(territory.getCity().getName(), 1, Integer::sum);
+		}
+
+		for (Territory territory : usedTerritories) {
+			if (territory.getType() != null) {
+				usedTerritoriesByType.merge(territory.getType(), 1, Integer::sum);
+			}
+			usedTerritoriesByCity.merge(territory.getCity().getName(), 1, Integer::sum);
+		}
+
+		for (Territory territory : availableTerritories) {
+			if (territory.getType() != null) {
+				availableTerritoriesByType.merge(territory.getType(), 1, Integer::sum);
+			}
+			availableTerritoriesByCity.merge(territory.getCity().getName(), 1, Integer::sum);
+		}
+
+		return TerritoryPeriodStatisticsDto.builder()
+				.totalTerritories(allTerritories.size())
+				.usedTerritories(usedTerritories.size())
+				.availableTerritories(availableTerritories.size())
+				.totalTerritoriesByType(totalTerritoriesByType)
+				.usedTerritoriesByType(usedTerritoriesByType)
+				.availableTerritoriesByType(availableTerritoriesByType)
+				.totalTerritoriesByCity(totalTerritoriesByCity)
+				.usedTerritoriesByCity(usedTerritoriesByCity)
+				.availableTerritoriesByCity(availableTerritoriesByCity)
+				.build();
 	}
 
 	@Override

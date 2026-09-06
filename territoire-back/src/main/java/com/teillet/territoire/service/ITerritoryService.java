@@ -43,11 +43,15 @@ public interface ITerritoryService {
 
     long countTerritoriesNotAssignedSince(LocalDate startDate, LocalDate endDate);
 
+    String getTerritoryCoverageGeoJson(LocalDate startDate, LocalDate endDate) throws IOException;
+
     List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth(LocalDate startDate, LocalDate endDate);
 
     Double getOverallAverageAssignmentDuration(LocalDate startDate, LocalDate endDate);
 
     List<TerritoryDistributionByCityDto> getTerritoryDistributionByCity(LocalDate startDate, LocalDate endDate);
+
+    TerritoryPeriodStatisticsDto getPeriodStatistics(LocalDate startDate, LocalDate endDate);
 
     List<SchoolYearPeriodDto> getAvailableSchoolYears();
 

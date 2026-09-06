@@ -1,13 +1,13 @@
 "use client";
 
-import { CampaignStatistics } from "@/models/campaign-statistics";
+import { TerritoryStatisticsBreakdown } from "@/models/campaign-statistics";
 import { TerritoryType } from "@/models/territory-type";
 import { Table, TableHeader, TableBody, TableRow, TableHead } from "@/components/ui/table";
 import { TableWrapper } from "@/components/shared/ui/table-wrapper";
 import { TerritoryTypeRow } from "./territory-type-row";
 
 interface StatisticsTableProps {
-  statistics: CampaignStatistics;
+  statistics: TerritoryStatisticsBreakdown;
   typeTranslations: Record<TerritoryType, string>;
 }
 

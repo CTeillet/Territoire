@@ -224,6 +224,51 @@ class TerritoryController {
 	}
 
 	/**
+	 * Endpoint pour récupérer les statistiques détaillées de couverture des territoires (parcourus / non parcourus)
+	 * sur une période, réparties par type et par ville
+	 * @param startDate Date de début de la période (optionnel, défaut : début de l'année scolaire en cours)
+	 * @param endDate Date de fin de la période (optionnel)
+	 * @return Statistiques de couverture des territoires pour la période
+	 */
+	@GetMapping("/statistiques/resume-periode")
+	public ResponseEntity<TerritoryPeriodStatisticsDto> getPeriodStatistics(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+		log.info("Récupération du résumé des statistiques de territoires pour la période (start: {}, end: {})", startDate, endDate);
+
+		if (startDate == null) {
+			int year = SchoolYearUtils.resolveStartYear(null);
+			startDate = SchoolYearUtils.getStartDate(year);
+		}
+
+		TerritoryPeriodStatisticsDto result = territoryService.getPeriodStatistics(startDate, endDate);
+		return ResponseEntity.ok(result);
+	}
+
+	/**
+	 * Endpoint pour récupérer la carte de couverture des territoires (parcourus / non parcourus) sur une période
+	 * @param startDate Date de début de la période (optionnel, défaut : début de l'année scolaire en cours)
+	 * @param endDate Date de fin de la période (optionnel)
+	 * @return GeoJSON des territoires avec leur statut de couverture pour la période
+	 */
+	@GetMapping("/statistiques/carte-couverture")
+	public ResponseEntity<String> getTerritoryCoverageMap(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) throws IOException {
+		log.info("Récupération de la carte de couverture des territoires (start: {}, end: {})", startDate, endDate);
+
+		if (startDate == null) {
+			int year = SchoolYearUtils.resolveStartYear(null);
+			startDate = SchoolYearUtils.getStartDate(year);
+		}
+
+		String geoJSON = territoryService.getTerritoryCoverageGeoJson(startDate, endDate);
+		return ResponseEntity.ok()
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(geoJSON);
+	}
+
+	/**
 	 * Endpoint pour récupérer les périodes scolaires disponibles
 	 * @return Liste des périodes scolaires
 	 */

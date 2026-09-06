@@ -76,6 +76,22 @@ public class GeoJsonUtils {
 		return featureJSON.toString(featureCollection);
 	}
 
+	public static String convertToGeoJSONCoverage(List<Territory> territories, java.util.Set<java.util.UUID> notAssignedTerritoryIds) throws IOException {
+		// Définir le type de feature
+		SimpleFeatureType featureType = createTerritoryFeatureTypeCoverage();
+
+		// Créer une collection de features
+		ListFeatureCollection featureCollection = new ListFeatureCollection(featureType);
+		for (Territory territory : territories) {
+			featureCollection.add(createTerritoryFeatureCoverage(featureType, territory, !notAssignedTerritoryIds.contains(territory.getId())));
+		}
+
+		// Convertir en GeoJSON
+		GeometryJSON geometryJSON = new GeometryJSON(DECIMAL_PRECISION);
+		FeatureJSON featureJSON = new FeatureJSON(geometryJSON);
+		return featureJSON.toString(featureCollection);
+	}
+
 	private static SimpleFeatureType createTerritoryFeatureType() {
 		SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
 		builder.setName("Territory");
@@ -100,6 +116,18 @@ public class GeoJsonUtils {
 		builder.add("name", String.class);
 		builder.add("type", String.class);
 		builder.add("usedInCampaign", Boolean.class);
+		builder.add("geometry", MultiPolygon.class);
+		return builder.buildFeatureType();
+	}
+
+	private static SimpleFeatureType createTerritoryFeatureTypeCoverage() {
+		SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+		builder.setName("Territory");
+		builder.add("id", String.class);
+		builder.add("name", String.class);
+		builder.add("city", String.class);
+		builder.add("type", String.class);
+		builder.add("parcouru", Boolean.class);
 		builder.add("geometry", MultiPolygon.class);
 		return builder.buildFeatureType();
 	}
@@ -142,6 +170,17 @@ public class GeoJsonUtils {
 		featureBuilder.add(territory.getName());
 		featureBuilder.add(territory.getType());
 		featureBuilder.add(usedInCampaign);
+		featureBuilder.add(territory.getConcaveHull());
+		return featureBuilder.buildFeature(null);
+	}
+
+	private static SimpleFeature createTerritoryFeatureCoverage(SimpleFeatureType featureType, Territory territory, boolean parcouru) {
+		SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(featureType);
+		featureBuilder.add(territory.getId().toString());
+		featureBuilder.add(territory.getName());
+		featureBuilder.add(territory.getCity().getName());
+		featureBuilder.add(territory.getType());
+		featureBuilder.add(parcouru);
 		featureBuilder.add(territory.getConcaveHull());
 		return featureBuilder.buildFeature(null);
 	}

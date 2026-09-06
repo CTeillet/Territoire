@@ -9,6 +9,15 @@ import { StatisticsOverview } from "@/components/dashboard/statistics-overview";
 import { AverageAssignmentDurationChart } from "@/components/dashboard/average-assignment-duration-chart";
 import { TerritoryDistributionChart } from "@/components/dashboard/territory-distribution-chart";
 import { StatisticsChart } from "@/components/dashboard/statistics-chart";
+import TerritoryCoverageMap from "@/components/dashboard/territory-coverage-map";
+import { TerritoryPeriodStatistics } from "@/components/dashboard/territory-period-statistics";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import {
     Select,
     SelectContent,
@@ -128,6 +137,27 @@ const StatistiquesPage = () => {
                             periodLabel={selectedPeriod.label}
                         />
                     </div>
+
+                    <TerritoryPeriodStatistics
+                        startDate={selectedPeriod.startDate}
+                        endDate={selectedPeriod.endDate}
+                        periodLabel={selectedPeriod.label}
+                    />
+
+                    <Card className="shadow-md border-0">
+                        <CardHeader>
+                            <CardTitle>Carte de couverture des territoires</CardTitle>
+                            <CardDescription>
+                                Visualisez directement les territoires parcourus et non parcourus pour la période {selectedPeriod.label}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <TerritoryCoverageMap
+                                startDate={selectedPeriod.startDate}
+                                endDate={selectedPeriod.endDate}
+                            />
+                        </CardContent>
+                    </Card>
 
                     <StatisticsChart
                         startDate={selectedPeriod.startDate}
