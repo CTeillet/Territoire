@@ -76,23 +76,60 @@ export default function LateTerritoriesPage() {
 		}
 	}, [isAuthenticated, router]);
 
+	// Normalisation pour comparer les chaînes sans casse ni accents
+	function normalizeString(str?: string | null): string {
+		if (!str) return "";
+		return str
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.toLowerCase()
+			.replace(/\s+/g, " ")
+			.trim();
+	}
+
+	// Recherche une personne soit par son ID (UUID), soit par son nom complet
+	function findPerson(personList: Person[], key?: string | null): Person | undefined {
+		if (!key || !personList?.length) return undefined;
+
+		const byId = personList.find(p => p.id === key);
+		if (byId) return byId;
+
+		const normKey = normalizeString(key);
+
+		return personList.find(p => {
+			const firstLast = normalizeString(`${p.firstName} ${p.lastName}`);
+			const lastFirst = normalizeString(`${p.lastName} ${p.firstName}`);
+			return firstLast === normKey || lastFirst === normKey;
+		});
+	}
+
 	// Format date
 	const formatDate = (dateString: string | null) => {
 		if (!dateString) return "N/A";
 		return format(new Date(dateString), "dd MMMM yyyy", {locale: fr});
 	};
 
-	// Vérifie si un territoire a déjà un rappel pour la personne (nouveau format uniquement)
-	// Hypothèses: 
-	// - personKey est un UUID de personne (plus de résolution par nom complet)
-	// - les rappels utilisent uniquement `territoryIds: string[]`
+	// Vérifie si un territoire a déjà un rappel pour la personne
 	const hasReminder = (territoryId: string, personKey: string) => {
-		return reminders.some((reminder) =>
-			reminder.personId === personKey && Array.isArray(reminder.territoryIds) && reminder.territoryIds.includes(territoryId)
-		);
+		const person = findPerson(persons, personKey);
+		const personId = person?.id || personKey;
+		const normKey = normalizeString(personKey);
+
+		return reminders.some((reminder) => {
+			const matchesPerson =
+				reminder.personId === personId ||
+				reminder.personId === personKey ||
+				(reminder.personName && normalizeString(reminder.personName) === normKey);
+
+			const matchesTerritory =
+				(Array.isArray(reminder.territoryIds) && reminder.territoryIds.includes(territoryId)) ||
+				reminder.territoryId === territoryId;
+
+			return matchesPerson && matchesTerritory;
+		});
 	};
 
- const columns = createLateTerritoriesColumns(formatDate, hasReminder);
+	const columns = createLateTerritoriesColumns(formatDate, hasReminder);
 
 	// Group late territories by person
 	type Group = {
@@ -102,10 +139,6 @@ export default function LateTerritoriesPage() {
 		territories: Territory[];
 		oldest?: string;
 	};
-
-	function getPhone(persons: Person[], personId: string): string | undefined {
-		return persons.find(pp => pp.id === personId)?.phoneNumber;
-	}
 
 	function earlierIso(a?: string, b?: string): string | undefined {
 		if (!a) return b;
@@ -119,18 +152,17 @@ export default function LateTerritoriesPage() {
 		const map = new Map<string, Group>();
 
 		for (const t of territories) {
-			// Dans le nouveau format, `assignedTo` est l'UUID de la personne
-			const key = t.assignedTo;
-			const existing = map.get(key);
-
-			// Récupérer un nom lisible depuis la liste des personnes
-			const person = persons.find(p => p.id === key);
+			const person = findPerson(persons, t.assignedTo);
+			const personId = person?.id || t.assignedTo;
 			const displayName = person ? `${person.firstName} ${person.lastName}` : t.assignedTo;
+			const phone = person?.phoneNumber;
+
+			const existing = map.get(personId);
 
 			const next: Group = existing ?? {
-				personId: key,
+				personId: personId,
 				personName: displayName,
-				phone: getPhone(persons, key),
+				phone: phone,
 				territories: [],
 				oldest: undefined,
 			};
@@ -138,10 +170,10 @@ export default function LateTerritoriesPage() {
 			next.territories.push(t);
 			next.oldest = earlierIso(next.oldest, t.waitedFor);
 
-			if (!next.phone) next.phone = getPhone(persons, key);
+			if (!next.phone && phone) next.phone = phone;
 			if (!next.personName) next.personName = displayName;
 
-			map.set(key, next);
+			map.set(personId, next);
 		}
 
 		return Array.from(map.values()).sort((a, b) =>
@@ -152,14 +184,11 @@ export default function LateTerritoriesPage() {
 	const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 	const toggleGroup = (pid: string) => setOpenGroups(prev => ({...prev, [pid]: !prev[pid]}));
 
-	// Active group for dialog context
-	const [activeGroupPersonId] = useState<string | null>(null);
-
 	const group = (pid: string | null) => groups.find(g => g.personId === pid);
 
-	const handleGroupManualReminders = async () => {
-		if (!activeGroupPersonId) return;
-		const g = group(activeGroupPersonId);
+	const handleGroupManualReminders = async (personId: string) => {
+		if (!personId) return;
+		const g = group(personId);
 		if (!g) return;
 
 		// Si tout est déjà rappelé, on bloque
@@ -262,7 +291,7 @@ export default function LateTerritoriesPage() {
                         description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
                         canSendWhatsApp={!!g.phone}
                         triggerDisabled={g.territories.every(t => hasReminder(t.id, g.personId))}
-                        onManualReminders={handleGroupManualReminders}
+                        onManualReminders={() => handleGroupManualReminders(g.personId)}
                         onSendWhatsApp={handleGroupWhatsApp}
                         data={{
                             person: {id: g.personId, name: g.personName, phone: g.phone ?? null},
