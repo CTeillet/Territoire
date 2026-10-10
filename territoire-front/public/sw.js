@@ -1,12 +1,11 @@
-const CACHE_NAME = "pwa-cache-v87";
+const CACHE_NAME = "pwa-cache-20261010120446";
 
 self.addEventListener("install", (event) => {
     self.skipWaiting();
-    console.log('[SW] install' + CACHE_NAME);
+    console.log('[SW] install ' + CACHE_NAME);
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll([
-                "/", // Permet le offline
                 "/manifest.json",
                 "/images/logo.svg",
             ]);
@@ -49,10 +48,19 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    // For non-API requests, continue with network-first strategy
+    // Do not cache HTML navigation requests or Next.js build chunks in Service Worker cache
+    // Let Next.js and browser HTTP cache handle pages and dynamic assets to avoid version mismatch
     if (
+        event.request.mode === "navigate" ||
+        url.pathname.startsWith("/_next/") ||
         url.origin !== location.origin ||
-        url.pathname.endsWith(".json") ||
+        url.pathname.endsWith(".json")
+    ) {
+        return;
+    }
+
+    // Static assets caching (images, fonts, etc.)
+    if (
         url.pathname.endsWith(".png") ||
         url.pathname.endsWith(".jpg") ||
         url.pathname.endsWith(".jpeg") ||
@@ -60,31 +68,23 @@ self.addEventListener("fetch", (event) => {
         url.pathname.endsWith(".svg") ||
         url.pathname.endsWith(".mp4")
     ) {
-        return;
-    }
-
-    // Stratégie network-first
-    event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                if (response && response.status === 200) {
-                    return caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, response.clone());
-                        return response;
-                    });
+        event.respondWith(
+            caches.match(event.request).then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse;
                 }
-                return response;
-            })
-            .catch(() => {
-                return caches.match(event.request).then(cachedResponse => {
-                    if (cachedResponse) {
-                        return cachedResponse;
+                return fetch(event.request).then((response) => {
+                    if (response && response.status === 200) {
+                        return caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, response.clone());
+                            return response;
+                        });
                     }
-                    // If there's no cached response, return a fallback
-                    return new Response("Offline", { status: 503, headers: { 'Content-Type': 'text/plain' } });
+                    return response;
                 });
             })
-    );
+        );
+    }
 });
 
 self.addEventListener("message", (event) => {

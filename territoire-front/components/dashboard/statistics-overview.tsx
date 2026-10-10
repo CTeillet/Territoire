@@ -45,8 +45,10 @@ export const StatisticsOverview: React.FC<StatisticsOverviewProps> = ({
                 }
 
                 const response = await authFetch(url);
-                const count = await response.json();
-                setTerritoriesNotAssigned(count);
+                if (response.ok) {
+                    const count = await response.json();
+                    setTerritoriesNotAssigned(typeof count === "number" ? count : 0);
+                }
             } catch (error) {
                 console.error("Erreur lors de la récupération des territoires non assignés :", error);
             }

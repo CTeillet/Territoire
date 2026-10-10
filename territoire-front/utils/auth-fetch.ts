@@ -62,7 +62,7 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
 
     let response = await attempt();
 
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
         const newToken = await refreshAccessToken();
         if (newToken) {
             // retry once with new token
