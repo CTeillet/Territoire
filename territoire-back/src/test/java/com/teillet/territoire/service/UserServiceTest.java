@@ -123,6 +123,59 @@ class UserServiceTest {
 	}
 
 	@Test
+	void testDeleteLastAdmin_Refused() {
+		UUID userId = UUID.randomUUID();
+		User admin = new User();
+		admin.setRole(Role.ADMIN);
+		when(userRepository.findById(userId)).thenReturn(Optional.of(admin));
+		when(userRepository.countByRole(Role.ADMIN)).thenReturn(1L);
+
+		assertThrows(IllegalStateException.class, () -> userService.deleteUser(userId));
+		verify(userRepository, never()).deleteById(userId);
+	}
+
+	@Test
+	void testDemoteLastAdmin_Refused() {
+		UUID userId = UUID.randomUUID();
+		User admin = new User();
+		admin.setId(userId);
+		admin.setRole(Role.ADMIN);
+		when(userRepository.findById(userId)).thenReturn(Optional.of(admin));
+		when(userRepository.countByRole(Role.ADMIN)).thenReturn(1L);
+
+		assertThrows(IllegalStateException.class, () -> userService.updateUserRole(userId, "UTILISATEUR"));
+		assertEquals(Role.ADMIN, admin.getRole());
+	}
+
+	@Test
+	void testChangePassword_Success_RevokesTokens() {
+		UUID userId = UUID.randomUUID();
+		User user = new User();
+		user.setPassword("old-hash");
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+		when(passwordEncoder.matches("current", "old-hash")).thenReturn(true);
+		when(passwordEncoder.encode("new-password-123")).thenReturn("new-hash");
+
+		userService.changePassword(userId, "current", "new-password-123");
+
+		assertEquals("new-hash", user.getPassword());
+		assertEquals(1, user.getCurrentTokenVersion());
+		verify(userRepository).save(user);
+	}
+
+	@Test
+	void testChangePassword_WrongCurrent_Refused() {
+		UUID userId = UUID.randomUUID();
+		User user = new User();
+		user.setPassword("old-hash");
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+		when(passwordEncoder.matches("bad", "old-hash")).thenReturn(false);
+
+		assertThrows(IllegalArgumentException.class, () -> userService.changePassword(userId, "bad", "new-password-123"));
+		verify(userRepository, never()).save(any());
+	}
+
+	@Test
 	void testDeleteUser() {
 		UUID userId = UUID.randomUUID();
 		doNothing().when(userRepository).deleteById(userId);

@@ -1,5 +1,6 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.dto.ChangePasswordRequest;
 import com.teillet.territoire.dto.LoginRequest;
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.security.ClientIpResolver;
@@ -19,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -146,6 +148,25 @@ public class AuthController {
 				.header(HttpHeaders.SET_COOKIE, cleared.toString())
 				.header(HttpHeaders.SET_COOKIE, legacyCookieCleared().toString())
 				.build();
+	}
+
+	/**
+	 * Changement de son propre mot de passe. Tous les jetons (donc toutes les sessions) sont révoqués :
+	 * le client doit se reconnecter.
+	 */
+	@PutMapping("/mot-de-passe")
+	public ResponseEntity<Void> changePassword(@AuthenticationPrincipal User principal,
+	                                           @Valid @RequestBody ChangePasswordRequest request) {
+		userService.changePassword(principal.getId(), request.getCurrentPassword(), request.getNewPassword());
+		log.info("🔑 Mot de passe modifié pour {}", principal.getEmail());
+		ResponseCookie cleared = ResponseCookie.from(REFRESH_COOKIE, "")
+				.httpOnly(true)
+				.secure(secureCookie)
+				.sameSite("Strict")
+				.path(REFRESH_COOKIE_PATH)
+				.maxAge(0)
+				.build();
+		return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cleared.toString()).build();
 	}
 
 	private ResponseCookie refreshCookie(String refreshToken) {

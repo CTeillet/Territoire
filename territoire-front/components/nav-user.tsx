@@ -9,7 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronsUpDown, LogOut } from "lucide-react";
+import { ChevronsUpDown, KeyRound, LogOut } from "lucide-react";
+import ChangePasswordDialog from "@/components/change-password-dialog";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { logout } from "@/store/slices/auth-slice";
@@ -18,6 +19,7 @@ import { useRouter } from "next/navigation";
 
 function NavUser() {
   const [mounted, setMounted] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
   const router = useRouter();
@@ -36,33 +38,55 @@ function NavUser() {
     router.push("/login"); // Redirection après déconnexion
   };
 
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <SidebarMenuButton className="flex items-center gap-3 p-3 rounded-lg w-full hover:bg-gray-200">
-          <Avatar className="h-10 w-10 rounded-lg">
-            <AvatarFallback className="rounded-lg">
-              {user.username.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+  const handlePasswordChanged = () => {
+    // Les jetons ont été révoqués côté serveur : on nettoie la session locale
+    dispatch(logout());
+    router.push("/login");
+  };
 
-          <div className="flex flex-col flex-1 text-left text-sm">
-            <span className="truncate font-semibold">{user.username}</span>
-            <span className="truncate text-xs text-gray-500">{user.email}</span>
-          </div>
-          <ChevronsUpDown className="size-4 text-gray-500" />
-        </SidebarMenuButton>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-48 rounded-lg">
-        <DropdownMenuItem
-          className="flex items-center gap-2 cursor-pointer"
-          onClick={handleLogout}
-        >
-          <LogOut className="size-4" />
-          <span>Se déconnecter</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuButton className="flex items-center gap-3 p-3 rounded-lg w-full hover:bg-gray-200">
+            <Avatar className="h-10 w-10 rounded-lg">
+              <AvatarFallback className="rounded-lg">
+                {user.username.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="flex flex-col flex-1 text-left text-sm">
+              <span className="truncate font-semibold">{user.username}</span>
+              <span className="truncate text-xs text-gray-500">
+                {user.email}
+              </span>
+            </div>
+            <ChevronsUpDown className="size-4 text-gray-500" />
+          </SidebarMenuButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-48 rounded-lg">
+          <DropdownMenuItem
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => setPasswordOpen(true)}
+          >
+            <KeyRound className="size-4" />
+            <span>Changer mon mot de passe</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={handleLogout}
+          >
+            <LogOut className="size-4" />
+            <span>Se déconnecter</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ChangePasswordDialog
+        open={passwordOpen}
+        onOpenChange={setPasswordOpen}
+        onChanged={handlePasswordChanged}
+      />
+    </>
   );
 }
 

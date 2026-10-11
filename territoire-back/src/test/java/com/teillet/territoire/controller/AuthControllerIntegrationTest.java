@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -75,6 +76,46 @@ class AuthControllerIntegrationTest {
 				.andExpect(cookie().httpOnly("refreshToken", true))
 				.andExpect(cookie().secure("refreshToken", true))
 				.andExpect(cookie().path("refreshToken", "/api/authentification"));
+	}
+
+	@Test
+	void testChangePassword_Success_OldTokenRevoked() throws Exception {
+		String token = jwtService.generateToken(testUser);
+		String body = "{\"currentPassword\":\"secretPassword123\",\"newPassword\":\"newSecretPassword456\"}";
+
+		mockMvc.perform(put("/api/authentification/mot-de-passe")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(body))
+				.andExpect(status().isNoContent());
+
+		User reloaded = userRepository.findByEmail("auth.test@territoire.fr").orElseThrow();
+		org.junit.jupiter.api.Assertions.assertTrue(passwordEncoder.matches("newSecretPassword456", reloaded.getPassword()));
+
+		// L'ancien jeton d'accès est révoqué
+		mockMvc.perform(put("/api/authentification/mot-de-passe")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(body))
+				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void testChangePassword_WrongCurrentPassword_BadRequest() throws Exception {
+		String token = jwtService.generateToken(testUser);
+		mockMvc.perform(put("/api/authentification/mot-de-passe")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"currentPassword\":\"wrong\",\"newPassword\":\"newSecretPassword456\"}"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void testChangePassword_Anonymous_Unauthorized() throws Exception {
+		mockMvc.perform(put("/api/authentification/mot-de-passe")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"currentPassword\":\"a\",\"newPassword\":\"newSecretPassword456\"}"))
+				.andExpect(status().isUnauthorized());
 	}
 
 	@Test

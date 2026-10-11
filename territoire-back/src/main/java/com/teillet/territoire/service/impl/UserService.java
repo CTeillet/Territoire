@@ -58,6 +58,9 @@ public class UserService implements IUserService {
 		} catch (IllegalArgumentException e) {
 			throw new IllegalArgumentException("Rôle inconnu : " + newRole);
 		}
+		if (user.getRole() == Role.ADMIN && role != Role.ADMIN) {
+			ensureNotLastAdmin();
+		}
 		user.setRole(role);
 		// Les jetons existants portent l'ancien rôle : on les révoque pour forcer une reconnexion
 		user.incrementTokenVersion();
@@ -78,6 +81,27 @@ public class UserService implements IUserService {
 	// 🔹 Supprimer un utilisateur
 	@Override
 	public void deleteUser(UUID userId) {
+		userRepository.findById(userId)
+				.filter(user -> user.getRole() == Role.ADMIN)
+				.ifPresent(user -> ensureNotLastAdmin());
 		userRepository.deleteById(userId);
+	}
+
+	/** Sans administrateur, plus personne ne peut gérer les comptes (récupération à la main en base). */
+	private void ensureNotLastAdmin() {
+		if (userRepository.countByRole(Role.ADMIN) <= 1) {
+			throw new IllegalStateException("Impossible : il doit rester au moins un administrateur");
+		}
+	}
+
+	@Override
+	public void changePassword(UUID userId, String currentPassword, String newPassword) {
+		User user = getUser(userId);
+		if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+			throw new IllegalArgumentException("Mot de passe actuel incorrect");
+		}
+		user.setPassword(passwordEncoder.encode(newPassword));
+		user.incrementTokenVersion();
+		userRepository.save(user);
 	}
 }

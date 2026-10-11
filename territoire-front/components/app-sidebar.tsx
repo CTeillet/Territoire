@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import NavUser from "@/components/nav-user";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
@@ -111,14 +112,14 @@ export function AppSidebar() {
   const renderMenuItem = (item: { title: string; url: string; icon: any }) => (
     <SidebarMenuItem key={item.title} className="mb-4">
       <SidebarMenuButton asChild>
-        <a
+        <Link
           href={item.url}
           className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200
                         ${isItemActive(item.url) ? "bg-gray-400 text-primary font-bold shadow-sm" : "hover:bg-gray-200"}`}
         >
           <item.icon className="h-5 w-5" />
           <span className="text-base">{item.title}</span>
-        </a>
+        </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );

@@ -24,4 +24,11 @@ public interface IUserService extends UserDetailsService {
 	 * Révoque tous les jetons (accès et refresh) déjà émis pour cet utilisateur.
 	 */
 	void revokeTokens(UUID userId);
+
+	/**
+	 * Change le mot de passe après vérification de l'ancien, et révoque tous les jetons existants.
+	 *
+	 * @throws IllegalArgumentException si le mot de passe actuel est incorrect
+	 */
+	void changePassword(UUID userId, String currentPassword, String newPassword);
 }

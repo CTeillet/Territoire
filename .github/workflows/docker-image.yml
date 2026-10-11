@@ -11,6 +11,11 @@ permissions:
   packages: write
   contents: read
 
+# Un seul déploiement à la fois, dans l'ordre (sans annuler celui en cours)
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   changes:
     name: Detect changes

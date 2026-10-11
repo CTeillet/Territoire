@@ -10,8 +10,11 @@ export default defineConfig({
     setupFiles: "./vitest.setup.ts",
     coverage: {
       provider: "v8",
+      // Compte aussi les fichiers non importés par les tests (sinon la couverture affichée est surévaluée)
+      include: ["{app,components,hooks,lib,store,utils}/**/*.{ts,tsx}"],
       reporter: ["text", "json", "html", "lcov"],
       exclude: [
+        "components/ui/**",
         "node_modules/**",
         "coverage/**",
         ".next/**",

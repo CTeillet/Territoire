@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -61,9 +61,16 @@ export function ReminderDialog({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  // Load saved message when opened and WhatsApp possible
+  // `data` est recréé à chaque rendu du parent : on le lit via une ref pour ne pas relancer le
+  // chargement (ni écraser le message en cours de saisie) à chaque rendu.
+  const dataRef = useRef(data);
+  dataRef.current = data;
+
+  // Charge le message type uniquement à l'ouverture de la boîte de dialogue
   useEffect(() => {
+    if (!open) return;
     let cancelled = false;
     const load = async () => {
       if (!canSendWhatsApp) {
@@ -80,7 +87,7 @@ export function ReminderDialog({
             if (text === null || text === undefined) {
               result = "";
             } else {
-              result = renderTemplate(text, data);
+              result = renderTemplate(text, dataRef.current);
             }
             setMessage(result);
           }
@@ -96,7 +103,7 @@ export function ReminderDialog({
     return () => {
       cancelled = true;
     };
-  }, [canSendWhatsApp, data]);
+  }, [open, canSendWhatsApp]);
 
   const handleWhatsApp = async () => {
     if (!message.trim()) {
@@ -112,7 +119,7 @@ export function ReminderDialog({
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           className="px-3 py-2 font-medium inline-flex items-center gap-2"
