@@ -6,6 +6,7 @@ import com.teillet.territoire.model.AddressNotToDo;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AddressNotToDoRepository;
 import com.teillet.territoire.service.IAddressNotToDoService;
+import com.teillet.territoire.service.ITerritoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +17,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AddressNotToDoService implements IAddressNotToDoService {
 	private final AddressNotToDoRepository addressNotToDoRepository;
-	private final TerritoryService territoryService;
+	private final ITerritoryService territoryService;
 
 	@Override
 	public AddressNotToDo saveAddressNotToDo(UUID territoryId, AddAddressNotToDoDto addressNotToDoDto) {

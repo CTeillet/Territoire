@@ -1,0 +1,110 @@
+package com.teillet.territoire.controller;
+
+import com.teillet.territoire.dto.AssignmentDto;
+import com.teillet.territoire.dto.SimplifiedTerritoryDto;
+import com.teillet.territoire.model.Person;
+import com.teillet.territoire.service.IAssignmentService;
+import com.teillet.territoire.service.ITerritoryService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class AssignmentControllerIntegrationTest {
+
+	@Autowired
+	private MockMvc mockMvc;
+
+	@MockitoBean
+	private IAssignmentService assignmentService;
+
+	@MockitoBean
+	private ITerritoryService territoryService;
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testGetLastAssignments() throws Exception {
+		AssignmentDto dto = AssignmentDto.builder()
+				.id(UUID.randomUUID())
+				.territory(SimplifiedTerritoryDto.builder().name("T1").build())
+				.person(Person.builder().firstName("John").lastName("Doe").build())
+				.build();
+		when(assignmentService.getLastAssignments()).thenReturn(List.of(dto));
+
+		mockMvc.perform(get("/api/attributions/dernieres"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].territory.name").value("T1"))
+				.andExpect(jsonPath("$[0].person.firstName").value("John"));
+
+		verify(assignmentService).getLastAssignments();
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testGetAssignmentsInPeriod() throws Exception {
+		AssignmentDto dto = AssignmentDto.builder()
+				.id(UUID.randomUUID())
+				.territory(SimplifiedTerritoryDto.builder().name("T2").build())
+				.person(Person.builder().firstName("Jane").lastName("Doe").build())
+				.build();
+		when(assignmentService.getAssignmentsInPeriod(any(), any())).thenReturn(List.of(dto));
+
+		mockMvc.perform(get("/api/attributions/periode")
+						.param("startDate", "2024-01-01")
+						.param("endDate", "2024-06-30"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].territory.name").value("T2"));
+
+		verify(assignmentService).getAssignmentsInPeriod(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 6, 30));
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testCheckLate() throws Exception {
+		mockMvc.perform(put("/api/attributions/verification-retard"))
+				.andExpect(status().isOk());
+
+		verify(assignmentService).checkOverdueAssignments();
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testDeleteAllAssignments_Admin_Success() throws Exception {
+		mockMvc.perform(delete("/api/attributions"))
+				.andExpect(status().isOk());
+
+		verify(territoryService).revokeAssignmentsBulk(null);
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testDeleteAllAssignments_User_Forbidden() throws Exception {
+		mockMvc.perform(delete("/api/attributions"))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(roles = "SUPERVISEUR")
+	void testDeleteAssignmentsByCity_Superviseur_Success() throws Exception {
+		mockMvc.perform(delete("/api/attributions/{city}", "Rennes"))
+				.andExpect(status().isOk());
+
+		verify(territoryService).revokeAssignmentsBulk("Rennes");
+	}
+}
