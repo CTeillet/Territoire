@@ -107,7 +107,7 @@
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-geojson-core</artifactId>
-            <version>34.5</version>
+            <version>35.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-io</groupId>
