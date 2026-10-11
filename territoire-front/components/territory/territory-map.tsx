@@ -152,18 +152,27 @@ const onEachFeature = (feature: TerritoryFeature, layer: Layer) => {
     // Créer un conteneur pour le popup
     const container = document.createElement("div");
 
-    // Ajouter du contenu statique (nom + statut)
-    container.innerHTML = `
-            <div class="text-center">
-                <h2 class="text-lg font-bold">${name}</h2>
-            </div>
-            <div class="flex justify-center mt-2 mb-5">
-                <span class="${getBadgeColor(status)} text-white px-2 py-1 rounded w-full text-center">
-                    ${STATUS_TRANSLATIONS[status] || status}
-                </span>
-            </div>
-            <div id="react-popup-${id}"></div>  <!-- Un div spécifique pour React -->
-        `;
+    // Contenu statique (nom + statut) construit avec le DOM : le nom d'un territoire est une saisie
+    // utilisateur et ne doit jamais être interprété comme du HTML (XSS).
+    const title = document.createElement("div");
+    title.className = "text-center";
+    const heading = document.createElement("h2");
+    heading.className = "text-lg font-bold";
+    heading.textContent = name;
+    title.appendChild(heading);
+
+    const badgeWrapper = document.createElement("div");
+    badgeWrapper.className = "flex justify-center mt-2 mb-5";
+    const badge = document.createElement("span");
+    badge.className = `${getBadgeColor(status)} text-white px-2 py-1 rounded w-full text-center`;
+    badge.textContent = STATUS_TRANSLATIONS[status] || status;
+    badgeWrapper.appendChild(badge);
+
+    // Un div spécifique pour React
+    const reactSlot = document.createElement("div");
+    reactSlot.id = `react-popup-${id}`;
+
+    container.append(title, badgeWrapper, reactSlot);
 
     // Lier la popup au layer
     layer.bindPopup(container);

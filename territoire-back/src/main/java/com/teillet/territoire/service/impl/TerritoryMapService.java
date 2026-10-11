@@ -27,14 +27,29 @@ import static com.teillet.territoire.utils.Utils.parseColor;
 @RequiredArgsConstructor
 public class TerritoryMapService implements ITerritoryMapService {
 
+    static final int MIN_DPI = 72, MAX_DPI = 600;
+    static final int MIN_ZOOM = 10, MAX_ZOOM = 18;
+    static final long MAX_OUTPUT_PIXELS = 40_000_000L;
+
     private final TerritoryRepository territoryRepo;
     private final WmtsClient wmtsClient;
 
     @Override
     public byte[] generatePng(String paper, String orientation, int dpi, UUID cityId, int zoom, boolean showLabels) throws Exception {
+        // 0) Bornes : évitent qu'une requête fabrique une image démesurée (tas limité à 512 Mo)
+        if (dpi < MIN_DPI || dpi > MAX_DPI) {
+            throw new IllegalArgumentException("Le DPI doit être compris entre " + MIN_DPI + " et " + MAX_DPI);
+        }
+        if (zoom < MIN_ZOOM || zoom > MAX_ZOOM) {
+            throw new IllegalArgumentException("Le zoom doit être compris entre " + MIN_ZOOM + " et " + MAX_ZOOM);
+        }
+
         // 1) Taille de sortie
         Dimension outDim = RenderUtils.paperToPixels(paper, orientation, dpi);
         int width = outDim.width, height = outDim.height;
+        if ((long) width * height > MAX_OUTPUT_PIXELS) {
+            throw new IllegalArgumentException("Image demandée trop grande : réduisez le DPI ou le format");
+        }
 
         // 2) Géométries (WKB 3857)
         List<TerritoryHullRow> rows = (cityId == null)
@@ -134,8 +149,8 @@ public class TerritoryMapService implements ITerritoryMapService {
         int cropH = (int) Math.round(wanted.getHeight() * pxPerM_Y);
 
         // borne dans les limites
-        cropX = Math.max(0, Math.min(cropX, mosaic.getWidth()  - 1));
-        cropY = Math.max(0, Math.min(cropY, mosaic.getHeight() - 1));
+        cropX = Math.clamp(cropX, 0, mosaic.getWidth() - 1);
+        cropY = Math.clamp(cropY, 0, mosaic.getHeight() - 1);
         if (cropX + cropW > mosaic.getWidth())  cropW = mosaic.getWidth()  - cropX;
         if (cropY + cropH > mosaic.getHeight()) cropH = mosaic.getHeight() - cropY;
 

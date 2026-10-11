@@ -79,3 +79,8 @@ fabric.properties
 
 /config/waha/sessions
 /config/waha/media
+
+# Config IDE / outils locaux (contient des chemins, IP et secrets de dev)
+.idea/
+*.iml
+.mcp.json

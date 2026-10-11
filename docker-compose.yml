@@ -30,6 +30,11 @@ services:
     image: ghcr.io/cteillet/territoire-back:latest
     container_name: territoire-back
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     depends_on:
       - postgis
     environment:
@@ -46,12 +51,18 @@ services:
     image: ghcr.io/cteillet/territoire-front:latest
     container_name: territoire-front
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     depends_on:
       - territoire-back
     environment:
       NEXT_PUBLIC_API_URL: http://territoire-back:8080
     ports:
-      - "3000:3000"
+      # Derrière le reverse proxy du VPS : pas d'accès direct depuis Internet (Docker contourne ufw)
+      - "127.0.0.1:3000:3000"
 
   collector:
     image: otel/opentelemetry-collector-contrib:0.98.0
@@ -63,7 +74,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "4000:3000"
+      - "127.0.0.1:4000:3000"
     volumes:
       - ./config/grafana:/etc/grafana/provisioning
       - grafana_data:/var/lib/grafana
@@ -125,7 +136,7 @@ services:
         max-size: "100m"
         max-file: "10"
     ports:
-      - "20080:3000/tcp"
+      - "127.0.0.1:20080:3000/tcp"
     environment:
       # --- Base publique (génération d'URLs, webhooks, etc.)
       - WAHA_BASE_URL=https://waha-tms.cteillet.fr

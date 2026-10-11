@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { validateTemplate } from "@/lib/template";
 import { Copy } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
 
@@ -50,6 +51,11 @@ export function LateReminderMessage({
   };
 
   const onSave = async () => {
+    const templateError = validateTemplate(message ?? "");
+    if (templateError) {
+      toast.error(`Gabarit invalide : ${templateError}`);
+      return;
+    }
     setSaving(true);
     try {
       const res = await authFetch("/api/settings/late-reminder-message", {

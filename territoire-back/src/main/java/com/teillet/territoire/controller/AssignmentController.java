@@ -54,7 +54,7 @@ public class AssignmentController {
 	}
 
 	@DeleteMapping
-	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	@PreAuthorize("hasRole('ADMIN')")
 	public void deleteAllAssignments() {
 		log.info("Requête reçue : DELETE /api/attributions");
 
@@ -64,7 +64,7 @@ public class AssignmentController {
 	}
 
 	@DeleteMapping("/{city}")
-	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	@PreAuthorize("hasRole('ADMIN')")
 	public void deleteAssignmentsByCity(@PathVariable String city) {
 		log.info("Requête reçue : DELETE /api/attributions/{}", city);
 

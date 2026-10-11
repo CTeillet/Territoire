@@ -4,6 +4,7 @@ import com.teillet.territoire.service.impl.TerritoryMapService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class TerritoryPrintController {
     private final TerritoryMapService mapService;
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
     @GetMapping(value = "/territories.png", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> exportPng(
             @RequestParam(defaultValue = "A3") String paper,

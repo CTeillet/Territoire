@@ -27,8 +27,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 
 	void deleteAll();
 
-	List<Assignment> findByReturnDateNotNull();
-
 	/** Dates (attribution, retour) des attributions terminées : suffisant pour calculer des durées sans charger les entités. */
 	@Query("SELECT a.assignmentDate, a.returnDate FROM Assignment a WHERE a.returnDate IS NOT NULL AND a.assignmentDate >= :startDate AND a.assignmentDate <= :endDate")
 	List<Object[]> findReturnedAssignmentDatesBetweenQuery(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
@@ -46,15 +44,14 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 		SELECT a
 		FROM Assignment a
 		WHERE
-			(:hasStart = false OR a.assignmentDate <= :endDate)
-			AND (:hasEnd = false OR (a.returnDate >= :startDate OR a.returnDate IS NULL))
+			a.assignmentDate <= :endDate
+			AND (a.returnDate >= :startDate OR a.returnDate IS NULL)
 		ORDER BY a.assignmentDate DESC
 	""")
-	List<Assignment> findAssignmentsInPeriodQuery(@Param("hasStart") boolean hasStart, @Param("startDate") LocalDate startDate,
-	                                              @Param("hasEnd") boolean hasEnd, @Param("endDate") LocalDate endDate);
+	List<Assignment> findAssignmentsInPeriodQuery(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
 	default List<Assignment> findAssignmentsInPeriod(LocalDate startDate, LocalDate endDate) {
-		return findAssignmentsInPeriodQuery(startDate != null, OptionalDates.startOrMin(startDate), endDate != null, OptionalDates.endOrMax(endDate));
+		return findAssignmentsInPeriodQuery(OptionalDates.startOrMin(startDate), OptionalDates.endOrMax(endDate));
 	}
 
 	/**

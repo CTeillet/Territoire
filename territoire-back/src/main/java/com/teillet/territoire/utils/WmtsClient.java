@@ -24,6 +24,9 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class WmtsClient {
 
+    /** Borne la mémoire (une tuile = 256x256x4 octets) et le nombre d'appels à l'IGN. */
+    static final int MAX_TILES = 400;
+
     private final IgnWmtsProperties props;
 
     private final HttpClient http = HttpClient.newBuilder()
@@ -47,7 +50,7 @@ public class WmtsClient {
 
     /** Emprise en EPSG:4326 -> assemble les tuiles WMTS alignées */
     public TileImage fetchTiles(Envelope env4326, int z) {
-        z = Math.max(0, Math.min(19, z));
+        z = Math.clamp(z, 0, 19);
 
         int xMin = MapMath.lon2tileX(env4326.getMinX(), z);
         int xMax = MapMath.lon2tileX(env4326.getMaxX(), z);
@@ -56,6 +59,10 @@ public class WmtsClient {
 
         int cols = (xMax - xMin + 1);
         int rows = (yMax - yMin + 1);
+        if ((long) cols * rows > MAX_TILES) {
+            throw new IllegalArgumentException("Zone trop étendue pour ce niveau de zoom (" + (long) cols * rows
+                    + " tuiles, maximum " + MAX_TILES + ") : réduisez le zoom");
+        }
         int mosaicW = cols * MapMath.TILE_SIZE;
         int mosaicH = rows * MapMath.TILE_SIZE;
 

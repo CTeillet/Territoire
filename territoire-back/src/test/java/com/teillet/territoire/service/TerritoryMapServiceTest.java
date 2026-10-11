@@ -45,6 +45,18 @@ class TerritoryMapServiceTest {
 	private final WKBWriter wkbWriter = new WKBWriter();
 
 	@Test
+	void testGeneratePng_DpiOutOfRange_Rejected() {
+		org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+				() -> territoryMapService.generatePng("A3", "landscape", 100_000, null, 14, true));
+	}
+
+	@Test
+	void testGeneratePng_ZoomOutOfRange_Rejected() {
+		org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+				() -> territoryMapService.generatePng("A3", "landscape", 300, null, 19, true));
+	}
+
+	@Test
 	void testGeneratePng_EmptyRows_ReturnsEmptyPng() throws Exception {
 		when(territoryRepository.findAllProjected3857()).thenReturn(Collections.emptyList());
 
@@ -55,7 +67,7 @@ class TerritoryMapServiceTest {
 
 	@Test
 	void testGeneratePng_NullBbox_ReturnsEmptyPng() throws Exception {
-		TerritoryHullRow row = createHullRow("Territoire 1", "#3498db");
+		TerritoryHullRow row = createHullRow("#3498db");
 		when(territoryRepository.findAllProjected3857()).thenReturn(List.of(row));
 		when(territoryRepository.findBbox3857()).thenReturn(null);
 
@@ -67,7 +79,7 @@ class TerritoryMapServiceTest {
 	@Test
 	void testGeneratePng_Success_WithCityIdAndLabels() throws Exception {
 		UUID cityId = UUID.randomUUID();
-		TerritoryHullRow row = createHullRow("Territoire 1", "#e74c3c");
+		TerritoryHullRow row = createHullRow("#e74c3c");
 
 		when(territoryRepository.findAllProjected3857ByCityId(cityId)).thenReturn(List.of(row));
 
@@ -92,7 +104,7 @@ class TerritoryMapServiceTest {
 		assertTrue(png.length > 0);
 	}
 
-	private TerritoryHullRow createHullRow(String name, String color) {
+	private TerritoryHullRow createHullRow(String color) {
 		Polygon poly = gf.createPolygon(new Coordinate[]{
 				new Coordinate(150, 150),
 				new Coordinate(450, 150),
@@ -107,7 +119,7 @@ class TerritoryMapServiceTest {
 
 		return new TerritoryHullRow() {
 			@Override
-			public String getName() { return name; }
+			public String getName() { return "Territoire 1"; }
 			@Override
 			public byte[] getHullWkb() { return hullWkb; }
 			@Override

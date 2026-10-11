@@ -110,11 +110,20 @@ class AssignmentControllerIntegrationTest {
 	}
 
 	@Test
-	@WithMockUser(roles = "SUPERVISEUR")
-	void testDeleteAssignmentsByCity_Superviseur_Success() throws Exception {
+	@WithMockUser(roles = "ADMIN")
+	void testDeleteAssignmentsByCity_Admin_Success() throws Exception {
 		mockMvc.perform(delete("/api/attributions/{city}", "Rennes"))
 				.andExpect(status().isOk());
 
 		verify(territoryService).revokeAssignmentsBulk("Rennes");
+	}
+
+	@Test
+	@WithMockUser(roles = "SUPERVISEUR")
+	void testDeleteAssignmentsByCity_Superviseur_Forbidden() throws Exception {
+		mockMvc.perform(delete("/api/attributions/{city}", "Rennes"))
+				.andExpect(status().isForbidden());
+
+		verify(territoryService, never()).revokeAssignmentsBulk("Rennes");
 	}
 }

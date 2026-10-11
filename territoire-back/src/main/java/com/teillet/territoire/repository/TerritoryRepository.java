@@ -23,7 +23,8 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
     @Query("SELECT t.id, t.type, t.city.name FROM Territory t")
     List<Object[]> findAllIdTypeAndCityName();
 
-    @Modifying
+    // clearAutomatically : l'entité déjà chargée serait sinon périmée et réécraserait le contour au flush suivant
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(nativeQuery = true, value = """
             UPDATE territory
             SET concave_hull = (

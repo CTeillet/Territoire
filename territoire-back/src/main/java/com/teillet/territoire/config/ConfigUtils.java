@@ -16,7 +16,10 @@ public class ConfigUtils {
 
 	@Bean
 	public RestTemplate restTemplate() {
-		return new RestTemplate();
+		var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+		factory.setConnectTimeout(java.time.Duration.ofSeconds(5));
+		factory.setReadTimeout(java.time.Duration.ofSeconds(10));
+		return new RestTemplate(factory);
 	}
 
 }

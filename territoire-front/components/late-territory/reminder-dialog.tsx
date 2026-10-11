@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
-import { renderTemplate } from "@/lib/nunjucks";
+import { renderTemplate } from "@/lib/template";
 
 export interface ReminderDialogData {
   person: {

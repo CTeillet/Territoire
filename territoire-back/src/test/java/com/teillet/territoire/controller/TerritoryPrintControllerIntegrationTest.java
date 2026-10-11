@@ -30,7 +30,7 @@ class TerritoryPrintControllerIntegrationTest {
 	private TerritoryMapService territoryMapService;
 
 	@Test
-	@WithMockUser(roles = "UTILISATEUR")
+	@WithMockUser(roles = "GESTIONNAIRE")
 	void testExportPng_Authenticated() throws Exception {
 		byte[] fakePng = new byte[]{1, 2, 3, 4};
 		when(territoryMapService.generatePng(anyString(), anyString(), anyInt(), any(), anyInt(), anyBoolean()))
@@ -50,6 +50,13 @@ class TerritoryPrintControllerIntegrationTest {
 				.andExpect(content().bytes(fakePng));
 
 		verify(territoryMapService).generatePng("A4", "landscape", 150, cityId, 12, true);
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testExportPng_ReadOnlyUser_Forbidden() throws Exception {
+		mockMvc.perform(get("/api/exports/territories.png"))
+				.andExpect(status().isForbidden());
 	}
 
 	@Test

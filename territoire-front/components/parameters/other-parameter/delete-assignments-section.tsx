@@ -63,7 +63,8 @@ export const DeleteAssignmentsSection = ({ showTitle = true }: Props) => {
     }
   };
 
-  if (!(user?.role === "ADMIN" || user?.role === "SUPERVISEUR")) {
+  // Suppression de masse de l'historique : réservée à l'ADMIN (cf. AssignmentController)
+  if (user?.role !== "ADMIN") {
     return null;
   }
 
