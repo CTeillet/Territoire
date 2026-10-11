@@ -27,15 +27,15 @@ jobs:
           fetch-depth: 2
       - name: Filter paths
         id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          base: ${{ github.event.workflow_run.head_sha }}~1
-          ref: ${{ github.event.workflow_run.head_sha }}
-          filters: |
-            back:
-              - 'territoire-back/**'
-            front:
-              - 'territoire-front/**'
+        run: |
+          if git rev-parse --verify -q HEAD~1 > /dev/null; then
+            files=$(git diff --name-only HEAD~1 HEAD)
+          else
+            files=$(git ls-tree -r --name-only HEAD)
+          fi
+          echo "$files"
+          if echo "$files" | grep -q '^territoire-back/'; then echo "back=true" >> "$GITHUB_OUTPUT"; else echo "back=false" >> "$GITHUB_OUTPUT"; fi
+          if echo "$files" | grep -q '^territoire-front/'; then echo "front=true" >> "$GITHUB_OUTPUT"; else echo "front=false" >> "$GITHUB_OUTPUT"; fi
 
   build-and-push:
     name: Build and Push Docker Images
