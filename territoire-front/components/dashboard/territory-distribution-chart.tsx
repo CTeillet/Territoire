@@ -8,13 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import {
-  PieChart,
-  Pie,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/store/store";
 import { fetchTerritoryDistributionByCity } from "@/store/slices/territory-slice";
