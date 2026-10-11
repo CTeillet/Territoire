@@ -30,7 +30,12 @@ const DeleteUserDialog = ({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" className="p-2" disabled={isDeleting}>
+        <Button
+          variant="destructive"
+          className="p-2"
+          disabled={isDeleting}
+          aria-label={`Supprimer ${username}`}
+        >
           {isDeleting ? "Suppression..." : <Trash2 size={18} />}
         </Button>
       </AlertDialogTrigger>

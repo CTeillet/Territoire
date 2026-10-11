@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { authFetch } from "@/utils/auth-fetch";
+import { toast } from "sonner";
 
 type Paper = "A4" | "A3";
 type Orientation = "portrait" | "landscape";
@@ -73,8 +74,13 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({
       const res = await authFetch(url);
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`HTTP ${res.status} — ${text || "échec du rendu"}`);
+        // Le serveur explique les refus (ex. DPI ou zoom hors limites, zone trop étendue)
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          typeof body?.error === "string"
+            ? body.error
+            : `échec du rendu (HTTP ${res.status})`
+        );
       }
 
       const blob = await res.blob();
@@ -88,8 +94,7 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({
       window.URL.revokeObjectURL(objectUrl);
     } catch (e) {
       console.error("Export PNG échoué:", e);
-      // Optionnel: affiche un toast si tu utilises sonner
-      // toast.error("Échec de l’export: " + (e as Error).message);
+      toast.error(`Échec de l'export : ${(e as Error).message}`);
     } finally {
       setLoading(false);
       setOpen(false);
@@ -132,7 +137,7 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({
                   value={paper}
                   onValueChange={(v) => setPaper(v as Paper)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Format">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -148,7 +153,7 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({
                   value={orientation}
                   onValueChange={(v) => setOrientation(v as Orientation)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Orientation">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -159,8 +164,9 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label>DPI</Label>
+                <Label htmlFor="export-dpi">DPI</Label>
                 <Input
+                  id="export-dpi"
                   type="number"
                   inputMode="numeric"
                   min={72}
@@ -171,8 +177,9 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label>Zoom tuiles</Label>
+                <Label htmlFor="export-zoom">Zoom tuiles</Label>
                 <Input
+                  id="export-zoom"
                   type="number"
                   inputMode="numeric"
                   min={10}

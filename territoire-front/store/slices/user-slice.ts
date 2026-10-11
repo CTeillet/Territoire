@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { authFetch } from "@/utils/auth-fetch";
+import { apiErrorMessage } from "@/utils/api-error";
 import { Role } from "@/models/role";
 import { User } from "@/models/user";
 import { RegisterRequest } from "@/models/registerRequest";
@@ -47,7 +48,12 @@ export const createUserThunk = createAsyncThunk<
   });
 
   if (!response.ok)
-    return rejectWithValue("Erreur lors de la création de l'utilisateur");
+    return rejectWithValue(
+      await apiErrorMessage(
+        response,
+        "Erreur lors de la création de l'utilisateur"
+      )
+    );
   return response.json();
 });
 
@@ -63,8 +69,11 @@ export const updateUserRoleThunk = createAsyncThunk<
     body: JSON.stringify({ role }),
   });
 
+  // Le serveur refuse de rétrograder le dernier administrateur : on remonte son motif
   if (!response.ok)
-    return rejectWithValue("Erreur lors de la mise à jour du rôle");
+    return rejectWithValue(
+      await apiErrorMessage(response, "Erreur lors de la mise à jour du rôle")
+    );
   return response.json();
 });
 
@@ -77,7 +86,12 @@ export const deleteUserThunk = createAsyncThunk<
   const response = await authFetch(`${BASE_URL}/${id}`, { method: "DELETE" });
 
   if (!response.ok)
-    return rejectWithValue("Erreur lors de la suppression de l'utilisateur");
+    return rejectWithValue(
+      await apiErrorMessage(
+        response,
+        "Erreur lors de la suppression de l'utilisateur"
+      )
+    );
   return id; // Retourne l'ID supprimé
 });
 

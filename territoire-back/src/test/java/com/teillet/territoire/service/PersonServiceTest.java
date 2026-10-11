@@ -30,11 +30,14 @@ class PersonServiceTest {
 	@Mock
 	private com.teillet.territoire.repository.TerritoryReminderRepository reminderRepository;
 
+	@Mock
+	private com.teillet.territoire.repository.PersonAccessRepository personAccessRepository;
+
 	private PersonService personService;
 
 	@BeforeEach
 	void setUp() {
-		personService = new PersonService(personRepository, assignmentRepository, reminderRepository);
+		personService = new PersonService(personRepository, assignmentRepository, reminderRepository, personAccessRepository);
 	}
 
 	@Test

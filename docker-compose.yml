@@ -41,6 +41,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       WAHA_API_KEY_PLAIN_TEXT: ${WAHA_API_KEY_PLAIN_TEXT}
+      # Clé des liens personnels (/m/...). Facultative : sans elle, dérivée de JWT_SECRET_KEY (changer la clé JWT invaliderait alors les liens)
+      ACCESS_LINK_SECRET: ${ACCESS_LINK_SECRET:-}
       # Test : agent OpenTelemetry desactive (reponses HTTP vides/tronquees). Retirer la ligne suivante pour le reactiver.
       JAVA_TOOL_OPTIONS: ""
     ports:

@@ -76,6 +76,7 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                           className="w-40 h-8 text-sm"
                         />
                         <button
+                          aria-label="Enregistrer la date d'attribution"
                           onClick={() =>
                             handleSave(assignment.territory.territoryId)
                           }
@@ -84,6 +85,7 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                           <Check className="w-4 h-4" />
                         </button>
                         <button
+                          aria-label="Annuler la modification"
                           onClick={handleCancel}
                           className="text-red-600 hover:text-red-800"
                         >

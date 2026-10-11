@@ -133,12 +133,14 @@ const TerritoryHeader = ({
             {isEditing ? (
               <>
                 <button
+                  aria-label="Enregistrer les modifications"
                   className="bg-green-500 p-2 rounded-full hover:bg-green-600 transition"
                   onClick={handleSave}
                 >
                   <CheckIcon className="w-5 h-5 text-white" />
                 </button>
                 <button
+                  aria-label="Annuler les modifications"
                   className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition"
                   onClick={() => setIsEditing(false)}
                 >
@@ -148,6 +150,7 @@ const TerritoryHeader = ({
             ) : (
               <>
                 <button
+                  aria-label="Modifier le territoire"
                   className="bg-gray-300 p-2 rounded-full hover:bg-gray-400 transition"
                   onClick={() => setIsEditing(true)}
                 >
@@ -155,7 +158,10 @@ const TerritoryHeader = ({
                 </button>
                 <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <AlertDialogTrigger asChild>
-                    <button className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition">
+                    <button
+                      aria-label="Supprimer le territoire"
+                      className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition"
+                    >
                       <TrashIcon className="w-5 h-5 text-white" />
                     </button>
                   </AlertDialogTrigger>

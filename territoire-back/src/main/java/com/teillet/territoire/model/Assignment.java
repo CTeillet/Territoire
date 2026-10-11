@@ -1,6 +1,7 @@
 package com.teillet.territoire.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.teillet.territoire.enums.ReturnSource;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,6 +26,11 @@ public class Assignment {
 	private LocalDate assignmentDate;
 	private LocalDate dueDate;
 	private LocalDate returnDate;
+
+	/** Origine du retour (null pour les retours antérieurs à cette information). */
+	@Enumerated(EnumType.STRING)
+	@Column(name = "returned_via")
+	private ReturnSource returnedVia;
 
 	@ManyToOne
 	@JoinColumn(name = "territory_id")

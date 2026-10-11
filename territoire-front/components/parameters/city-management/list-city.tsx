@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const ListCity = ({ cities }: { cities: City[] }) => {
   const dispatch = useAppDispatch();
@@ -25,8 +26,21 @@ const ListCity = ({ cities }: { cities: City[] }) => {
     dispatch(fetchCities());
   }, [dispatch]);
 
-  const handleRemoveCity = (id: string) => {
-    dispatch(removeCity(id));
+  // Le serveur refuse de supprimer une ville qui contient encore des territoires
+  const handleRemoveCity = async (id: string) => {
+    const result = await dispatch(removeCity(id));
+    if (removeCity.rejected.match(result)) {
+      toast.error(result.error.message ?? "Erreur lors de la suppression");
+    }
+  };
+
+  const handleColorChange = async (id: string, colorHex: string) => {
+    const result = await dispatch(updateCityColor({ id, colorHex }));
+    if (updateCityColor.rejected.match(result)) {
+      toast.error(
+        result.error.message ?? "Erreur lors du changement de couleur"
+      );
+    }
   };
 
   return (
@@ -58,14 +72,7 @@ const ListCity = ({ cities }: { cities: City[] }) => {
                   <input
                     type="color"
                     value={city.colorHex || "#cccccc"}
-                    onChange={(e) =>
-                      dispatch(
-                        updateCityColor({
-                          id: city.id,
-                          colorHex: e.target.value,
-                        })
-                      )
-                    }
+                    onChange={(e) => handleColorChange(city.id, e.target.value)}
                     className="w-10 h-10 p-0 border rounded"
                     aria-label={`Choisir couleur pour ${city.name}`}
                   />
@@ -75,6 +82,7 @@ const ListCity = ({ cities }: { cities: City[] }) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleRemoveCity(city.id)}
+                    aria-label={`Supprimer ${city.name}`}
                   >
                     <Trash2 className="w-5 h-5 text-red-500 hover:text-red-700" />
                   </Button>

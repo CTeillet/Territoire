@@ -4,6 +4,8 @@ import { fileURLToPath } from "url";
 
 export default defineConfig({
   plugins: [react()],
+  // Les tests n'ont pas besoin de Tailwind : PostCSS désactivé (les imports CSS, ex. Leaflet, restent possibles)
+  css: { postcss: { plugins: [] } },
   test: {
     environment: "jsdom",
     globals: true,

@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
+import { toast } from "sonner";
 
 type Props = { showTitle?: boolean };
 
@@ -17,6 +18,11 @@ export const ExportExcelButton = ({ showTitle = true }: Props) => {
   const downloadExcel = async () => {
     try {
       const response = await authFetch(`/api/excel?year=${year}`);
+      if (!response.ok) {
+        // Sinon le message d'erreur serait téléchargé sous la forme d'un fichier .xlsx illisible
+        toast.error("Échec de l'export Excel");
+        return;
+      }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");

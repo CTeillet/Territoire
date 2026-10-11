@@ -12,6 +12,8 @@ import { RootState, useAppDispatch } from "@/store/store";
 import { Role } from "@/models/role";
 import CreateUserDialog from "@/components/parameters/user-management/create-user-dialog";
 import UserTable from "@/components/parameters/user-management/user-table";
+import { RegisterRequest } from "@/models/registerRequest";
+import { toast } from "sonner";
 
 const UserManagement = () => {
   const dispatch = useAppDispatch();
@@ -25,12 +27,28 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (id: string) => {
     setDeletingUserId(id);
-    await dispatch(deleteUserThunk(id));
+    const result = await dispatch(deleteUserThunk(id));
     setDeletingUserId(null);
+    if (deleteUserThunk.rejected.match(result)) {
+      toast.error(result.payload ?? "Erreur lors de la suppression");
+    }
   };
 
-  const handleUpdateRole = (id: string, role: Role) => {
-    dispatch(updateUserRoleThunk({ id, role }));
+  // Ex. dernier administrateur : le serveur refuse et le rôle affiché reste l'ancien
+  const handleUpdateRole = async (id: string, role: Role) => {
+    const result = await dispatch(updateUserRoleThunk({ id, role }));
+    if (updateUserRoleThunk.rejected.match(result)) {
+      toast.error(result.payload ?? "Erreur lors de la mise à jour du rôle");
+    }
+  };
+
+  const handleCreateUser = async (user: RegisterRequest) => {
+    const result = await dispatch(createUserThunk(user));
+    if (createUserThunk.rejected.match(result)) {
+      toast.error(result.payload ?? "Erreur lors de la création");
+    } else {
+      toast.success("Utilisateur créé");
+    }
   };
 
   return (
@@ -43,7 +61,7 @@ const UserManagement = () => {
         onDelete={handleDeleteUser}
         onUpdateRole={handleUpdateRole}
       />
-      <CreateUserDialog onCreate={(user) => dispatch(createUserThunk(user))} />
+      <CreateUserDialog onCreate={handleCreateUser} />
     </div>
   );
 };

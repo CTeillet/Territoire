@@ -7,7 +7,6 @@ import territoryReducer from "./slices/territory-slice";
 import userReducer from "./slices/user-slice";
 import cityReducer from "./slices/city-slice";
 import campaignReducer from "./slices/campaign-slice";
-import statisticsReducer from "./slices/statistics-slice";
 import authReducer, { login } from "./slices/auth-slice";
 import reminderReducer from "./slices/reminder-slice";
 
@@ -19,7 +18,6 @@ export const store = configureStore({
     users: userReducer,
     cities: cityReducer,
     campaigns: campaignReducer,
-    statistics: statisticsReducer,
     reminders: reminderReducer,
   },
 });

@@ -23,8 +23,14 @@ const PersonEditForm = ({
       <CardContent>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mt-2">Prénom :</label>
+            <label
+              htmlFor="person-firstName"
+              className="block text-sm font-medium mt-2"
+            >
+              Prénom :
+            </label>
             <input
+              id="person-firstName"
               type="text"
               name="firstName"
               value={formData.firstName}
@@ -33,8 +39,14 @@ const PersonEditForm = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mt-2">Nom :</label>
+            <label
+              htmlFor="person-lastName"
+              className="block text-sm font-medium mt-2"
+            >
+              Nom :
+            </label>
             <input
+              id="person-lastName"
               type="text"
               name="lastName"
               value={formData.lastName}
@@ -43,8 +55,14 @@ const PersonEditForm = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mt-2">Email :</label>
+            <label
+              htmlFor="person-email"
+              className="block text-sm font-medium mt-2"
+            >
+              Email :
+            </label>
             <input
+              id="person-email"
               type="email"
               name="email"
               value={formData.email}

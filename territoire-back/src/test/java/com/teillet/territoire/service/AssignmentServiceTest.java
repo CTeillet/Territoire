@@ -38,6 +38,9 @@ class AssignmentServiceTest {
 	@Mock
 	private IPersonService personService;
 
+	@Mock
+	private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
 	private AssignmentService assignmentService;
 
 	private Territory territory;
@@ -47,7 +50,7 @@ class AssignmentServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		assignmentService = new AssignmentService(assignmentRepository, territoryService, personService);
+		assignmentService = new AssignmentService(assignmentRepository, territoryService, personService, eventPublisher);
 
 		territoryId = UUID.randomUUID();
 		personId = UUID.randomUUID();
@@ -84,6 +87,32 @@ class AssignmentServiceTest {
 		assertNotNull(result);
 		verify(territoryService, times(1)).updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
 		verify(assignmentRepository, times(1)).save(any(Assignment.class));
+		// Le message WhatsApp éventuel est déclenché par un événement traité après validation
+		verify(eventPublisher).publishEvent(any(com.teillet.territoire.event.TerritoryAssignedEvent.class));
+	}
+
+	@Test
+	void testReturnTerritoryByPerson_OtherPerson_Refused() {
+		Assignment running = Assignment.builder().id(UUID.randomUUID()).territory(territory).person(person).build();
+		when(assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)).thenReturn(java.util.Optional.of(running));
+
+		assertThrows(com.teillet.territoire.exception.NotFoundException.class,
+				() -> assignmentService.returnTerritoryByPerson(territoryId, UUID.randomUUID()));
+		assertNull(running.getReturnDate());
+		verify(territoryService, never()).updateTerritoryStatus(any(), any());
+	}
+
+	@Test
+	void testReturnTerritoryByPerson_MarksReturnSource() {
+		Assignment running = Assignment.builder().id(UUID.randomUUID()).territory(territory).person(person).build();
+		when(assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)).thenReturn(java.util.Optional.of(running));
+		when(assignmentRepository.findById(running.getId())).thenReturn(java.util.Optional.of(running));
+
+		assignmentService.returnTerritoryByPerson(territoryId, personId);
+
+		assertEquals(LocalDate.now(), running.getReturnDate());
+		assertEquals(com.teillet.territoire.enums.ReturnSource.LIEN, running.getReturnedVia());
+		verify(territoryService).updateTerritoryStatus(territory, TerritoryStatus.PENDING);
 	}
 
 	@Test

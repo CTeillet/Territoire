@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
 import React from "react";
 import { ReduxProvider } from "@/store/provider";
 import ServiceWorker from "@/components/service-worker";
@@ -37,14 +35,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
-          <SidebarProvider id={"sidebar"}>
-            <AppSidebar />
-            <main className={"bg-gray-200 w-screen"}>
-              <SidebarTrigger className={"fixed top-0 left-0 z-50"} />
-              {children}
-            </main>
-            <Toaster position="bottom-center" />
-          </SidebarProvider>
+          {children}
+          <Toaster position="bottom-center" />
           <ServiceWorker />
         </ReduxProvider>
       </body>

@@ -1,6 +1,7 @@
 import { City } from "@/models/city";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { authFetch } from "@/utils/auth-fetch";
+import { apiErrorMessage } from "@/utils/api-error";
 
 // État initial du slice
 interface CityState {
@@ -48,7 +49,9 @@ export const addCity = createAsyncThunk(
     });
 
     if (!response.ok) {
-      throw new Error("Erreur lors de l'ajout de la ville");
+      throw new Error(
+        await apiErrorMessage(response, "Erreur lors de l'ajout de la ville")
+      );
     }
 
     return response.json() as Promise<City>;
@@ -62,7 +65,13 @@ export const removeCity = createAsyncThunk(
     const response = await authFetch(`${API_URL}/${id}`, { method: "DELETE" });
 
     if (!response.ok) {
-      throw new Error("Erreur lors de la suppression de la ville");
+      // Ex. ville contenant encore des territoires : le serveur explique le refus
+      throw new Error(
+        await apiErrorMessage(
+          response,
+          "Erreur lors de la suppression de la ville"
+        )
+      );
     }
 
     return id;

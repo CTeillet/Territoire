@@ -14,9 +14,9 @@ export const CheckAvailableTerritoriesButton = ({
     const response = await authFetch(
       "/api/territoires/verification-disponible",
       { method: "PUT" }
-    );
+    ).catch(() => null);
 
-    if (response.ok) {
+    if (response?.ok) {
       toast.success("Vérification des territoires en attente terminée !");
     } else {
       toast.error("Erreur lors de la vérification des territoires en attente.");

@@ -12,7 +12,6 @@ import "leaflet/dist/leaflet.css";
 import {
   LatLng,
   LatLngBoundsExpression,
-  LatLngTuple,
   Layer,
   LeafletEvent,
   Map,
@@ -62,25 +61,20 @@ const TerritoryMap = ({
     ];
   }, [city]);
 
-  const toLatLngBounds = (coords: Position[][]): LatLngBoundsExpression => {
-    // On suppose qu'il y a un seul tableau dans le tableau
-    const flatCoords: LatLngTuple[] = coords[0].map(
-      ([lng, lat]) => [lat, lng] as LatLngTuple
-    );
-
+  /** Emprise [[latMin, lngMin], [latMax, lngMax]] de points GeoJSON ([lng, lat]). */
+  const toLatLngBounds = (points: Position[]): LatLngBoundsExpression => {
     let minLat = Infinity,
       minLng = Infinity;
     let maxLat = -Infinity,
       maxLng = -Infinity;
 
-    for (const [lat, lng] of flatCoords) {
+    for (const [lng, lat] of points) {
       if (lat < minLat) minLat = lat;
       if (lat > maxLat) maxLat = lat;
       if (lng < minLng) minLng = lng;
       if (lng > maxLng) maxLng = lng;
     }
 
-    console.log("calcul bounds", minLat, minLng, maxLng, minLat, maxLng);
     return [
       [minLat, minLng],
       [maxLat, maxLng],
@@ -109,14 +103,14 @@ const TerritoryMap = ({
     [geoJsonData?.features]
   );
 
-  const concaveHullCoords = useMemo(() => {
-    if (concaveHullFeature.features.length > 0) {
-      return concaveHullFeature.features.flatMap((feature) =>
-        feature.geometry.coordinates[0].map(([lng, lat]) => [lat, lng])
-      );
-    }
-    return [];
-  }, [concaveHullFeature]);
+  // Tous les points de l'anneau extérieur de chaque polygone du contour (MultiPolygon)
+  const concaveHullCoords = useMemo(
+    () =>
+      concaveHullFeature.features.flatMap((feature) =>
+        feature.geometry.coordinates.flatMap((polygon) => polygon[0] ?? [])
+      ),
+    [concaveHullFeature]
+  );
 
   const bounds: LatLngBoundsExpression = useMemo(() => {
     if (concaveHullCoords.length > 0) {
