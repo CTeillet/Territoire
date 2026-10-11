@@ -7,9 +7,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/(.*)",
-        headers: [
-          { key: "Service-Worker-Allowed", value: "/" },
-        ],
+        headers: [{ key: "Service-Worker-Allowed", value: "/" }],
       },
     ];
   },
