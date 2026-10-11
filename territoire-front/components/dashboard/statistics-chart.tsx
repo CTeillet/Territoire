@@ -14,7 +14,6 @@ import {
   YAxis,
   PieChart,
   Pie,
-  Cell,
   Legend,
   Tooltip,
 } from "recharts";
@@ -218,7 +217,10 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
               >
                 <PieChart width={400} height={400}>
                   <Pie
-                    data={pieChartData}
+                    data={pieChartData.map((entry, index) => ({
+                      ...entry,
+                      fill: COLORS[index % COLORS.length],
+                    }))}
                     cx="50%"
                     cy="50%"
                     labelLine={true}
@@ -229,17 +231,10 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
                     paddingAngle={2}
                     animationBegin={0}
                     animationDuration={1000}
-                    label={({ percent, count }) =>
-                      `${(percent * 100).toFixed(0)}% (${count})`
+                    label={({ percent, payload }) =>
+                      `${((percent ?? 0) * 100).toFixed(0)}% (${payload?.count})`
                     }
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
+                  />
                   <Tooltip
                     formatter={(value, name) => [`${value} territoires`, name]}
                     contentStyle={{
@@ -251,7 +246,6 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
                   <Legend
                     layout="horizontal"
                     verticalAlign="bottom"
-                    align="center"
                     wrapperStyle={{ paddingTop: "20px" }}
                   />
                 </PieChart>

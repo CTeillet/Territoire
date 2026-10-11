@@ -11,7 +11,6 @@ import {
 import {
   PieChart,
   Pie,
-  Cell,
   Tooltip,
   Legend,
   ResponsiveContainer,
@@ -104,7 +103,10 @@ export const TerritoryDistributionChart: React.FC<
           <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie
-                data={territoryDistributionByCity}
+                data={territoryDistributionByCity.map((entry, index) => ({
+                  ...entry,
+                  fill: COLORS[index % COLORS.length],
+                }))}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -113,16 +115,9 @@ export const TerritoryDistributionChart: React.FC<
                 dataKey="territoryCount"
                 nameKey="cityName"
                 label={({ name, percent }) =>
-                  `${name}: ${(percent * 100).toFixed(0)}%`
+                  `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
                 }
-              >
-                {territoryDistributionByCity.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
+              />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
             </PieChart>

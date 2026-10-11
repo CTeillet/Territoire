@@ -119,7 +119,7 @@ const ExtendConfirmationDialog: React.FC<ExtendConfirmationDialogProps> = ({
                       setCustomDate(date);
                       setCalendarOpen(false);
                     }}
-                    initialFocus
+                    autoFocus
                     locale={fr}
                     disabled={(date) => date < new Date()}
                   />

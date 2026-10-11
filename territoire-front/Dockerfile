@@ -1,5 +1,5 @@
 # Utiliser une image de base officielle Node.js
-FROM node:25-alpine
+FROM node:24-alpine
 
 # Définir le répertoire de travail dans le conteneur
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Installer les dépendances
-RUN npm install
+RUN npm ci
 
 # Copier le reste de l'application
 COPY . .
