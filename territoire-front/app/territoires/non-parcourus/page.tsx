@@ -1,23 +1,25 @@
 "use client";
 
-import {useEffect, useMemo} from "react";
-import {useRouter} from "next/navigation";
-import {toast} from "sonner";
-import {useAuth} from "@/hooks/use-auth";
-import {useAppDispatch, useAppSelector} from "@/store/store";
-import {fetchTerritories} from "@/store/slices/territory-slice";
-import {PageHeader} from "@/components/late-territory/page-header";
-import {LoadingState} from "@/components/late-territory/loading-state";
-import {EmptyState} from "@/components/late-territory/empty-state";
-import {DataTable} from "@/components/territory/territory-data-table";
-import {nonVisitedTerritoryColumns} from "@/components/non-visited-territory/non-visited-territory-columns";
+import { useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { fetchTerritories } from "@/store/slices/territory-slice";
+import { PageHeader } from "@/components/late-territory/page-header";
+import { LoadingState } from "@/components/late-territory/loading-state";
+import { EmptyState } from "@/components/late-territory/empty-state";
+import { DataTable } from "@/components/territory/territory-data-table";
+import { nonVisitedTerritoryColumns } from "@/components/non-visited-territory/non-visited-territory-columns";
 
 export default function NonVisitedTerritoriesPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const dispatch = useAppDispatch();
-  const territoriesData = useAppSelector(state => state.territories.territoriesGeojson);
-  const loading = useAppSelector(state => state.territories.loading);
+  const territoriesData = useAppSelector(
+    (state) => state.territories.territoriesGeojson
+  );
+  const loading = useAppSelector((state) => state.territories.loading);
 
   // Fetch territories from Redux store when component mounts
   useEffect(() => {
@@ -40,36 +42,43 @@ export default function NonVisitedTerritoriesPage() {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
-    
+
     // If we're before September, use September 1st of the year before last year
     // Otherwise, use September 1st of last year
     const referenceYear = currentMonth < 9 ? currentYear - 1 : currentYear;
     const referenceDate = new Date(`${referenceYear}-09-01`);
 
     return territoriesData.features
-        .map(f => f.properties)
-        .filter(t => {
-          const lastVisitedOn = t.lastVisitedOn;
+      .map((f) => f.properties)
+      .filter((t) => {
+        const lastVisitedOn = t.lastVisitedOn;
 
-          // If lastVisitedOn is null, undefined, or not a valid date string, consider it not visited
-          // But only if the territory is not currently assigned or late
-          if ((!lastVisitedOn || lastVisitedOn === 'N/A' || lastVisitedOn === 'nouveau') && 
-              t.status !== "ASSIGNED" && t.status !== "LATE") {
-            return true;
-          }
+        // If lastVisitedOn is null, undefined, or not a valid date string, consider it not visited
+        // But only if the territory is not currently assigned or late
+        if (
+          (!lastVisitedOn ||
+            lastVisitedOn === "N/A" ||
+            lastVisitedOn === "nouveau") &&
+          t.status !== "ASSIGNED" &&
+          t.status !== "LATE"
+        ) {
+          return true;
+        }
 
-          // Parse the lastVisitedOn date and compare with reference date
-          try {
-            const lastVisitDate = new Date(lastVisitedOn);
-            // Only include territories that are AVAILABLE or PENDING and were last visited before the reference date
-            // Explicitly exclude ASSIGNED and LATE territories
-            return (t.status === "AVAILABLE" || t.status === "PENDING") &&
-                   lastVisitDate < referenceDate;
-          } catch (e) {
-            // Only include if it's not assigned or late, even when we can't parse the date
-            return t.status !== "ASSIGNED" && t.status !== "LATE"; // Only include non-assigned and non-late territories when date parsing fails
-          }
-        });
+        // Parse the lastVisitedOn date and compare with reference date
+        try {
+          const lastVisitDate = new Date(lastVisitedOn);
+          // Only include territories that are AVAILABLE or PENDING and were last visited before the reference date
+          // Explicitly exclude ASSIGNED and LATE territories
+          return (
+            (t.status === "AVAILABLE" || t.status === "PENDING") &&
+            lastVisitDate < referenceDate
+          );
+        } catch (e) {
+          // Only include if it's not assigned or late, even when we can't parse the date
+          return t.status !== "ASSIGNED" && t.status !== "LATE"; // Only include non-assigned and non-late territories when date parsing fails
+        }
+      });
     // Filter territories that haven't been visited since the reference date
   }, [territoriesData]);
 
@@ -91,9 +100,9 @@ export default function NonVisitedTerritoriesPage() {
 
   return (
     <div className="container mx-auto py-8 px-6">
-      <PageHeader 
-        title="Territoires non parcourus" 
-        description={`Liste des territoires non parcourus depuis le 1er septembre ${referenceYear}`} 
+      <PageHeader
+        title="Territoires non parcourus"
+        description={`Liste des territoires non parcourus depuis le 1er septembre ${referenceYear}`}
       />
 
       {loading ? (
@@ -107,7 +116,7 @@ export default function NonVisitedTerritoriesPage() {
           <DataTable
             data={nonVisitedTerritories}
             columns={columns}
-            tableId="non-visited-territories" 
+            tableId="non-visited-territories"
           />
         </div>
       )}

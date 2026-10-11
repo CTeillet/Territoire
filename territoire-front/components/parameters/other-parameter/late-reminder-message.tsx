@@ -7,7 +7,11 @@ import { toast } from "sonner";
 import { Copy } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
 
-export function LateReminderMessage({ showTitle = true }: { showTitle?: boolean }) {
+export function LateReminderMessage({
+  showTitle = true,
+}: {
+  showTitle?: boolean;
+}) {
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
@@ -67,8 +71,14 @@ export function LateReminderMessage({ showTitle = true }: { showTitle?: boolean 
 
   return (
     <div className="flex flex-col gap-3">
-      {showTitle && <h2 className="text-lg font-semibold">Message type de relance (territoires en retard)</h2>}
-      <p className="text-sm text-muted-foreground">Saisissez votre message puis sauvegardez pour réutilisation.</p>
+      {showTitle && (
+        <h2 className="text-lg font-semibold">
+          Message type de relance (territoires en retard)
+        </h2>
+      )}
+      <p className="text-sm text-muted-foreground">
+        Saisissez votre message puis sauvegardez pour réutilisation.
+      </p>
       <Textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
@@ -78,7 +88,12 @@ export function LateReminderMessage({ showTitle = true }: { showTitle?: boolean 
         disabled={loading}
       />
       <div className="flex gap-2">
-        <Button onClick={onCopy} variant="secondary" className="inline-flex items-center gap-2" disabled={loading || message.trim().length === 0}>
+        <Button
+          onClick={onCopy}
+          variant="secondary"
+          className="inline-flex items-center gap-2"
+          disabled={loading || message.trim().length === 0}
+        >
           <Copy className="w-4 h-4" /> Copier le message
         </Button>
         <Button onClick={onSave} disabled={loading || saving}>

@@ -9,7 +9,10 @@ interface TerritoryStatusPieChartProps {
   colors: string[];
 }
 
-export function TerritoryStatusPieChart({ data, colors }: TerritoryStatusPieChartProps) {
+export function TerritoryStatusPieChart({
+  data,
+  colors,
+}: TerritoryStatusPieChartProps) {
   return (
     <ChartWrapper title="Répartition des territoires">
       <PieChart>
@@ -18,7 +21,9 @@ export function TerritoryStatusPieChart({ data, colors }: TerritoryStatusPieChar
           cx="50%"
           cy="50%"
           labelLine={true}
-          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          label={({ name, percent }) =>
+            `${name}: ${(percent * 100).toFixed(0)}%`
+          }
           outerRadius={80}
           fill="#8884d8"
           dataKey="value"
@@ -28,11 +33,11 @@ export function TerritoryStatusPieChart({ data, colors }: TerritoryStatusPieChar
             <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
           ))}
         </Pie>
-        <Tooltip 
+        <Tooltip
           formatter={(value, name, props) => {
             // For PieChart, name is the category (value)
             return [value, props.payload.name];
-          }} 
+          }}
         />
         <Legend />
       </PieChart>

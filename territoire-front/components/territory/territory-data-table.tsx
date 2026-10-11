@@ -1,211 +1,234 @@
-"use client"
+"use client";
 
 import {
-    ColumnDef,
-    ColumnFiltersState,
-    flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    SortingState,
-    useReactTable,
-    VisibilityState,
-} from "@tanstack/react-table"
+  ColumnDef,
+  ColumnFiltersState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+  VisibilityState,
+} from "@tanstack/react-table";
 
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table"
-import React, {useEffect, useState} from "react";
-import {DataTablePagination} from "@/components/ui/data-table-pagination";
-import * as XLSX from 'xlsx';
-import {Territory} from "@/models/territory";
-import {Button} from "@/components/ui/button";
-import {FileDown, FilterX} from "lucide-react";
-import {COLUMNS_ID_TRANSLATIONS} from "@/components/territory/territory-data-columns";
-import {STATUS_TRANSLATIONS} from "@/models/territory-status";
-import {TYPE_TRANSLATIONS} from "@/models/territory-type";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import React, { useEffect, useState } from "react";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import * as XLSX from "xlsx";
+import { Territory } from "@/models/territory";
+import { Button } from "@/components/ui/button";
+import { FileDown, FilterX } from "lucide-react";
+import { COLUMNS_ID_TRANSLATIONS } from "@/components/territory/territory-data-columns";
+import { STATUS_TRANSLATIONS } from "@/models/territory-status";
+import { TYPE_TRANSLATIONS } from "@/models/territory-type";
 
 interface DataTableProps {
-    columns: ColumnDef<Territory, unknown>[]
-    data: Territory[]
-    tableId?: string // Identifiant unique pour la table
+  columns: ColumnDef<Territory, unknown>[];
+  data: Territory[];
+  tableId?: string; // Identifiant unique pour la table
 }
 
-export function DataTable<TValue>(
-    {
-        columns,
-        data,
-        tableId,
-    }: DataTableProps) {
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-        id: false,
-        name: true,
-        city: true,
-        status: true,
-        actions: true,
-    });
-    const [sorting, setSorting] = useState<SortingState>(() => {
-        if (typeof window !== "undefined") {
-            const storageKey = `tableSorting${tableId ? `-${tableId}` : ''}`;
-            const stored = localStorage.getItem(storageKey);
-            try {
-                return stored ? JSON.parse(stored) : [];
-            } catch {
-                return [];
+export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    id: false,
+    name: true,
+    city: true,
+    status: true,
+    actions: true,
+  });
+  const [sorting, setSorting] = useState<SortingState>(() => {
+    if (typeof window !== "undefined") {
+      const storageKey = `tableSorting${tableId ? `-${tableId}` : ""}`;
+      const stored = localStorage.getItem(storageKey);
+      try {
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
+    if (typeof window !== "undefined") {
+      const storageKey = `tableFilters${tableId ? `-${tableId}` : ""}`;
+      const storedFilters = localStorage.getItem(storageKey);
+      return storedFilters ? JSON.parse(storedFilters) : [];
+    }
+    return [];
+  });
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0, //initial page index
+    pageSize: 10, //default page size
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storageKey = `tableFilters${tableId ? `-${tableId}` : ""}`;
+      localStorage.setItem(storageKey, JSON.stringify(columnFilters));
+    }
+  }, [columnFilters, tableId]);
+
+  // Persist sorting in localStorage so sort order is restored across reloads
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storageKey = `tableSorting${tableId ? `-${tableId}` : ""}`;
+      localStorage.setItem(storageKey, JSON.stringify(sorting));
+    }
+  }, [sorting, tableId]);
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    state: {
+      columnVisibility,
+      sorting,
+      columnFilters,
+      pagination,
+    },
+  });
+
+  const exportToExcel = () => {
+    const filteredData: Record<string, TValue>[] = table
+      .getFilteredRowModel()
+      .rows.map((row) => {
+        const rowData: Record<string, TValue> = {};
+        row.getVisibleCells().forEach((cell) => {
+          const columnHeader = cell.column
+            .id as keyof typeof COLUMNS_ID_TRANSLATIONS;
+          if (columnHeader !== "actions") {
+            // Remplacer la clé par sa traduction
+            const translatedHeader = COLUMNS_ID_TRANSLATIONS[columnHeader];
+            let cellValue: TValue = cell.getValue() as TValue;
+
+            // Traduire la valeur de la colonne "statut"
+            if (columnHeader === "status") {
+              cellValue = STATUS_TRANSLATIONS[
+                cellValue as keyof typeof STATUS_TRANSLATIONS
+              ] as unknown as TValue;
             }
-        }
-        return [];
-    });
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
-        if (typeof window !== "undefined") {
-            const storageKey = `tableFilters${tableId ? `-${tableId}` : ''}`;
-            const storedFilters = localStorage.getItem(storageKey);
-            return storedFilters ? JSON.parse(storedFilters) : [];
-        }
-        return [];
-    });
 
-    const [pagination, setPagination] = useState({
-        pageIndex: 0, //initial page index
-        pageSize: 10, //default page size
-    });
+            // Traduire la valeur de la colonne "type"
+            if (columnHeader === "type" && cellValue) {
+              cellValue = TYPE_TRANSLATIONS[
+                cellValue as keyof typeof TYPE_TRANSLATIONS
+              ] as unknown as TValue;
+            }
 
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const storageKey = `tableFilters${tableId ? `-${tableId}` : ''}`;
-            localStorage.setItem(storageKey, JSON.stringify(columnFilters));
-        }
-    }, [columnFilters, tableId]);
-
-    // Persist sorting in localStorage so sort order is restored across reloads
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const storageKey = `tableSorting${tableId ? `-${tableId}` : ''}`;
-            localStorage.setItem(storageKey, JSON.stringify(sorting));
-        }
-    }, [sorting, tableId]);
-
-    const table = useReactTable({
-        data,
-        columns,
-        getCoreRowModel: getCoreRowModel(),
-        onColumnVisibilityChange: setColumnVisibility,
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        onPaginationChange: setPagination,
-        getFilteredRowModel: getFilteredRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        state: {
-            columnVisibility,
-            sorting,
-            columnFilters,
-            pagination,
-        },
-    });
-
-    const exportToExcel = () => {
-        const filteredData: Record<string, TValue>[] = table.getFilteredRowModel().rows.map(row => {
-            const rowData: Record<string, TValue> = {};
-            row.getVisibleCells().forEach(cell => {
-                const columnHeader = cell.column.id as keyof typeof COLUMNS_ID_TRANSLATIONS;
-                if (columnHeader !== "actions") {
-                    // Remplacer la clé par sa traduction
-                    const translatedHeader = COLUMNS_ID_TRANSLATIONS[columnHeader];
-                    let cellValue: TValue = cell.getValue() as TValue;
-
-                    // Traduire la valeur de la colonne "statut"
-                    if (columnHeader === "status") {
-                        cellValue = STATUS_TRANSLATIONS[cellValue as keyof typeof STATUS_TRANSLATIONS] as unknown as TValue;
-                    }
-
-                    // Traduire la valeur de la colonne "type"
-                    if (columnHeader === "type" && cellValue) {
-                        cellValue = TYPE_TRANSLATIONS[cellValue as keyof typeof TYPE_TRANSLATIONS] as unknown as TValue;
-                    }
-
-                    rowData[translatedHeader] = cellValue;
-                }
-            });
-            return rowData;
+            rowData[translatedHeader] = cellValue;
+          }
         });
+        return rowData;
+      });
 
-        const ws = XLSX.utils.json_to_sheet(filteredData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Feuille 1');
-        XLSX.writeFile(wb, 'table_data.xlsx');
-    };
+    const ws = XLSX.utils.json_to_sheet(filteredData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Feuille 1");
+    XLSX.writeFile(wb, "table_data.xlsx");
+  };
 
-    return (
-        <div className="w-full">
-            <div className="flex justify-end mb-4 gap-2">
-                {table.getState().columnFilters.length > 0 && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => table.resetColumnFilters()}
-                        className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                        <FilterX className="h-4 w-4" />
-                        <span>Réinitialiser les filtres</span>
-                    </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={exportToExcel} className="flex items-center gap-2">
-                    <FileDown className="h-4 w-4" />
-                    <span>Exporter</span>
-                </Button>
-            </div>
-            <div className="overflow-x-auto">
-                <Table className="w-full border-collapse">
-                    {/* En-tête de la table */}
-                    <TableHeader className="bg-gray-100 border-b-2 border-gray-300">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <TableHead
-                                        key={header.id}
-                                        className="px-4 py-3 text-center text-gray-700 font-semibold uppercase tracking-wider"
-                                    >
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(header.column.columnDef.header, header.getContext())}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-
-                    {/* Corps de la table */}
-                    <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    className="odd:bg-gray-50 hover:bg-gray-100 transition"
-                                    data-state={row.getIsSelected() && "selected"}
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell
-                                            key={cell.id}
-                                            className="px-4 py-3 text-center text-gray-700 border-b"
-                                        >
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center text-gray-500">
-                                    Aucun résultat.
-                                </TableCell>
-                            </TableRow>
+  return (
+    <div className="w-full">
+      <div className="flex justify-end mb-4 gap-2">
+        {table.getState().columnFilters.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => table.resetColumnFilters()}
+            className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <FilterX className="h-4 w-4" />
+            <span>Réinitialiser les filtres</span>
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={exportToExcel}
+          className="flex items-center gap-2"
+        >
+          <FileDown className="h-4 w-4" />
+          <span>Exporter</span>
+        </Button>
+      </div>
+      <div className="overflow-x-auto">
+        <Table className="w-full border-collapse">
+          {/* En-tête de la table */}
+          <TableHeader className="bg-gray-100 border-b-2 border-gray-300">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className="px-4 py-3 text-center text-gray-700 font-semibold uppercase tracking-wider"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
                         )}
-                    </TableBody>
-                </Table>
-            </div>
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
 
-            {/* Pagination en bas */}
-            <DataTablePagination table={table}/>
-        </div>
-    );
+          {/* Corps de la table */}
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="odd:bg-gray-50 hover:bg-gray-100 transition"
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className="px-4 py-3 text-center text-gray-700 border-b"
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-gray-500"
+                >
+                  Aucun résultat.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination en bas */}
+      <DataTablePagination table={table} />
+    </div>
+  );
 }

@@ -14,12 +14,12 @@ interface GridContainerProps {
 /**
  * A responsive grid container component
  */
-export function GridContainer({ 
-  children, 
-  columns = 1, 
-  mdColumns, 
-  gap = 6, 
-  className 
+export function GridContainer({
+  children,
+  columns = 1,
+  mdColumns,
+  gap = 6,
+  className,
 }: GridContainerProps) {
   // Map the numeric values to the corresponding Tailwind classes
   const getColumnsClass = (cols: number) => {
@@ -29,7 +29,7 @@ export function GridContainer({
       3: "grid-cols-3",
       4: "grid-cols-4",
       5: "grid-cols-5",
-      6: "grid-cols-6"
+      6: "grid-cols-6",
     };
     return classMap[cols] || "grid-cols-1";
   };
@@ -42,7 +42,7 @@ export function GridContainer({
       3: "md:grid-cols-3",
       4: "md:grid-cols-4",
       5: "md:grid-cols-5",
-      6: "md:grid-cols-6"
+      6: "md:grid-cols-6",
     };
     return classMap[cols] || "";
   };
@@ -51,13 +51,13 @@ export function GridContainer({
     const classMap: Record<number, string> = {
       4: "gap-4",
       6: "gap-6",
-      8: "gap-8"
+      8: "gap-8",
     };
     return classMap[gapSize] || "gap-6";
   };
 
   return (
-    <div 
+    <div
       className={cn(
         "grid",
         getColumnsClass(columns),

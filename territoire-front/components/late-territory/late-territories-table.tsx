@@ -1,5 +1,11 @@
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { DataTable } from "@/components/territory/territory-data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Territory } from "@/models/territory";
@@ -13,7 +19,11 @@ interface LateTerritoriesTableProps {
   tableId?: string; // Identifiant unique pour la table
 }
 
-export function LateTerritoriesTable({ territories, columns, tableId }: LateTerritoriesTableProps) {
+export function LateTerritoriesTable({
+  territories,
+  columns,
+  tableId,
+}: LateTerritoriesTableProps) {
   return (
     <Card className="shadow-md border-0">
       <CardHeader className="pb-6">
@@ -34,45 +44,45 @@ export function LateTerritoriesTable({ territories, columns, tableId }: LateTerr
 // Helper function to create columns with formatDate, hasReminder, and sendReminder functions
 export function createLateTerritoriesColumns(
   formatDate: (dateString: string | null) => string,
-  hasReminder: (territoryId: string, personId: string) => boolean,
+  hasReminder: (territoryId: string, personId: string) => boolean
 ): ColumnDef<Territory, unknown>[] {
   return [
     {
       id: "name",
       accessorKey: "name",
-      header: ({column}) => (
+      header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Territoire" />
       ),
     },
     {
       id: "assignedTo",
       accessorKey: "assignedTo",
-      header: ({column}) => (
+      header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Assigné à" />
       ),
     },
     {
       id: "assignedOn",
       accessorKey: "assignedOn",
-      header: ({column}) => (
+      header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Date d'assignation" />
       ),
-      cell: ({row}) => formatDate(row.original.assignedOn),
+      cell: ({ row }) => formatDate(row.original.assignedOn),
     },
     {
       id: "waitedFor",
       accessorKey: "waitedFor",
-      header: ({column}) => (
+      header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Date d'échéance" />
       ),
-      cell: ({row}) => formatDate(row.original.waitedFor),
+      cell: ({ row }) => formatDate(row.original.waitedFor),
     },
     {
       id: "reminderStatus",
       header: "Statut du rappel",
-      cell: ({row}) => (
-        <ReminderStatusBadge 
-          hasReminder={hasReminder(row.original.id, row.original.assignedTo)} 
+      cell: ({ row }) => (
+        <ReminderStatusBadge
+          hasReminder={hasReminder(row.original.id, row.original.assignedTo)}
         />
       ),
     },

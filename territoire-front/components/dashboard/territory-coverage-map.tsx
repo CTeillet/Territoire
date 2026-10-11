@@ -10,9 +10,18 @@ import MapUpdater from "@/components/territory/map-updater";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchTerritoryCoverageMap } from "@/store/slices/territory-slice";
 
-const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
-const GeoJSON = dynamic(() => import("react-leaflet").then((mod) => mod.GeoJSON), { ssr: false });
+const MapContainer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+const GeoJSON = dynamic(
+  () => import("react-leaflet").then((mod) => mod.GeoJSON),
+  { ssr: false }
+);
 
 const defaultCenter: [number, number] = [48.695874, 2.367055];
 
@@ -21,12 +30,17 @@ interface TerritoryCoverageMapProps {
   endDate?: string;
 }
 
-const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({ startDate, endDate }) => {
+const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({
+  startDate,
+  endDate,
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const sidebar = useSidebar();
   const dispatch = useAppDispatch();
 
-  const { territoryCoverageGeojson, loadingCoverageMap } = useAppSelector(state => state.territories);
+  const { territoryCoverageGeojson, loadingCoverageMap } = useAppSelector(
+    (state) => state.territories
+  );
 
   useEffect(() => {
     dispatch(fetchTerritoryCoverageMap({ startDate, endDate }));
@@ -37,7 +51,11 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({ startDate, 
   };
 
   const calculateCenter = (): [number, number] => {
-    if (!territoryCoverageGeojson || territoryCoverageGeojson.features.length === 0) return defaultCenter;
+    if (
+      !territoryCoverageGeojson ||
+      territoryCoverageGeojson.features.length === 0
+    )
+      return defaultCenter;
 
     let sumLat = 0;
     let sumLng = 0;
@@ -46,11 +64,13 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({ startDate, 
     territoryCoverageGeojson.features.forEach((feature: any) => {
       if (!feature.geometry) return;
       if (feature.geometry.type === "Polygon") {
-        feature.geometry.coordinates[0].forEach(([lng, lat]: [number, number]) => {
-          sumLat += lat;
-          sumLng += lng;
-          count++;
-        });
+        feature.geometry.coordinates[0].forEach(
+          ([lng, lat]: [number, number]) => {
+            sumLat += lat;
+            sumLng += lng;
+            count++;
+          }
+        );
       } else if (feature.geometry.type === "MultiPolygon") {
         feature.geometry.coordinates.forEach((polygon: any) => {
           polygon[0].forEach((coord: [number, number]) => {
@@ -121,7 +141,7 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({ startDate, 
             />
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; OpenStreetMap contributors'
+              attribution="&copy; OpenStreetMap contributors"
             />
             {territoryCoverageGeojson && (
               <GeoJSON
@@ -140,7 +160,11 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({ startDate, 
           onClick={toggleExpand}
           title={isExpanded ? "Réduire la carte" : "Agrandir la carte"}
         >
-          {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          {isExpanded ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
         </Button>
       </div>
     </div>

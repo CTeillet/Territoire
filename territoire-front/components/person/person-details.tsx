@@ -7,28 +7,30 @@ import PersonInfoCard from "./person-info-card";
 import AssignedTerritoriesList from "./assigned-territories-list";
 
 interface PersonDetailsProps {
-    person: Person;
+  person: Person;
 }
 
 const PersonDetails = ({ person }: PersonDetailsProps) => {
-    const dispatch = useAppDispatch();
-    const { assignedTerritories, loadingAssignedTerritories } = useSelector((state: RootState) => state.persons);
+  const dispatch = useAppDispatch();
+  const { assignedTerritories, loadingAssignedTerritories } = useSelector(
+    (state: RootState) => state.persons
+  );
 
-    useEffect(() => {
-        if (person.id) {
-            dispatch(fetchAssignedTerritories(person.id));
-        }
-    }, [dispatch, person.id]);
+  useEffect(() => {
+    if (person.id) {
+      dispatch(fetchAssignedTerritories(person.id));
+    }
+  }, [dispatch, person.id]);
 
-    return (
-        <div className="space-y-6">
-            <PersonInfoCard person={person} />
-            <AssignedTerritoriesList 
-                assignedTerritories={assignedTerritories} 
-                loadingAssignedTerritories={loadingAssignedTerritories} 
-            />
-        </div>
-    );
+  return (
+    <div className="space-y-6">
+      <PersonInfoCard person={person} />
+      <AssignedTerritoriesList
+        assignedTerritories={assignedTerritories}
+        loadingAssignedTerritories={loadingAssignedTerritories}
+      />
+    </div>
+  );
 };
 
 export default PersonDetails;

@@ -4,7 +4,7 @@ import nunjucks from "nunjucks";
 
 // Environnement Nunjucks pour le navigateur (pas de FileSystemLoader)
 const env = new nunjucks.Environment(undefined, {
-    autoescape: false, // on génère du texte pur (WhatsApp)
+  autoescape: false, // on génère du texte pur (WhatsApp)
 });
 
 // // --- Filtres utiles (fr) ---
@@ -27,5 +27,5 @@ const env = new nunjucks.Environment(undefined, {
 
 // Export simple
 export function renderTemplate(template: string, data: unknown): string {
-    return env.renderString(template, (data ?? {}) as Record<string, unknown>);
+  return env.renderString(template, (data ?? {}) as Record<string, unknown>);
 }

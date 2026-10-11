@@ -1,8 +1,8 @@
-import {Role} from "@/models/role";
+import { Role } from "@/models/role";
 
 export interface RegisterRequest {
-    email: string;
-    password: string;
-    username: string;
-    role: Role;
+  email: string;
+  password: string;
+  username: string;
+  role: Role;
 }

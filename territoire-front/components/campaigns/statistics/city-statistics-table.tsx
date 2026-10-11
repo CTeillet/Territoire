@@ -1,7 +1,14 @@
 "use client";
 
 import { TerritoryStatisticsBreakdown } from "@/models/campaign-statistics";
-import {Table, TableHeader, TableBody, TableRow, TableHead, TableCell} from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { TableWrapper } from "@/components/shared/ui/table-wrapper";
 import { TerritoryTypeRow } from "./territory-type-row";
 
@@ -21,7 +28,9 @@ export function CityStatisticsTable({ statistics }: CityStatisticsTableProps) {
             <TableHead className="border p-3 text-left">Ville</TableHead>
             <TableHead className="border p-3 text-center">Total</TableHead>
             <TableHead className="border p-3 text-center">Utilisés</TableHead>
-            <TableHead className="border p-3 text-center">Disponibles</TableHead>
+            <TableHead className="border p-3 text-center">
+              Disponibles
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -31,12 +40,17 @@ export function CityStatisticsTable({ statistics }: CityStatisticsTableProps) {
               typeName={cityName}
               totalCount={statistics.totalTerritoriesByCity[cityName] || 0}
               usedCount={statistics.usedTerritoriesByCity[cityName] || 0}
-              availableCount={statistics.availableTerritoriesByCity[cityName] || 0}
+              availableCount={
+                statistics.availableTerritoriesByCity[cityName] || 0
+              }
             />
           ))}
           {cityNames.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4} className="text-center p-4 text-muted-foreground">
+              <TableCell
+                colSpan={4}
+                className="text-center p-4 text-muted-foreground"
+              >
                 Aucune donnée par ville disponible
               </TableCell>
             </TableRow>

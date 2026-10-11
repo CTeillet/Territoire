@@ -32,7 +32,9 @@ export const fetchReminders = createAsyncThunk<TerritoryReminder[]>(
       return await response.json();
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Une erreur inconnue s'est produite"
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
       );
     }
   }
@@ -69,7 +71,8 @@ export const createReminder = createAsyncThunk(
           const contentType = response.headers.get("content-type") || "";
           if (contentType.includes("application/json")) {
             const errorData = await response.json();
-            message = (errorData && (errorData.message || errorData.error)) || message;
+            message =
+              (errorData && (errorData.message || errorData.error)) || message;
           } else {
             const text = await response.text();
             message = text || message;
@@ -83,7 +86,9 @@ export const createReminder = createAsyncThunk(
       return await response.json();
     } catch (error) {
       return rejectWithValue(
-        error instanceof Error ? error.message : "Impossible d'envoyer le rappel"
+        error instanceof Error
+          ? error.message
+          : "Impossible d'envoyer le rappel"
       );
     }
   }

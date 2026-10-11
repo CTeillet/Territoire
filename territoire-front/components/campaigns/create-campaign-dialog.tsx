@@ -17,32 +17,38 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 // Using the Campaign type from the Redux state
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { 
-  fetchCampaigns, 
-  createCampaign, 
-  createCampaignWithRemainingTerritories 
+import {
+  fetchCampaigns,
+  createCampaign,
+  createCampaignWithRemainingTerritories,
 } from "@/store/slices/campaign-slice";
 
 interface CreateCampaignDialogProps {
   onCampaignCreated?: () => void;
 }
 
-export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialogProps) {
+export function CreateCampaignDialog({
+  onCampaignCreated,
+}: CreateCampaignDialogProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { campaigns, loading, error } = useAppSelector(state => state.campaigns);
+  const { campaigns, loading, error } = useAppSelector(
+    (state) => state.campaigns
+  );
 
   const [open, setOpen] = useState(false);
-  const [selectedPreviousCampaign, setSelectedPreviousCampaign] = useState<string | null>(null);
+  const [selectedPreviousCampaign, setSelectedPreviousCampaign] = useState<
+    string | null
+  >(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -51,8 +57,8 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
   });
 
   // Filtered closed campaigns with remaining territories
-  const closedCampaigns = campaigns.filter(campaign => 
-    campaign.closed && campaign.remainingTerritories.length > 0
+  const closedCampaigns = campaigns.filter(
+    (campaign) => campaign.closed && campaign.remainingTerritories.length > 0
   );
 
   // Fetch campaigns when the dialog opens
@@ -118,10 +124,12 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
 
       // Si une campagne précédente est sélectionnée, utiliser le thunk avec territoires restants
       if (selectedPreviousCampaign) {
-        campaign = await dispatch(createCampaignWithRemainingTerritories({
-          previousCampaignId: selectedPreviousCampaign,
-          newCampaign: formData
-        })).unwrap();
+        campaign = await dispatch(
+          createCampaignWithRemainingTerritories({
+            previousCampaignId: selectedPreviousCampaign,
+            newCampaign: formData,
+          })
+        ).unwrap();
 
         successMessage = `La campagne "${formData.name}" a été créée avec succès avec les territoires restants de la campagne précédente.`;
       } else {
@@ -160,14 +168,19 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
       </DialogTrigger>
       <DialogContent className="sm:max-w-[550px] p-6">
         <DialogHeader className="pb-6">
-          <DialogTitle className="text-2xl font-bold">Créer une nouvelle campagne</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">
+            Créer une nouvelle campagne
+          </DialogTitle>
           <DialogDescription className="mt-2 text-base">
-            Créez une nouvelle campagne d&apos;invitation pour gérer les assignations de territoires
+            Créez une nouvelle campagne d&apos;invitation pour gérer les
+            assignations de territoires
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-3">
-            <Label htmlFor="name" className="text-base font-medium">Nom de la campagne</Label>
+            <Label htmlFor="name" className="text-base font-medium">
+              Nom de la campagne
+            </Label>
             <Input
               id="name"
               name="name"
@@ -181,24 +194,34 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
 
           {closedCampaigns.length > 0 && (
             <div className="space-y-3">
-              <Label htmlFor="previousCampaign" className="text-base font-medium">
-                Utiliser les territoires restants d&apos;une campagne précédente (optionnel)
+              <Label
+                htmlFor="previousCampaign"
+                className="text-base font-medium"
+              >
+                Utiliser les territoires restants d&apos;une campagne précédente
+                (optionnel)
               </Label>
               <p className="text-sm text-gray-500">
-                Sélectionnez une campagne précédente pour utiliser ses territoires restants dans cette nouvelle campagne.
+                Sélectionnez une campagne précédente pour utiliser ses
+                territoires restants dans cette nouvelle campagne.
               </p>
               <Select
                 value={selectedPreviousCampaign || "none"}
-                onValueChange={(value) => setSelectedPreviousCampaign(value === "none" ? null : value)}
+                onValueChange={(value) =>
+                  setSelectedPreviousCampaign(value === "none" ? null : value)
+                }
               >
                 <SelectTrigger className="h-11 text-base">
                   <SelectValue placeholder="Sélectionner une campagne précédente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" key="none">Aucune campagne précédente</SelectItem>
+                  <SelectItem value="none" key="none">
+                    Aucune campagne précédente
+                  </SelectItem>
                   {closedCampaigns.map((campaign) => (
                     <SelectItem key={campaign.id} value={campaign.id}>
-                      {campaign.name} ({campaign.remainingTerritories.length} territoires)
+                      {campaign.name} ({campaign.remainingTerritories.length}{" "}
+                      territoires)
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -208,7 +231,9 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <Label htmlFor="startDate" className="text-base font-medium">Date de début</Label>
+              <Label htmlFor="startDate" className="text-base font-medium">
+                Date de début
+              </Label>
               <Input
                 id="startDate"
                 name="startDate"
@@ -221,7 +246,9 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="endDate" className="text-base font-medium">Date de fin</Label>
+              <Label htmlFor="endDate" className="text-base font-medium">
+                Date de fin
+              </Label>
               <Input
                 id="endDate"
                 name="endDate"
@@ -235,7 +262,9 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
           </div>
 
           <div className="space-y-3">
-            <Label htmlFor="description" className="text-base font-medium">Description (optionnelle)</Label>
+            <Label htmlFor="description" className="text-base font-medium">
+              Description (optionnelle)
+            </Label>
             <Textarea
               id="description"
               name="description"
@@ -248,17 +277,17 @@ export function CreateCampaignDialog({ onCampaignCreated }: CreateCampaignDialog
           </div>
 
           <DialogFooter className="pt-6 gap-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setOpen(false)} 
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
               className="px-5 py-2.5 text-base font-medium h-auto"
             >
               Annuler
             </Button>
-            <Button 
-              type="submit" 
-              disabled={loading} 
+            <Button
+              type="submit"
+              disabled={loading}
               className="px-5 py-2.5 text-base font-medium h-auto"
             >
               {loading ? "Création en cours..." : "Créer la campagne"}

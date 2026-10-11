@@ -28,7 +28,7 @@ import { fetchCampaigns } from "@/store/slices/campaign-slice";
 export default function CampaignsPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { campaigns, loading } = useAppSelector(state => state.campaigns);
+  const { campaigns, loading } = useAppSelector((state) => state.campaigns);
 
   // Fetch campaigns on component mount
   useEffect(() => {
@@ -51,10 +51,13 @@ export default function CampaignsPage() {
         <div>
           <h1 className="text-4xl font-bold mb-3">Gestion des campagnes</h1>
           <p className="text-gray-500 text-lg">
-            Gérez les campagnes d&apos;invitation et les assignations de territoires
+            Gérez les campagnes d&apos;invitation et les assignations de
+            territoires
           </p>
         </div>
-        <CreateCampaignDialog onCampaignCreated={() => dispatch(fetchCampaigns())} />
+        <CreateCampaignDialog
+          onCampaignCreated={() => dispatch(fetchCampaigns())}
+        />
       </div>
 
       {loading ? (
@@ -72,13 +75,17 @@ export default function CampaignsPage() {
               Créez votre première campagne pour commencer à gérer les
               assignations de territoires.
             </p>
-            <CreateCampaignDialog onCampaignCreated={() => dispatch(fetchCampaigns())} />
+            <CreateCampaignDialog
+              onCampaignCreated={() => dispatch(fetchCampaigns())}
+            />
           </CardContent>
         </Card>
       ) : (
         <Card className="shadow-md border-0">
           <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-bold mb-2">Liste des campagnes</CardTitle>
+            <CardTitle className="text-2xl font-bold mb-2">
+              Liste des campagnes
+            </CardTitle>
             <CardDescription className="text-base">
               Toutes les campagnes d&apos;invitation et leur statut
             </CardDescription>
@@ -87,12 +94,24 @@ export default function CampaignsPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-b-2 border-gray-200">
-                  <TableHead className="py-4 text-base font-semibold">Nom</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Date de début</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Date de fin</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Statut</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Territoires</TableHead>
-                  <TableHead className="py-4 text-base font-semibold">Actions</TableHead>
+                  <TableHead className="py-4 text-base font-semibold">
+                    Nom
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-semibold">
+                    Date de début
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-semibold">
+                    Date de fin
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-semibold">
+                    Statut
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-semibold">
+                    Territoires
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-semibold">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -101,8 +120,12 @@ export default function CampaignsPage() {
                     <TableCell className="font-medium text-base py-4">
                       {campaign.name}
                     </TableCell>
-                    <TableCell className="py-4">{formatDate(campaign.startDate)}</TableCell>
-                    <TableCell className="py-4">{formatDate(campaign.endDate)}</TableCell>
+                    <TableCell className="py-4">
+                      {formatDate(campaign.startDate)}
+                    </TableCell>
+                    <TableCell className="py-4">
+                      {formatDate(campaign.endDate)}
+                    </TableCell>
                     <TableCell className="py-4">
                       <span
                         className={`px-3 py-1.5 rounded-full text-sm font-semibold ${

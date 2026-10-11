@@ -1,14 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TerritoryType } from "@/models/territory-type";
-import { TerritoryStatusData, TerritoryTypeData, CityData } from "@/models/chart-data";
+import {
+  TerritoryStatusData,
+  TerritoryTypeData,
+  CityData,
+} from "@/models/chart-data";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { fetchCampaignStatistics, exportCampaignStatistics } from "@/store/slices/campaign-slice";
+import {
+  fetchCampaignStatistics,
+  exportCampaignStatistics,
+} from "@/store/slices/campaign-slice";
 
 // Import sub-components
 import { StatisticsSummary } from "./statistics/statistics-summary";
@@ -21,26 +34,35 @@ interface CampaignStatisticsProps {
   campaignId: string;
 }
 
-export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsProps) {
+export function CampaignStatisticsComponent({
+  campaignId,
+}: CampaignStatisticsProps) {
   const dispatch = useAppDispatch();
-  const { campaignStatistics: statistics, loadingStatistics: loading, error } = useAppSelector(state => state.campaigns);
+  const {
+    campaignStatistics: statistics,
+    loadingStatistics: loading,
+  } = useAppSelector((state) => state.campaigns);
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
     if (!statistics) return;
-    
+
     setIsExporting(true);
-    const toastId = toast.loading("Génération de l'export Excel natif avec graphiques...");
-    
+    const toastId = toast.loading(
+      "Génération de l'export Excel natif avec graphiques..."
+    );
+
     try {
-      await dispatch(exportCampaignStatistics({ 
-        campaignId: statistics.campaignId, 
-        campaignName: statistics.campaignName 
-      })).unwrap();
-      
+      await dispatch(
+        exportCampaignStatistics({
+          campaignId: statistics.campaignId,
+          campaignName: statistics.campaignName,
+        })
+      ).unwrap();
+
       toast.success("Export Excel terminé", { id: toastId });
     } catch (error) {
-      console.error('Erreur lors de l\'export:', error);
+      console.error("Erreur lors de l'export:", error);
       toast.error("Erreur lors de la génération de l'export", { id: toastId });
     } finally {
       setIsExporting(false);
@@ -52,18 +74,19 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
       dispatch(fetchCampaignStatistics(campaignId))
         .unwrap()
         .catch((error) => {
-          if (error.name === 'ConditionError') return;
+          if (error.name === "ConditionError") return;
           console.error("Error fetching statistics:", error);
         });
     }
   }, [campaignId, dispatch]);
 
-
   if (loading) {
     return (
       <Card className="shadow-md border-0">
         <CardHeader className="pb-6">
-          <CardTitle className="text-2xl font-bold mb-2">Statistiques</CardTitle>
+          <CardTitle className="text-2xl font-bold mb-2">
+            Statistiques
+          </CardTitle>
           <CardDescription className="text-base">
             Chargement des statistiques...
           </CardDescription>
@@ -76,7 +99,9 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
     return (
       <Card className="shadow-md border-0">
         <CardHeader className="pb-6">
-          <CardTitle className="text-2xl font-bold mb-2">Statistiques</CardTitle>
+          <CardTitle className="text-2xl font-bold mb-2">
+            Statistiques
+          </CardTitle>
           <CardDescription className="text-base">
             Aucune statistique disponible
           </CardDescription>
@@ -88,34 +113,46 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
   // Translation mapping for display
   const statusTranslations = {
     used: "Utilisés",
-    available: "Restants"
+    available: "Restants",
   };
 
   const typeTranslations = {
     [TerritoryType.BUILDING]: "Immeubles",
-    [TerritoryType.HOUSE]: "Pavillons"
+    [TerritoryType.HOUSE]: "Pavillons",
   };
 
   // Prepare data for charts
   const territoryStatusData: TerritoryStatusData[] = [
-    { name: statusTranslations.used, value: statistics.usedTerritories, key: "used" },
-    { name: statusTranslations.available, value: statistics.availableTerritories, key: "available" },
+    {
+      name: statusTranslations.used,
+      value: statistics.usedTerritories,
+      key: "used",
+    },
+    {
+      name: statusTranslations.available,
+      value: statistics.availableTerritories,
+      key: "available",
+    },
   ];
 
   const territoryTypeData: TerritoryTypeData[] = [
-    { 
-      name: typeTranslations[TerritoryType.BUILDING], 
+    {
+      name: typeTranslations[TerritoryType.BUILDING],
       used: statistics.usedTerritoriesByType[TerritoryType.BUILDING] || 0,
-      available: statistics.availableTerritoriesByType[TerritoryType.BUILDING] || 0,
+      available:
+        statistics.availableTerritoriesByType[TerritoryType.BUILDING] || 0,
     },
-    { 
-      name: typeTranslations[TerritoryType.HOUSE], 
+    {
+      name: typeTranslations[TerritoryType.HOUSE],
       used: statistics.usedTerritoriesByType[TerritoryType.HOUSE] || 0,
-      available: statistics.availableTerritoriesByType[TerritoryType.HOUSE] || 0,
+      available:
+        statistics.availableTerritoriesByType[TerritoryType.HOUSE] || 0,
     },
   ];
 
-  const cityData: CityData[] = Object.keys(statistics.totalTerritoriesByCity).map(cityName => ({
+  const cityData: CityData[] = Object.keys(
+    statistics.totalTerritoriesByCity
+  ).map((cityName) => ({
     name: cityName,
     used: statistics.usedTerritoriesByCity[cityName] || 0,
     available: statistics.availableTerritoriesByCity[cityName] || 0,
@@ -128,13 +165,15 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
     <Card className="shadow-md border-0 mt-8">
       <CardHeader className="pb-6 flex flex-row items-start justify-between">
         <div>
-          <CardTitle className="text-2xl font-bold mb-2">Statistiques</CardTitle>
+          <CardTitle className="text-2xl font-bold mb-2">
+            Statistiques
+          </CardTitle>
           <CardDescription className="text-base">
             Statistiques des territoires pour cette campagne
           </CardDescription>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="flex items-center gap-2"
           onClick={handleExport}
           disabled={isExporting}
@@ -155,7 +194,7 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
           </TabsList>
 
           <TabsContent value="charts">
-            <StatisticsCharts 
+            <StatisticsCharts
               territoryStatusData={territoryStatusData}
               territoryTypeData={territoryTypeData}
               cityData={cityData}
@@ -165,16 +204,14 @@ export function CampaignStatisticsComponent({ campaignId }: CampaignStatisticsPr
           </TabsContent>
 
           <TabsContent value="details">
-            <StatisticsTable 
+            <StatisticsTable
               statistics={statistics}
               typeTranslations={typeTranslations}
             />
           </TabsContent>
 
           <TabsContent value="cities">
-            <CityStatisticsTable 
-              statistics={statistics}
-            />
+            <CityStatisticsTable statistics={statistics} />
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -62,6 +62,9 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      - name: Check Code Formatting (Prettier)
+        run: npm run format:check
+
       - name: Run Unit & Component Tests with Coverage
         run: npm run test:coverage
 

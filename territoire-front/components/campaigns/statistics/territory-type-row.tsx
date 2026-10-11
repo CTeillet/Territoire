@@ -13,27 +13,19 @@ interface TerritoryTypeRowProps {
 /**
  * A component for displaying a row in the statistics table for a specific territory type
  */
-export function TerritoryTypeRow({ 
-  typeName, 
-  totalCount, 
-  usedCount, 
+export function TerritoryTypeRow({
+  typeName,
+  totalCount,
+  usedCount,
   availableCount,
-  isTotal = false
+  isTotal = false,
 }: TerritoryTypeRowProps) {
   return (
     <TableRow className={isTotal ? "bg-gray-50 font-semibold" : ""}>
-      <TableCell className="border p-3 font-medium">
-        {typeName}
-      </TableCell>
-      <TableCell className="border p-3 text-center">
-        {totalCount}
-      </TableCell>
-      <TableCell className="border p-3 text-center">
-        {usedCount}
-      </TableCell>
-      <TableCell className="border p-3 text-center">
-        {availableCount}
-      </TableCell>
+      <TableCell className="border p-3 font-medium">{typeName}</TableCell>
+      <TableCell className="border p-3 text-center">{totalCount}</TableCell>
+      <TableCell className="border p-3 text-center">{usedCount}</TableCell>
+      <TableCell className="border p-3 text-center">{availableCount}</TableCell>
     </TableRow>
   );
 }

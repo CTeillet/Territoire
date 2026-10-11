@@ -1,1126 +1,1415 @@
-import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import {Territory, TerritoryCollection} from "@/models/territory";
-import {format} from "date-fns";
-import {Assignment} from "@/models/assignment";
-import {authFetch} from "@/utils/auth-fetch";
-import {AddressNotToDoDto} from "@/models/AddressNotToDoDto";
-import {UpdateTerritoryDto} from "@/models/update-territory-dto";
-import {TerritoryStatusHistoryDto} from "@/models/territory-status-history";
-import {SchoolYearPeriod} from "@/models/school-year-period";
-import {TerritoryStatisticsBreakdown} from "@/models/campaign-statistics";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { Territory, TerritoryCollection } from "@/models/territory";
+import { format } from "date-fns";
+import { Assignment } from "@/models/assignment";
+import { authFetch } from "@/utils/auth-fetch";
+import { AddressNotToDoDto } from "@/models/AddressNotToDoDto";
+import { UpdateTerritoryDto } from "@/models/update-territory-dto";
+import { TerritoryStatusHistoryDto } from "@/models/territory-status-history";
+import { SchoolYearPeriod } from "@/models/school-year-period";
+import { TerritoryStatisticsBreakdown } from "@/models/campaign-statistics";
 
 interface TerritoryDistribution {
-    cityName: string;
-    territoryCount: number;
-    percentage: number;
+  cityName: string;
+  territoryCount: number;
+  percentage: number;
 }
 
 interface AverageAssignmentDuration {
-    period: string;
-    averageDuration: number;
+  period: string;
+  averageDuration: number;
 }
 
 type TerritoryState = {
-    territoriesGeojson: TerritoryCollection | null,
-    selectedTerritory: Territory | null;
-    loading: boolean;
-    updating: boolean;
-    error: string | null;
-    // Statistics state
-    territoryStatusHistory: TerritoryStatusHistoryDto[];
-    territoriesNotAssignedSince: number;
-    territoryCoverageGeojson: any | null;
-    loadingCoverageMap: boolean;
-    averageAssignmentDurationByMonth: AverageAssignmentDuration[];
-    overallAverageAssignmentDuration: number | null;
-    territoryDistributionByCity: TerritoryDistribution[];
-    periodStatistics: TerritoryStatisticsBreakdown | null;
-    latestAssignments: Assignment[];
-    schoolYearPeriods: SchoolYearPeriod[];
-    periodAssignments: Assignment[];
-    statisticsLoading: boolean;
+  territoriesGeojson: TerritoryCollection | null;
+  selectedTerritory: Territory | null;
+  loading: boolean;
+  updating: boolean;
+  error: string | null;
+  // Statistics state
+  territoryStatusHistory: TerritoryStatusHistoryDto[];
+  territoriesNotAssignedSince: number;
+  territoryCoverageGeojson: any | null;
+  loadingCoverageMap: boolean;
+  averageAssignmentDurationByMonth: AverageAssignmentDuration[];
+  overallAverageAssignmentDuration: number | null;
+  territoryDistributionByCity: TerritoryDistribution[];
+  periodStatistics: TerritoryStatisticsBreakdown | null;
+  latestAssignments: Assignment[];
+  schoolYearPeriods: SchoolYearPeriod[];
+  periodAssignments: Assignment[];
+  statisticsLoading: boolean;
 };
 
 // État initial
 const initialState: TerritoryState = {
-    territoriesGeojson: null,
-    selectedTerritory: null,
-    loading: false,
-    updating: false,
-    error: null,
-    // Statistics initial state
-    territoryStatusHistory: [],
-    territoriesNotAssignedSince: 0,
-    territoryCoverageGeojson: null,
-    loadingCoverageMap: false,
-    averageAssignmentDurationByMonth: [],
-    overallAverageAssignmentDuration: null,
-    territoryDistributionByCity: [],
-    periodStatistics: null,
-    latestAssignments: [],
-    schoolYearPeriods: [],
-    periodAssignments: [],
-    statisticsLoading: false
+  territoriesGeojson: null,
+  selectedTerritory: null,
+  loading: false,
+  updating: false,
+  error: null,
+  // Statistics initial state
+  territoryStatusHistory: [],
+  territoriesNotAssignedSince: 0,
+  territoryCoverageGeojson: null,
+  loadingCoverageMap: false,
+  averageAssignmentDurationByMonth: [],
+  overallAverageAssignmentDuration: null,
+  territoryDistributionByCity: [],
+  periodStatistics: null,
+  latestAssignments: [],
+  schoolYearPeriods: [],
+  periodAssignments: [],
+  statisticsLoading: false,
 };
 
 const BASE_URL = `/api/territoires`;
 
 // --- Small helpers to reduce duplication inside reducers ---
 const findFeatureById = (state: TerritoryState, id: string) => {
-    return state.territoriesGeojson?.features.find((f) => f.properties.id === id);
+  return state.territoriesGeojson?.features.find((f) => f.properties.id === id);
 };
 
-const updateSelectedIfSame = (state: TerritoryState, affectedId: string, updater: (t: Territory) => void) => {
-    if (state.selectedTerritory && state.selectedTerritory.id === affectedId) {
-        updater(state.selectedTerritory);
-    }
+const updateSelectedIfSame = (
+  state: TerritoryState,
+  affectedId: string,
+  updater: (t: Territory) => void
+) => {
+  if (state.selectedTerritory && state.selectedTerritory.id === affectedId) {
+    updater(state.selectedTerritory);
+  }
 };
 
 export const extendTerritory = createAsyncThunk(
-    "territories/extendTerritory",
-    async ({ territoryId, dueDate }: { territoryId: string; dueDate?: string }, {rejectWithValue}) => {
-        // Construct URL with query parameter if dueDate is provided
-        let url = `${BASE_URL}/${territoryId}/prolongation`;
-        if (dueDate) {
-            url += `?dueDate=${dueDate}`;
-        }
-
-        const response = await authFetch(url, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-        });
-
-        if (!response.ok) {
-            return rejectWithValue(await response.text() || "Erreur lors de la prolongation du territoire");
-        }
-
-        try {
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+  "territories/extendTerritory",
+  async (
+    { territoryId, dueDate }: { territoryId: string; dueDate?: string },
+    { rejectWithValue }
+  ) => {
+    // Construct URL with query parameter if dueDate is provided
+    let url = `${BASE_URL}/${territoryId}/prolongation`;
+    if (dueDate) {
+      url += `?dueDate=${dueDate}`;
     }
+
+    const response = await authFetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      return rejectWithValue(
+        (await response.text()) ||
+          "Erreur lors de la prolongation du territoire"
+      );
+    }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
 export const returnTerritory = createAsyncThunk(
-    "territories/returnTerritory",
-    async (territoryId: string, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}/${territoryId}/retour`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-        });
+  "territories/returnTerritory",
+  async (territoryId: string, { rejectWithValue }) => {
+    const response = await authFetch(`${BASE_URL}/${territoryId}/retour`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
 
-        if (!response.ok) {
-            return rejectWithValue(await response.text() || "Erreur lors du retour du territoire");
-        }
-
-        try {
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+    if (!response.ok) {
+      return rejectWithValue(
+        (await response.text()) || "Erreur lors du retour du territoire"
+      );
     }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
 export const cancelAssignment = createAsyncThunk(
-    "territories/cancelAssignment",
-    async (territoryId: string, {rejectWithValue}) => {
-        // Use the dedicated endpoint for canceling assignments
-        const response = await authFetch(`${BASE_URL}/${territoryId}/annuler-assignation`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-        });
+  "territories/cancelAssignment",
+  async (territoryId: string, { rejectWithValue }) => {
+    // Use the dedicated endpoint for canceling assignments
+    const response = await authFetch(
+      `${BASE_URL}/${territoryId}/annuler-assignation`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
-        if (!response.ok) {
-            return rejectWithValue(await response.text() || "Erreur lors de l'annulation de l'assignation");
-        }
-
-        try {
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+    if (!response.ok) {
+      return rejectWithValue(
+        (await response.text()) ||
+          "Erreur lors de l'annulation de l'assignation"
+      );
     }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
 export const assignTerritory = createAsyncThunk(
-    "territories/assignTerritory",
-    async ({territoryId, personId}: { territoryId: string; personId: string }, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}/${territoryId}/attribuer/${personId}`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-        });
+  "territories/assignTerritory",
+  async (
+    { territoryId, personId }: { territoryId: string; personId: string },
+    { rejectWithValue }
+  ) => {
+    const response = await authFetch(
+      `${BASE_URL}/${territoryId}/attribuer/${personId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
-        if (!response.ok) {
-            return rejectWithValue("Erreur lors de l'assignation du territoire");
-        }
-
-        try {
-            return await response.json() as Assignment;
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+    if (!response.ok) {
+      return rejectWithValue("Erreur lors de l'assignation du territoire");
     }
+
+    try {
+      return (await response.json()) as Assignment;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
 export const updateAssignmentDate = createAsyncThunk(
-    "territories/updateAssignmentDate",
-    async ({ territoryId, assignmentDate }: { territoryId: string; assignmentDate: string }, { rejectWithValue }) => {
-        const url = `${BASE_URL}/${territoryId}/modifier-date-attribution?assignmentDate=${assignmentDate}`;
+  "territories/updateAssignmentDate",
+  async (
+    {
+      territoryId,
+      assignmentDate,
+    }: { territoryId: string; assignmentDate: string },
+    { rejectWithValue }
+  ) => {
+    const url = `${BASE_URL}/${territoryId}/modifier-date-attribution?assignmentDate=${assignmentDate}`;
 
-        const response = await authFetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-        });
+    const response = await authFetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
 
-        if (!response.ok) {
-            return rejectWithValue(await response.text() || "Erreur lors de la modification de la date d'attribution");
-        }
-
-        try {
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+    if (!response.ok) {
+      return rejectWithValue(
+        (await response.text()) ||
+          "Erreur lors de la modification de la date d'attribution"
+      );
     }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
 export const deleteTerritory = createAsyncThunk(
-    "territories/deleteTerritory",
-    async (territoryId: string, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}/${territoryId}`, {method: "DELETE"});
+  "territories/deleteTerritory",
+  async (territoryId: string, { rejectWithValue }) => {
+    const response = await authFetch(`${BASE_URL}/${territoryId}`, {
+      method: "DELETE",
+    });
 
-        if (!response.ok) {
-            return rejectWithValue("Erreur lors de la suppression du territoire");
-        }
-
-        return territoryId;
+    if (!response.ok) {
+      return rejectWithValue("Erreur lors de la suppression du territoire");
     }
+
+    return territoryId;
+  }
 );
 
 export const updateTerritory = createAsyncThunk(
-    "territories/updateTerritory",
-    async ({id, dto}: {id: string, dto: UpdateTerritoryDto}, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}/${id}`, {
-            method: "PUT",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(dto),
-        });
+  "territories/updateTerritory",
+  async (
+    { id, dto }: { id: string; dto: UpdateTerritoryDto },
+    { rejectWithValue }
+  ) => {
+    const response = await authFetch(`${BASE_URL}/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dto),
+    });
 
-        if (!response.ok) {
-            return rejectWithValue("Erreur lors de la mise à jour du territoire");
-        }
-
-        try {
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+    if (!response.ok) {
+      return rejectWithValue("Erreur lors de la mise à jour du territoire");
     }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
 export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
-    "territories/fetchGeoJson",
-    async (_, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}/geojson`);
+  "territories/fetchGeoJson",
+  async (_, { rejectWithValue }) => {
+    const response = await authFetch(`${BASE_URL}/geojson`);
 
-        if (!response.ok) {
-            return rejectWithValue("Erreur lors de la récupération des territoires (GeoJSON)");
-        }
-
-        try {
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+    if (!response.ok) {
+      return rejectWithValue(
+        "Erreur lors de la récupération des territoires (GeoJSON)"
+      );
     }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
-export const fetchTerritoryCoverageMap = createAsyncThunk<any, { startDate?: string; endDate?: string } | undefined>(
-    "territories/fetchTerritoryCoverageMap",
-    async (params, {rejectWithValue}) => {
-        try {
-            let url = `${BASE_URL}/statistiques/carte-couverture`;
-            const searchParams = new URLSearchParams();
-            if (params?.startDate) searchParams.append("startDate", params.startDate);
-            if (params?.endDate) searchParams.append("endDate", params.endDate);
-            const queryString = searchParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+export const fetchTerritoryCoverageMap = createAsyncThunk<
+  any,
+  { startDate?: string; endDate?: string } | undefined
+>(
+  "territories/fetchTerritoryCoverageMap",
+  async (params, { rejectWithValue }) => {
+    try {
+      let url = `${BASE_URL}/statistiques/carte-couverture`;
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append("startDate", params.startDate);
+      if (params?.endDate) searchParams.append("endDate", params.endDate);
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
 
-            const response = await authFetch(url);
+      const response = await authFetch(url);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération de la carte de couverture des territoires");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération de la carte de couverture des territoires"
+        );
+      }
 
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const addTerritory = createAsyncThunk(
-    "territories/add",
-    async ({name, cityId}: { name: string, cityId: string }, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({name: name, cityId: cityId}),
-        });
+  "territories/add",
+  async (
+    { name, cityId }: { name: string; cityId: string },
+    { rejectWithValue }
+  ) => {
+    const response = await authFetch(`${BASE_URL}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name, cityId: cityId }),
+    });
 
-        if (!response.ok) {
-            return rejectWithValue("Erreur lors de l'ajout du territoire");
-        }
-
-        try {
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+    if (!response.ok) {
+      return rejectWithValue("Erreur lors de l'ajout du territoire");
     }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
 export const fetchTerritoryById = createAsyncThunk<Territory, string>(
-    "territories/fetchById",
-    async (id, {rejectWithValue}) => {
-        const response = await authFetch(`${BASE_URL}/${id}`);
+  "territories/fetchById",
+  async (id, { rejectWithValue }) => {
+    const response = await authFetch(`${BASE_URL}/${id}`);
 
-        if (!response.ok) {
-            return rejectWithValue("Erreur lors de la récupération du territoire");
-        }
-
-        try {
-            return await response.json();
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+    if (!response.ok) {
+      return rejectWithValue("Erreur lors de la récupération du territoire");
     }
+
+    try {
+      return await response.json();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
+    }
+  }
 );
 
 export const addAddressNotToVisit = createAsyncThunk(
-    "territories/addAddressNotToVisit",
-    async ({territoryId, address}: { territoryId: string; address: AddressNotToDoDto }, {rejectWithValue}) => {
-        try {
-            const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter`, {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(address),
-            });
-
-            if (!response.ok) {
-                return rejectWithValue(`Erreur lors de l'ajout de l'adresse : ${response.statusText}`);
-            }
-
-            return await response.json(); // Retourne l'adresse ajoutée
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+  "territories/addAddressNotToVisit",
+  async (
+    {
+      territoryId,
+      address,
+    }: { territoryId: string; address: AddressNotToDoDto },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await authFetch(
+        `${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(address),
         }
+      );
+
+      if (!response.ok) {
+        return rejectWithValue(
+          `Erreur lors de l'ajout de l'adresse : ${response.statusText}`
+        );
+      }
+
+      return await response.json(); // Retourne l'adresse ajoutée
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const modifyAddressNotToVisit = createAsyncThunk(
-    "territories/modifyAddressNotToVisit",
-    async (
-        {territoryId, address, addressId}: { territoryId: string; address: AddressNotToDoDto; addressId: string },
-        {rejectWithValue}
-    ) => {
-        try {
-            const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter/${addressId}`, {
-                method: "PUT",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(address),
-            });
-
-            if (!response.ok) {
-                return rejectWithValue(`Erreur lors de la modification de l'adresse : ${response.statusText}`);
-            }
-
-            return await response.json(); // Retourne l'adresse modifiée
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+  "territories/modifyAddressNotToVisit",
+  async (
+    {
+      territoryId,
+      address,
+      addressId,
+    }: { territoryId: string; address: AddressNotToDoDto; addressId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await authFetch(
+        `${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter/${addressId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(address),
         }
+      );
+
+      if (!response.ok) {
+        return rejectWithValue(
+          `Erreur lors de la modification de l'adresse : ${response.statusText}`
+        );
+      }
+
+      return await response.json(); // Retourne l'adresse modifiée
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const deleteAddressNotToVisit = createAsyncThunk(
-    "territories/deleteAddressNotToVisit",
-    async ({territoryId, addressId}: { territoryId: string; addressId: string }, {rejectWithValue}) => {
-        try {
-            const response = await authFetch(`${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter/${addressId}`, {
-                method: "DELETE",
-            });
-
-            if (!response.ok) {
-                return rejectWithValue(`Erreur lors de la suppression de l'adresse : ${response.statusText}`);
-            }
-
-            return {territoryId, addressId}; // Retourne les IDs pour modifier le state
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
+  "territories/deleteAddressNotToVisit",
+  async (
+    { territoryId, addressId }: { territoryId: string; addressId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await authFetch(
+        `${BASE_URL}/${territoryId}/adresses-a-ne-pas-visiter/${addressId}`,
+        {
+          method: "DELETE",
         }
+      );
+
+      if (!response.ok) {
+        return rejectWithValue(
+          `Erreur lors de la suppression de l'adresse : ${response.statusText}`
+        );
+      }
+
+      return { territoryId, addressId }; // Retourne les IDs pour modifier le state
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 // Statistics-related async thunks
 export const fetchTerritoryStatusHistory = createAsyncThunk(
-    "territories/fetchTerritoryStatusHistory",
-    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
-        try {
-            let url = `${BASE_URL}/statistiques`;
-            const searchParams = new URLSearchParams();
-            if (params?.startDate) searchParams.append("startDate", params.startDate);
-            if (params?.endDate) searchParams.append("endDate", params.endDate);
-            const queryString = searchParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+  "territories/fetchTerritoryStatusHistory",
+  async (
+    params: { startDate?: string; endDate?: string } | undefined,
+    { rejectWithValue }
+  ) => {
+    try {
+      let url = `${BASE_URL}/statistiques`;
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append("startDate", params.startDate);
+      if (params?.endDate) searchParams.append("endDate", params.endDate);
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
 
-            const response = await authFetch(url);
+      const response = await authFetch(url);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération des statistiques de territoire");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération des statistiques de territoire"
+        );
+      }
 
-            return await response.json() as TerritoryStatusHistoryDto[];
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as TerritoryStatusHistoryDto[];
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const fetchTerritoriesNotAssignedSince = createAsyncThunk(
-    "territories/fetchTerritoriesNotAssignedSince",
-    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
-        try {
-            let url = `${BASE_URL}/statistiques/non-assignes-depuis`;
-            const searchParams = new URLSearchParams();
-            if (params?.startDate) searchParams.append("startDate", params.startDate);
-            if (params?.endDate) searchParams.append("endDate", params.endDate);
-            const queryString = searchParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+  "territories/fetchTerritoriesNotAssignedSince",
+  async (
+    params: { startDate?: string; endDate?: string } | undefined,
+    { rejectWithValue }
+  ) => {
+    try {
+      let url = `${BASE_URL}/statistiques/non-assignes-depuis`;
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append("startDate", params.startDate);
+      if (params?.endDate) searchParams.append("endDate", params.endDate);
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
 
-            const response = await authFetch(url);
+      const response = await authFetch(url);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération des territoires non assignés");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération des territoires non assignés"
+        );
+      }
 
-            return await response.json() as number;
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as number;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const fetchAverageAssignmentDurationByMonth = createAsyncThunk(
-    "territories/fetchAverageAssignmentDurationByMonth",
-    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
-        try {
-            let url = `${BASE_URL}/statistiques/duree-moyenne-attribution/par-mois`;
-            const searchParams = new URLSearchParams();
-            if (params?.startDate) searchParams.append("startDate", params.startDate);
-            if (params?.endDate) searchParams.append("endDate", params.endDate);
-            const queryString = searchParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+  "territories/fetchAverageAssignmentDurationByMonth",
+  async (
+    params: { startDate?: string; endDate?: string } | undefined,
+    { rejectWithValue }
+  ) => {
+    try {
+      let url = `${BASE_URL}/statistiques/duree-moyenne-attribution/par-mois`;
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append("startDate", params.startDate);
+      if (params?.endDate) searchParams.append("endDate", params.endDate);
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
 
-            const response = await authFetch(url);
+      const response = await authFetch(url);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération de la durée moyenne d'attribution par mois");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération de la durée moyenne d'attribution par mois"
+        );
+      }
 
-            return await response.json() as AverageAssignmentDuration[];
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as AverageAssignmentDuration[];
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const fetchOverallAverageAssignmentDuration = createAsyncThunk(
-    "territories/fetchOverallAverageAssignmentDuration",
-    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
-        try {
-            let url = `${BASE_URL}/statistiques/duree-moyenne-attribution/globale`;
-            const searchParams = new URLSearchParams();
-            if (params?.startDate) searchParams.append("startDate", params.startDate);
-            if (params?.endDate) searchParams.append("endDate", params.endDate);
-            const queryString = searchParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+  "territories/fetchOverallAverageAssignmentDuration",
+  async (
+    params: { startDate?: string; endDate?: string } | undefined,
+    { rejectWithValue }
+  ) => {
+    try {
+      let url = `${BASE_URL}/statistiques/duree-moyenne-attribution/globale`;
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append("startDate", params.startDate);
+      if (params?.endDate) searchParams.append("endDate", params.endDate);
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
 
-            const response = await authFetch(url);
+      const response = await authFetch(url);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération de la durée moyenne globale d'attribution");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération de la durée moyenne globale d'attribution"
+        );
+      }
 
-            return await response.json() as number;
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as number;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const fetchTerritoryDistributionByCity = createAsyncThunk(
-    "territories/fetchTerritoryDistributionByCity",
-    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
-        try {
-            let url = `${BASE_URL}/statistiques/distribution-par-ville`;
-            const searchParams = new URLSearchParams();
-            if (params?.startDate) searchParams.append("startDate", params.startDate);
-            if (params?.endDate) searchParams.append("endDate", params.endDate);
-            const queryString = searchParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+  "territories/fetchTerritoryDistributionByCity",
+  async (
+    params: { startDate?: string; endDate?: string } | undefined,
+    { rejectWithValue }
+  ) => {
+    try {
+      let url = `${BASE_URL}/statistiques/distribution-par-ville`;
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append("startDate", params.startDate);
+      if (params?.endDate) searchParams.append("endDate", params.endDate);
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
 
-            const response = await authFetch(url);
+      const response = await authFetch(url);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération de la distribution des territoires par ville");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération de la distribution des territoires par ville"
+        );
+      }
 
-            return await response.json() as TerritoryDistribution[];
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as TerritoryDistribution[];
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const fetchTerritoryPeriodStatistics = createAsyncThunk(
-    "territories/fetchTerritoryPeriodStatistics",
-    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
-        try {
-            let url = `${BASE_URL}/statistiques/resume-periode`;
-            const searchParams = new URLSearchParams();
-            if (params?.startDate) searchParams.append("startDate", params.startDate);
-            if (params?.endDate) searchParams.append("endDate", params.endDate);
-            const queryString = searchParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+  "territories/fetchTerritoryPeriodStatistics",
+  async (
+    params: { startDate?: string; endDate?: string } | undefined,
+    { rejectWithValue }
+  ) => {
+    try {
+      let url = `${BASE_URL}/statistiques/resume-periode`;
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append("startDate", params.startDate);
+      if (params?.endDate) searchParams.append("endDate", params.endDate);
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
 
-            const response = await authFetch(url);
+      const response = await authFetch(url);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération des statistiques de la période");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération des statistiques de la période"
+        );
+      }
 
-            return await response.json() as TerritoryStatisticsBreakdown;
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as TerritoryStatisticsBreakdown;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const fetchLatestAssignments = createAsyncThunk(
-    "territories/fetchLatestAssignments",
-    async (_, {rejectWithValue}) => {
-        try {
-            const response = await authFetch(`/api/attributions/dernieres`);
+  "territories/fetchLatestAssignments",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authFetch(`/api/attributions/dernieres`);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération des dernières attributions");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération des dernières attributions"
+        );
+      }
 
-            return await response.json() as Assignment[];
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as Assignment[];
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const fetchSchoolYearPeriods = createAsyncThunk(
-    "territories/fetchSchoolYearPeriods",
-    async (_, {rejectWithValue}) => {
-        try {
-            const response = await authFetch(`${BASE_URL}/statistiques/periodes`);
+  "territories/fetchSchoolYearPeriods",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authFetch(`${BASE_URL}/statistiques/periodes`);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération des périodes scolaires");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération des périodes scolaires"
+        );
+      }
 
-            return await response.json() as SchoolYearPeriod[];
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as SchoolYearPeriod[];
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
 export const fetchAssignmentsInPeriod = createAsyncThunk(
-    "territories/fetchAssignmentsInPeriod",
-    async (params: { startDate?: string; endDate?: string } | undefined, {rejectWithValue}) => {
-        try {
-            let url = `/api/attributions/periode`;
-            const searchParams = new URLSearchParams();
-            if (params?.startDate) searchParams.append("startDate", params.startDate);
-            if (params?.endDate) searchParams.append("endDate", params.endDate);
-            const queryString = searchParams.toString();
-            if (queryString) {
-                url += `?${queryString}`;
-            }
+  "territories/fetchAssignmentsInPeriod",
+  async (
+    params: { startDate?: string; endDate?: string } | undefined,
+    { rejectWithValue }
+  ) => {
+    try {
+      let url = `/api/attributions/periode`;
+      const searchParams = new URLSearchParams();
+      if (params?.startDate) searchParams.append("startDate", params.startDate);
+      if (params?.endDate) searchParams.append("endDate", params.endDate);
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
 
-            const response = await authFetch(url);
+      const response = await authFetch(url);
 
-            if (!response.ok) {
-                return rejectWithValue("Erreur lors de la récupération des attributions de la période");
-            }
+      if (!response.ok) {
+        return rejectWithValue(
+          "Erreur lors de la récupération des attributions de la période"
+        );
+      }
 
-            return await response.json() as Assignment[];
-        } catch (error) {
-            return rejectWithValue(error instanceof Error ? error.message : "Une erreur inconnue s'est produite");
-        }
+      return (await response.json()) as Assignment[];
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue s'est produite"
+      );
     }
+  }
 );
 
-
 const territorySlice = createSlice({
-    name: "territories",
-    initialState,
-    reducers: {},
-    extraReducers: (builder) => {
-        builder
-            // Récupération des territoires en GeoJSON
-            .addCase(fetchTerritories.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
-            .addCase(fetchTerritories.fulfilled, (state, action) => {
-                state.territoriesGeojson = action.payload;
-                state.loading = false;
-            })
-            .addCase(fetchTerritories.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
-            })
+  name: "territories",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      // Récupération des territoires en GeoJSON
+      .addCase(fetchTerritories.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTerritories.fulfilled, (state, action) => {
+        state.territoriesGeojson = action.payload;
+        state.loading = false;
+      })
+      .addCase(fetchTerritories.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-            // Ajout d'un territoire
-            .addCase(addTerritory.fulfilled, (state, action) => {
-                // L'API /api/territoires ne retourne pas un GeoJSON directement, il faudra refaire un fetch.
-                // Ici, on garde simplement la cohérence de l'état.
-                if (state.territoriesGeojson) {
-                    state.territoriesGeojson.features.push({
-                        type: "Feature",
-                        properties: {
-                            id: action.payload.id,
-                            name: action.payload.name,
-                            status: action.payload.status,
-                            lastModifiedDate: new Date().toISOString(),
-                            assignments: [],
-                            city: {
-                                id: action.payload.city.id,
-                                name: action.payload.city.name,
-                                zipCode: action.payload.city.zipCode,
-                                center: action.payload.city.center,
-                            },
-                            addressesNotToDo: [],
-                            geojson: "",
-                            lastVisitedOn: "nouveau",
-                            assignedTo: "N/A",
-                            assignedOn: "N/A",
-                            waitedFor: "N/A",
-                        },
-                        geometry: {
-                            type: "Polygon",
-                            coordinates: [], // À voir comment gérer la géométrie
-                        },
-                    });
-                }
-            })
-            .addCase(addTerritory.rejected, (state, action) => {
-                state.error = action.payload as string;
-            })
-            .addCase(fetchTerritoryById.pending, (state) => {
-                state.loading = true;
-                state.selectedTerritory = null;
-                state.error = null;
-            })
-            .addCase(fetchTerritoryById.fulfilled, (state, action) => {
-                state.selectedTerritory = action.payload;
-                state.loading = false;
-            })
-            .addCase(fetchTerritoryById.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
-            })
+      // Ajout d'un territoire
+      .addCase(addTerritory.fulfilled, (state, action) => {
+        // L'API /api/territoires ne retourne pas un GeoJSON directement, il faudra refaire un fetch.
+        // Ici, on garde simplement la cohérence de l'état.
+        if (state.territoriesGeojson) {
+          state.territoriesGeojson.features.push({
+            type: "Feature",
+            properties: {
+              id: action.payload.id,
+              name: action.payload.name,
+              status: action.payload.status,
+              lastModifiedDate: new Date().toISOString(),
+              assignments: [],
+              city: {
+                id: action.payload.city.id,
+                name: action.payload.city.name,
+                zipCode: action.payload.city.zipCode,
+                center: action.payload.city.center,
+              },
+              addressesNotToDo: [],
+              geojson: "",
+              lastVisitedOn: "nouveau",
+              assignedTo: "N/A",
+              assignedOn: "N/A",
+              waitedFor: "N/A",
+            },
+            geometry: {
+              type: "Polygon",
+              coordinates: [], // À voir comment gérer la géométrie
+            },
+          });
+        }
+      })
+      .addCase(addTerritory.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+      .addCase(fetchTerritoryById.pending, (state) => {
+        state.loading = true;
+        state.selectedTerritory = null;
+        state.error = null;
+      })
+      .addCase(fetchTerritoryById.fulfilled, (state, action) => {
+        state.selectedTerritory = action.payload;
+        state.loading = false;
+      })
+      .addCase(fetchTerritoryById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(updateTerritory.pending, (state) => {
-                state.updating = true;
-                state.error = null;
-            })
-            .addCase(updateTerritory.fulfilled, (state, action) => {
-                state.updating = false;
-                if (state.selectedTerritory && state.selectedTerritory.id === action.payload.id) {
-                    state.selectedTerritory = {
-                        ...state.selectedTerritory,
-                        ...action.payload,
-                        lastModifiedDate: format(new Date(), "yyyy-MM-dd"), // ✅ Format YYYY-MM-DD
-                    };
-                }
-            })
-            .addCase(updateTerritory.rejected, (state, action) => {
-                state.updating = false;
-                state.error = action.payload as string;
-            })
+      .addCase(updateTerritory.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(updateTerritory.fulfilled, (state, action) => {
+        state.updating = false;
+        if (
+          state.selectedTerritory &&
+          state.selectedTerritory.id === action.payload.id
+        ) {
+          state.selectedTerritory = {
+            ...state.selectedTerritory,
+            ...action.payload,
+            lastModifiedDate: format(new Date(), "yyyy-MM-dd"), // ✅ Format YYYY-MM-DD
+          };
+        }
+      })
+      .addCase(updateTerritory.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(deleteTerritory.fulfilled, (state, action) => {
-                if (state.territoriesGeojson) {
-                    state.territoriesGeojson.features = state.territoriesGeojson.features.filter(
-                        (territory) => territory.properties.id !== action.payload
-                    );
-                }
+      .addCase(deleteTerritory.fulfilled, (state, action) => {
+        if (state.territoriesGeojson) {
+          state.territoriesGeojson.features =
+            state.territoriesGeojson.features.filter(
+              (territory) => territory.properties.id !== action.payload
+            );
+        }
 
-                if (state.selectedTerritory?.id === action.payload) {
-                    state.selectedTerritory = null; // Supprime du store sélectionné si c'était lui
-                }
-            })
+        if (state.selectedTerritory?.id === action.payload) {
+          state.selectedTerritory = null; // Supprime du store sélectionné si c'était lui
+        }
+      })
 
-            .addCase(assignTerritory.pending, (state) => {
-                state.loading = true;
-            })
-            .addCase(assignTerritory.fulfilled, (state, action) => {
-                state.loading = false;
-                const assignment = action.payload;
+      .addCase(assignTerritory.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(assignTerritory.fulfilled, (state, action) => {
+        state.loading = false;
+        const assignment = action.payload;
 
-                if (!state.territoriesGeojson || !assignment || !assignment.territory.territoryId) {
-                    console.error("❌ Problème : l'assignation ou le territoireId est undefined", assignment);
-                    return;
-                }
+        if (
+          !state.territoriesGeojson ||
+          !assignment ||
+          !assignment.territory.territoryId
+        ) {
+          console.error(
+            "❌ Problème : l'assignation ou le territoireId est undefined",
+            assignment
+          );
+          return;
+        }
 
-                const affectedId = assignment.territory.territoryId;
+        const affectedId = assignment.territory.territoryId;
 
-                // ✅ Recherche du territoire correspondant dans `FeatureCollection`
-                const feature = findFeatureById(state, affectedId);
+        // ✅ Recherche du territoire correspondant dans `FeatureCollection`
+        const feature = findFeatureById(state, affectedId);
 
-                if (feature) {
-                    feature.properties.status = "ASSIGNED";
-                    feature.properties.assignments = [...feature.properties.assignments, assignment];
+        if (feature) {
+          feature.properties.status = "ASSIGNED";
+          feature.properties.assignments = [
+            ...feature.properties.assignments,
+            assignment,
+          ];
 
-                    // Mise à jour de la personne et des dates
-                    if (assignment.person) {
-                        feature.properties.assignedTo = assignment.person.firstName + ' ' + assignment.person.lastName;
-                    }
-                    feature.properties.assignedOn = assignment.assignmentDate;
-                    feature.properties.waitedFor = assignment.dueDate;
-                } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${affectedId}`);
-                }
+          // Mise à jour de la personne et des dates
+          if (assignment.person) {
+            feature.properties.assignedTo =
+              assignment.person.firstName + " " + assignment.person.lastName;
+          }
+          feature.properties.assignedOn = assignment.assignmentDate;
+          feature.properties.waitedFor = assignment.dueDate;
+        } else {
+          console.warn(
+            `⚠️ Territoire introuvable dans le store pour ID ${affectedId}`
+          );
+        }
 
-                // ✅ Met à jour aussi le territoire sélectionné si c'est le même
-                updateSelectedIfSame(state, affectedId, (t) => {
-                    t.status = "ASSIGNED";
-                    t.assignments = [...t.assignments, assignment];
-                    if (assignment.person) {
-                        t.assignedTo = assignment.person.firstName + ' ' + assignment.person.lastName;
-                    }
-                    t.assignedOn = assignment.assignmentDate;
-                    t.waitedFor = assignment.dueDate;
-                });
-            })
-            .addCase(assignTerritory.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
-            })
+        // ✅ Met à jour aussi le territoire sélectionné si c'est le même
+        updateSelectedIfSame(state, affectedId, (t) => {
+          t.status = "ASSIGNED";
+          t.assignments = [...t.assignments, assignment];
+          if (assignment.person) {
+            t.assignedTo =
+              assignment.person.firstName + " " + assignment.person.lastName;
+          }
+          t.assignedOn = assignment.assignmentDate;
+          t.waitedFor = assignment.dueDate;
+        });
+      })
+      .addCase(assignTerritory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(returnTerritory.pending, (state) => {
-                state.loading = true;
-            })
-            .addCase(returnTerritory.fulfilled, (state, action) => {
-                state.loading = false;
-                const updatedAssignment = action.payload;
+      .addCase(returnTerritory.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(returnTerritory.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedAssignment = action.payload;
 
-                if (!state.territoriesGeojson || !updatedAssignment || !updatedAssignment.territory.territoryId) {
-                    console.error("❌ Problème : Assignation ou territoireId est undefined", updatedAssignment);
-                    return;
-                }
+        if (
+          !state.territoriesGeojson ||
+          !updatedAssignment ||
+          !updatedAssignment.territory.territoryId
+        ) {
+          console.error(
+            "❌ Problème : Assignation ou territoireId est undefined",
+            updatedAssignment
+          );
+          return;
+        }
 
-                const {territory, returnDate} = updatedAssignment;
-                const affectedId = territory.territoryId;
+        const { territory, returnDate } = updatedAssignment;
+        const affectedId = territory.territoryId;
 
-                // ✅ Recherche du territoire correspondant dans `FeatureCollection`
-                const feature = findFeatureById(state, affectedId);
+        // ✅ Recherche du territoire correspondant dans `FeatureCollection`
+        const feature = findFeatureById(state, affectedId);
 
-                if (feature) {
-                    feature.properties.status = "PENDING";
-                    feature.properties.lastVisitedOn = returnDate;
-                    feature.properties.assignments = [{
-                        ...updatedAssignment,
-                        returnDate,
-                    }];
+        if (feature) {
+          feature.properties.status = "PENDING";
+          feature.properties.lastVisitedOn = returnDate;
+          feature.properties.assignments = [
+            {
+              ...updatedAssignment,
+              returnDate,
+            },
+          ];
 
-                    // Mise à jour de la personne (réinitialisation car le territoire est retourné)
-                    feature.properties.assignedTo = "";
-                    feature.properties.assignedOn = "";
-                    feature.properties.waitedFor = "";
+          // Mise à jour de la personne (réinitialisation car le territoire est retourné)
+          feature.properties.assignedTo = "";
+          feature.properties.assignedOn = "";
+          feature.properties.waitedFor = "";
 
-                    console.log(`✅ Territoire ${affectedId} retourné et mis à jour dans le store`);
-                } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${affectedId}`);
-                }
+          console.log(
+            `✅ Territoire ${affectedId} retourné et mis à jour dans le store`
+          );
+        } else {
+          console.warn(
+            `⚠️ Territoire introuvable dans le store pour ID ${affectedId}`
+          );
+        }
 
-                // ✅ Met à jour aussi le territoire sélectionné si c'est le même
-                updateSelectedIfSame(state, affectedId, (t) => {
-                    t.status = "PENDING";
-                    t.lastVisitedOn = returnDate;
-                    t.assignments = [{
-                        ...updatedAssignment,
-                        returnDate,
-                    }];
-                    t.assignedTo = "";
-                    t.assignedOn = "";
-                    t.waitedFor = "";
-                });
-            })
-            .addCase(returnTerritory.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
-            })
+        // ✅ Met à jour aussi le territoire sélectionné si c'est le même
+        updateSelectedIfSame(state, affectedId, (t) => {
+          t.status = "PENDING";
+          t.lastVisitedOn = returnDate;
+          t.assignments = [
+            {
+              ...updatedAssignment,
+              returnDate,
+            },
+          ];
+          t.assignedTo = "";
+          t.assignedOn = "";
+          t.waitedFor = "";
+        });
+      })
+      .addCase(returnTerritory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(cancelAssignment.pending, (state) => {
-                state.loading = true;
-            })
-            .addCase(cancelAssignment.fulfilled, (state, action) => {
-                state.loading = false;
-                const updatedAssignment = action.payload;
+      .addCase(cancelAssignment.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(cancelAssignment.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedAssignment = action.payload;
 
-                if (!state.territoriesGeojson || !updatedAssignment || !updatedAssignment.territory.territoryId) {
-                    console.error("❌ Problème : Assignation ou territoireId est undefined", updatedAssignment);
-                    return;
-                }
+        if (
+          !state.territoriesGeojson ||
+          !updatedAssignment ||
+          !updatedAssignment.territory.territoryId
+        ) {
+          console.error(
+            "❌ Problème : Assignation ou territoireId est undefined",
+            updatedAssignment
+          );
+          return;
+        }
 
-                const {territory, returnDate} = updatedAssignment;
-                const affectedId = territory.territoryId;
+        const { territory, returnDate } = updatedAssignment;
+        const affectedId = territory.territoryId;
 
-                // ✅ Recherche du territoire correspondant dans `FeatureCollection`
-                const feature = findFeatureById(state, affectedId);
+        // ✅ Recherche du territoire correspondant dans `FeatureCollection`
+        const feature = findFeatureById(state, affectedId);
 
-                if (feature) {
-                    feature.properties.status = "AVAILABLE";
-                    feature.properties.lastVisitedOn = returnDate;
-                    feature.properties.assignments = [{
-                        ...updatedAssignment,
-                        returnDate,
-                    }];
+        if (feature) {
+          feature.properties.status = "AVAILABLE";
+          feature.properties.lastVisitedOn = returnDate;
+          feature.properties.assignments = [
+            {
+              ...updatedAssignment,
+              returnDate,
+            },
+          ];
 
-                    // Mise à jour de la personne (réinitialisation car l'assignation est annulée)
-                    feature.properties.assignedTo = "";
-                    feature.properties.assignedOn = "";
-                    feature.properties.waitedFor = "";
+          // Mise à jour de la personne (réinitialisation car l'assignation est annulée)
+          feature.properties.assignedTo = "";
+          feature.properties.assignedOn = "";
+          feature.properties.waitedFor = "";
 
-                    console.log(`✅ Assignation du territoire ${affectedId} annulée et mis à jour dans le store`);
-                } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${affectedId}`);
-                }
+          console.log(
+            `✅ Assignation du territoire ${affectedId} annulée et mis à jour dans le store`
+          );
+        } else {
+          console.warn(
+            `⚠️ Territoire introuvable dans le store pour ID ${affectedId}`
+          );
+        }
 
-                // ✅ Met à jour aussi le territoire sélectionné si c'est le même
-                updateSelectedIfSame(state, affectedId, (t) => {
-                    t.status = "AVAILABLE";
-                    t.lastVisitedOn = returnDate;
-                    t.assignments = [{
-                        ...updatedAssignment,
-                        returnDate,
-                    }];
-                    t.assignedTo = "";
-                    t.assignedOn = "";
-                    t.waitedFor = "";
-                });
-            })
-            .addCase(cancelAssignment.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
-            })
+        // ✅ Met à jour aussi le territoire sélectionné si c'est le même
+        updateSelectedIfSame(state, affectedId, (t) => {
+          t.status = "AVAILABLE";
+          t.lastVisitedOn = returnDate;
+          t.assignments = [
+            {
+              ...updatedAssignment,
+              returnDate,
+            },
+          ];
+          t.assignedTo = "";
+          t.assignedOn = "";
+          t.waitedFor = "";
+        });
+      })
+      .addCase(cancelAssignment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
+      .addCase(addAddressNotToVisit.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(addAddressNotToVisit.fulfilled, (state, action) => {
+        state.updating = false;
+        if (state.selectedTerritory) {
+          state.selectedTerritory.addressesNotToDo.push(action.payload);
+        }
+      })
+      .addCase(addAddressNotToVisit.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(addAddressNotToVisit.pending, (state) => {
-                state.updating = true;
-                state.error = null;
-            })
-            .addCase(addAddressNotToVisit.fulfilled, (state, action) => {
-                state.updating = false;
-                if (state.selectedTerritory) {
-                    state.selectedTerritory.addressesNotToDo.push(action.payload);
-                }
-            })
-            .addCase(addAddressNotToVisit.rejected, (state, action) => {
-                state.updating = false;
-                state.error = action.payload as string;
-            })
+      // Modification d'une adresse à ne pas visiter
+      .addCase(modifyAddressNotToVisit.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(modifyAddressNotToVisit.fulfilled, (state, action) => {
+        state.updating = false;
+        if (state.selectedTerritory) {
+          const index = state.selectedTerritory.addressesNotToDo.findIndex(
+            (addr) => addr.id === action.payload.id
+          );
+          if (index !== -1) {
+            state.selectedTerritory.addressesNotToDo[index] = action.payload;
+          }
+        }
+      })
+      .addCase(modifyAddressNotToVisit.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      })
 
-            // Modification d'une adresse à ne pas visiter
-            .addCase(modifyAddressNotToVisit.pending, (state) => {
-                state.updating = true;
-                state.error = null;
-            })
-            .addCase(modifyAddressNotToVisit.fulfilled, (state, action) => {
-                state.updating = false;
-                if (state.selectedTerritory) {
-                    const index = state.selectedTerritory.addressesNotToDo.findIndex(addr => addr.id === action.payload.id);
-                    if (index !== -1) {
-                        state.selectedTerritory.addressesNotToDo[index] = action.payload;
-                    }
-                }
-            })
-            .addCase(modifyAddressNotToVisit.rejected, (state, action) => {
-                state.updating = false;
-                state.error = action.payload as string;
-            })
+      // Suppression d'une adresse à ne pas visiter
+      .addCase(deleteAddressNotToVisit.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(deleteAddressNotToVisit.fulfilled, (state, action) => {
+        state.updating = false;
+        if (state.selectedTerritory) {
+          state.selectedTerritory.addressesNotToDo =
+            state.selectedTerritory.addressesNotToDo.filter(
+              (addr) => addr.id !== action.payload.addressId
+            );
+        }
+      })
+      .addCase(deleteAddressNotToVisit.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      })
 
-            // Suppression d'une adresse à ne pas visiter
-            .addCase(deleteAddressNotToVisit.pending, (state) => {
-                state.updating = true;
-                state.error = null;
-            })
-            .addCase(deleteAddressNotToVisit.fulfilled, (state, action) => {
-                state.updating = false;
-                if (state.selectedTerritory) {
-                    state.selectedTerritory.addressesNotToDo = state.selectedTerritory.addressesNotToDo.filter(
-                        (addr) => addr.id !== action.payload.addressId
-                    );
-                }
-            })
-            .addCase(deleteAddressNotToVisit.rejected, (state, action) => {
-                state.updating = false;
-                state.error = action.payload as string;
-            })
+      .addCase(extendTerritory.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(extendTerritory.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedAssignment = action.payload;
 
+        if (
+          !state.territoriesGeojson ||
+          !updatedAssignment ||
+          !updatedAssignment.territory.territoryId
+        ) {
+          console.error(
+            "❌ Problème : Assignation ou territoireId est undefined",
+            updatedAssignment
+          );
+          return;
+        }
 
-            .addCase(extendTerritory.pending, (state) => {
-                state.loading = true;
-            })
-            .addCase(extendTerritory.fulfilled, (state, action) => {
-                state.loading = false;
-                const updatedAssignment = action.payload;
+        const { territory, returnDate, assignmentDate } = updatedAssignment;
+        const affectedId = territory.territoryId;
 
-                if (!state.territoriesGeojson || !updatedAssignment || !updatedAssignment.territory.territoryId) {
-                    console.error("❌ Problème : Assignation ou territoireId est undefined", updatedAssignment);
-                    return;
-                }
+        // ✅ Recherche du territoire correspondant dans `FeatureCollection`
+        const feature = findFeatureById(state, affectedId);
 
-                const {territory, returnDate, assignmentDate} = updatedAssignment;
-                const affectedId = territory.territoryId;
+        if (feature) {
+          feature.properties.status = "ASSIGNED";
+          feature.properties.lastVisitedOn = assignmentDate;
+          feature.properties.assignments = [
+            {
+              ...updatedAssignment,
+              returnDate,
+            },
+          ];
+          console.log(
+            `✅ Territoire ${affectedId} retourné et mis à jour dans le store`
+          );
+        } else {
+          console.warn(
+            `⚠️ Territoire introuvable dans le store pour ID ${affectedId}`
+          );
+        }
 
-                // ✅ Recherche du territoire correspondant dans `FeatureCollection`
-                const feature = findFeatureById(state, affectedId);
+        // ✅ Met à jour aussi le territoire sélectionné si c'est le même
+        updateSelectedIfSame(state, affectedId, (t) => {
+          t.status = "ASSIGNED";
+          t.lastVisitedOn = assignmentDate;
+          t.assignments = [
+            {
+              ...updatedAssignment,
+              returnDate,
+            },
+          ];
+        });
+      })
+      .addCase(extendTerritory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-                if (feature) {
-                    feature.properties.status = "ASSIGNED";
-                    feature.properties.lastVisitedOn = assignmentDate;
-                    feature.properties.assignments = [{
-                        ...updatedAssignment,
-                        returnDate,
-                    }];
-                    console.log(`✅ Territoire ${affectedId} retourné et mis à jour dans le store`);
-                } else {
-                    console.warn(`⚠️ Territoire introuvable dans le store pour ID ${affectedId}`);
-                }
+      .addCase(updateAssignmentDate.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateAssignmentDate.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedAssignment = action.payload;
+        console.log(
+          "✅ Assignation mise à jour avec succès",
+          updatedAssignment
+        );
 
-                // ✅ Met à jour aussi le territoire sélectionné si c'est le même
-                updateSelectedIfSame(state, affectedId, (t) => {
-                    t.status = "ASSIGNED";
-                    t.lastVisitedOn = assignmentDate;
-                    t.assignments = [{
-                        ...updatedAssignment,
-                        returnDate,
-                    }];
-                });
-            })
-            .addCase(extendTerritory.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
-            })
+        if (
+          !updatedAssignment ||
+          !updatedAssignment.territory ||
+          !updatedAssignment.territory.territoryId
+        ) {
+          console.error(
+            "❌ Problème : Assignation ou territoireId est undefined",
+            updatedAssignment
+          );
+          return;
+        }
 
-            .addCase(updateAssignmentDate.pending, (state) => {
-                state.loading = true;
-            })
-            .addCase(updateAssignmentDate.fulfilled, (state, action) => {
-                state.loading = false;
-                const updatedAssignment = action.payload;
-                console.log("✅ Assignation mise à jour avec succès", updatedAssignment);
+        const affectedId = updatedAssignment.territory.territoryId;
 
-                if (!updatedAssignment || !updatedAssignment.territory || !updatedAssignment.territory.territoryId) {
-                    console.error("❌ Problème : Assignation ou territoireId est undefined", updatedAssignment);
-                    return;
-                }
+        // Mettre à jour dans GeoJSON
+        if (state.territoriesGeojson) {
+          const feature = findFeatureById(state, affectedId);
+          if (feature) {
+            feature.properties.assignedOn = updatedAssignment.assignmentDate;
+            feature.properties.status = updatedAssignment.territory.status;
+            feature.properties.waitedFor = updatedAssignment.dueDate;
+            // Ne pas oublier lastModifiedDate si présent dans la réponse
+            const assignments = feature.properties.assignments || [];
+            if (Array.isArray(assignments)) {
+              feature.properties.assignments = assignments.map(
+                (a: Assignment) =>
+                  a.id === updatedAssignment.id ? updatedAssignment : a
+              );
+            } else {
+              feature.properties.assignments = [updatedAssignment];
+            }
+          }
+        }
 
-                const affectedId = updatedAssignment.territory.territoryId;
+        // Mettre à jour dans le territoire sélectionné
+        updateSelectedIfSame(state, affectedId, (t) => {
+          t.assignedOn = updatedAssignment.assignmentDate;
+          t.status = updatedAssignment.territory.status;
+          t.waitedFor = updatedAssignment.dueDate;
+          if (Array.isArray(t.assignments)) {
+            t.assignments = t.assignments.map((a: Assignment) =>
+              a.id === updatedAssignment.id ? updatedAssignment : a
+            );
+          } else {
+            t.assignments = [updatedAssignment];
+          }
+        });
+      })
+      .addCase(updateAssignmentDate.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
 
-                // Mettre à jour dans GeoJSON
-                if (state.territoriesGeojson) {
-                    const feature = findFeatureById(state, affectedId);
-                    if (feature) {
-                        feature.properties.assignedOn = updatedAssignment.assignmentDate;
-                        feature.properties.status = updatedAssignment.territory.status;
-                        feature.properties.waitedFor = updatedAssignment.dueDate;
-                        // Ne pas oublier lastModifiedDate si présent dans la réponse
-                        const assignments = feature.properties.assignments || [];
-                        if (Array.isArray(assignments)) {
-                            feature.properties.assignments = assignments.map((a: Assignment) =>
-                                a.id === updatedAssignment.id ? updatedAssignment : a
-                            );
-                        } else {
-                            feature.properties.assignments = [updatedAssignment];
-                        }
-                    }
-                }
+      // Statistics-related reducers
+      .addCase(fetchTerritoryStatusHistory.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchTerritoryStatusHistory.fulfilled, (state, action) => {
+        state.statisticsLoading = false;
+        state.territoryStatusHistory = action.payload;
+      })
+      .addCase(fetchTerritoryStatusHistory.rejected, (state, action) => {
+        state.statisticsLoading = false;
+        state.error = action.payload as string;
+      })
 
-                // Mettre à jour dans le territoire sélectionné
-                updateSelectedIfSame(state, affectedId, (t) => {
-                    t.assignedOn = updatedAssignment.assignmentDate;
-                    t.status = updatedAssignment.territory.status;
-                    t.waitedFor = updatedAssignment.dueDate;
-                    if (Array.isArray(t.assignments)) {
-                        t.assignments = t.assignments.map((a: Assignment) =>
-                            a.id === updatedAssignment.id ? updatedAssignment : a
-                        );
-                    } else {
-                        t.assignments = [updatedAssignment];
-                    }
-                });
-            })
-            .addCase(updateAssignmentDate.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload as string;
-            })
+      .addCase(fetchTerritoriesNotAssignedSince.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchTerritoriesNotAssignedSince.fulfilled, (state, action) => {
+        state.statisticsLoading = false;
+        state.territoriesNotAssignedSince = action.payload;
+      })
+      .addCase(fetchTerritoriesNotAssignedSince.rejected, (state, action) => {
+        state.statisticsLoading = false;
+        state.error = action.payload as string;
+      })
 
-            // Statistics-related reducers
-            .addCase(fetchTerritoryStatusHistory.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchTerritoryStatusHistory.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.territoryStatusHistory = action.payload;
-            })
-            .addCase(fetchTerritoryStatusHistory.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            })
+      .addCase(fetchTerritoryCoverageMap.pending, (state) => {
+        state.loadingCoverageMap = true;
+        state.error = null;
+      })
+      .addCase(fetchTerritoryCoverageMap.fulfilled, (state, action) => {
+        state.loadingCoverageMap = false;
+        state.territoryCoverageGeojson = action.payload;
+      })
+      .addCase(fetchTerritoryCoverageMap.rejected, (state, action) => {
+        state.loadingCoverageMap = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(fetchTerritoriesNotAssignedSince.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchTerritoriesNotAssignedSince.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.territoriesNotAssignedSince = action.payload;
-            })
-            .addCase(fetchTerritoriesNotAssignedSince.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            })
+      .addCase(fetchAverageAssignmentDurationByMonth.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchAverageAssignmentDurationByMonth.fulfilled,
+        (state, action) => {
+          state.statisticsLoading = false;
+          state.averageAssignmentDurationByMonth = action.payload;
+        }
+      )
+      .addCase(
+        fetchAverageAssignmentDurationByMonth.rejected,
+        (state, action) => {
+          state.statisticsLoading = false;
+          state.error = action.payload as string;
+        }
+      )
 
-            .addCase(fetchTerritoryCoverageMap.pending, (state) => {
-                state.loadingCoverageMap = true;
-                state.error = null;
-            })
-            .addCase(fetchTerritoryCoverageMap.fulfilled, (state, action) => {
-                state.loadingCoverageMap = false;
-                state.territoryCoverageGeojson = action.payload;
-            })
-            .addCase(fetchTerritoryCoverageMap.rejected, (state, action) => {
-                state.loadingCoverageMap = false;
-                state.error = action.payload as string;
-            })
+      .addCase(fetchOverallAverageAssignmentDuration.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchOverallAverageAssignmentDuration.fulfilled,
+        (state, action) => {
+          state.statisticsLoading = false;
+          state.overallAverageAssignmentDuration = action.payload;
+        }
+      )
+      .addCase(
+        fetchOverallAverageAssignmentDuration.rejected,
+        (state, action) => {
+          state.statisticsLoading = false;
+          state.error = action.payload as string;
+        }
+      )
 
-            .addCase(fetchAverageAssignmentDurationByMonth.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchAverageAssignmentDurationByMonth.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.averageAssignmentDurationByMonth = action.payload;
-            })
-            .addCase(fetchAverageAssignmentDurationByMonth.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            })
+      .addCase(fetchTerritoryDistributionByCity.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchTerritoryDistributionByCity.fulfilled, (state, action) => {
+        state.statisticsLoading = false;
+        state.territoryDistributionByCity = action.payload;
+      })
+      .addCase(fetchTerritoryDistributionByCity.rejected, (state, action) => {
+        state.statisticsLoading = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(fetchOverallAverageAssignmentDuration.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchOverallAverageAssignmentDuration.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.overallAverageAssignmentDuration = action.payload;
-            })
-            .addCase(fetchOverallAverageAssignmentDuration.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            })
+      .addCase(fetchTerritoryPeriodStatistics.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchTerritoryPeriodStatistics.fulfilled, (state, action) => {
+        state.statisticsLoading = false;
+        state.periodStatistics = action.payload;
+      })
+      .addCase(fetchTerritoryPeriodStatistics.rejected, (state, action) => {
+        state.statisticsLoading = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(fetchTerritoryDistributionByCity.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchTerritoryDistributionByCity.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.territoryDistributionByCity = action.payload;
-            })
-            .addCase(fetchTerritoryDistributionByCity.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            })
+      .addCase(fetchLatestAssignments.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchLatestAssignments.fulfilled, (state, action) => {
+        state.statisticsLoading = false;
+        state.latestAssignments = action.payload;
+      })
+      .addCase(fetchLatestAssignments.rejected, (state, action) => {
+        state.statisticsLoading = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(fetchTerritoryPeriodStatistics.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchTerritoryPeriodStatistics.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.periodStatistics = action.payload;
-            })
-            .addCase(fetchTerritoryPeriodStatistics.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            })
+      .addCase(fetchSchoolYearPeriods.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchSchoolYearPeriods.fulfilled, (state, action) => {
+        state.statisticsLoading = false;
+        state.schoolYearPeriods = action.payload;
+      })
+      .addCase(fetchSchoolYearPeriods.rejected, (state, action) => {
+        state.statisticsLoading = false;
+        state.error = action.payload as string;
+      })
 
-            .addCase(fetchLatestAssignments.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchLatestAssignments.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.latestAssignments = action.payload;
-            })
-            .addCase(fetchLatestAssignments.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            })
-
-            .addCase(fetchSchoolYearPeriods.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchSchoolYearPeriods.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.schoolYearPeriods = action.payload;
-            })
-            .addCase(fetchSchoolYearPeriods.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            })
-
-            .addCase(fetchAssignmentsInPeriod.pending, (state) => {
-                state.statisticsLoading = true;
-                state.error = null;
-            })
-            .addCase(fetchAssignmentsInPeriod.fulfilled, (state, action) => {
-                state.statisticsLoading = false;
-                state.periodAssignments = action.payload;
-            })
-            .addCase(fetchAssignmentsInPeriod.rejected, (state, action) => {
-                state.statisticsLoading = false;
-                state.error = action.payload as string;
-            });
-    },
+      .addCase(fetchAssignmentsInPeriod.pending, (state) => {
+        state.statisticsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchAssignmentsInPeriod.fulfilled, (state, action) => {
+        state.statisticsLoading = false;
+        state.periodAssignments = action.payload;
+      })
+      .addCase(fetchAssignmentsInPeriod.rejected, (state, action) => {
+        state.statisticsLoading = false;
+        state.error = action.payload as string;
+      });
+  },
 });
 
 // Export du reducer

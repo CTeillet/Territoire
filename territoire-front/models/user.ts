@@ -1,8 +1,8 @@
-import {Role} from "@/models/role";
+import { Role } from "@/models/role";
 
 export interface User {
-    id: string; // UUID
-    email: string;
-    username: string;
-    role: Role
+  id: string; // UUID
+  email: string;
+  username: string;
+  role: Role;
 }

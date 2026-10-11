@@ -11,18 +11,18 @@ interface StatisticsSummaryProps {
 export function StatisticsSummary({ statistics }: StatisticsSummaryProps) {
   return (
     <GridContainer columns={1} mdColumns={3} gap={6} className="mb-8">
-      <StatCard 
-        title="Total des territoires" 
-        value={statistics.totalTerritories} 
+      <StatCard
+        title="Total des territoires"
+        value={statistics.totalTerritories}
       />
-      <StatCard 
-        title="Territoires utilisés" 
-        value={statistics.usedTerritories} 
+      <StatCard
+        title="Territoires utilisés"
+        value={statistics.usedTerritories}
         valueClassName="text-3xl font-bold text-green-600"
       />
-      <StatCard 
+      <StatCard
         title="Territoires restants"
-        value={statistics.availableTerritories} 
+        value={statistics.availableTerritories}
         valueClassName="text-3xl font-bold text-blue-600"
       />
     </GridContainer>
