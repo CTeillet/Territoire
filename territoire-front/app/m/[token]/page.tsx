@@ -183,7 +183,7 @@ export default function MyTerritoriesPage() {
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto">
                   <Undo2 className="h-4 w-4" />
                   Rendre ce territoire
                 </Button>
