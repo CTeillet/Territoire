@@ -14,7 +14,7 @@ permissions:
 jobs:
   changes:
     name: Detect changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     outputs:
       back: ${{ steps.filter.outputs.back }}
@@ -39,7 +39,7 @@ jobs:
 
   build-and-push:
     name: Build and Push Docker Images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: changes
 
     steps:
@@ -70,7 +70,7 @@ jobs:
   deploy:
     name: Deploy to VPS
     needs: [changes, build-and-push]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout Repository

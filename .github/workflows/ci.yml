@@ -13,17 +13,17 @@ on:
 jobs:
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       back: ${{ steps.filter.outputs.back }}
       front: ${{ steps.filter.outputs.front }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Filter Paths
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             back:
@@ -35,7 +35,7 @@ jobs:
 
   frontend:
     name: Frontend (Lint & Tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: changes
     if: ${{ needs.changes.outputs.front == 'true' || github.event_name == 'pull_request' }}
     defaults:
@@ -44,10 +44,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'npm'
@@ -69,7 +69,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload Frontend Coverage Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: frontend-coverage-report
@@ -78,7 +78,7 @@ jobs:
 
   backend:
     name: Backend (Compilation & Tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: changes
     if: ${{ needs.changes.outputs.back == 'true' || github.event_name == 'pull_request' }}
     defaults:
@@ -87,10 +87,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '25'
@@ -103,7 +103,7 @@ jobs:
         run: ./mvnw clean test
 
       - name: Upload Backend JaCoCo Coverage Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: backend-jacoco-report
