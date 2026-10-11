@@ -35,9 +35,12 @@ ENV OTEL_SERVICE_NAME="territoire-back" \
 # ⚠️ Mettre la ressource dans un ENV séparé pour l'égalité interne
 ENV OTEL_RESOURCE_ATTRIBUTES="deployment.environment=docker"
 
-# (optionnel) corrélation logs ↔ traces
-ENV OTEL_INSTRUMENTATION_LOGS_ENABLED="true" \
-    OTEL_INSTRUMENTATION_LOGS_CAPTURE_EXPERIMENTAL_ATTRIBUTES="true"
+# Instrumentation logback désactivée : l'agent 2.13.x est incompatible avec logback 1.6.x
+# (NoSuchFieldError __opentelemetryVirtualField sur LoggingEvent au démarrage).
+# À réactiver après mise à jour de opentelemetry-javaagent.jar vers une version supportant logback 1.6.
+ENV OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED="false" \
+    OTEL_INSTRUMENTATION_LOGBACK_MDC_ENABLED="false" \
+    OTEL_LOGS_EXPORTER="none"
 
 # Fuseau horaire explicite : les dates métier (LocalDate.now()) et les tâches de nuit suivent l'heure de Paris
 ENV JAVA_OPTS="-Xms256m -Xmx512m -Duser.timezone=Europe/Paris"
