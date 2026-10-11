@@ -5,7 +5,7 @@ import com.teillet.territoire.model.User;
 import com.teillet.territoire.service.IJwtService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import java.security.Key;
+import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -18,7 +18,7 @@ public class JwtService implements IJwtService {
 	private final long expirationTime; // Access token TTL
 	private final long refreshExpirationTime; // Refresh token TTL
 
-	private final Key key;
+	private final SecretKey key;
 
 	public JwtService(
 			@Value("${jwt.secret}") String secretKey,
@@ -38,23 +38,23 @@ public class JwtService implements IJwtService {
 	@Override
 	public String generateToken(User user) {
 		return Jwts.builder()
-				.setSubject(user.getEmail())
+				.subject(user.getEmail())
 				.claim("role", user.getRole().name())
 				.claim("type", "access")
-				.setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + expirationTime)) // expirationTime in ms (configurable)
-				.signWith(key, SignatureAlgorithm.HS256)
+				.issuedAt(new Date())
+				.expiration(new Date(System.currentTimeMillis() + expirationTime)) // expirationTime in ms (configurable)
+				.signWith(key)
 				.compact();
 	}
 
 	@Override
 	public String generateRefreshToken(User user) {
 		return Jwts.builder()
-				.setSubject(user.getEmail())
+				.subject(user.getEmail())
 				.claim("type", "refresh")
-				.setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + refreshExpirationTime))
-				.signWith(key, SignatureAlgorithm.HS256)
+				.issuedAt(new Date())
+				.expiration(new Date(System.currentTimeMillis() + refreshExpirationTime))
+				.signWith(key)
 				.compact();
 	}
 
@@ -64,11 +64,11 @@ public class JwtService implements IJwtService {
 	@Override
 	public String extractEmail(String token) {
 		try {
-			Claims claims = Jwts.parserBuilder()
-					.setSigningKey(key)
+			Claims claims = Jwts.parser()
+					.verifyWith(key)
 					.build()
-					.parseClaimsJws(token)
-					.getBody(); // Vérifie si getBody() est bien obtenu
+					.parseSignedClaims(token)
+					.getPayload(); // Vérifie si getPayload() est bien obtenu
 
 			return claims.getSubject(); // Récupère l'email
 		} catch (Exception e) {
@@ -84,11 +84,11 @@ public class JwtService implements IJwtService {
 	@Override
 	public boolean validateToken(String token) {
 		try {
-			Claims claims = Jwts.parserBuilder()
-					.setSigningKey(key)
+			Claims claims = Jwts.parser()
+					.verifyWith(key)
 					.build()
-					.parseClaimsJws(token)
-					.getBody();
+					.parseSignedClaims(token)
+					.getPayload();
 			Object type = claims.get("type");
 			return "access".equals(type);
 		} catch (ExpiredJwtException e) {
@@ -102,11 +102,11 @@ public class JwtService implements IJwtService {
 	@Override
 	public boolean validateRefreshToken(String token) {
 		try {
-			Claims claims = Jwts.parserBuilder()
-					.setSigningKey(key)
+			Claims claims = Jwts.parser()
+					.verifyWith(key)
 					.build()
-					.parseClaimsJws(token)
-					.getBody();
+					.parseSignedClaims(token)
+					.getPayload();
 			Object type = claims.get("type");
 			return "refresh".equals(type);
 		} catch (ExpiredJwtException e) {
