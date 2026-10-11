@@ -46,8 +46,10 @@ const LoginPage = () => {
       // Les cookies sont posés par le reducer `login`
       dispatch(login({ user: data.user, token: data.token }));
       router.push("/"); // Redirige après connexion
-    } catch {
-      setError("Identifiants incorrects. Veuillez réessayer.");
+    } catch (err) {
+      // Échec réseau ou réponse illisible : ce n'est pas un problème d'identifiants
+      console.error("Échec de la connexion", err);
+      setError("Connexion impossible. Vérifiez votre réseau et réessayez.");
     } finally {
       setLoading(false);
     }

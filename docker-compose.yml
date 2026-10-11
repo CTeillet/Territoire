@@ -37,7 +37,7 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       WAHA_API_KEY_PLAIN_TEXT: ${WAHA_API_KEY_PLAIN_TEXT}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
 
   territoire-front:
