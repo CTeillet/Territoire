@@ -44,6 +44,7 @@ import {
 import { CampaignStatisticsComponent } from "@/components/campaigns/campaign-statistics";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
 import CampaignMap from "@/components/campaigns/campaign-map";
+import { canEditCampaignProgress, canManageCampaigns } from "@/models/role";
 
 export default function CampaignDetailPage() {
   const router = useRouter();
@@ -57,6 +58,9 @@ export default function CampaignDetailPage() {
     closing: isClosing,
     deleting: isDeleting,
   } = useAppSelector((state) => state.campaigns);
+  const role = useAppSelector((state) => state.auth.user?.role);
+  const canManage = canManageCampaigns(role);
+  const canEdit = canEditCampaignProgress(role);
 
   const [selectedTerritories, setSelectedTerritories] = useState<string[]>([]);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
@@ -270,7 +274,7 @@ export default function CampaignDetailPage() {
           </p>
         </div>
 
-        {!campaign.closed && (
+        {!campaign.closed && canManage && (
           <div className="flex space-x-4">
             <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
               <DialogTrigger asChild>
@@ -415,7 +419,7 @@ export default function CampaignDetailPage() {
                       >
                         <div className="flex justify-between items-center mb-5 pb-2 border-b">
                           <h3 className="text-xl font-semibold">{cityName}</h3>
-                          {!campaign.closed && (
+                          {!campaign.closed && canEdit && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -498,7 +502,9 @@ export default function CampaignDetailPage() {
                                                 );
                                               }
                                             }}
-                                            disabled={campaign.closed}
+                                            disabled={
+                                              campaign.closed || !canEdit
+                                            }
                                             className="h-5 w-5"
                                           />
                                         </TableCell>
@@ -537,7 +543,7 @@ export default function CampaignDetailPage() {
             </CardContent>
           </Card>
 
-          {!campaign.closed && (
+          {!campaign.closed && canEdit && (
             <div className="flex justify-center mt-8">
               <Button
                 onClick={handleSaveRemainingTerritories}

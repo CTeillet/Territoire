@@ -10,7 +10,6 @@ import com.teillet.territoire.service.ITerritoryStatusHistoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,7 +22,12 @@ public class TerritoryStatusHistoryService implements ITerritoryStatusHistorySer
 	private final TerritoryRepository territoryRepository;
 	private final TerritoryStatusHistoryRepository territoryStatusHistoryRepository;
 
-	@Scheduled(cron = "0 0 0 * * *") // Exécution chaque jour à minuit
+	/**
+	 * Exécuté chaque nuit par {@link com.teillet.territoire.scheduling.NightlyJobs}, après la mise à jour
+	 * des retards et des territoires en attente, pour que la photographie reflète l'état du jour.
+	 * Idempotent : une seconde exécution le même jour met à jour la ligne existante.
+	 */
+	@Override
 	@Transactional
 	public void recordDailyStatistics() {
 		List<TerritoryStatisticsProjection> stats = territoryRepository.getCurrentTerritoryStats();
@@ -41,14 +45,14 @@ public class TerritoryStatusHistoryService implements ITerritoryStatusHistorySer
 			}
 		}
 
-		// Création et sauvegarde de l'historique
-		TerritoryStatusHistory history = TerritoryStatusHistory.builder()
-				.date(LocalDate.now())
-				.availableTerritory(available)
-				.lateTerritory(late)
-				.pendingTerritory(pending)
-				.assignedTerritory(assigned)
-				.build();
+		// Création (ou mise à jour si déjà enregistrée aujourd'hui) de l'historique
+		LocalDate today = LocalDate.now();
+		TerritoryStatusHistory history = territoryStatusHistoryRepository.findFirstByDate(today)
+				.orElseGet(() -> TerritoryStatusHistory.builder().date(today).build());
+		history.setAvailableTerritory(available);
+		history.setLateTerritory(late);
+		history.setPendingTerritory(pending);
+		history.setAssignedTerritory(assigned);
 
 		territoryStatusHistoryRepository.save(history);
 

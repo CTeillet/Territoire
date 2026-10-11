@@ -13,6 +13,7 @@ import { ChevronsUpDown, LogOut } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { logout } from "@/store/slices/auth-slice";
+import { logoutRequest } from "@/utils/auth-fetch";
 import { useRouter } from "next/navigation";
 
 function NavUser() {
@@ -28,7 +29,9 @@ function NavUser() {
   // Attendre que le composant soit monté avant d'afficher quoi que ce soit
   if (!mounted || !user || !user.username || !user.email) return null;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Révoque les jetons côté serveur et supprime le cookie de refresh HttpOnly
+    await logoutRequest();
     dispatch(logout());
     router.push("/login"); // Redirection après déconnexion
   };

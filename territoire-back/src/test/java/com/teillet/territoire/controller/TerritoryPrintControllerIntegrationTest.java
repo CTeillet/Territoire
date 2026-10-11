@@ -53,8 +53,8 @@ class TerritoryPrintControllerIntegrationTest {
 	}
 
 	@Test
-	void testExportPng_Unauthenticated_Forbidden() throws Exception {
+	void testExportPng_Unauthenticated_Unauthorized() throws Exception {
 		mockMvc.perform(get("/api/exports/territories.png"))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isUnauthorized());
 	}
 }

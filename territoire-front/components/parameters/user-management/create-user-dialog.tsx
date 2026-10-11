@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RefreshCcw, Plus } from "lucide-react";
-import { generatePassword } from "@/utils/password";
+import { generatePassword, PASSWORD_MIN_LENGTH } from "@/utils/password";
 import {
   Select,
   SelectContent,
@@ -44,7 +44,13 @@ const formSchema = z.object({
   username: z.string().min(1, "Nom requis"),
   email: z.string().email("Email invalide"),
   role: RoleSchema,
-  password: z.string(),
+  password: z
+    .string()
+    .min(
+      PASSWORD_MIN_LENGTH,
+      `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caractères`
+    )
+    .max(128, "Le mot de passe doit contenir au plus 128 caractères"),
 });
 
 const CreateUserDialog = ({ onCreate }: CreateUserDialogProps) => {

@@ -39,6 +39,9 @@ public class ExcelController {
 		try {
 			excelService.importExcel(file);
 			return ResponseEntity.ok("Import terminé avec succès");
+		} catch (IllegalArgumentException e) {
+			log.warn("Import Excel refusé : {}", e.getMessage());
+			return ResponseEntity.badRequest().body(e.getMessage());
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

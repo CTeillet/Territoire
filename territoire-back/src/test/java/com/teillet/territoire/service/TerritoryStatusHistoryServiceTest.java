@@ -72,6 +72,22 @@ class TerritoryStatusHistoryServiceTest {
 	}
 
 	@Test
+	void testRecordDailyStatistics_IsIdempotentForTheSameDay() {
+		TerritoryStatusHistory existing = TerritoryStatusHistory.builder()
+				.date(LocalDate.now())
+				.availableTerritory(1)
+				.build();
+		when(territoryStatusHistoryRepository.findFirstByDate(LocalDate.now())).thenReturn(java.util.Optional.of(existing));
+		when(territoryRepository.getCurrentTerritoryStats()).thenReturn(List.of(createProjection(TerritoryStatus.AVAILABLE, 7)));
+
+		territoryStatusHistoryService.recordDailyStatistics();
+
+		// La ligne du jour est mise à jour au lieu d'en créer une seconde
+		verify(territoryStatusHistoryRepository).save(existing);
+		assertEquals(7, existing.getAvailableTerritory());
+	}
+
+	@Test
 	void testGetHistoryStatus() {
 		LocalDate start = LocalDate.now().minusDays(7);
 		LocalDate end = LocalDate.now();

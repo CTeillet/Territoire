@@ -1,6 +1,7 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.*;
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.mapper.TerritoryMapper;
 import com.teillet.territoire.model.AddressNotToDo;
 import com.teillet.territoire.model.Territory;
@@ -10,9 +11,11 @@ import com.teillet.territoire.service.ICityService;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import com.teillet.territoire.utils.SchoolYearUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -79,7 +82,7 @@ class TerritoryController {
 
 	@PutMapping("{territoryId}")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
-	public TerritoryDto modifyTerritory(@PathVariable UUID territoryId, @RequestBody UpdateTerritoryDto updateDto) throws IOException {
+	public TerritoryDto modifyTerritory(@PathVariable UUID territoryId, @Valid @RequestBody UpdateTerritoryDto updateDto) throws IOException {
 		log.info("Début : Modification du territoire, id {} : {}", territoryId, updateDto);
 		log.info("Appel au service updateTerritory");
 		TerritoryDto updatedTerritory = territoryService.updateTerritory(territoryId, updateDto);
@@ -295,6 +298,8 @@ class TerritoryController {
 			territoryService.uploadTerritoryMap(territoryId, file);
 			log.info("Fin : Upload de la carte du territoire {}", territoryId);
 			return ResponseEntity.ok("Carte du territoire téléchargée avec succès");
+		} catch (NotFoundException | IllegalArgumentException e) {
+			throw e;
 		} catch (Exception e) {
 			log.error("Erreur lors de l'upload de la carte du territoire {}: {}", territoryId, e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -321,10 +326,15 @@ class TerritoryController {
 
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.parseMediaType(territory.getTerritoryMapContentType()));
-			headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + territory.getTerritoryMapName() + "\"");
+			headers.set(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
+					.filename(territory.getTerritoryMapName() != null ? territory.getTerritoryMapName() : "carte").build().toString());
+			headers.set("X-Content-Type-Options", "nosniff");
+			headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
 
 			log.info("Fin : Récupération de la carte du territoire {}", territoryId);
 			return new ResponseEntity<>(territory.getTerritoryMap(), headers, HttpStatus.OK);
+		} catch (NotFoundException e) {
+			throw e;
 		} catch (Exception e) {
 			log.error("Erreur lors de la récupération de la carte du territoire {}: {}", territoryId, e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);

@@ -2,6 +2,7 @@ package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.enums.TerritoryStatus;
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.mapper.AssignmentMapper;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Campaign;
@@ -15,7 +16,6 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -43,6 +43,7 @@ public class AssignmentService implements IAssignmentService {
 	@Override
 	public AssignmentDto assignTerritory(UUID territoryId, UUID personId) {
 		Person person = personService.getPerson(personId);
+		// @Version sur Territory : si deux attributions simultanées modifient le même territoire, la seconde est refusée (409)
 		Territory territory = territoryService.getTerritory(territoryId);
 		if (territory.getStatus() != TerritoryStatus.AVAILABLE) {
 			throw new IllegalStateException("Territory is not available");
@@ -77,23 +78,36 @@ public class AssignmentService implements IAssignmentService {
 				.orElseThrow(() -> new EntityNotFoundException("Aucune assignation active trouvée pour ce territoire"));
 	}
 
-	@Scheduled(cron = "0 0 0 * * *")
+	/**
+	 * Passe en retard les territoires dont l'attribution a dépassé son échéance.
+	 * Exécuté chaque nuit par {@link com.teillet.territoire.scheduling.NightlyJobs} (et à la demande).
+	 * Une attribution en erreur n'empêche pas le traitement des suivantes.
+	 */
 	@Override
 	public void checkOverdueAssignments() {
 		List<Assignment> overdueAssignments = assignmentRepository.findByDueDateBeforeAndReturnDateIsNull(LocalDate.now());
+		int updated = 0;
 		for (Assignment assignment : overdueAssignments) {
-			log.info("Territoire {} est en retard", assignment.getTerritory().getName());
-
-			Territory territory = assignment.getTerritory();
-			territory.setStatus(TerritoryStatus.LATE);
-			territoryService.saveTerritory(territory);
+			try {
+				Territory territory = assignment.getTerritory();
+				if (territory == null || territory.getStatus() == TerritoryStatus.LATE) {
+					continue;
+				}
+				log.info("Territoire {} est en retard", territory.getName());
+				// updateTerritoryStatus ne modifie pas lastModifiedDate (contrairement à saveTerritory)
+				territoryService.updateTerritoryStatus(territory, TerritoryStatus.LATE);
+				updated++;
+			} catch (Exception e) {
+				log.error("Impossible de passer en retard l'attribution {}", assignment.getId(), e);
+			}
 		}
+		log.info("Vérification des retards terminée : {} territoire(s) passé(s) en retard", updated);
 	}
 
 	@Override
 	public Assignment getAssignment(UUID assignmentId) {
 		return assignmentRepository.findById(assignmentId)
-				.orElseThrow(() -> new RuntimeException("Aucune assignation active trouvée pour ce territoire"));
+				.orElseThrow(() -> new NotFoundException("Attribution introuvable"));
 	}
 
 	@Override

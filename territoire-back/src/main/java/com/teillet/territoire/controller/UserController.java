@@ -3,7 +3,7 @@ package com.teillet.territoire.controller;
 import com.teillet.territoire.dto.RegisterRequest;
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.service.IUserService;
-import com.teillet.territoire.service.impl.JwtService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,7 +19,6 @@ import java.util.UUID;
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 	private final IUserService userService;
-	private final JwtService jwtService;
 
 	@GetMapping
 	public ResponseEntity<List<User>> getAllUsers() {
@@ -28,7 +27,7 @@ public class UserController {
 
 	// 🔹 Endpoint d'inscription (Register)
 	@PostMapping
-	public ResponseEntity<User> register(@RequestBody RegisterRequest request) {
+	public ResponseEntity<User> register(@Valid @RequestBody RegisterRequest request) {
 
 		if (userService.findByEmail(request.getEmail()).isPresent()) {
 			return ResponseEntity.badRequest().build();

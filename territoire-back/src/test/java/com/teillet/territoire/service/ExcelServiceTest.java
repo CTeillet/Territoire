@@ -109,4 +109,31 @@ class ExcelServiceTest {
 		verify(assignmentRepository).save(any());
 		verify(territoryRepository).save(territory);
 	}
+
+	@Test
+	void testImportExcel_InvalidDate_ThrowsClearError() throws IOException {
+		byte[] excelData;
+		try (Workbook workbook = new XSSFWorkbook()) {
+			Sheet sheet = workbook.createSheet("Import");
+			for (int r = 0; r < 4; r++) {
+				sheet.createRow(r);
+			}
+			Row row4 = sheet.createRow(4);
+			row4.createCell(0).setCellValue("T01");
+			row4.createCell(2).setCellValue("Jean Dupont");
+			Row row5 = sheet.createRow(5);
+			row5.createCell(2).setCellValue("15/01/2024");
+
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			workbook.write(bos);
+			excelData = bos.toByteArray();
+		}
+		MockMultipartFile file = new MockMultipartFile("file", "test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelData);
+		when(personService.getAllPersons()).thenReturn(List.of());
+		when(territoryRepository.findByName("T01")).thenReturn(Territory.builder().id(UUID.randomUUID()).name("T01").build());
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> excelService.importExcel(file));
+		assertTrue(e.getMessage().contains("T01"));
+		verify(assignmentRepository, never()).save(any());
+	}
 }

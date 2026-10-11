@@ -2,6 +2,7 @@ package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.TerritoryStatusHistoryDto;
 import com.teillet.territoire.service.ITerritoryStatusHistoryService;
+import com.teillet.territoire.utils.SchoolYearUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +25,13 @@ public class TerritoryStatusHistoryController {
 	public List<TerritoryStatusHistoryDto> getStatusHistory(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+		// Par défaut : depuis le début de l'année scolaire en cours jusqu'à aujourd'hui
+		if (startDate == null) {
+			startDate = SchoolYearUtils.getStartDate(SchoolYearUtils.resolveStartYear(null));
+		}
+		if (endDate == null) {
+			endDate = LocalDate.now();
+		}
 		return territoryStatusHistoryService.getHistoryStatus(startDate, endDate);
 	}
 }

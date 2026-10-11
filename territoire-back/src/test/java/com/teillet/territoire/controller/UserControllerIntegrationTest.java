@@ -60,7 +60,8 @@ class UserControllerIntegrationTest {
 
 		mockMvc.perform(get("/api/utilisateurs"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[0].email").value("user1@example.com"));
+				.andExpect(jsonPath("$[0].email").value("user1@example.com"))
+				.andExpect(jsonPath("$[0].password").doesNotExist());
 	}
 
 	@Test
@@ -145,5 +146,63 @@ class UserControllerIntegrationTest {
 				.andExpect(jsonPath("$.message").value("Utilisateur supprimé avec succès"));
 
 		assertFalse(userRepository.findById(saved.getId()).isPresent());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testRegisterUser_ShortPassword_BadRequest() throws Exception {
+		RegisterRequest req = new RegisterRequest();
+		req.setEmail("short@example.com");
+		req.setUsername("short");
+		req.setPassword("court");
+		req.setRole(Role.UTILISATEUR);
+
+		mockMvc.perform(post("/api/utilisateurs")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(req)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.fields.password").exists());
+
+		assertFalse(userRepository.findByEmail("short@example.com").isPresent());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testRegisterUser_ResponseDoesNotExposePassword() throws Exception {
+		RegisterRequest req = new RegisterRequest();
+		req.setEmail("nohash@example.com");
+		req.setUsername("nohash");
+		req.setPassword("Password123!");
+		req.setRole(Role.UTILISATEUR);
+
+		mockMvc.perform(post("/api/utilisateurs")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(req)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.password").doesNotExist());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testUpdateUserRole_UnknownRole_BadRequest() throws Exception {
+		User saved = userRepository.save(createUser("badrole@example.com", "secret", Role.UTILISATEUR));
+
+		mockMvc.perform(put("/api/utilisateurs/{id}/role", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(Map.of("role", "PAPE"))))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testUpdateUserRole_RevokesExistingTokens() throws Exception {
+		User saved = userRepository.save(createUser("revoke@example.com", "secret", Role.UTILISATEUR));
+
+		mockMvc.perform(put("/api/utilisateurs/{id}/role", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(Map.of("role", "GESTIONNAIRE"))))
+				.andExpect(status().isOk());
+
+		assertEquals(1, userRepository.findById(saved.getId()).orElseThrow().getCurrentTokenVersion());
 	}
 }

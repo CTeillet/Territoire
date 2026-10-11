@@ -312,6 +312,14 @@ class TerritoryControllerIntegrationTest {
 
 	@Test
 	@WithMockUser(roles = "UTILISATEUR")
+	void testGetTerritory_UnknownId_NotFound() throws Exception {
+		mockMvc.perform(get("/api/territoires/{id}", java.util.UUID.randomUUID()))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").value("Territoire non trouvé"));
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
 	void testGetTerritoryMap_NotFoundWhenNoMap() throws Exception {
 		Territory saved = territoryRepository.save(createTestTerritory("No Map Terr", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
 

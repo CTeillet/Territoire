@@ -1,64 +1,72 @@
-# Gestion de Territoires
+# Gestion de Territoires (TMS)
 
 ## Description
-L'application de gestion de territoires permet d'attribuer, suivre et organiser la distribution de territoires composés de pâtés de maison, de barres d'immeubles ou de certains numéros de rue. Elle assure la traçabilité des statuts et des attributions tout en intégrant un système d'authentification et de gestion des utilisateurs.
+L'application permet d'attribuer, suivre et organiser la distribution de territoires composés de pâtés de maisons, de barres d'immeubles ou de certains numéros de rue. Elle assure la traçabilité des statuts et des attributions, avec authentification et gestion des utilisateurs.
 
 ## Fonctionnalités principales
-- Gestion des territoires avec trois statuts : **disponible, attribué, en attente**.
-- Assignation d'un territoire à une personne pour une durée maximale de 4 mois.
-- Notification en cas de non-retour d'un territoire dans les délais.
-- Historisation des statuts et des attributions.
-- Gestion des utilisateurs avec différents rôles et droits d'accès :
-  - **Admin** : Accès total.
-  - **Utilisateur standard** : Consultation uniquement.
-  - **Gestionnaire** : Attribution et restitution de territoires.
-  - **Superviseur** : Modification des territoires et personnes et attribution et restitution de territoire.
-- Authentification sécurisée avec Redux Store et Spring Boot.
-- Interface web en **Next.js avec TypeScript et Tailwind CSS** et avec les composants Shadcn.
+- Gestion des territoires avec quatre statuts : **disponible, attribué, en attente, en retard**.
+- Attribution d'un territoire à une personne (échéance à 4 mois), retour, prolongation et annulation.
+- Passage automatique en retard et remise à disposition des territoires en attente (tâches de nuit).
+- Rappels WhatsApp (via WAHA) pour les territoires en retard.
+- Campagnes, statistiques, historique quotidien des statuts.
+- Export / import Excel, impression de cartes, adresses à ne pas visiter.
+- Rôles et droits d'accès :
+  - **ADMIN** : accès total.
+  - **SUPERVISEUR** : modification des territoires et des personnes, attribution et retour.
+  - **GESTIONNAIRE** : attribution et retour de territoires.
+  - **UTILISATEUR** : consultation uniquement.
 
 ## Architecture
-### Backend
-- **Framework** : Spring Boot 3.3.0 (Java 21)
-- **Base de données** : PostgreSQL (auto-hébergé sur VPS avec Docker)
-- **Authentification** : JWT + Spring Security
-- **Communication** : REST API
+| Dossier | Contenu |
+| --- | --- |
+| `territoire-back` | API REST Spring Boot 4 (Java 25), Spring Security + JWT, PostgreSQL/PostGIS, Hibernate, Flyway |
+| `territoire-front` | Next.js 16 / React 19, TypeScript, Tailwind CSS, shadcn/ui, Redux Toolkit |
+| `config` | Configuration de l'observabilité (OpenTelemetry, Prometheus, Loki, Tempo, Grafana) |
+| `docker-compose.yml` | Déploiement complet (base, API, front, WAHA, observabilité) |
 
-### Frontend
-- **Framework** : Next.js avec TypeScript
-- **UI** : Tailwind CSS
-- **State Management** : Redux Store
-- **Authentification** : Intégrée via Redux et JWT
+### Base de données
+Le schéma est géré par Hibernate (`ddl-auto=update`). Flyway est présent pour les changements que Hibernate ne sait pas faire seul (renommage, suppression de colonne, transformation de données) : ajouter un fichier `V2__description.sql` dans `territoire-back/src/main/resources/db/migration`.
 
-## Installation et déploiement
-### Prérequis
-- Docker & Docker Compose
-- Java 21 + Maven
-- Node.js + npm/yarn
+## Développement local
+Prérequis : Docker, Java 25, Node.js 24.
 
-### Installation Backend
 ```bash
-git clone https://github.com/ton-repo/gestion-territoires.git
-cd gestion-territoires/backend
-cp .env.example .env
-mvn clean install
-```
-Lancer le backend avec Docker :
-```bash
-docker-compose up -d
+# Base PostGIS locale (utilisateur admin / base territoire)
+docker compose up -d postgis
 ```
 
-### Installation Frontend
+Backend (profil `local`, cookies sans HTTPS) :
 ```bash
-cd ../frontend
-cp .env.example .env
-yarn install
-yarn dev
+cd territoire-back
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+Variables attendues : `JWT_SECRET_KEY` (clé base64), `WAHA_API_KEY_PLAIN_TEXT`.
+
+Frontend (port 40000) :
+```bash
+cd territoire-front
+npm ci
+npm run dev
 ```
 
-## Évolutions futures
-- Annulation d'une assignation
-- Intégrer directement la gestion des relances pour retard
+Tests :
+```bash
+cd territoire-back && ./mvnw test
+cd territoire-front && npm test
+```
+
+## Déploiement
+La CI (`.github/workflows`) lance lint et tests, construit les images (tags `latest` et SHA du commit) sur GitHub Container Registry, puis déploie sur le VPS via `docker compose`. Les secrets (`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, …) sont fournis par l'environnement du VPS.
+
+Sauvegarde de la base :
+```bash
+docker exec postgis_container pg_dump -U admin -Fc territoire > territoire_$(date +%F).dump
+```
+
+## Évolutions envisagées
+- Relances automatiques avant échéance et en cas de retard.
+- Journal d'audit (auteur des actions).
+- Archivage plutôt que suppression des territoires.
 
 ## Licence
-Ce projet est sous licence MIT.
-
+MIT, voir [LICENSE](LICENSE).

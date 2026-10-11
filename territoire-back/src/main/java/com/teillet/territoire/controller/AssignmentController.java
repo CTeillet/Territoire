@@ -43,6 +43,7 @@ public class AssignmentController {
 	}
 
 	@PutMapping("/verification-retard")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public void checkLate() {
 		log.info("Requête reçue : PUT /api/attributions/verification-retard");
 

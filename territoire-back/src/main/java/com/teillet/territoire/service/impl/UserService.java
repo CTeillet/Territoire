@@ -2,6 +2,7 @@ package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.RegisterRequest;
 import com.teillet.territoire.enums.Role;
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.repository.UserRepository;
 import com.teillet.territoire.service.IUserService;
@@ -50,9 +51,28 @@ public class UserService implements IUserService {
 
 	@Override
 	public void updateUserRole(UUID userId, String newRole) {
-		User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-		user.setRole(Role.valueOf(newRole)); // Assure-toi que `Role` est une Enum avec `ADMIN`, `UTILISATEUR`, etc.
+		User user = getUser(userId);
+		Role role;
+		try {
+			role = Role.valueOf(newRole);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Rôle inconnu : " + newRole);
+		}
+		user.setRole(role);
+		// Les jetons existants portent l'ancien rôle : on les révoque pour forcer une reconnexion
+		user.incrementTokenVersion();
 		userRepository.save(user);
+	}
+
+	@Override
+	public void revokeTokens(UUID userId) {
+		User user = getUser(userId);
+		user.incrementTokenVersion();
+		userRepository.save(user);
+	}
+
+	private User getUser(UUID userId) {
+		return userRepository.findById(userId).orElseThrow(() -> new NotFoundException("Utilisateur non trouvé"));
 	}
 
 	// 🔹 Supprimer un utilisateur

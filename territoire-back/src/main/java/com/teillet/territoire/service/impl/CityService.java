@@ -3,8 +3,10 @@ package com.teillet.territoire.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.AddCityDto;
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.repository.CityRepository;
+import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.ICityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,7 @@ import java.util.UUID;
 @Slf4j
 public class CityService implements ICityService {
 	private final CityRepository cityRepository;
+	private final TerritoryRepository territoryRepository;
 	private final GeometryFactory pointGeometryFactory = new GeometryFactory(new PrecisionModel(), 4326); // WGS 84
 	private final RestTemplate restTemplate;
 	private  final ObjectMapper objectMapper;
@@ -31,7 +34,7 @@ public class CityService implements ICityService {
 	public City getCity(UUID cityId) {
 		return cityRepository.findById(cityId).orElseThrow(() -> {
 			log.warn("Ville avec l'ID {} non trouvée.", cityId);
-			return new RuntimeException("Ville non trouvée");
+			return new NotFoundException("Ville non trouvée");
 		});
 	}
 
@@ -46,7 +49,7 @@ public class CityService implements ICityService {
 		Point center = getCityCoordinates(city.getZipCode());
 
 		if (center == null) {
-			throw new RuntimeException("Ville non trouvée");
+			throw new IllegalArgumentException("Aucune commune trouvée pour le code postal " + city.getZipCode());
 		}
 
 		cityEntity.setCenter(center);
@@ -61,6 +64,10 @@ public class CityService implements ICityService {
 
 	@Override
 	public void deleteCity(UUID cityId) {
+		// City.territories est en orphanRemoval : supprimer une ville non vide effacerait ses territoires
+		if (territoryRepository.existsByCity_Id(cityId)) {
+			throw new IllegalStateException("Impossible de supprimer cette ville : elle contient encore des territoires");
+		}
 		cityRepository.deleteById(cityId);
 	}
 

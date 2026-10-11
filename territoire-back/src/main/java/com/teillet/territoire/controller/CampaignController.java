@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -47,6 +48,7 @@ public class CampaignController {
         return ResponseEntity.ok(campaign);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     @PostMapping
     public ResponseEntity<CampaignDto> createCampaign(@RequestBody CampaignDto campaignDto) {
         log.info("Requête reçue : POST /api/campagnes - Création de la campagne '{}'", campaignDto.getName());
@@ -55,6 +57,7 @@ public class CampaignController {
         return new ResponseEntity<>(createdCampaign, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     @PostMapping("/avec-territoires-restants/{previousCampaignId}")
     public ResponseEntity<CampaignDto> createCampaignWithRemainingTerritories(
             @RequestBody CampaignDto campaignDto,
@@ -76,6 +79,7 @@ public class CampaignController {
     }
 
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
     @PutMapping("/{id}/territoires-restants")
     public ResponseEntity<CampaignDto> updateRemainingTerritories(@PathVariable UUID id, @RequestBody List<SimplifiedTerritoryDto> remainingTerritories) {
         log.info("Requête reçue : PUT /api/campagnes/{}/territoires-restants - {} territoires restants", id, remainingTerritories.size());
@@ -84,6 +88,7 @@ public class CampaignController {
         return ResponseEntity.ok(updatedCampaign);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     @PutMapping("/{id}/fermer")
     public ResponseEntity<CampaignDto> closeCampaign(@PathVariable UUID id) {
         log.info("Requête reçue : PUT /api/campagnes/{}/fermer", id);
@@ -92,6 +97,7 @@ public class CampaignController {
         return ResponseEntity.ok(closedCampaign);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCampaign(@PathVariable UUID id) {
         log.info("Requête reçue : DELETE /api/campagnes/{}", id);

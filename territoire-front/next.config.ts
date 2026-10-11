@@ -1,15 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Pas de Cache-Control global : Next.js sert déjà /_next/static en "immutable", et les pages
+  // comme les réponses /api/* ne doivent pas être mises en cache par le navigateur.
   async headers() {
     return [
       {
         source: "/(.*)",
         headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },

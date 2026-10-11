@@ -54,8 +54,8 @@ class TerritoryStatusHistoryControllerIntegrationTest {
 	}
 
 	@Test
-	void testGetStatusHistory_Unauthenticated_Forbidden() throws Exception {
+	void testGetStatusHistory_Unauthenticated_Unauthorized() throws Exception {
 		mockMvc.perform(get("/api/territoires/statistiques"))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isUnauthorized());
 	}
 }

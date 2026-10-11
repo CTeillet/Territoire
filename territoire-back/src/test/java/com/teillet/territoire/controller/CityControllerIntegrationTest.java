@@ -72,7 +72,7 @@ class CityControllerIntegrationTest {
 	@Test
 	void testGetCities_Unauthenticated_ShouldBeForbiddenOrUnauthorized() throws Exception {
 		mockMvc.perform(get("/api/villes"))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isUnauthorized());
 	}
 
 	@Test

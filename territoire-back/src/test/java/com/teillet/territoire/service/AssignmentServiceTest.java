@@ -139,13 +139,33 @@ class AssignmentServiceTest {
 				.dueDate(LocalDate.now().minusMonths(1))
 				.build();
 
+		territory.setStatus(TerritoryStatus.ASSIGNED);
 		when(assignmentRepository.findByDueDateBeforeAndReturnDateIsNull(any(LocalDate.class)))
 				.thenReturn(List.of(overdue));
 
 		assignmentService.checkOverdueAssignments();
 
-		assertEquals(TerritoryStatus.LATE, territory.getStatus());
-		verify(territoryService, times(1)).saveTerritory(territory);
+		// updateTerritoryStatus ne touche pas à lastModifiedDate (contrairement à saveTerritory)
+		verify(territoryService, times(1)).updateTerritoryStatus(territory, TerritoryStatus.LATE);
+		verify(territoryService, never()).saveTerritory(any());
+	}
+
+	@Test
+	void testCheckOverdueAssignments_AlreadyLateIsSkipped() {
+		Assignment overdue = Assignment.builder()
+				.id(UUID.randomUUID())
+				.territory(territory)
+				.person(person)
+				.assignmentDate(LocalDate.now().minusMonths(5))
+				.dueDate(LocalDate.now().minusMonths(1))
+				.build();
+		territory.setStatus(TerritoryStatus.LATE);
+		when(assignmentRepository.findByDueDateBeforeAndReturnDateIsNull(any(LocalDate.class)))
+				.thenReturn(List.of(overdue));
+
+		assignmentService.checkOverdueAssignments();
+
+		verify(territoryService, never()).updateTerritoryStatus(any(), any());
 	}
 
 	@Test

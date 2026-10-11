@@ -26,6 +26,9 @@ class CityServiceTest {
 	private CityRepository cityRepository;
 
 	@Mock
+	private com.teillet.territoire.repository.TerritoryRepository territoryRepository;
+
+	@Mock
 	private RestTemplate restTemplate;
 
 	private ObjectMapper objectMapper;
@@ -35,7 +38,7 @@ class CityServiceTest {
 	@BeforeEach
 	void setUp() {
 		objectMapper = new ObjectMapper();
-		cityService = new CityService(cityRepository, restTemplate, objectMapper);
+		cityService = new CityService(cityRepository, territoryRepository, restTemplate, objectMapper);
 	}
 
 	@Test
@@ -71,6 +74,15 @@ class CityServiceTest {
 
 		List<City> cities = cityService.getCities();
 		assertEquals(2, cities.size());
+	}
+
+	@Test
+	void testDeleteCity_WithTerritories_Refused() {
+		UUID cityId = UUID.randomUUID();
+		when(territoryRepository.existsByCity_Id(cityId)).thenReturn(true);
+
+		assertThrows(IllegalStateException.class, () -> cityService.deleteCity(cityId));
+		verify(cityRepository, never()).deleteById(any());
 	}
 
 	@Test

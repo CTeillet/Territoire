@@ -122,6 +122,21 @@ class TerritoryReminderServiceTest {
 	}
 
 	@Test
+	void testSendWhatsAppReminder_SendFails_ReminderIsRemoved() {
+		when(personService.getPerson(personId)).thenReturn(person);
+		when(territoryService.getTerritory(territoryId)).thenReturn(territory);
+		TerritoryReminder saved = TerritoryReminder.builder()
+				.id(UUID.randomUUID()).person(person).territories(List.of(territory)).reminderDate(LocalDate.now()).build();
+		when(territoryReminderRepository.save(any(TerritoryReminder.class))).thenReturn(saved);
+		doThrow(new IllegalStateException("WAHA indisponible")).when(wahaClient).sendMessage(any(), any());
+
+		assertThrows(IllegalStateException.class, () ->
+				territoryReminderService.sendWhatsAppReminder(List.of(territoryId), personId, "Message"));
+
+		verify(territoryReminderRepository).delete(saved);
+	}
+
+	@Test
 	void testSendWhatsAppReminder_EmptyTerritoryIds_ThrowsException() {
 		assertThrows(IllegalArgumentException.class, () ->
 				territoryReminderService.sendWhatsAppReminder(Collections.emptyList(), personId, "Message"));

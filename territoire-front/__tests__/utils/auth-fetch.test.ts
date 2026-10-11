@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { authFetch } from "@/utils/auth-fetch";
+import { authFetch, logoutRequest } from "@/utils/auth-fetch";
 
 describe("authFetch", () => {
   beforeEach(() => {
@@ -78,5 +78,51 @@ describe("authFetch", () => {
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("should not try to refresh the token on 403 (insufficient rights)", async () => {
+    document.cookie = "token=valid-token";
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 403,
+      ok: false,
+    } as Response);
+    global.fetch = fetchMock;
+
+    const res = await authFetch("/api/campagnes", { method: "POST" });
+
+    expect(res.status).toBe(403);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("should clear the session when the refresh fails", async () => {
+    document.cookie = "token=expired-token";
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 401, ok: false } as Response)
+      .mockResolvedValueOnce({ status: 401, ok: false } as Response);
+    global.fetch = fetchMock;
+
+    const res = await authFetch("/api/protected");
+
+    expect(res.status).toBe(401);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(document.cookie).not.toContain("token=expired-token");
+  });
+
+  it("should call the logout endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 204,
+      ok: true,
+    } as Response);
+    global.fetch = fetchMock;
+
+    await logoutRequest();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/authentification/deconnexion",
+      expect.objectContaining({ method: "POST", credentials: "include" })
+    );
   });
 });

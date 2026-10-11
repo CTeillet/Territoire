@@ -5,6 +5,7 @@ import com.teillet.territoire.dto.CampaignDto;
 import com.teillet.territoire.dto.CampaignStatisticsDto;
 import com.teillet.territoire.dto.SimplifiedTerritoryDto;
 import com.teillet.territoire.enums.TerritoryType;
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.mapper.CampaignMapper;
 import com.teillet.territoire.model.Campaign;
 import com.teillet.territoire.model.Territory;
@@ -68,7 +69,7 @@ public class CampaignService implements ICampaignService {
         return campaignRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("Campagne non trouvée avec l'ID: {}", id);
-                    return new RuntimeException("Campagne non trouvée avec l'ID: " + id);
+                    return new NotFoundException("Campagne non trouvée avec l'ID: " + id);
                 });
     }
 
@@ -159,7 +160,7 @@ public class CampaignService implements ICampaignService {
             Territory territory = territoryRepository.findById(dto.getTerritoryId())
                     .orElseThrow(() -> {
                         log.error("Territoire non trouvé avec l'ID: {}", dto.getTerritoryId());
-                        return new RuntimeException("Territoire non trouvé avec l'ID: " + dto.getTerritoryId());
+                        return new NotFoundException("Territoire non trouvé avec l'ID: " + dto.getTerritoryId());
                     });
             remainingTerritories.add(territory);
         }
@@ -179,7 +180,7 @@ public class CampaignService implements ICampaignService {
 
         if (campaign.isClosed()) {
             log.warn("Tentative de clôture d'une campagne déjà clôturée: {}", campaign.getName());
-            throw new RuntimeException("La campagne est déjà clôturée");
+            throw new IllegalStateException("La campagne est déjà clôturée");
         }
 
         // Set end date and closed status
@@ -212,7 +213,7 @@ public class CampaignService implements ICampaignService {
 
         if (campaign.isClosed()) {
             log.warn("Tentative de suppression d'une campagne clôturée: {}", campaign.getName());
-            throw new RuntimeException("Impossible de supprimer une campagne clôturée");
+            throw new IllegalStateException("Impossible de supprimer une campagne clôturée");
         }
 
         campaignRepository.delete(campaign);
@@ -294,7 +295,7 @@ public class CampaignService implements ICampaignService {
     @Transactional
     public void deleteTerrritoryFromAllCampaign(UUID territoryId) {
         Territory territory = territoryRepository.findById(territoryId)
-                .orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
+                .orElseThrow(() -> new NotFoundException("Territoire non trouvé"));
         deleteTerrritoryFromAllCampaign(territory);
     }
 

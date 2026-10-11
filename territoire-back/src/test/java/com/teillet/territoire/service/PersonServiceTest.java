@@ -1,5 +1,6 @@
 package com.teillet.territoire.service;
 
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.repository.PersonRepository;
 import com.teillet.territoire.service.impl.PersonService;
@@ -23,11 +24,26 @@ class PersonServiceTest {
 	@Mock
 	private PersonRepository personRepository;
 
+	@Mock
+	private com.teillet.territoire.repository.AssignmentRepository assignmentRepository;
+
+	@Mock
+	private com.teillet.territoire.repository.TerritoryReminderRepository reminderRepository;
+
 	private PersonService personService;
 
 	@BeforeEach
 	void setUp() {
-		personService = new PersonService(personRepository);
+		personService = new PersonService(personRepository, assignmentRepository, reminderRepository);
+	}
+
+	@Test
+	void testDeletePerson_WithAssignmentHistory_Refused() {
+		UUID personId = UUID.randomUUID();
+		when(assignmentRepository.findByPerson_Id(personId)).thenReturn(java.util.List.of(new com.teillet.territoire.model.Assignment()));
+
+		assertThrows(IllegalStateException.class, () -> personService.deletePerson(personId));
+		verify(personRepository, never()).deletePersonById(any());
 	}
 
 	@Test
@@ -64,12 +80,51 @@ class PersonServiceTest {
 	@Test
 	void testModifyPerson() {
 		UUID personId = UUID.randomUUID();
+		Person existing = Person.builder().id(personId).firstName("John").lastName("Doe").build();
 		Person person = Person.builder().id(personId).firstName("John").lastName("Updated").build();
+		when(personRepository.findById(personId)).thenReturn(Optional.of(existing));
 		when(personRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		Person modified = personService.modifyPerson(personId, person);
 		assertNotNull(modified);
 		assertEquals("Updated", modified.getLastName());
+		assertEquals(personId, modified.getId());
+	}
+
+	@Test
+	void testModifyPerson_IgnoresIdFromBody() {
+		UUID pathId = UUID.randomUUID();
+		UUID otherId = UUID.randomUUID();
+		Person existing = Person.builder().id(pathId).firstName("John").lastName("Doe").build();
+		Person body = Person.builder().id(otherId).firstName("Jane").lastName("Smith").phoneNumber("+33600000000").build();
+		when(personRepository.findById(pathId)).thenReturn(Optional.of(existing));
+		when(personRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		Person modified = personService.modifyPerson(pathId, body);
+
+		assertEquals(pathId, modified.getId());
+		assertEquals("Jane", modified.getFirstName());
+		assertEquals("+33600000000", modified.getPhoneNumber());
+		verify(personRepository, never()).findById(otherId);
+	}
+
+	@Test
+	void testModifyPerson_NotFound() {
+		UUID personId = UUID.randomUUID();
+		when(personRepository.findById(personId)).thenReturn(Optional.empty());
+
+		assertThrows(NotFoundException.class,
+				() -> personService.modifyPerson(personId, Person.builder().firstName("X").build()));
+		verify(personRepository, never()).save(any(Person.class));
+	}
+
+	@Test
+	void testCreatePerson_IgnoresIdFromBody() {
+		Person person = Person.builder().id(UUID.randomUUID()).firstName("John").lastName("Doe").build();
+		when(personRepository.save(any(Person.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		Person created = personService.createPerson(person);
+		assertNull(created.getId());
 	}
 
 	@Test

@@ -1,6 +1,7 @@
 package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.AddAddressNotToDoDto;
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.mapper.AddressNotToDoMapper;
 import com.teillet.territoire.model.AddressNotToDo;
 import com.teillet.territoire.model.Territory;
@@ -40,7 +41,7 @@ public class AddressNotToDoService implements IAddressNotToDoService {
 
 	@Override
 	public AddressNotToDo getAddressNotToDo(UUID territoryId, UUID addressNotToDoId) {
-		return addressNotToDoRepository.findByIdAndTerritory_Id(addressNotToDoId, territoryId).orElseThrow(() -> new RuntimeException("Adresse à ne pas faire introuvable"));
+		return addressNotToDoRepository.findByIdAndTerritory_Id(addressNotToDoId, territoryId).orElseThrow(() -> new NotFoundException("Adresse à ne pas visiter introuvable"));
 	}
 
 	@Override

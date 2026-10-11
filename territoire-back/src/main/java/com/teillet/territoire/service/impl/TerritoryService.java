@@ -3,11 +3,13 @@ package com.teillet.territoire.service.impl;
 import com.teillet.territoire.dto.*;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.mapper.TerritoryMapper;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.BlockRepository;
+import com.teillet.territoire.repository.TerritoryReminderRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.ICampaignService;
 import com.teillet.territoire.service.ICityService;
@@ -17,7 +19,6 @@ import com.teillet.territoire.utils.SchoolYearUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,24 +33,30 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class TerritoryService implements ITerritoryService {
+	private static final long MAX_MAP_SIZE_BYTES = 5L * 1024 * 1024;
+	private static final Set<String> ALLOWED_MAP_CONTENT_TYPES = Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
+
 	private final TerritoryRepository territoryRepository;
 	private final BlockRepository blockRepository;
 	private final AssignmentRepository assignmentRepository;
 	private final ICampaignService campaignService;
 	private final ICityService cityService;
+	private final TerritoryReminderRepository reminderRepository;
 
 	public TerritoryService(
 		TerritoryRepository territoryRepository,
 		BlockRepository blockRepository,
 		AssignmentRepository assignmentRepository,
 		@Lazy ICampaignService campaignService,
-		ICityService cityService
+		ICityService cityService,
+		TerritoryReminderRepository reminderRepository
 	) {
 		this.territoryRepository = territoryRepository;
 		this.blockRepository = blockRepository;
 		this.assignmentRepository = assignmentRepository;
 		this.campaignService = campaignService;
 		this.cityService = cityService;
+		this.reminderRepository = reminderRepository;
 	}
 
 	@Override
@@ -82,30 +89,51 @@ public class TerritoryService implements ITerritoryService {
 		territoryRepository.save(territory);
 	}
 
-	@Scheduled(cron = "0 0 0 * * *")
+	/**
+	 * Remet à disposition les territoires « en attente » rendus depuis plus de 4 mois.
+	 * Exécuté chaque nuit par {@link com.teillet.territoire.scheduling.NightlyJobs} (et à la demande).
+	 * Un territoire en attente sans date de retour exploitable est ignoré (et signalé dans les logs)
+	 * au lieu de faire échouer tout le traitement.
+	 */
 	@Transactional
 	@Override
 	public void releasePendingTerritories() {
 		LocalDate thresholdDate = LocalDate.now().minusMonths(4);
-		List<Territory> pendingTerritories = territoryRepository.findAll().stream()
-				.filter(t -> t.getStatus() == TerritoryStatus.PENDING && t.getAssignments().stream().max(Comparator.comparing(Assignment::getReturnDate)).stream().findFirst().orElseThrow().getReturnDate().isBefore(thresholdDate))
-				.toList();
+		int released = 0;
 
-		for (Territory territory : pendingTerritories) {
-			updateTerritoryStatus(territory, TerritoryStatus.AVAILABLE);
+		for (Territory territory : territoryRepository.findByStatus(TerritoryStatus.PENDING)) {
+			try {
+				Optional<LocalDate> lastReturnDate = territory.getAssignments().stream()
+						.map(Assignment::getReturnDate)
+						.filter(Objects::nonNull)
+						.max(Comparator.naturalOrder());
+
+				if (lastReturnDate.isEmpty()) {
+					log.warn("Territoire {} en attente sans date de retour : ignoré", territory.getName());
+					continue;
+				}
+
+				if (lastReturnDate.get().isBefore(thresholdDate)) {
+					updateTerritoryStatus(territory, TerritoryStatus.AVAILABLE);
+					released++;
+				}
+			} catch (Exception e) {
+				log.error("Impossible de libérer le territoire {}", territory.getId(), e);
+			}
 		}
+		log.info("Libération des territoires en attente terminée : {} territoire(s) disponible(s)", released);
 	}
 
 	@Override
 	public Territory getTerritory(UUID id) {
 		return territoryRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
+				.orElseThrow(() -> new NotFoundException("Territoire non trouvé"));
 	}
 
 	@Override
 	public TerritoryDto getTerritoryDto(UUID id) throws IOException {
 		Territory territory = territoryRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Territoire non trouvé"));
+				.orElseThrow(() -> new NotFoundException("Territoire non trouvé"));
 		return TerritoryMapper.toDto(territory);
 	}
 
@@ -158,6 +186,12 @@ public class TerritoryService implements ITerritoryService {
 	public void deleteTerritory(UUID territoryId) {
 		Territory territory = getTerritory(territoryId);
 
+		// Les rappels envoyés sont conservés, seul leur lien avec ce territoire est retiré (sinon la clé étrangère bloque la suppression)
+		reminderRepository.findByTerritories_Id(territoryId).forEach(reminder -> {
+			reminder.getTerritories().removeIf(t -> territoryId.equals(t.getId()));
+			reminderRepository.save(reminder);
+		});
+
 		// Remove territory from all campaigns
 		campaignService.deleteTerrritoryFromAllCampaign(territory);
 
@@ -195,15 +229,9 @@ public class TerritoryService implements ITerritoryService {
 
 	@Override
 	public TerritoryPeriodStatisticsDto getPeriodStatistics(LocalDate startDate, LocalDate endDate) {
-		List<Territory> allTerritories = territoryRepository.findAll();
+		// Projection légère (id, type, ville) : on ne charge pas toutes les entités Territory en mémoire
+		List<Object[]> rows = territoryRepository.findAllIdTypeAndCityName();
 		Set<UUID> notAssignedTerritoryIds = new HashSet<>(territoryRepository.findTerritoryIdsNotAssignedBetween(startDate, endDate));
-
-		List<Territory> usedTerritories = allTerritories.stream()
-				.filter(t -> !notAssignedTerritoryIds.contains(t.getId()))
-				.toList();
-		List<Territory> availableTerritories = allTerritories.stream()
-				.filter(t -> notAssignedTerritoryIds.contains(t.getId()))
-				.toList();
 
 		Map<TerritoryType, Integer> totalTerritoriesByType = new HashMap<>();
 		Map<TerritoryType, Integer> usedTerritoriesByType = new HashMap<>();
@@ -217,32 +245,28 @@ public class TerritoryService implements ITerritoryService {
 		Map<String, Integer> totalTerritoriesByCity = new HashMap<>();
 		Map<String, Integer> usedTerritoriesByCity = new HashMap<>();
 		Map<String, Integer> availableTerritoriesByCity = new HashMap<>();
+		int used = 0;
+		int available = 0;
 
-		for (Territory territory : allTerritories) {
-			if (territory.getType() != null) {
-				totalTerritoriesByType.merge(territory.getType(), 1, Integer::sum);
-			}
-			totalTerritoriesByCity.merge(territory.getCity().getName(), 1, Integer::sum);
-		}
+		for (Object[] row : rows) {
+			UUID id = (UUID) row[0];
+			TerritoryType type = (TerritoryType) row[1];
+			String city = (String) row[2];
+			boolean isAvailable = notAssignedTerritoryIds.contains(id);
 
-		for (Territory territory : usedTerritories) {
-			if (territory.getType() != null) {
-				usedTerritoriesByType.merge(territory.getType(), 1, Integer::sum);
+			if (isAvailable) available++; else used++;
+			if (type != null) {
+				totalTerritoriesByType.merge(type, 1, Integer::sum);
+				(isAvailable ? availableTerritoriesByType : usedTerritoriesByType).merge(type, 1, Integer::sum);
 			}
-			usedTerritoriesByCity.merge(territory.getCity().getName(), 1, Integer::sum);
-		}
-
-		for (Territory territory : availableTerritories) {
-			if (territory.getType() != null) {
-				availableTerritoriesByType.merge(territory.getType(), 1, Integer::sum);
-			}
-			availableTerritoriesByCity.merge(territory.getCity().getName(), 1, Integer::sum);
+			totalTerritoriesByCity.merge(city, 1, Integer::sum);
+			(isAvailable ? availableTerritoriesByCity : usedTerritoriesByCity).merge(city, 1, Integer::sum);
 		}
 
 		return TerritoryPeriodStatisticsDto.builder()
-				.totalTerritories(allTerritories.size())
-				.usedTerritories(usedTerritories.size())
-				.availableTerritories(availableTerritories.size())
+				.totalTerritories(rows.size())
+				.usedTerritories(used)
+				.availableTerritories(available)
 				.totalTerritoriesByType(totalTerritoriesByType)
 				.usedTerritoriesByType(usedTerritoriesByType)
 				.availableTerritoriesByType(availableTerritoriesByType)
@@ -254,15 +278,11 @@ public class TerritoryService implements ITerritoryService {
 
 	@Override
 	public List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth(LocalDate startDate, LocalDate endDate) {
-		return assignmentRepository.findByReturnDateNotNull().stream()
-				.filter(a -> {
-					if (startDate != null && a.getAssignmentDate().isBefore(startDate)) return false;
-                    return endDate == null || !a.getAssignmentDate().isAfter(endDate);
-                })
+		return assignmentRepository.findReturnedAssignmentDatesBetween(startDate, endDate).stream()
 				.collect(Collectors.groupingBy(
-						a -> YearMonth.from(a.getAssignmentDate()),
-						Collectors.averagingDouble(a ->
-								ChronoUnit.DAYS.between(a.getAssignmentDate(), a.getReturnDate())
+						row -> YearMonth.from((LocalDate) row[0]),
+						Collectors.averagingDouble(row ->
+								ChronoUnit.DAYS.between((LocalDate) row[0], (LocalDate) row[1])
 						)
 				))
 				.entrySet().stream()
@@ -335,6 +355,7 @@ public class TerritoryService implements ITerritoryService {
 	public Territory uploadTerritoryMap(UUID territoryId, MultipartFile file) throws IOException {
 		log.info("Début : Upload de la carte du territoire {}", territoryId);
 
+		validateMapFile(file);
 		Territory territory = getTerritory(territoryId);
 
 		// Store the file data directly using getBytes()
@@ -347,6 +368,20 @@ public class TerritoryService implements ITerritoryService {
 
 		log.info("Fin : Upload de la carte du territoire {}", territoryId);
 		return savedTerritory;
+	}
+
+	/** Seules des images raster de taille raisonnable sont acceptées (pas de SVG/HTML, servis depuis la même origine que l'application). */
+	private static void validateMapFile(MultipartFile file) {
+		if (file == null || file.isEmpty()) {
+			throw new IllegalArgumentException("Le fichier de la carte est vide");
+		}
+		if (file.getSize() > MAX_MAP_SIZE_BYTES) {
+			throw new IllegalArgumentException("La carte dépasse la taille maximale autorisée (5 Mo)");
+		}
+		String contentType = file.getContentType();
+		if (contentType == null || !ALLOWED_MAP_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+			throw new IllegalArgumentException("Format de carte non supporté (PNG, JPEG, GIF ou WebP uniquement)");
+		}
 	}
 
 	@Override

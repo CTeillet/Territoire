@@ -1,5 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { User } from "@/models/user";
+import {
+  clearAuthCookies,
+  setTokenCookie,
+  setUserCookie,
+} from "@/utils/auth-fetch";
 
 interface AuthState {
   user: User | null;
@@ -18,17 +23,15 @@ const authSlice = createSlice({
     login: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
-      // Stocke dans les cookies au lieu de localStorage
-      // Persist cookies for 30 days so the user stays logged in across browser restarts
-      document.cookie = `token=${action.payload.token}; Path=/; Max-Age=2592000; SameSite=Lax`;
-      document.cookie = `user=${encodeURIComponent(JSON.stringify(action.payload.user))}; Path=/; Max-Age=2592000; SameSite=Lax`;
+      // Cookies (Secure en HTTPS, SameSite=Strict). Le jeton d'accès est de courte durée,
+      // la session est prolongée par le refresh token HttpOnly.
+      setTokenCookie(action.payload.token);
+      setUserCookie(action.payload.user);
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
-      // Supprime les cookies au lieu de localStorage
-      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      document.cookie = "user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      clearAuthCookies();
     },
   },
 });

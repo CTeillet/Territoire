@@ -24,11 +24,15 @@ import { fr } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campaigns/create-campaign-dialog";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchCampaigns } from "@/store/slices/campaign-slice";
+import { canManageCampaigns } from "@/models/role";
 
 export default function CampaignsPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { campaigns, loading } = useAppSelector((state) => state.campaigns);
+  const canManage = canManageCampaigns(
+    useAppSelector((state) => state.auth.user?.role)
+  );
 
   // Fetch campaigns on component mount
   useEffect(() => {
@@ -55,9 +59,11 @@ export default function CampaignsPage() {
             territoires
           </p>
         </div>
-        <CreateCampaignDialog
-          onCampaignCreated={() => dispatch(fetchCampaigns())}
-        />
+        {canManage && (
+          <CreateCampaignDialog
+            onCampaignCreated={() => dispatch(fetchCampaigns())}
+          />
+        )}
       </div>
 
       {loading ? (
@@ -75,9 +81,11 @@ export default function CampaignsPage() {
               Créez votre première campagne pour commencer à gérer les
               assignations de territoires.
             </p>
-            <CreateCampaignDialog
-              onCampaignCreated={() => dispatch(fetchCampaigns())}
-            />
+            {canManage && (
+              <CreateCampaignDialog
+                onCampaignCreated={() => dispatch(fetchCampaigns())}
+              />
+            )}
           </CardContent>
         </Card>
       ) : (

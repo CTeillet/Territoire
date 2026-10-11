@@ -30,13 +30,20 @@ const LoginPage = () => {
       });
 
       if (!response.ok) {
-        setError("Échec de l'authentification"); // Corrige le warning `throw` inutile
-        return; // Arrête la fonction ici
+        if (response.status === 429) {
+          const body = await response.json().catch(() => null);
+          setError(
+            body?.error ??
+              "Trop de tentatives de connexion. Réessayez dans quelques minutes."
+          );
+        } else {
+          setError("Identifiants incorrects. Veuillez réessayer.");
+        }
+        return;
       }
 
       const data = await response.json();
-      document.cookie = `token=${data.token}; path=/;`;
-
+      // Les cookies sont posés par le reducer `login`
       dispatch(login({ user: data.user, token: data.token }));
       router.push("/"); // Redirige après connexion
     } catch {

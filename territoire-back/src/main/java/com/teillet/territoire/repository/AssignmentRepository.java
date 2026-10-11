@@ -17,6 +17,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 
 	Optional<Assignment> findByReturnDateNullAndTerritory_Id(UUID id);
 
+	boolean existsByTerritory_IdAndPerson_IdAndAssignmentDate(UUID territoryId, UUID personId, LocalDate assignmentDate);
+
 	void deleteByTerritory_Id(UUID territoryId);
 
 	List<Assignment> findAssignmentsByAssignmentDateAfterOrReturnDateAfter(LocalDate assignmentDateAfter, LocalDate returnDateAfter);
@@ -26,6 +28,14 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 	void deleteAll();
 
 	List<Assignment> findByReturnDateNotNull();
+
+	/** Dates (attribution, retour) des attributions terminées : suffisant pour calculer des durées sans charger les entités. */
+	@Query("SELECT a.assignmentDate, a.returnDate FROM Assignment a WHERE a.returnDate IS NOT NULL AND a.assignmentDate >= :startDate AND a.assignmentDate <= :endDate")
+	List<Object[]> findReturnedAssignmentDatesBetweenQuery(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+	default List<Object[]> findReturnedAssignmentDatesBetween(LocalDate startDate, LocalDate endDate) {
+		return findReturnedAssignmentDatesBetweenQuery(OptionalDates.startOrMin(startDate), OptionalDates.endOrMax(endDate));
+	}
 
 	List<Assignment> findByPerson_Id(UUID personId);
 

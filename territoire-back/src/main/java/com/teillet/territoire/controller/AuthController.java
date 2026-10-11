@@ -2,12 +2,16 @@ package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.LoginRequest;
 import com.teillet.territoire.model.User;
+import com.teillet.territoire.security.ClientIpResolver;
+import com.teillet.territoire.security.LoginAttemptService;
 import com.teillet.territoire.service.IUserService;
 import com.teillet.territoire.service.impl.JwtService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @RestController
@@ -26,92 +31,158 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthController {
+	static final String REFRESH_COOKIE = "refreshToken";
+	static final String REFRESH_COOKIE_PATH = "/api/authentification";
+
 	private final IUserService userService;
 	private final AuthenticationManager authenticationManager;
 	private final JwtService jwtService;
+	private final LoginAttemptService loginAttemptService;
+
+	/**
+	 * {@code true} en production (HTTPS). Mettre à {@code false} uniquement en développement local sans HTTPS.
+	 */
+	@Value("${security.cookie.secure:true}")
+	private boolean secureCookie;
 
 	// 🔹 Endpoint de connexion (Login)
 	@PostMapping("/connexion")
-	public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+	public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+		String ip = ClientIpResolver.resolve(httpRequest);
 		log.info("🛂 Tentative de connexion pour l'utilisateur : {}", request.getEmail());
+
+		// Lève une TooManyRequestsException (429) si le compte ou l'IP sont temporairement bloqués
+		loginAttemptService.checkAllowed(request.getEmail(), ip);
 
 		try {
 			authenticationManager.authenticate(
 					new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
 			);
-			log.info("✅ Authentification réussie pour {}", request.getEmail());
-
 		} catch (AuthenticationException e) {
-			log.warn("❌ Échec d'authentification pour {}", request.getEmail());
+			loginAttemptService.recordFailure(request.getEmail(), ip);
+			log.warn("❌ Échec d'authentification pour {} depuis {}", request.getEmail(), ip);
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					.body(Map.of("error", "Identifiants incorrects"));
 		}
+		loginAttemptService.recordSuccess(request.getEmail());
 
-		// Récupération de l'utilisateur après authentification
-		User user = userService.findByEmail(request.getEmail()).orElseThrow(() -> {
+		User user = userService.findByEmail(request.getEmail()).orElse(null);
+		if (user == null) {
 			log.error("⚠️ Utilisateur introuvable après authentification : {}", request.getEmail());
-			return new RuntimeException("Utilisateur introuvable");
-		});
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Identifiants incorrects"));
+		}
 
-		// Génération des tokens JWT
 		String accessToken = jwtService.generateToken(user);
 		String refreshToken = jwtService.generateRefreshToken(user);
-		log.info("🔑 Tokens JWT générés avec succès pour {}", request.getEmail());
+		log.info("✅ Connexion réussie pour {}", request.getEmail());
 
-		// Déposer le refresh token en cookie HttpOnly
-		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
-				.httpOnly(true)
-				.secure(false) // mettre à true derrière HTTPS
-				.sameSite("Lax")
-				.path("/")
-				.maxAge(Duration.ofDays(90))
-				.build();
-
+		// L'entité User ne sérialise ni le hash du mot de passe ni les champs techniques (@JsonIgnore)
 		return ResponseEntity.ok()
-				.header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+				.header(HttpHeaders.SET_COOKIE, refreshCookie(refreshToken).toString())
+				.header(HttpHeaders.SET_COOKIE, legacyCookieCleared().toString())
 				.body(Map.of("user", user, "token", accessToken));
 	}
 
-	// 🔄 Endpoint de rafraîchissement du token d'accès
+	// 🔄 Endpoint de rafraîchissement du token d'accès (avec rotation du refresh token)
 	@PostMapping("/refresh")
 	public ResponseEntity<?> refreshToken(HttpServletRequest request) {
-		String refreshToken = null;
-		Cookie[] cookies = Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]);
-		for (Cookie c : cookies) {
-			if ("refreshToken".equals(c.getName())) {
-				refreshToken = c.getValue();
-				break;
-			}
-		}
+		String refreshToken = readRefreshCookie(request);
 
 		if (refreshToken == null || !jwtService.validateRefreshToken(refreshToken)) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Refresh token invalide"));
+			return unauthorized("Refresh token invalide");
 		}
 
 		String email = jwtService.extractEmail(refreshToken);
 		if (email == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Refresh token expiré"));
+			return unauthorized("Refresh token expiré");
 		}
 
 		User user = userService.findByEmail(email).orElse(null);
 		if (user == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Utilisateur introuvable"));
+			return unauthorized("Utilisateur introuvable");
 		}
 
-		// Rotation du refresh token et génération d'un nouveau access token
+		// Refresh token émis avant une révocation (déconnexion, changement de rôle) : refusé
+		if (!Objects.equals(jwtService.extractTokenVersion(refreshToken), user.getCurrentTokenVersion())) {
+			log.warn("Refresh token révoqué présenté pour {}", email);
+			return unauthorized("Refresh token révoqué");
+		}
+
 		String newAccessToken = jwtService.generateToken(user);
 		String newRefreshToken = jwtService.generateRefreshToken(user);
 
-		ResponseCookie newRefreshCookie = ResponseCookie.from("refreshToken", newRefreshToken)
+		return ResponseEntity.ok()
+				.header(HttpHeaders.SET_COOKIE, refreshCookie(newRefreshToken).toString())
+				.header(HttpHeaders.SET_COOKIE, legacyCookieCleared().toString())
+				.body(Map.of("token", newAccessToken));
+	}
+
+	/**
+	 * Déconnexion : révoque tous les jetons de l'utilisateur (sur tous ses appareils) et supprime le cookie.
+	 * Accessible sans jeton d'accès valide pour pouvoir toujours nettoyer le cookie.
+	 */
+	@PostMapping("/deconnexion")
+	public ResponseEntity<Void> logout(HttpServletRequest request) {
+		String refreshToken = readRefreshCookie(request);
+		if (refreshToken != null && jwtService.validateRefreshToken(refreshToken)) {
+			String email = jwtService.extractEmail(refreshToken);
+			Integer version = jwtService.extractTokenVersion(refreshToken);
+			userService.findByEmail(email)
+					.filter(user -> Objects.equals(version, user.getCurrentTokenVersion()))
+					.ifPresent(user -> {
+						userService.revokeTokens(user.getId());
+						log.info("🚪 Déconnexion et révocation des jetons pour {}", email);
+					});
+		}
+
+		ResponseCookie cleared = ResponseCookie.from(REFRESH_COOKIE, "")
 				.httpOnly(true)
-				.secure(false)
+				.secure(secureCookie)
+				.sameSite("Strict")
+				.path(REFRESH_COOKIE_PATH)
+				.maxAge(0)
+				.build();
+		return ResponseEntity.noContent()
+				.header(HttpHeaders.SET_COOKIE, cleared.toString())
+				.header(HttpHeaders.SET_COOKIE, legacyCookieCleared().toString())
+				.build();
+	}
+
+	private ResponseCookie refreshCookie(String refreshToken) {
+		return ResponseCookie.from(REFRESH_COOKIE, refreshToken)
+				.httpOnly(true)
+				.secure(secureCookie)
+				.sameSite("Strict")
+				// Le cookie n'est envoyé qu'aux endpoints d'authentification
+				.path(REFRESH_COOKIE_PATH)
+				.maxAge(Duration.ofMillis(jwtService.getRefreshExpirationTime()))
+				.build();
+	}
+
+	/**
+	 * Supprime l'ancien cookie de refresh, posé sur "/" par les versions précédentes.
+	 */
+	private ResponseCookie legacyCookieCleared() {
+		return ResponseCookie.from(REFRESH_COOKIE, "")
+				.httpOnly(true)
+				.secure(secureCookie)
 				.sameSite("Lax")
 				.path("/")
-				.maxAge(Duration.ofDays(90))
+				.maxAge(0)
 				.build();
+	}
 
-		return ResponseEntity.ok()
-				.header(HttpHeaders.SET_COOKIE, newRefreshCookie.toString())
-				.body(Map.of("token", newAccessToken));
+	private static String readRefreshCookie(HttpServletRequest request) {
+		Cookie[] cookies = Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]);
+		for (Cookie c : cookies) {
+			if (REFRESH_COOKIE.equals(c.getName())) {
+				return c.getValue();
+			}
+		}
+		return null;
+	}
+
+	private static ResponseEntity<Map<String, String>> unauthorized(String message) {
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", message));
 	}
 }

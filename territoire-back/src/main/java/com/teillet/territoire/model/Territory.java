@@ -31,6 +31,14 @@ public class Territory {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private UUID id;
 
+	/**
+	 * Verrou optimiste géré par Hibernate : deux modifications simultanées du même territoire (ex. double attribution)
+	 * ne passent pas toutes les deux. Valeur par défaut 0 pour que les territoires existants soient remplis à la création de la colonne.
+	 */
+	@Version
+	@Column(nullable = false, columnDefinition = "bigint default 0")
+	private Long version;
+
 	private String name;
 
 	@Enumerated(EnumType.STRING)

@@ -19,4 +19,9 @@ public interface IUserService extends UserDetailsService {
 
 	// 🔹 Supprimer un utilisateur
 	void deleteUser(UUID userId);
+
+	/**
+	 * Révoque tous les jetons (accès et refresh) déjà émis pour cet utilisateur.
+	 */
+	void revokeTokens(UUID userId);
 }

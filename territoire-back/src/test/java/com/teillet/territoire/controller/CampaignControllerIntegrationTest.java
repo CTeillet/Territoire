@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -165,7 +164,7 @@ class CampaignControllerIntegrationTest {
 	}
 
 	@Test
-	@WithMockUser(roles = "UTILISATEUR")
+	@WithMockUser(roles = "GESTIONNAIRE")
 	void testGetAndUpdateRemainingTerritories() throws Exception {
 		Territory t = new Territory();
 		t.setName("Territoire X");
@@ -271,5 +270,54 @@ class CampaignControllerIntegrationTest {
 				.andExpect(status().isNoContent());
 
 		assertFalse(campaignRepository.findById(saved.getId()).isPresent());
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testCreateCampaign_User_Forbidden() throws Exception {
+		CampaignDto dto = CampaignDto.builder()
+				.name("Campagne interdite")
+				.startDate(LocalDate.of(2024, 1, 1))
+				.endDate(LocalDate.of(2024, 12, 31))
+				.build();
+
+		mockMvc.perform(post("/api/campagnes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(dto)))
+				.andExpect(status().isForbidden());
+
+		assertTrue(campaignRepository.findAll().isEmpty());
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testCloseAndDeleteCampaign_User_Forbidden() throws Exception {
+		Campaign c = new Campaign();
+		c.setName("Campagne protégée");
+		c.setStartDate(LocalDate.of(2024, 1, 1));
+		c.setEndDate(LocalDate.of(2024, 12, 31));
+		c.setTerritories(new ArrayList<>());
+		c.setRemainingTerritories(new ArrayList<>());
+		Campaign saved = campaignRepository.save(c);
+
+		mockMvc.perform(put("/api/campagnes/{id}/fermer", saved.getId()))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(delete("/api/campagnes/{id}", saved.getId()))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(put("/api/campagnes/{id}/territoires-restants", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("[]"))
+				.andExpect(status().isForbidden());
+
+		Campaign unchanged = campaignRepository.findById(saved.getId()).orElseThrow();
+		assertFalse(unchanged.isClosed());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testGetCampaign_NotFound() throws Exception {
+		mockMvc.perform(get("/api/campagnes/{id}", UUID.randomUUID()))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").exists());
 	}
 }

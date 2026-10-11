@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -75,12 +76,21 @@ class AssignmentControllerIntegrationTest {
 	}
 
 	@Test
-	@WithMockUser(roles = "UTILISATEUR")
+	@WithMockUser(roles = "ADMIN")
 	void testCheckLate() throws Exception {
 		mockMvc.perform(put("/api/attributions/verification-retard"))
 				.andExpect(status().isOk());
 
 		verify(assignmentService).checkOverdueAssignments();
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testCheckLate_User_Forbidden() throws Exception {
+		mockMvc.perform(put("/api/attributions/verification-retard"))
+				.andExpect(status().isForbidden());
+
+		verify(assignmentService, never()).checkOverdueAssignments();
 	}
 
 	@Test

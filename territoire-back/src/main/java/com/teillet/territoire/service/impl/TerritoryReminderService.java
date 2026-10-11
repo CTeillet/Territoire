@@ -63,8 +63,12 @@ public class TerritoryReminderService implements ITerritoryReminderService {
         return TerritoryReminderMapper.toDto(savedReminder);
     }
 
+    /**
+     * Pas de {@code @Transactional} ici : le rappel est enregistré (et validé) AVANT l'envoi, puis supprimé si l'envoi échoue.
+     * Ainsi un message WhatsApp parti est toujours tracé en base, et on ne peut pas renvoyer deux fois le même rappel
+     * à cause d'une trace perdue.
+     */
     @Override
-    @Transactional
     public TerritoryReminderDto sendWhatsAppReminder(List<UUID> territoryIds, UUID personId, String message) {
         if (territoryIds == null || territoryIds.isEmpty()) {
             throw new IllegalArgumentException("La liste des territoires ne peut pas être vide");
@@ -96,9 +100,6 @@ public class TerritoryReminderService implements ITerritoryReminderService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tous les territoires sélectionnés ont déjà un rappel pour cette personne");
         }
 
-        // send WhatsApp message once
-        wahaClient.sendMessage(person.getPhoneNumber(), message);
-
         // persist reminder with messageSend and territories list
         TerritoryReminder reminder = TerritoryReminder.builder()
                 .person(person)
@@ -108,6 +109,15 @@ public class TerritoryReminderService implements ITerritoryReminderService {
                 .build();
 
         TerritoryReminder saved = territoryReminderRepository.save(reminder);
+
+        // send WhatsApp message once ; en cas d'échec, on retire le rappel pour pouvoir réessayer
+        try {
+            wahaClient.sendMessage(person.getPhoneNumber(), message);
+        } catch (RuntimeException e) {
+            log.error("Échec de l'envoi WhatsApp à {} : le rappel enregistré est annulé", person.getPhoneNumber(), e);
+            territoryReminderRepository.delete(saved);
+            throw e;
+        }
         log.info("Rappel WhatsApp envoyé à {} pour {} territoire(s)", person.getPhoneNumber(), territories.size());
         return TerritoryReminderMapper.toDto(saved);
     }

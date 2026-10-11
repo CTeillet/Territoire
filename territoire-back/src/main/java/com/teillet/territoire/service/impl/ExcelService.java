@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import static com.teillet.territoire.mapper.ExportMappers.toExportDtos;
@@ -63,9 +65,10 @@ public class ExcelService implements IExcelService {
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public void importExcel(MultipartFile file) throws IOException {
-		try (InputStream inputStream = file.getInputStream()) {
-			Workbook workbook = WorkbookFactory.create(inputStream);
+		try (InputStream inputStream = file.getInputStream();
+		     Workbook workbook = WorkbookFactory.create(inputStream)) {
 			Sheet sheet = workbook.getSheetAt(0);
 
 			extractTerritories(sheet);
@@ -112,7 +115,7 @@ public class ExcelService implements IExcelService {
 				log.info("Territoire {} -> {} (attribué le {}, parcouru le {})",
 						terrId, name, attribLe, parcouruLe);
 
-				LocalDate assignmentDate = LocalDate.parse(attribLe);
+				LocalDate assignmentDate = parseDate(attribLe, terrId, "attribution");
 
 				Person person = personList.stream()
 						.filter(p -> normalize(p.getFirstName() + " " + p.getLastName()).equals(normalize(name)))
@@ -123,13 +126,19 @@ public class ExcelService implements IExcelService {
 					continue;
 				}
 
+				// Ré-importer le même fichier ne doit pas dupliquer les attributions
+				if (assignmentRepository.existsByTerritory_IdAndPerson_IdAndAssignmentDate(territory.getId(), person.getId(), assignmentDate)) {
+					log.info("Attribution déjà présente pour le territoire {} et {} le {}, ignorée", terrId, name, assignmentDate);
+					continue;
+				}
+
 				Assignment assignment = new Assignment();
 				assignment.setTerritory(territory);
 				assignment.setAssignmentDate(assignmentDate);
 				assignment.setDueDate(assignmentDate.plusMonths(4));
 				assignment.setPerson(person);
 				if (parcouruLe != null && !parcouruLe.isEmpty()) {
-					LocalDate returnDate = LocalDate.parse(parcouruLe);
+					LocalDate returnDate = parseDate(parcouruLe, terrId, "retour");
 					assignment.setReturnDate(returnDate);
 					territory.setStatus(TerritoryStatus.PENDING);
 				} else {
@@ -142,6 +151,15 @@ public class ExcelService implements IExcelService {
 				territoryRepository.save(territory);
 
 			}
+		}
+	}
+
+	private LocalDate parseDate(String value, String terrId, String label) {
+		try {
+			return LocalDate.parse(value == null ? "" : value.trim());
+		} catch (DateTimeParseException e) {
+			throw new IllegalArgumentException("Date de %s invalide pour le territoire %s : \"%s\" (format attendu : AAAA-MM-JJ)"
+					.formatted(label, terrId, value));
 		}
 	}
 
@@ -163,7 +181,15 @@ public class ExcelService implements IExcelService {
 					} else {
 						return String.valueOf((int) cell.getNumericCellValue());
 					}
-				case FORMULA: return cell.getCellFormula();
+				case FORMULA:
+					// On lit le résultat calculé (valeur en cache) et non le texte de la formule
+					if (cell.getCachedFormulaResultType() == CellType.STRING) return cell.getStringCellValue();
+					if (cell.getCachedFormulaResultType() == CellType.NUMERIC) {
+						return DateUtil.isCellDateFormatted(cell)
+								? cell.getLocalDateTimeCellValue().toLocalDate().toString()
+								: String.valueOf((int) cell.getNumericCellValue());
+					}
+					return null;
 				default: return null;
 			}
 		}

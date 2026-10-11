@@ -1,0 +1,3 @@
+-- Baseline : le schéma existant est géré par Hibernate (spring.jpa.hibernate.ddl-auto=update).
+-- Ce fichier est volontairement vide. Les migrations suivantes (V2__*.sql, ...) sont réservées aux changements
+-- que Hibernate ne sait pas faire seul (renommage, suppression de colonne, transformation de données...).

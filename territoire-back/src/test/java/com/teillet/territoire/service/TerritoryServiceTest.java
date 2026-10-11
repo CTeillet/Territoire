@@ -9,6 +9,7 @@ import com.teillet.territoire.enums.TerritoryType;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Territory;
+import com.teillet.territoire.model.TerritoryReminder;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.BlockRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
@@ -38,6 +39,9 @@ class TerritoryServiceTest {
 	private TerritoryRepository territoryRepository;
 
 	@Mock
+	private com.teillet.territoire.repository.TerritoryReminderRepository reminderRepository;
+
+	@Mock
 	private BlockRepository blockRepository;
 
 	@Mock
@@ -62,7 +66,8 @@ class TerritoryServiceTest {
 				blockRepository,
 				assignmentRepository,
 				campaignService,
-				cityService
+				cityService,
+				reminderRepository
 		);
 
 		territoryId = UUID.randomUUID();
@@ -124,13 +129,62 @@ class TerritoryServiceTest {
 		pendingTerritory.setStatus(TerritoryStatus.PENDING);
 		pendingTerritory.setAssignments(List.of(oldAssignment));
 
-		when(territoryRepository.findAll()).thenReturn(List.of(pendingTerritory));
+		when(territoryRepository.findByStatus(TerritoryStatus.PENDING)).thenReturn(List.of(pendingTerritory));
 		when(territoryRepository.save(any(Territory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		territoryService.releasePendingTerritories();
 
 		assertEquals(TerritoryStatus.AVAILABLE, pendingTerritory.getStatus());
 		verify(territoryRepository, times(1)).save(pendingTerritory);
+	}
+
+	@Test
+	void testReleasePendingTerritories_RobustToMissingReturnDates() {
+		// Territoire en attente sans aucune attribution : ne doit plus faire échouer le traitement
+		Territory withoutAssignment = new Territory();
+		withoutAssignment.setId(UUID.randomUUID());
+		withoutAssignment.setName("Sans attribution");
+		withoutAssignment.setStatus(TerritoryStatus.PENDING);
+		withoutAssignment.setAssignments(List.of());
+
+		// Attribution récente + attribution sans date de retour : la plus récente date non nulle fait foi
+		Territory recentlyReturned = new Territory();
+		recentlyReturned.setId(UUID.randomUUID());
+		recentlyReturned.setStatus(TerritoryStatus.PENDING);
+		recentlyReturned.setAssignments(List.of(
+				Assignment.builder().returnDate(null).build(),
+				Assignment.builder().returnDate(LocalDate.now().minusMonths(1)).build()));
+
+		Territory oldReturned = new Territory();
+		oldReturned.setId(UUID.randomUUID());
+		oldReturned.setStatus(TerritoryStatus.PENDING);
+		oldReturned.setAssignments(List.of(
+				Assignment.builder().returnDate(null).build(),
+				Assignment.builder().returnDate(LocalDate.now().minusMonths(6)).build()));
+
+		when(territoryRepository.findByStatus(TerritoryStatus.PENDING))
+				.thenReturn(List.of(withoutAssignment, recentlyReturned, oldReturned));
+		when(territoryRepository.save(any(Territory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		assertDoesNotThrow(() -> territoryService.releasePendingTerritories());
+
+		assertEquals(TerritoryStatus.PENDING, withoutAssignment.getStatus());
+		assertEquals(TerritoryStatus.PENDING, recentlyReturned.getStatus());
+		assertEquals(TerritoryStatus.AVAILABLE, oldReturned.getStatus());
+		verify(territoryRepository, times(1)).save(any(Territory.class));
+	}
+
+	@Test
+	void testDeleteTerritory_DetachesFromReminders() {
+		TerritoryReminder reminder = TerritoryReminder.builder().territories(new java.util.ArrayList<>(List.of(territory))).build();
+		when(territoryRepository.findById(territoryId)).thenReturn(Optional.of(territory));
+		when(reminderRepository.findByTerritories_Id(territoryId)).thenReturn(List.of(reminder));
+
+		territoryService.deleteTerritory(territoryId);
+
+		assertTrue(reminder.getTerritories().isEmpty());
+		verify(reminderRepository).save(reminder);
+		verify(territoryRepository).deleteById(territoryId);
 	}
 
 	@Test
@@ -172,7 +226,7 @@ class TerritoryServiceTest {
 		LocalDate start = LocalDate.of(2024, 1, 1);
 		LocalDate end = LocalDate.of(2024, 6, 1);
 
-		when(territoryRepository.findAll()).thenReturn(List.of(territory));
+		when(territoryRepository.findAllIdTypeAndCityName()).thenReturn(List.<Object[]>of(new Object[]{territoryId, TerritoryType.BUILDING, "Paris"}));
 		when(territoryRepository.findTerritoryIdsNotAssignedBetween(start, end)).thenReturn(List.of(territoryId));
 
 		TerritoryPeriodStatisticsDto stats = territoryService.getPeriodStatistics(start, end);
@@ -187,12 +241,10 @@ class TerritoryServiceTest {
 		LocalDate start = LocalDate.of(2024, 1, 1);
 		LocalDate end = LocalDate.of(2024, 3, 1);
 
-		Assignment a1 = Assignment.builder()
-				.assignmentDate(LocalDate.of(2024, 1, 10))
-				.returnDate(LocalDate.of(2024, 1, 20)) // 10 days
-				.build();
+		// 10 jours entre l'attribution et le retour
+		Object[] a1 = new Object[]{LocalDate.of(2024, 1, 10), LocalDate.of(2024, 1, 20)};
 
-		when(assignmentRepository.findByReturnDateNotNull()).thenReturn(List.of(a1));
+		when(assignmentRepository.findReturnedAssignmentDatesBetween(start, end)).thenReturn(List.<Object[]>of(a1));
 
 		List<AverageAssignmentDurationDto> result = territoryService.getAverageAssignmentDurationByMonth(start, end);
 		assertEquals(1, result.size());
@@ -235,5 +287,21 @@ class TerritoryServiceTest {
 		assertArrayEquals(new byte[]{1, 2, 3}, updated.getTerritoryMap());
 		assertEquals("map.png", updated.getTerritoryMapName());
 		assertEquals("image/png", updated.getTerritoryMapContentType());
+	}
+
+	@Test
+	void testUploadTerritoryMap_RejectsSvg() {
+		MockMultipartFile file = new MockMultipartFile("file", "map.svg", "image/svg+xml", new byte[]{1});
+
+		assertThrows(IllegalArgumentException.class, () -> territoryService.uploadTerritoryMap(territoryId, file));
+		verify(territoryRepository, never()).save(any());
+	}
+
+	@Test
+	void testUploadTerritoryMap_RejectsTooLargeFile() {
+		MockMultipartFile file = new MockMultipartFile("file", "map.png", "image/png", new byte[5 * 1024 * 1024 + 1]);
+
+		assertThrows(IllegalArgumentException.class, () -> territoryService.uploadTerritoryMap(territoryId, file));
+		verify(territoryRepository, never()).save(any());
 	}
 }

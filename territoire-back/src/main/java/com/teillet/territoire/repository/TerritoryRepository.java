@@ -17,6 +17,12 @@ import java.util.UUID;
 @Repository
 public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
 
+    boolean existsByCity_Id(UUID cityId);
+
+    /** Données légères (id, type, nom de ville) pour les statistiques : évite de charger les entités complètes (cartes, pâtés...). */
+    @Query("SELECT t.id, t.type, t.city.name FROM Territory t")
+    List<Object[]> findAllIdTypeAndCityName();
+
     @Modifying
     @Query(nativeQuery = true, value = """
             UPDATE territory
@@ -47,6 +53,8 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
     List<TerritoryStatisticsProjection> getCurrentTerritoryStats();
 
     Territory findByName(String name);
+
+    List<Territory> findByStatus(com.teillet.territoire.enums.TerritoryStatus status);
 
     List<Territory> findByCity_Name(String cityName);
 

@@ -55,6 +55,25 @@ class JwtServiceTest {
 	}
 
 	@Test
+	void testTokenVersion() {
+		assertEquals(0, jwtService.extractTokenVersion(jwtService.generateRefreshToken(user)));
+
+		user.incrementTokenVersion();
+		assertEquals(1, jwtService.extractTokenVersion(jwtService.generateToken(user)));
+		assertEquals(1, jwtService.extractTokenVersion(jwtService.generateRefreshToken(user)));
+
+		assertNull(jwtService.extractTokenVersion("invalid.token.string"));
+	}
+
+	@Test
+	void testExpiredTokenIsRejected() {
+		JwtService shortLived = new JwtService(secretKey, -1000L, -1000L);
+		String token = shortLived.generateToken(user);
+		assertFalse(shortLived.validateToken(token));
+		assertNull(shortLived.extractEmail(token));
+	}
+
+	@Test
 	void testInvalidToken() {
 		assertFalse(jwtService.validateToken("invalid.token.string"));
 		assertFalse(jwtService.validateRefreshToken("invalid.token.string"));

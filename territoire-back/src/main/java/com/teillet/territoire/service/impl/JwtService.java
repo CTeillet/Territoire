@@ -7,6 +7,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import javax.crypto.SecretKey;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +15,11 @@ import java.util.Base64;
 import java.util.Date;
 
 @Component
+@Slf4j
 public class JwtService implements IJwtService {
+	static final String CLAIM_TYPE = "type";
+	static final String CLAIM_VERSION = "ver";
+
 	private final long expirationTime; // Access token TTL
 	private final long refreshExpirationTime; // Refresh token TTL
 
@@ -32,17 +37,22 @@ public class JwtService implements IJwtService {
 		this.refreshExpirationTime = refreshExpirationTime;
 	}
 
+	public long getRefreshExpirationTime() {
+		return refreshExpirationTime;
+	}
+
 	/**
-	 * Génère un token d'accès JWT pour un utilisateur donné (email).
+	 * Génère un token d'accès JWT (courte durée) pour un utilisateur donné.
 	 */
 	@Override
 	public String generateToken(User user) {
 		return Jwts.builder()
 				.subject(user.getEmail())
 				.claim("role", user.getRole().name())
-				.claim("type", "access")
+				.claim(CLAIM_TYPE, "access")
+				.claim(CLAIM_VERSION, user.getCurrentTokenVersion())
 				.issuedAt(new Date())
-				.expiration(new Date(System.currentTimeMillis() + expirationTime)) // expirationTime in ms (configurable)
+				.expiration(new Date(System.currentTimeMillis() + expirationTime))
 				.signWith(key)
 				.compact();
 	}
@@ -51,7 +61,8 @@ public class JwtService implements IJwtService {
 	public String generateRefreshToken(User user) {
 		return Jwts.builder()
 				.subject(user.getEmail())
-				.claim("type", "refresh")
+				.claim(CLAIM_TYPE, "refresh")
+				.claim(CLAIM_VERSION, user.getCurrentTokenVersion())
 				.issuedAt(new Date())
 				.expiration(new Date(System.currentTimeMillis() + refreshExpirationTime))
 				.signWith(key)
@@ -59,61 +70,51 @@ public class JwtService implements IJwtService {
 	}
 
 	/**
-	 * Extrait l'email (subject) du token JWT.
+	 * Extrait l'email (subject) du token JWT, ou {@code null} si le token est invalide ou expiré.
 	 */
 	@Override
 	public String extractEmail(String token) {
-		try {
-			Claims claims = Jwts.parser()
-					.verifyWith(key)
-					.build()
-					.parseSignedClaims(token)
-					.getPayload(); // Vérifie si getPayload() est bien obtenu
-
-			return claims.getSubject(); // Récupère l'email
-		} catch (Exception e) {
-			System.out.println("Erreur lors de l'extraction du token : " + e.getMessage());
-			return null;
-		}
+		Claims claims = parse(token);
+		return claims == null ? null : claims.getSubject();
 	}
-
 
 	/**
 	 * Vérifie si le token d'accès est valide.
 	 */
 	@Override
 	public boolean validateToken(String token) {
-		try {
-			Claims claims = Jwts.parser()
-					.verifyWith(key)
-					.build()
-					.parseSignedClaims(token)
-					.getPayload();
-			Object type = claims.get("type");
-			return "access".equals(type);
-		} catch (ExpiredJwtException e) {
-			System.out.println("Token d'accès expiré");
-		} catch (JwtException e) {
-			System.out.println("Token invalide");
-		}
-		return false;
+		Claims claims = parse(token);
+		return claims != null && "access".equals(claims.get(CLAIM_TYPE));
 	}
 
 	@Override
 	public boolean validateRefreshToken(String token) {
+		Claims claims = parse(token);
+		return claims != null && "refresh".equals(claims.get(CLAIM_TYPE));
+	}
+
+	@Override
+	public Integer extractTokenVersion(String token) {
+		Claims claims = parse(token);
+		if (claims == null) {
+			return null;
+		}
+		Object version = claims.get(CLAIM_VERSION);
+		return version instanceof Number number ? number.intValue() : 0;
+	}
+
+	private Claims parse(String token) {
 		try {
-			Claims claims = Jwts.parser()
+			return Jwts.parser()
 					.verifyWith(key)
 					.build()
 					.parseSignedClaims(token)
 					.getPayload();
-			Object type = claims.get("type");
-			return "refresh".equals(type);
 		} catch (ExpiredJwtException e) {
-			System.out.println("Refresh token expiré");
-		} catch (JwtException e) {
-			System.out.println("Refresh token invalide");
+			log.debug("Token JWT expiré");
+		} catch (JwtException | IllegalArgumentException e) {
+			log.debug("Token JWT invalide : {}", e.getMessage());
 		}
-		return false;
+		return null;
 	}
 }
