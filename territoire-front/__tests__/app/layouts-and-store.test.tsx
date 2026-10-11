@@ -28,9 +28,10 @@ const expire = () => {
 };
 
 describe("Mises en page", () => {
-  it("la page personnelle n'est ni indexée ni transmise en Referer", () => {
+  it("la page personnelle n'est pas indexée et seul son domaine est transmis en Referer", () => {
     expect(publicMetadata.robots).toEqual({ index: false, follow: false });
-    expect(publicMetadata.referrer).toBe("no-referrer");
+    // Jamais le chemin (qui contient le jeton), mais un Referer quand même : les tuiles OSM l'exigent
+    expect(publicMetadata.referrer).toBe("strict-origin");
 
     render(<PublicAccessLayout>contenu</PublicAccessLayout>);
     expect(screen.getByRole("main")).toHaveTextContent("contenu");
