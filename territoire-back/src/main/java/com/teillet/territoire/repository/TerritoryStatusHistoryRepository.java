@@ -11,6 +11,11 @@ import java.util.UUID;
 
 public interface TerritoryStatusHistoryRepository extends JpaRepository<TerritoryStatusHistory, UUID> {
 
-    @Query("SELECT h FROM TerritoryStatusHistory h WHERE (CAST(:startDate AS date) IS NULL OR h.date >= CAST(:startDate AS date)) AND (CAST(:endDate AS date) IS NULL OR h.date <= CAST(:endDate AS date)) ORDER BY h.date ASC")
-    List<TerritoryStatusHistory> findByDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    @Query("SELECT h FROM TerritoryStatusHistory h WHERE (:hasStart = false OR h.date >= :startDate) AND (:hasEnd = false OR h.date <= :endDate) ORDER BY h.date ASC")
+    List<TerritoryStatusHistory> findByDateBetweenQuery(@Param("hasStart") boolean hasStart, @Param("startDate") LocalDate startDate,
+                                                        @Param("hasEnd") boolean hasEnd, @Param("endDate") LocalDate endDate);
+
+    default List<TerritoryStatusHistory> findByDateBetween(LocalDate startDate, LocalDate endDate) {
+        return findByDateBetweenQuery(startDate != null, OptionalDates.startOrMin(startDate), endDate != null, OptionalDates.endOrMax(endDate));
+    }
 }

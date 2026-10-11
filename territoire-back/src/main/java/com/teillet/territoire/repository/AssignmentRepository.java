@@ -36,11 +36,16 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 		SELECT a
 		FROM Assignment a
 		WHERE
-			(CAST(:startDate AS DATE) IS NULL OR a.assignmentDate <= CAST(:endDate AS DATE))
-			AND (CAST(:endDate AS DATE) IS NULL OR (a.returnDate >= CAST(:startDate AS DATE) OR a.returnDate IS NULL))
+			(:hasStart = false OR a.assignmentDate <= :endDate)
+			AND (:hasEnd = false OR (a.returnDate >= :startDate OR a.returnDate IS NULL))
 		ORDER BY a.assignmentDate DESC
 	""")
-	List<Assignment> findAssignmentsInPeriod(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+	List<Assignment> findAssignmentsInPeriodQuery(@Param("hasStart") boolean hasStart, @Param("startDate") LocalDate startDate,
+	                                              @Param("hasEnd") boolean hasEnd, @Param("endDate") LocalDate endDate);
+
+	default List<Assignment> findAssignmentsInPeriod(LocalDate startDate, LocalDate endDate) {
+		return findAssignmentsInPeriodQuery(startDate != null, OptionalDates.startOrMin(startDate), endDate != null, OptionalDates.endOrMax(endDate));
+	}
 
 	/**
 	 * Calculates the overall average duration of assignments in days.
@@ -59,9 +64,14 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 			    SELECT AVG(EXTRACT(EPOCH FROM (a.return_date::timestamp - a.assignment_date::timestamp))::numeric/86400)
 			    FROM Assignment a
 			    WHERE a.return_date IS NOT NULL
-			      AND (CAST(:startDate AS DATE) IS NULL OR a.assignment_date >= CAST(:startDate AS DATE))
-			      AND (CAST(:endDate AS DATE) IS NULL OR a.assignment_date <= CAST(:endDate AS DATE))
+			      AND (:hasStart = false OR a.assignment_date >= :startDate)
+			      AND (:hasEnd = false OR a.assignment_date <= :endDate)
 			""", nativeQuery = true)
-	Double calculateOverallAverageAssignmentDurationBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+	Double calculateOverallAverageAssignmentDurationBetweenQuery(@Param("hasStart") boolean hasStart, @Param("startDate") LocalDate startDate,
+	                                                             @Param("hasEnd") boolean hasEnd, @Param("endDate") LocalDate endDate);
+
+	default Double calculateOverallAverageAssignmentDurationBetween(LocalDate startDate, LocalDate endDate) {
+		return calculateOverallAverageAssignmentDurationBetweenQuery(startDate != null, OptionalDates.startOrMin(startDate), endDate != null, OptionalDates.endOrMax(endDate));
+	}
 
 }

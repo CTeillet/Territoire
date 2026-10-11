@@ -57,19 +57,23 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
                     SELECT DISTINCT a.territory.id
                     FROM Assignment a
                     WHERE
-                        (CAST(:endDate AS date) IS NULL AND (
-                            a.assignmentDate >= CAST(:startDate AS date)
+                        (:hasEnd = false AND (
+                            a.assignmentDate >= :startDate
                             OR
-                            (a.assignmentDate < CAST(:startDate AS date) AND (a.returnDate >= CAST(:startDate AS date) OR a.returnDate IS NULL))
+                            (a.assignmentDate < :startDate AND (a.returnDate >= :startDate OR a.returnDate IS NULL))
                         ))
                         OR
-                        (CAST(:endDate AS date) IS NOT NULL AND (
-                            a.assignmentDate <= CAST(:endDate AS date)
-                            AND (a.returnDate >= CAST(:startDate AS date) OR a.returnDate IS NULL)
+                        (:hasEnd = true AND (
+                            a.assignmentDate <= :endDate
+                            AND (a.returnDate >= :startDate OR a.returnDate IS NULL)
                         ))
                 )
             """)
-    long countTerritoriesNotAssignedBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    long countTerritoriesNotAssignedBetweenQuery(@Param("startDate") LocalDate startDate, @Param("hasEnd") boolean hasEnd, @Param("endDate") LocalDate endDate);
+
+    default long countTerritoriesNotAssignedBetween(LocalDate startDate, LocalDate endDate) {
+        return countTerritoriesNotAssignedBetweenQuery(OptionalDates.startOrMin(startDate), endDate != null, OptionalDates.endOrMax(endDate));
+    }
 
     @Query(value = """
                 SELECT t.id
@@ -78,19 +82,23 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
                     SELECT DISTINCT a.territory.id
                     FROM Assignment a
                     WHERE
-                        (CAST(:endDate AS date) IS NULL AND (
-                            a.assignmentDate >= CAST(:startDate AS date)
+                        (:hasEnd = false AND (
+                            a.assignmentDate >= :startDate
                             OR
-                            (a.assignmentDate < CAST(:startDate AS date) AND (a.returnDate >= CAST(:startDate AS date) OR a.returnDate IS NULL))
+                            (a.assignmentDate < :startDate AND (a.returnDate >= :startDate OR a.returnDate IS NULL))
                         ))
                         OR
-                        (CAST(:endDate AS date) IS NOT NULL AND (
-                            a.assignmentDate <= CAST(:endDate AS date)
-                            AND (a.returnDate >= CAST(:startDate AS date) OR a.returnDate IS NULL)
+                        (:hasEnd = true AND (
+                            a.assignmentDate <= :endDate
+                            AND (a.returnDate >= :startDate OR a.returnDate IS NULL)
                         ))
                 )
             """)
-    List<UUID> findTerritoryIdsNotAssignedBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    List<UUID> findTerritoryIdsNotAssignedBetweenQuery(@Param("startDate") LocalDate startDate, @Param("hasEnd") boolean hasEnd, @Param("endDate") LocalDate endDate);
+
+    default List<UUID> findTerritoryIdsNotAssignedBetween(LocalDate startDate, LocalDate endDate) {
+        return findTerritoryIdsNotAssignedBetweenQuery(OptionalDates.startOrMin(startDate), endDate != null, OptionalDates.endOrMax(endDate));
+    }
 
     /**
      * Calculates the distribution of territories by city.
@@ -107,25 +115,30 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
             		(COUNT(t.id) * 100.0 / (SELECT COUNT(*) FROM territory)) as percentage
             	FROM territory t
             	JOIN city c ON t.city_id = c.id
-            	WHERE (CAST(:startDate AS DATE) IS NULL OR t.id IN (
+            	WHERE (:hasStart = false OR t.id IN (
             		SELECT DISTINCT a.territory_id
             		FROM assignment a
             		WHERE
-            			(CAST(:endDate AS DATE) IS NULL AND (
-            				a.assignment_date >= CAST(:startDate AS DATE)
+            			(:hasEnd = false AND (
+            				a.assignment_date >= :startDate
             				OR
-            				(a.assignment_date < CAST(:startDate AS DATE) AND (a.return_date >= CAST(:startDate AS DATE) OR a.return_date IS NULL))
+            				(a.assignment_date < :startDate AND (a.return_date >= :startDate OR a.return_date IS NULL))
             			))
             			OR
-            			(CAST(:endDate AS DATE) IS NOT NULL AND (
-            				a.assignment_date <= CAST(:endDate AS DATE)
-            				AND (a.return_date >= CAST(:startDate AS DATE) OR a.return_date IS NULL)
+            			(:hasEnd = true AND (
+            				a.assignment_date <= :endDate
+            				AND (a.return_date >= :startDate OR a.return_date IS NULL)
             			))
             	))
             	GROUP BY c.name
             	ORDER BY COUNT(t.id) DESC
             """)
-    List<Object[]> calculateTerritoryDistributionByCity(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    List<Object[]> calculateTerritoryDistributionByCityQuery(@Param("hasStart") boolean hasStart, @Param("startDate") LocalDate startDate,
+                                                             @Param("hasEnd") boolean hasEnd, @Param("endDate") LocalDate endDate);
+
+    default List<Object[]> calculateTerritoryDistributionByCity(LocalDate startDate, LocalDate endDate) {
+        return calculateTerritoryDistributionByCityQuery(startDate != null, OptionalDates.startOrMin(startDate), endDate != null, OptionalDates.endOrMax(endDate));
+    }
 
     @Query(value = """
             SELECT
