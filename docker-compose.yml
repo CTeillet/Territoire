@@ -36,6 +36,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       WAHA_API_KEY_PLAIN_TEXT: ${WAHA_API_KEY_PLAIN_TEXT}
+      # Test : agent OpenTelemetry desactive (reponses HTTP vides/tronquees). Retirer la ligne suivante pour le reactiver.
+      JAVA_TOOL_OPTIONS: ""
     ports:
       - "127.0.0.1:8080:8080"
 
