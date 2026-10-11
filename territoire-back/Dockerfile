@@ -35,7 +35,7 @@ ENV OTEL_SERVICE_NAME="territoire-back" \
 # ⚠️ Mettre la ressource dans un ENV séparé pour l'égalité interne
 ENV OTEL_RESOURCE_ATTRIBUTES="deployment.environment=docker"
 
-# Instrumentation logback désactivée : l'agent 2.13.x est incompatible avec logback 1.6.x
+# Instrumentation logback désactivée (rebuild forcé) : l'agent 2.13.x est incompatible avec logback 1.6.x
 # (NoSuchFieldError __opentelemetryVirtualField sur LoggingEvent au démarrage).
 # À réactiver après mise à jour de opentelemetry-javaagent.jar vers une version supportant logback 1.6.
 ENV OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED="false" \
