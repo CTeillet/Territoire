@@ -209,6 +209,7 @@
                         </path>
                     </annotationProcessorPaths>
                     <compilerArgs>
+                        <arg>-Xlint:-processing</arg>
                         <arg>-Amapstruct.defaultComponentModel=spring</arg>
                         <arg>-Amapstruct.suppressGeneratorTimestamp=true</arg>
                         <arg>-Amapstruct.suppressGeneratorVersionInfoComment=true</arg>

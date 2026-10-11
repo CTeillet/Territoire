@@ -39,5 +39,6 @@ public class TerritoryReminder {
             inverseJoinColumns = @JoinColumn(name = "territory_id")
     )
     @ToString.Exclude
+    @Builder.Default
     private List<Territory> territories = new ArrayList<>();
 }

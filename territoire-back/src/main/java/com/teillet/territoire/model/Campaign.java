@@ -32,6 +32,7 @@ public class Campaign {
         joinColumns = @JoinColumn(name = "campaign_id"),
         inverseJoinColumns = @JoinColumn(name = "territory_id")
     )
+    @Builder.Default
     private List<Territory> territories = new ArrayList<>();
 
     @ManyToMany
@@ -40,10 +41,12 @@ public class Campaign {
         joinColumns = @JoinColumn(name = "campaign_id"),
         inverseJoinColumns = @JoinColumn(name = "territory_id")
     )
+    @Builder.Default
     private List<Territory> remainingTerritories = new ArrayList<>();
 
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference(value = "campaign-assignments")
+    @Builder.Default
     private List<Assignment> assignments = new ArrayList<>();
 
     @Override

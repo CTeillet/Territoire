@@ -41,6 +41,7 @@ public class City implements Comparable<City> {
 
 	@OneToMany(mappedBy = "city", orphanRemoval = true)
 	@JsonIgnore
+	@Builder.Default
 	private List<Territory> territories = new ArrayList<>();
 
 	@Override
