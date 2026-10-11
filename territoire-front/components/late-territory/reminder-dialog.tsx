@@ -20,6 +20,7 @@ export interface ReminderDialogData {
   person: {
     id: string;
     name: string;
+    firstName: string;
     phone: string | null;
   };
   territories: Array<{

@@ -146,10 +146,18 @@ export default function LateTerritoriesPage() {
   type Group = {
     personId: string;
     personName: string;
+    firstName: string;
     phone?: string;
     territories: Territory[];
     oldest?: string;
   };
+
+  // "DAVID" -> "David", "JEAN-PIERRE" -> "Jean-Pierre"
+  function capitalizeName(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/(^|[\s-])(\p{L})/gu, (_, sep: string, c: string) => sep + c.toUpperCase());
+  }
 
   function earlierIso(a?: string, b?: string): string | undefined {
     if (!a) return b;
@@ -168,6 +176,9 @@ export default function LateTerritoriesPage() {
       const displayName = person
         ? `${person.firstName} ${person.lastName}`
         : t.assignedTo;
+      const firstName = person?.firstName
+        ? capitalizeName(person.firstName)
+        : displayName;
       const phone = person?.phoneNumber;
 
       const existing = map.get(personId);
@@ -175,6 +186,7 @@ export default function LateTerritoriesPage() {
       const next: Group = existing ?? {
         personId: personId,
         personName: displayName,
+        firstName: firstName,
         phone: phone,
         territories: [],
         oldest: undefined,
@@ -341,6 +353,7 @@ export default function LateTerritoriesPage() {
                       person: {
                         id: g.personId,
                         name: g.personName,
+                        firstName: g.firstName,
                         phone: g.phone ?? null,
                       },
                       territories: g.territories.map((t) => ({
