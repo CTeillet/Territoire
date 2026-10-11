@@ -118,7 +118,7 @@
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-geojson</artifactId>
-            <version>34.5</version>
+            <version>35.1</version>
         </dependency>
         <dependency>
             <groupId>org.locationtech.spatial4j</groupId>
