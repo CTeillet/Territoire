@@ -38,10 +38,8 @@ export function CampaignStatisticsComponent({
   campaignId,
 }: CampaignStatisticsProps) {
   const dispatch = useAppDispatch();
-  const {
-    campaignStatistics: statistics,
-    loadingStatistics: loading,
-  } = useAppSelector((state) => state.campaigns);
+  const { campaignStatistics: statistics, loadingStatistics: loading } =
+    useAppSelector((state) => state.campaigns);
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
