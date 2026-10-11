@@ -69,7 +69,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload Frontend Coverage Report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: frontend-coverage-report
@@ -103,7 +103,7 @@ jobs:
         run: ./mvnw clean test
 
       - name: Upload Backend JaCoCo Coverage Report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-jacoco-report
