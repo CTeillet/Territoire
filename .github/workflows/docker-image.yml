@@ -1,9 +1,11 @@
 name: Build and Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI - Automated Quality & Tests"]
+    types: [completed]
     branches:
-      - master  # Change selon ta branche principale
+      - master
 
 permissions:
   packages: write
@@ -13,16 +15,22 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     outputs:
       back: ${{ steps.filter.outputs.back }}
       front: ${{ steps.filter.outputs.front }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
       - name: Filter paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
+          base: ${{ github.event.workflow_run.head_sha }}~1
+          ref: ${{ github.event.workflow_run.head_sha }}
           filters: |
             back:
               - 'territoire-back/**'
@@ -37,6 +45,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Log in to GitHub Container Registry
         if: ${{ needs.changes.outputs.back == 'true' || needs.changes.outputs.front == 'true' }}
@@ -62,6 +72,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Copy docker-compose.yml to VPS
         uses: appleboy/scp-action@master
