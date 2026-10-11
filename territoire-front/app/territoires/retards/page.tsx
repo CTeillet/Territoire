@@ -156,7 +156,10 @@ export default function LateTerritoriesPage() {
   function capitalizeName(name: string): string {
     return name
       .toLowerCase()
-      .replace(/(^|[\s-])(\p{L})/gu, (_, sep: string, c: string) => sep + c.toUpperCase());
+      .replace(
+        /(^|[\s-])(\p{L})/gu,
+        (_, sep: string, c: string) => sep + c.toUpperCase()
+      );
   }
 
   function earlierIso(a?: string, b?: string): string | undefined {
