@@ -46,9 +46,12 @@ describe("geo", () => {
     [999, "1 km"],
     [1337, "1,3 km"],
     [15_400, "15 km"],
-  ])("formate %d m en « %s » (espaces insécables normalisées)", (meters, text) => {
-    expect(formatDistance(meters).replace(/\s/g, " ")).toBe(text);
-  });
+  ])(
+    "formate %d m en « %s » (espaces insécables normalisées)",
+    (meters, text) => {
+      expect(formatDistance(meters).replace(/\s/g, " ")).toBe(text);
+    }
+  );
 
   it("sait si un point est dans un polygone, hors des trous", () => {
     const features = [polygon(outer, hole)];
