@@ -1,20 +1,64 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Circle,
   CircleMarker,
   GeoJSON,
   MapContainer,
+  Polyline,
   TileLayer,
   useMap,
 } from "react-leaflet";
 import { geoJSON, LatLngBounds, latLngBounds } from "leaflet";
 import type { FeatureCollection } from "geojson";
-import { LocateFixed, LocateOff } from "lucide-react";
+import {
+  Car,
+  Footprints,
+  LocateFixed,
+  LocateOff,
+  Navigation,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserPosition, useUserPosition } from "@/hooks/use-user-position";
+import {
+  directionsLinks,
+  distanceMeters,
+  formatDistance,
+  isInside,
+  LatLng,
+  nearestPointOnOutline,
+  TravelMode,
+} from "@/lib/geo";
+
+const TRAVEL_MODE_KEY = "itineraire-mode";
+
+/** Dernier mode de déplacement choisi (préférence propre à l'appareil, la voiture par défaut). */
+function useTravelMode() {
+  const [mode, setMode] = useState<TravelMode>(() => {
+    try {
+      return localStorage.getItem(TRAVEL_MODE_KEY) === "walking"
+        ? "walking"
+        : "driving";
+    } catch {
+      return "driving";
+    }
+  });
+  const choose = (next: TravelMode) => {
+    setMode(next);
+    try {
+      localStorage.setItem(TRAVEL_MODE_KEY, next);
+    } catch {
+      // Préférence non mémorisée (navigation privée) : sans conséquence
+    }
+  };
+  return [mode, choose] as const;
+}
+
+const isAppleDevice = () =>
+  typeof navigator !== "undefined" &&
+  /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
 
 /** À la première position reçue, cadre la carte pour montrer à la fois le territoire et la personne. */
 function FitToUserPosition({
@@ -48,12 +92,13 @@ function FitToUserPosition({
 
 /**
  * Carte d'un territoire (contour en rouge, pâtés en bleu) pour la page publique, avec la position
- * de la personne si elle l'active (pour s'orienter sur place).
+ * de la personne si elle l'active (pour s'orienter sur place) et un itinéraire jusqu'au territoire.
  * Chargée uniquement côté navigateur (Leaflet n'existe pas côté serveur).
  */
 export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
   const locate = useUserPosition();
-  const { hull, blocks, bounds } = useMemo(() => {
+  const [travelMode, setTravelMode] = useTravelMode();
+  const { hull, blocks, outline, bounds, center } = useMemo(() => {
     let collection: FeatureCollection;
     try {
       collection = JSON.parse(geojson) as FeatureCollection;
@@ -74,6 +119,11 @@ export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
             features: all,
           } as FeatureCollection).getBounds()
         : null;
+    const valid = layerBounds?.isValid() ? layerBounds : null;
+    // Destination sans position : le centre, ou le point du contour le plus proche s'il tombe hors du territoire
+    const middle = valid
+      ? { lat: valid.getCenter().lat, lng: valid.getCenter().lng }
+      : null;
     return {
       hull: {
         type: "FeatureCollection",
@@ -83,11 +133,16 @@ export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
         type: "FeatureCollection",
         features: blockFeatures,
       } as FeatureCollection,
-      bounds: layerBounds?.isValid() ? layerBounds : null,
+      outline: all,
+      bounds: valid,
+      center:
+        middle && !isInside(middle, all)
+          ? (nearestPointOnOutline(middle, all) ?? middle)
+          : middle,
     };
   }, [geojson]);
 
-  if (!bounds) {
+  if (!bounds || !center) {
     return (
       <p className="text-sm text-muted-foreground">
         Pas encore de carte pour ce territoire.
@@ -95,7 +150,12 @@ export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
     );
   }
 
-  const center = bounds.getCenter();
+  const position = locate.position;
+  const inside = position !== null && isInside(position, outline);
+  // Avec la position : guidage vers le point du territoire le plus proche
+  const entry: LatLng | null =
+    position && !inside ? nearestPointOnOutline(position, outline) : null;
+  const links = directionsLinks(entry ?? center, travelMode);
 
   return (
     <div className="space-y-2">
@@ -118,15 +178,36 @@ export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
           data={hull}
           style={{ color: "#dc2626", weight: 3, fillOpacity: 0.05 }}
         />
-        {locate.position && (
+        {position && entry && (
+          <>
+            <Polyline
+              positions={[
+                [position.lat, position.lng],
+                [entry.lat, entry.lng],
+              ]}
+              pathOptions={{ color: "#1d4ed8", weight: 3, dashArray: "6 8" }}
+            />
+            <CircleMarker
+              center={[entry.lat, entry.lng]}
+              radius={6}
+              pathOptions={{
+                color: "#ffffff",
+                weight: 2,
+                fillColor: "#dc2626",
+                fillOpacity: 1,
+              }}
+            />
+          </>
+        )}
+        {position && (
           <>
             <Circle
-              center={[locate.position.lat, locate.position.lng]}
-              radius={locate.position.accuracy}
+              center={[position.lat, position.lng]}
+              radius={position.accuracy}
               pathOptions={{ color: "#1d4ed8", weight: 1, fillOpacity: 0.1 }}
             />
             <CircleMarker
-              center={[locate.position.lat, locate.position.lng]}
+              center={[position.lat, position.lng]}
               radius={8}
               pathOptions={{
                 color: "#ffffff",
@@ -137,7 +218,7 @@ export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
             />
           </>
         )}
-        <FitToUserPosition position={locate.position} bounds={bounds} />
+        <FitToUserPosition position={position} bounds={bounds} />
       </MapContainer>
       {locate.supported && (
         <div className="flex flex-wrap items-center gap-2">
@@ -152,7 +233,7 @@ export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
               Afficher ma position
             </Button>
           )}
-          {locate.active && !locate.position && (
+          {locate.active && !position && (
             <span className="text-sm text-muted-foreground">
               Localisation en cours…
             </span>
@@ -164,14 +245,66 @@ export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
           {locate.error}
         </p>
       )}
-      <a
-        className="text-sm text-blue-700 underline"
-        href={`https://www.google.com/maps/search/?api=1&query=${center.lat.toFixed(6)},${center.lng.toFixed(6)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Ouvrir dans une application de navigation
-      </a>
+
+      <section className="space-y-2 rounded-md border p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <Navigation className="h-4 w-4" />
+            Itinéraire
+          </h3>
+          <div
+            className="flex gap-1"
+            role="group"
+            aria-label="Mode de déplacement"
+          >
+            <Button
+              size="sm"
+              variant={travelMode === "driving" ? "default" : "outline"}
+              aria-pressed={travelMode === "driving"}
+              onClick={() => setTravelMode("driving")}
+            >
+              <Car className="h-4 w-4" />
+              En voiture
+            </Button>
+            <Button
+              size="sm"
+              variant={travelMode === "walking" ? "default" : "outline"}
+              aria-pressed={travelMode === "walking"}
+              onClick={() => setTravelMode("walking")}
+            >
+              <Footprints className="h-4 w-4" />À pied
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {inside
+            ? "Tu es dans ce territoire."
+            : position && entry
+              ? `Tu es à ${formatDistance(distanceMeters(position, entry))} à vol d'oiseau du territoire : le guidage t'emmène à son point le plus proche (en rouge sur la carte).`
+              : `Le guidage t'emmène au centre du territoire.${locate.supported ? " Affiche ta position pour être guidé vers son point le plus proche." : ""}`}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm">
+            <a href={links.google} target="_blank" rel="noopener noreferrer">
+              Google Maps
+            </a>
+          </Button>
+          {isAppleDevice() && (
+            <Button asChild size="sm" variant="outline">
+              <a href={links.apple} target="_blank" rel="noopener noreferrer">
+                Plans
+              </a>
+            </Button>
+          )}
+          {travelMode === "driving" && (
+            <Button asChild size="sm" variant="outline">
+              <a href={links.waze} target="_blank" rel="noopener noreferrer">
+                Waze
+              </a>
+            </Button>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MyTerritoriesPage from "@/app/m/[token]/page";
-import { PublicAccess, PublicTerritory } from "@/models/person-access";
+import {
+  PublicAccess,
+  PublicTerritory,
+  PublicTerritoryRequest,
+} from "@/models/person-access";
 import { toast } from "sonner";
 import { jsonResponse } from "../test-utils";
 
@@ -36,10 +40,25 @@ const territory = (
   ...overrides,
 });
 
-const view = (territories: PublicTerritory[]): PublicAccess => ({
+const view = (
+  territories: PublicTerritory[],
+  pendingRequest: PublicTerritoryRequest | null = null
+): PublicAccess => ({
   firstName: "Jean",
   territories,
+  cities: [
+    { id: "c-brest", name: "Brest" },
+    { id: "c-rennes", name: "Rennes" },
+  ],
+  pendingRequest,
 });
+
+const pending: PublicTerritoryRequest = {
+  id: "d1",
+  cityName: "Rennes",
+  comment: "Plutôt près de la gare",
+  createdAt: "2026-10-12T08:30:00Z",
+};
 
 describe("Page « mes territoires »", () => {
   let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>;
@@ -212,5 +231,190 @@ describe("Page « mes territoires »", () => {
     expect(toast.error).toHaveBeenCalledWith(
       "Pas de connexion réseau : le territoire n'a pas été rendu."
     );
+  });
+
+  describe("demande de nouveau territoire", () => {
+    it("envoie une demande avec la ville et le commentaire", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(view([territory()])))
+        .mockResolvedValueOnce(jsonResponse(view([territory()], pending)));
+
+      render(<MyTerritoriesPage />);
+
+      expect(
+        await screen.findByText("Besoin d'un autre territoire ?")
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Demander un territoire" })
+      );
+      const dialog = await screen.findByRole("dialog");
+      await userEvent.click(within(dialog).getByRole("combobox"));
+      await userEvent.click(
+        await screen.findByRole("option", { name: "Rennes" })
+      );
+      await userEvent.type(
+        within(dialog).getByLabelText("Commentaire (facultatif)"),
+        "  Plutôt près de la gare "
+      );
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Envoyer la demande" })
+      );
+
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/public/acces/jeton%2Fsecret/demandes",
+        {
+          cache: "no-store",
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cityId: "c-rennes",
+            comment: "Plutôt près de la gare",
+          }),
+        }
+      );
+      expect(
+        await screen.findByText("Demande de territoire envoyée")
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(toast.success).toHaveBeenCalledWith(
+        "Demande envoyée à ton responsable, merci !"
+      );
+    });
+
+    it("propose « peu importe » par défaut, sans commentaire", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(view([])))
+        .mockResolvedValueOnce(
+          jsonResponse(view([], { ...pending, cityName: null, comment: null }))
+        );
+
+      render(<MyTerritoriesPage />);
+
+      expect(
+        await screen.findByText("Besoin d'un territoire ?")
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Demander un territoire" })
+      );
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByRole("combobox")).toHaveTextContent(
+        "Peu importe"
+      );
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Envoyer la demande" })
+      );
+
+      const [, init] = fetchMock.mock.lastCall as [string, RequestInit];
+      expect(JSON.parse(init.body as string)).toEqual({
+        cityId: null,
+        comment: null,
+      });
+      expect(await screen.findByText("Peu importe")).toBeInTheDocument();
+    });
+
+    it("affiche le refus de l'API et garde le formulaire ouvert", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(view([])))
+        .mockResolvedValueOnce(
+          jsonResponse(
+            { error: "Tu as déjà fait plusieurs demandes aujourd'hui" },
+            409
+          )
+        );
+
+      render(<MyTerritoriesPage />);
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Demander un territoire" })
+      );
+      await userEvent.click(
+        within(await screen.findByRole("dialog")).getByRole("button", {
+          name: "Envoyer la demande",
+        })
+      );
+
+      expect(toast.error).toHaveBeenCalledWith(
+        "Tu as déjà fait plusieurs demandes aujourd'hui"
+      );
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
+
+    it("signale une demande impossible faute de réseau", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(view([])))
+        .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+      render(<MyTerritoriesPage />);
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Demander un territoire" })
+      );
+      await userEvent.click(
+        within(await screen.findByRole("dialog")).getByRole("button", {
+          name: "Envoyer la demande",
+        })
+      );
+
+      expect(toast.error).toHaveBeenCalledWith(
+        "Pas de connexion réseau : la demande n'a pas été envoyée."
+      );
+    });
+
+    it("affiche la demande en attente et permet de l'annuler", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(view([], pending)))
+        .mockResolvedValueOnce(jsonResponse(view([])));
+
+      render(<MyTerritoriesPage />);
+
+      expect(
+        await screen.findByText("Demande de territoire envoyée")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Envoyée le 12 octobre 2026/)
+      ).toBeInTheDocument();
+      expect(screen.getByText("Rennes")).toBeInTheDocument();
+      expect(screen.getByText("Plutôt près de la gare")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Demander un territoire" })
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Annuler ma demande" })
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Annuler la demande" })
+      );
+
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/public/acces/jeton%2Fsecret/demandes/d1/annulation",
+        { cache: "no-store", method: "POST" }
+      );
+      expect(
+        await screen.findByRole("button", { name: "Demander un territoire" })
+      ).toBeInTheDocument();
+      expect(toast.success).toHaveBeenCalledWith("Demande annulée");
+    });
+
+    it("signale une annulation refusée", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(view([], pending)))
+        .mockResolvedValueOnce(
+          jsonResponse({ error: "Cette demande a déjà été traitée." }, 409)
+        );
+
+      render(<MyTerritoriesPage />);
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Annuler ma demande" })
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Annuler la demande" })
+      );
+
+      expect(toast.error).toHaveBeenCalledWith(
+        "Cette demande a déjà été traitée."
+      );
+    });
   });
 });

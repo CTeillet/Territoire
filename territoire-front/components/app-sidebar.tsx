@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronRight,
   BarChart3,
+  Inbox,
 } from "lucide-react";
 
 import {
@@ -29,7 +30,12 @@ import Link from "next/link";
 import NavUser from "@/components/nav-user";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-import React, { useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
+import { canSendAccess } from "@/lib/person-access-api";
+import {
+  fetchPendingTerritoryRequestCount,
+  TERRITORY_REQUESTS_CHANGED,
+} from "@/lib/territory-request-api";
 
 // Menu items.
 const dashboardItems = [
@@ -67,6 +73,11 @@ const otherItems = [
     icon: Contact,
   },
   {
+    title: "Demandes",
+    url: "/demandes",
+    icon: Inbox,
+  },
+  {
     title: "Campagnes",
     url: "/campagnes",
     icon: Calendar,
@@ -87,6 +98,10 @@ export function AppSidebar() {
   const pathname = usePathname();
   const user = useSelector((state: RootState) => state.auth.user);
   const [territoryExpanded, setTerritoryExpanded] = useState(true);
+  // La session n'est connue que du navigateur (cookies) : rien qui en dépende au rendu serveur ni à l'hydratation
+  const isClient = useIsClient();
+  const canSeeRequests = isClient && canSendAccess(user?.role);
+  const pendingRequests = usePendingRequestCount(canSeeRequests, pathname);
 
   // Check if any territory page is active
   const isTerritoryActive = pathname.startsWith("/territoires");
@@ -119,6 +134,14 @@ export function AppSidebar() {
         >
           <item.icon className="h-5 w-5" />
           <span className="text-base">{item.title}</span>
+          {item.url === "/demandes" && pendingRequests > 0 && (
+            <span
+              className="ml-auto rounded-full bg-blue-600 px-2 text-xs font-semibold text-white"
+              aria-label={`${pendingRequests} en attente`}
+            >
+              {pendingRequests}
+            </span>
+          )}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -170,13 +193,15 @@ export function AppSidebar() {
               )}
 
               {/* Other items */}
-              {otherItems.map(renderMenuItem)}
+              {otherItems
+                .filter((item) => item.url !== "/demandes" || canSeeRequests)
+                .map(renderMenuItem)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {/* Afficher le footer uniquement si l'utilisateur est connecté */}
-        {user && (
+        {isClient && user && (
           <SidebarFooter className="p-3 bg-gray-200 border-t">
             <NavUser />
           </SidebarFooter>
@@ -184,4 +209,39 @@ export function AppSidebar() {
       </SidebarContent>
     </Sidebar>
   );
+}
+
+const noSubscription = () => () => {};
+
+/** Faux pendant le rendu serveur et l'hydratation, vrai ensuite. */
+function useIsClient() {
+  return useSyncExternalStore(
+    noSubscription,
+    () => true,
+    () => false
+  );
+}
+
+/** Nombre de demandes de territoire en attente, rafraîchi à chaque navigation et après chaque action sur une demande. */
+function usePendingRequestCount(enabled: boolean, pathname: string) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    const refresh = () =>
+      fetchPendingTerritoryRequestCount()
+        .then((value) => !cancelled && setCount(value))
+        .catch(() => {
+          // Compteur indicatif : une erreur ne doit pas gêner la navigation
+        });
+    refresh();
+    window.addEventListener(TERRITORY_REQUESTS_CHANGED, refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(TERRITORY_REQUESTS_CHANGED, refresh);
+    };
+  }, [enabled, pathname]);
+
+  return enabled ? count : 0;
 }

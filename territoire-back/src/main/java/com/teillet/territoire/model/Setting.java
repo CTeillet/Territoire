@@ -32,4 +32,8 @@ public class Setting {
     /** Gabarit Liquid du message d'envoi du lien personnel (null = gabarit par défaut). */
     @Column(name = "access_link_message", columnDefinition = "TEXT")
     private String accessLinkMessage;
+
+    /** Numéro WhatsApp (format international) prévenu à chaque demande de nouveau territoire. Null = pas de message. */
+    @Column(name = "territory_request_phone")
+    private String territoryRequestPhone;
 }

@@ -25,6 +25,8 @@ export interface AccessSettings {
   assignmentNotificationEnabled: boolean;
   assignmentMessage: string;
   accessLinkMessage: string;
+  /** Numéro WhatsApp (format international) prévenu des demandes de territoire ; null = personne. */
+  territoryRequestPhone: string | null;
 }
 
 export interface PublicAddress {
@@ -48,7 +50,26 @@ export interface PublicTerritory {
   addressesNotToDo: PublicAddress[];
 }
 
+export interface PublicCity {
+  id: string;
+  name: string;
+}
+
+export interface PublicTerritoryRequest {
+  id: string;
+  /** Null = pas de préférence. */
+  cityName: string | null;
+  comment: string | null;
+  createdAt: string;
+}
+
 export interface PublicAccess {
   firstName: string;
   territories: PublicTerritory[];
+  /** Villes proposées pour une demande de nouveau territoire. */
+  cities: PublicCity[];
+  pendingRequest: PublicTerritoryRequest | null;
 }
+
+/** Longueur maximale du commentaire d'une demande (contrôlée aussi par l'API). */
+export const REQUEST_COMMENT_MAX_LENGTH = 500;

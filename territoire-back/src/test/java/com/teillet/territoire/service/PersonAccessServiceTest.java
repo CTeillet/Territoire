@@ -47,6 +47,7 @@ class PersonAccessServiceTest {
 	@Mock private AssignmentRepository assignmentRepository;
 	@Mock private IAssignmentService assignmentService;
 	@Mock private ISettingService settingService;
+	@Mock private ITerritoryRequestService territoryRequestService;
 	@Mock private IWahaClient wahaClient;
 
 	private final AccessLinkTokens tokens = new AccessLinkTokens("secret-de-test", JWT_SECRET);
@@ -56,7 +57,7 @@ class PersonAccessServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new PersonAccessService(accessRepository, personRepository, assignmentRepository, assignmentService,
-				settingService, wahaClient, new MessageTemplateRenderer(), tokens, "https://tms.example/m", CLOCK);
+				settingService, territoryRequestService, wahaClient, new MessageTemplateRenderer(), tokens, "https://tms.example/m", CLOCK);
 		person = Person.builder().id(UUID.randomUUID()).firstName("jean").lastName("dupont").phoneNumber("+33600000000").build();
 	}
 

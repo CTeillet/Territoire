@@ -1,5 +1,6 @@
 package com.teillet.territoire.service;
 
+import com.teillet.territoire.dto.CreateTerritoryRequestDto;
 import com.teillet.territoire.dto.PersonAccessStatusDto;
 import com.teillet.territoire.dto.PublicAccessDto;
 
@@ -8,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Liens personnels permettant à une personne de consulter et rendre ses territoires en cours.
+ * Liens personnels permettant à une personne de consulter et rendre ses territoires en cours, et d'en demander un nouveau.
  */
 public interface IPersonAccessService {
 	List<PersonAccessStatusDto> getAllStatuses();
@@ -43,6 +44,12 @@ public interface IPersonAccessService {
 
 	/** Retour d'un territoire par la personne elle-même. */
 	PublicAccessDto returnTerritory(String token, UUID territoryId);
+
+	/** Demande de nouveau territoire par la personne elle-même (cf. {@link ITerritoryRequestService#create}). */
+	PublicAccessDto requestTerritory(String token, CreateTerritoryRequestDto request);
+
+	/** Annulation par la personne de sa demande en attente. */
+	PublicAccessDto cancelTerritoryRequest(String token, UUID requestId);
 
 	void deleteForPerson(UUID personId);
 }

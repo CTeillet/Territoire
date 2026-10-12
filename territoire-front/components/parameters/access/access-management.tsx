@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PhoneInput } from "@/components/ui/phone-input";
 import {
   Select,
   SelectContent,
@@ -387,6 +388,26 @@ function AccessSettingsForm() {
         <p className="text-xs text-muted-foreground">
           Variables : <code>{"{{ person.firstName }}"}</code>,{" "}
           <code>{"{{ person.name }}"}</code>, <code>{"{{ link }}"}</code>.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="territory-request-phone">
+          Numéro WhatsApp prévenu des demandes de territoire
+        </Label>
+        <PhoneInput
+          id="territory-request-phone"
+          className="max-w-sm"
+          defaultCountry="FR"
+          placeholder="Personne n'est prévenu"
+          value={settings.territoryRequestPhone ?? ""}
+          onChange={(value) =>
+            setSettings({ ...settings, territoryRequestPhone: value || null })
+          }
+        />
+        <p className="text-xs text-muted-foreground">
+          Un message est envoyé à ce numéro à chaque demande faite depuis un
+          lien personnel. Les demandes se traitent dans le menu « Demandes ».
         </p>
       </div>
 

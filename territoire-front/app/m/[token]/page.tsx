@@ -19,7 +19,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import TerritoryRequestCard from "@/components/public-access/territory-request-card";
 import { PublicAccess, PublicTerritory } from "@/models/person-access";
+import { publicErrorMessage as errorFrom } from "@/lib/public-access-api";
 
 const PublicTerritoryMap = dynamic(
   () => import("@/components/public-access/public-territory-map"),
@@ -42,17 +44,6 @@ const formatDate = (value: string | null) =>
         dateStyle: "long",
       })
     : "—";
-
-/** Message d'erreur de l'API (champ error) ou message par défaut selon le statut HTTP. */
-async function errorFrom(res: Response): Promise<string> {
-  const body = await res.json().catch(() => null);
-  if (typeof body?.error === "string") return body.error;
-  if (res.status === 404)
-    return "Ce lien n'est pas ou plus valide. Demandez un nouveau lien à votre responsable.";
-  if (res.status === 429)
-    return "Trop de tentatives. Réessayez dans quelques minutes.";
-  return "Le service est momentanément indisponible. Réessayez plus tard.";
-}
 
 export default function MyTerritoriesPage() {
   const { token } = useParams<{ token: string }>();
@@ -116,7 +107,7 @@ export default function MyTerritoriesPage() {
     );
   }
 
-  const { firstName, territories } = state.data;
+  const { firstName, territories, cities, pendingRequest } = state.data;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
@@ -208,6 +199,14 @@ export default function MyTerritoriesPage() {
           </CardContent>
         </Card>
       ))}
+
+      <TerritoryRequestCard
+        token={token}
+        cities={cities ?? []}
+        pendingRequest={pendingRequest ?? null}
+        hasTerritories={territories.length > 0}
+        onUpdated={(data) => setState({ kind: "ready", data })}
+      />
 
       <p className="pt-4 text-center text-xs text-muted-foreground">
         Ce lien t&apos;est personnel : merci de ne pas le partager.

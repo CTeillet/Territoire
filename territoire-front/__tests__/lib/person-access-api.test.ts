@@ -36,6 +36,7 @@ describe("person-access-api", () => {
       assignmentNotificationEnabled: true,
       assignmentMessage: "a",
       accessLinkMessage: "b",
+      territoryRequestPhone: "+33612345678",
     });
 
     expect(authFetch.mock.calls).toEqual([
@@ -57,6 +58,7 @@ describe("person-access-api", () => {
             assignmentNotificationEnabled: true,
             assignmentMessage: "a",
             accessLinkMessage: "b",
+            territoryRequestPhone: "+33612345678",
           }),
         },
       ],

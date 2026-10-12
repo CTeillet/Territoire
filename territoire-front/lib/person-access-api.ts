@@ -1,18 +1,5 @@
-import { authFetch } from "@/utils/auth-fetch";
 import { AccessSettings, PersonAccessStatus } from "@/models/person-access";
-import { apiErrorMessage } from "@/utils/api-error";
-
-async function request<T>(
-  url: string,
-  init: RequestInit,
-  fallback: string
-): Promise<T> {
-  const res = await authFetch(url, init);
-  if (!res.ok) {
-    throw new Error(await apiErrorMessage(res, fallback));
-  }
-  return (await res.json()) as T;
-}
+import { apiRequest as request } from "@/utils/api-request";
 
 export const fetchAllAccesses = () =>
   request<PersonAccessStatus[]>(

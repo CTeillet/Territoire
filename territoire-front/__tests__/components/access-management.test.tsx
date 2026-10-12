@@ -43,6 +43,7 @@ const settings: AccessSettings = {
   assignmentNotificationEnabled: false,
   assignmentMessage: "Bonjour {{ person.firstName }} {{ link }}",
   accessLinkMessage: "Ton lien : {{ link }}",
+  territoryRequestPhone: null,
 };
 
 describe("filtres des accès", () => {
@@ -239,6 +240,27 @@ describe("AccessManagement", () => {
       assignmentNotificationEnabled: true,
     });
     expect(toast.success).toHaveBeenCalledWith("Réglages enregistrés");
+  });
+
+  it("enregistre le numéro prévenu des demandes, et le retire si on l'efface", async () => {
+    vi.mocked(api.saveAccessSettings).mockImplementation(async (s) => s);
+    renderWithRole(<AccessManagement />, "ADMIN");
+
+    const phone = await screen.findByLabelText(
+      "Numéro WhatsApp prévenu des demandes de territoire"
+    );
+    await userEvent.type(phone, "0612345678");
+    await userEvent.click(screen.getByText("Enregistrer les réglages"));
+
+    expect(api.saveAccessSettings).toHaveBeenLastCalledWith({
+      ...settings,
+      territoryRequestPhone: "+33612345678",
+    });
+
+    await userEvent.clear(phone);
+    await userEvent.click(screen.getByText("Enregistrer les réglages"));
+
+    expect(api.saveAccessSettings).toHaveBeenLastCalledWith(settings);
   });
 
   it("refuse un gabarit invalide sans appeler l'API", async () => {

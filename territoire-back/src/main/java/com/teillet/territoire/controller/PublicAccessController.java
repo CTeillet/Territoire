@@ -1,11 +1,13 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.dto.CreateTerritoryRequestDto;
 import com.teillet.territoire.dto.PublicAccessDto;
 import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.security.ClientIpResolver;
 import com.teillet.territoire.security.LoginAttemptService;
 import com.teillet.territoire.service.IPersonAccessService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +17,8 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * Accès sans compte, via le lien personnel envoyé à chaque personne : consultation et retour de ses territoires en cours.
+ * Accès sans compte, via le lien personnel envoyé à chaque personne : consultation et retour de ses territoires en cours,
+ * demande d'un nouveau territoire.
  * Les liens invalides répétés depuis une même adresse IP sont temporairement bloqués (HTTP 429).
  */
 @RestController
@@ -36,6 +39,19 @@ public class PublicAccessController {
 	public ResponseEntity<PublicAccessDto> returnTerritory(@PathVariable String token, @PathVariable UUID territoryId,
 	                                                       HttpServletRequest request) {
 		return guarded(request, () -> personAccessService.returnTerritory(token, territoryId));
+	}
+
+	@PostMapping("/demandes")
+	public ResponseEntity<PublicAccessDto> requestTerritory(@PathVariable String token,
+	                                                        @Valid @RequestBody CreateTerritoryRequestDto body,
+	                                                        HttpServletRequest request) {
+		return guarded(request, () -> personAccessService.requestTerritory(token, body));
+	}
+
+	@PostMapping("/demandes/{requestId}/annulation")
+	public ResponseEntity<PublicAccessDto> cancelTerritoryRequest(@PathVariable String token, @PathVariable UUID requestId,
+	                                                              HttpServletRequest request) {
+		return guarded(request, () -> personAccessService.cancelTerritoryRequest(token, requestId));
 	}
 
 	private ResponseEntity<PublicAccessDto> guarded(HttpServletRequest request, Supplier<PublicAccessDto> action) {

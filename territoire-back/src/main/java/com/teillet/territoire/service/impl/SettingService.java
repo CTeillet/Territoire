@@ -71,6 +71,7 @@ public class SettingService implements ISettingService {
                 .assignmentNotificationEnabled(Boolean.TRUE.equals(s.getAssignmentNotificationEnabled()))
                 .assignmentMessage(orDefault(s.getAssignmentMessage(), DEFAULT_ASSIGNMENT_MESSAGE))
                 .accessLinkMessage(orDefault(s.getAccessLinkMessage(), DEFAULT_ACCESS_LINK_MESSAGE))
+                .territoryRequestPhone(s.getTerritoryRequestPhone())
                 .build();
     }
 
@@ -83,6 +84,7 @@ public class SettingService implements ISettingService {
         // Un gabarit vide revient au gabarit par défaut
         s.setAssignmentMessage(blankToNull(settings.getAssignmentMessage()));
         s.setAccessLinkMessage(blankToNull(settings.getAccessLinkMessage()));
+        s.setTerritoryRequestPhone(blankToNull(settings.getTerritoryRequestPhone()));
         settingRepository.save(s);
         return getAccessSettings();
     }

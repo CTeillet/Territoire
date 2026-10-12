@@ -1,6 +1,7 @@
 package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.AccessSettingsDto;
+import com.teillet.territoire.dto.CreateTerritoryRequestDto;
 import com.teillet.territoire.dto.PersonAccessStatusDto;
 import com.teillet.territoire.dto.PublicAccessDto;
 import com.teillet.territoire.enums.AccessStatus;
@@ -17,6 +18,7 @@ import com.teillet.territoire.security.AccessLinkTokens;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.IPersonAccessService;
 import com.teillet.territoire.service.ISettingService;
+import com.teillet.territoire.service.ITerritoryRequestService;
 import com.teillet.territoire.service.IWahaClient;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import com.teillet.territoire.utils.MessageTemplateRenderer;
@@ -54,6 +56,7 @@ public class PersonAccessService implements IPersonAccessService {
 	private final AssignmentRepository assignmentRepository;
 	private final IAssignmentService assignmentService;
 	private final ISettingService settingService;
+	private final ITerritoryRequestService territoryRequestService;
 	private final IWahaClient wahaClient;
 	private final MessageTemplateRenderer templateRenderer;
 	private final AccessLinkTokens tokens;
@@ -65,6 +68,7 @@ public class PersonAccessService implements IPersonAccessService {
 	                           AssignmentRepository assignmentRepository,
 	                           @Lazy IAssignmentService assignmentService,
 	                           ISettingService settingService,
+	                           ITerritoryRequestService territoryRequestService,
 	                           IWahaClient wahaClient,
 	                           MessageTemplateRenderer templateRenderer,
 	                           AccessLinkTokens tokens,
@@ -75,6 +79,7 @@ public class PersonAccessService implements IPersonAccessService {
 		this.assignmentRepository = assignmentRepository;
 		this.assignmentService = assignmentService;
 		this.settingService = settingService;
+		this.territoryRequestService = territoryRequestService;
 		this.wahaClient = wahaClient;
 		this.templateRenderer = templateRenderer;
 		this.tokens = tokens;
@@ -241,6 +246,22 @@ public class PersonAccessService implements IPersonAccessService {
 		return buildPublicView(access.getPerson());
 	}
 
+	@Override
+	@Transactional
+	public PublicAccessDto requestTerritory(String token, CreateTerritoryRequestDto request) {
+		PersonAccess access = resolve(token);
+		territoryRequestService.create(access.getPerson(), request);
+		return buildPublicView(access.getPerson());
+	}
+
+	@Override
+	@Transactional
+	public PublicAccessDto cancelTerritoryRequest(String token, UUID requestId) {
+		PersonAccess access = resolve(token);
+		territoryRequestService.cancel(access.getPerson().getId(), requestId);
+		return buildPublicView(access.getPerson());
+	}
+
 	// ---------------------------------------------------------------- Interne
 
 	private PersonAccess resolve(String token) {
@@ -269,6 +290,8 @@ public class PersonAccessService implements IPersonAccessService {
 		return PublicAccessDto.builder()
 				.firstName(Utils.capitalize(person.getFirstName()))
 				.territories(territories)
+				.cities(territoryRequestService.getRequestableCities())
+				.pendingRequest(territoryRequestService.getPendingRequest(person.getId()))
 				.build();
 	}
 
