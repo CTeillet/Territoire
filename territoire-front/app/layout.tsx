@@ -17,11 +17,14 @@ const geistMono = Geist_Mono({
 });
 
 // Ajout du manifest.json dans les metadata pour la PWA
+// Le referrer surcharge l'en-tête « Referrer-Policy: same-origin » posé par le nginx du VPS : sans Referer,
+// les serveurs de tuiles OpenStreetMap renvoient leur tuile « Access blocked » sur toutes les cartes.
 export const metadata: Metadata = {
   title: "TMS",
   description: "Outils de gestion des territoires",
   icons: ["/images/logo.svg"],
   manifest: "/manifest.json", // Ajout du fichier manifest
+  referrer: "strict-origin-when-cross-origin",
 };
 
 export default function RootLayout({

@@ -66,6 +66,10 @@ describe("Mises en page", () => {
     );
     expect(rootMetadata.manifest).toBe("/manifest.json");
   });
+
+  it("l'application transmet son origine en Referer aux autres sites, sinon les tuiles OSM sont bloquées", () => {
+    expect(rootMetadata.referrer).toBe("strict-origin-when-cross-origin");
+  });
 });
 
 describe("Store", () => {
