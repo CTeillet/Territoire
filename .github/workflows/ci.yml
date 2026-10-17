@@ -163,7 +163,11 @@ jobs:
           mkdir -p rclone restauration backups/daily
           printf '[ci]\ntype = local\n' > rclone/rclone.conf
           docker compose run --rm -T --no-deps -v "$PWD/restauration:/restauration" db-backup age-keygen -o /restauration/cle.txt
-          echo "BACKUP_AGE_RECIPIENT=$(docker compose run --rm -T --no-deps -v "$PWD/restauration:/restauration" db-backup age-keygen -y /restauration/cle.txt)" >> "$GITHUB_ENV"
+          # Via un fichier : la sortie de "docker compose run" contient aussi la progression du build (pull_policy: build)
+          docker compose run --rm -T --no-deps -v "$PWD/restauration:/restauration" db-backup \
+            sh -c 'age-keygen -y /restauration/cle.txt > /restauration/cle.pub'
+          grep -qx 'age1[0-9a-z]*' restauration/cle.pub
+          echo "BACKUP_AGE_RECIPIENT=$(cat restauration/cle.pub)" >> "$GITHUB_ENV"
           # Rotation : l'ancienne sauvegarde doit disparaître, le reste être conservé
           touch -d '40 days ago' backups/daily/territoire_2000-01-01T0200Z.dump.age backups/daily/autre-fichier.txt
           touch -d '2 days ago' backups/daily/territoire_recente.dump.age
