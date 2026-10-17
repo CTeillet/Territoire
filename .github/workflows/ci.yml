@@ -68,6 +68,13 @@ jobs:
       - name: Run Unit & Component Tests with Coverage
         run: npm run test:coverage
 
+      # Même commande que l'image Docker du déploiement : détecte dès la PR les erreurs propres au build
+      # (bundling, pré-rendu des pages statiques, script prebuild) que tsc, ESLint et Vitest ne voient pas
+      - name: Build Production Bundle (next build)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
       - name: Upload Frontend Coverage Report
         uses: actions/upload-artifact@v7
         if: always()
