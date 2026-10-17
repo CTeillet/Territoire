@@ -1,28 +1,23 @@
+# Tempo 3.x en mode monolithique (sans Kafka). Les blocs ingester/compactor, le processeur local-blocks
+# et metrics_generator.traces_storage de Tempo 2.x n'existent plus : Tempo refuse de démarrer s'ils sont présents.
 stream_over_http_enabled: true
 
 server:
   http_listen_port: 3200
   log_level: info
 
-query_frontend:
-  search:
-    duration_slo: 5s
-    throughput_bytes_slo: 1.073741824e+09
-  trace_by_id:
-    duration_slo: 5s
-
 distributor:
   receivers:
     otlp:
       protocols:
+        # Par défaut Tempo n'écoute que sur localhost : le collector doit pouvoir le joindre
         grpc:
-          endpoint: "0.0.0.0:4317"   # écoute locale (ou supprime cette ligne pour garder le défaut)
-        http: {}                     # utile si tu reçois en OTLP/HTTP
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
 
-ingester:
-  max_block_duration: 5m
-
-compactor:
+# Rétention des traces : appliquée par le backend worker depuis Tempo 3 (remplace compactor.compaction.block_retention)
+backend_worker:
   compaction:
     block_retention: 1h
 
@@ -36,8 +31,6 @@ metrics_generator:
     remote_write:
       - url: http://prometheus:9090/api/v1/write
         send_exemplars: true
-  traces_storage:
-    path: /var/tempo/generator/traces
 
 storage:
   trace:
@@ -50,5 +43,5 @@ storage:
 overrides:
   defaults:
     metrics_generator:
-      processors: [service-graphs, span-metrics, local-blocks]
+      processors: [service-graphs, span-metrics]
       generate_native_histograms: both

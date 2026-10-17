@@ -6,7 +6,6 @@ services:
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      WAHA_DB_PASSWORD: ${WAHA_DB_PASSWORD}
       POSTGRES_DB: territoire
     ports:
       # Accessible uniquement depuis le VPS (tunnel SSH pour un accès distant)
@@ -31,8 +30,6 @@ services:
       WAHA_API_KEY_PLAIN_TEXT: ${WAHA_API_KEY_PLAIN_TEXT}
       # Clé des liens personnels (/m/...). Facultative : sans elle, dérivée de JWT_SECRET_KEY (changer la clé JWT invaliderait alors les liens)
       ACCESS_LINK_SECRET: ${ACCESS_LINK_SECRET:-}
-      # Test : agent OpenTelemetry desactive (reponses HTTP vides/tronquees). Retirer la ligne suivante pour le reactiver.
-      JAVA_TOOL_OPTIONS: ""
     ports:
       - "127.0.0.1:8080:8080"
 
@@ -50,19 +47,22 @@ services:
       - territoire-back
     environment:
       NEXT_PUBLIC_API_URL: http://territoire-back:8080
+      # Traces du serveur Next.js (instrumentation.ts) vers le collector
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4318
     ports:
       # Derrière le reverse proxy du VPS : pas d'accès direct depuis Internet (Docker contourne ufw)
       - "127.0.0.1:3000:3000"
 
+  # Observabilité : versions figées et à monter volontairement (les montées majeures changent la config, ex. Tempo 3)
   collector:
     image: otel/opentelemetry-collector-contrib:0.98.0
     volumes:
       - ./config/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
-    # Aucun port publié : le backend (http://collector:4317) et Prometheus (collector:8889)
+    # Aucun port publié : le backend et le front (OTLP/HTTP http://collector:4318) et Prometheus (collector:8889)
     # y accèdent par le réseau Docker interne.
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.2.4
     ports:
       - "127.0.0.1:4000:3000"
     volumes:
@@ -80,7 +80,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASS}
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:3.0.4
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./config/tempo-config.yaml:/etc/tempo.yaml
@@ -88,7 +88,7 @@ services:
     # Pas de port publié : Grafana et le collector y accèdent par le réseau Docker interne
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.15.0
     command:
       - --config.file=/etc/prometheus.yaml
       - --web.enable-remote-write-receiver
@@ -99,14 +99,14 @@ services:
     # Pas de port publié (accès via Grafana)
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.7.8
     # Pas de port publié (accès via Grafana)
     command: -config.file=/etc/loki-config.yaml
     volumes:
       - ./config/loki-config.yaml:/etc/loki-config.yaml
 
   postgres-exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
     environment:
       DATA_SOURCE_URI: "postgis:5432/territoire?sslmode=disable"
       DATA_SOURCE_USER: "admin"

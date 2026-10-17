@@ -1,5 +1,6 @@
 package com.teillet.territoire.config;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,11 +22,14 @@ public class ConfigUtils {
 	}
 
 	@Bean
-	public RestTemplate restTemplate() {
+	public RestTemplate restTemplate(ObservationRegistry observationRegistry) {
 		var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
 		factory.setConnectTimeout(java.time.Duration.ofSeconds(5));
 		factory.setReadTimeout(java.time.Duration.ofSeconds(10));
-		return new RestTemplate(factory);
+		var restTemplate = new RestTemplate(factory);
+		// Construit sans RestTemplateBuilder : à brancher explicitement pour tracer les appels sortants
+		restTemplate.setObservationRegistry(observationRegistry);
+		return restTemplate;
 	}
 
 }

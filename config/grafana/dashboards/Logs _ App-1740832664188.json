@@ -176,7 +176,7 @@
             "type": "loki",
             "uid": "P8E80F9AEF21F6940"
           },
-          "expr": "{job=\"$app\"} |= \"$search\" | logfmt",
+          "expr": "{job=\"$app\"} |= \"$search\" | json",
           "hide": false,
           "legendFormat": "",
           "refId": "A"

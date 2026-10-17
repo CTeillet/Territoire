@@ -2,6 +2,8 @@ package com.teillet.territoire.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teillet.territoire.service.IWahaClient;
+import io.micrometer.core.instrument.binder.okhttp3.OkHttpObservationInterceptor;
+import io.micrometer.observation.ObservationRegistry;
 import okhttp3.*;
 
 import java.io.IOException;
@@ -21,6 +23,10 @@ public class WahaClientOkHttp implements IWahaClient {
 
 
 	public WahaClientOkHttp(String baseUrl, String apiKey, String defaultSession) {
+		this(baseUrl, apiKey, defaultSession, ObservationRegistry.NOOP);
+	}
+
+	public WahaClientOkHttp(String baseUrl, String apiKey, String defaultSession, ObservationRegistry observationRegistry) {
 		this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
 		this.apiKey = apiKey;
 		this.defaultSession = (defaultSession == null || defaultSession.isBlank()) ? "default" : defaultSession;
@@ -28,6 +34,10 @@ public class WahaClientOkHttp implements IWahaClient {
 		this.http = new OkHttpClient.Builder()
 				.connectTimeout(Duration.ofSeconds(CONNECTION_TIMEOUT))
 				.readTimeout(Duration.ofSeconds(READ_TIMEOUT))
+				// Trace et mesure les appels WAHA (chemins fixes : on peut les garder comme tag uri)
+				.addInterceptor(OkHttpObservationInterceptor.builder(observationRegistry, "http.client.requests")
+						.uriMapper(request -> request.url().encodedPath())
+						.build())
 				.build();
 	}
 
