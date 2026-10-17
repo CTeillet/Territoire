@@ -16,7 +16,7 @@ services:
   # Sauvegarde quotidienne chiffrée de la base vers un stockage externe (README > Sauvegardes)
   db-backup:
     build: ./config/backup
-    # Reconstruite (depuis le cache) à chaque déploiement : suit le script et l'image postgis locale
+    # Reconstruite (depuis le cache) à chaque déploiement : prend en compte les changements de config/backup
     pull_policy: build
     restart: always
     init: true
