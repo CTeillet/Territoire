@@ -3,14 +3,10 @@
 import {
   ColumnDef,
   ColumnFiltersState,
+  ColumnVisibilityState,
   flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   SortingState,
-  useReactTable,
-  VisibilityState,
+  useTable,
 } from "@tanstack/react-table";
 
 import {
@@ -23,6 +19,10 @@ import {
 } from "@/components/ui/table";
 import React, { useEffect, useState } from "react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import {
+  dataTableFeatures,
+  DataTableFeatures,
+} from "@/components/ui/data-table-features";
 import * as XLSX from "xlsx";
 import { Territory } from "@/models/territory";
 import { Button } from "@/components/ui/button";
@@ -32,19 +32,20 @@ import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
 
 interface DataTableProps {
-  columns: ColumnDef<Territory, unknown>[];
+  columns: ColumnDef<DataTableFeatures, Territory, unknown>[];
   data: Territory[];
   tableId?: string; // Identifiant unique pour la table
 }
 
 export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-    id: false,
-    name: true,
-    city: true,
-    status: true,
-    actions: true,
-  });
+  const [columnVisibility, setColumnVisibility] =
+    useState<ColumnVisibilityState>({
+      id: false,
+      name: true,
+      city: true,
+      status: true,
+      actions: true,
+    });
   const [sorting, setSorting] = useState<SortingState>(() => {
     if (typeof window !== "undefined") {
       const storageKey = `tableSorting${tableId ? `-${tableId}` : ""}`;
@@ -86,17 +87,14 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
     }
   }, [sorting, tableId]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     state: {
       columnVisibility,
       sorting,
@@ -147,7 +145,7 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
   return (
     <div className="w-full">
       <div className="flex justify-end mb-4 gap-2">
-        {table.getState().columnFilters.length > 0 && (
+        {table.state.columnFilters.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
@@ -198,7 +196,6 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
                 <TableRow
                   key={row.id}
                   className="odd:bg-gray-50 hover:bg-gray-100 transition"
-                  data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

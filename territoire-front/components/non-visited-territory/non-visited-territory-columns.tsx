@@ -1,6 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { DataTableFeatures } from "@/components/ui/data-table-features";
 import { Territory } from "@/models/territory";
 import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
@@ -22,7 +23,11 @@ export const COLUMNS_ID_TRANSLATIONS = {
 };
 
 // Hardcoded columns for non-visited territories page
-export const nonVisitedTerritoryColumns: ColumnDef<Territory, unknown>[] = [
+export const nonVisitedTerritoryColumns: ColumnDef<
+  DataTableFeatures,
+  Territory,
+  unknown
+>[] = [
   {
     id: "id",
     accessorKey: "id",

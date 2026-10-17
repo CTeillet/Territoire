@@ -1,6 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { DataTableFeatures } from "@/components/ui/data-table-features";
 import { Territory } from "@/models/territory";
 import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
@@ -23,7 +24,11 @@ export const COLUMNS_ID_TRANSLATIONS = {
   waitedFor: "Attendu pour le",
 };
 
-export const territoryDataColumns: ColumnDef<Territory, unknown>[] = [
+export const territoryDataColumns: ColumnDef<
+  DataTableFeatures,
+  Territory,
+  unknown
+>[] = [
   {
     id: "id",
     accessorKey: "id",

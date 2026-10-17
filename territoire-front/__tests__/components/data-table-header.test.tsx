@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Column } from "@tanstack/react-table";
+import type { DataTableFeatures } from "@/components/ui/data-table-features";
 import { DataTableColumnHeader } from "@/components/territory/territory-data-header";
 
 const fakeColumn = (
@@ -15,7 +16,11 @@ const fakeColumn = (
     setFilterValue: vi.fn(),
     getIsSorted: () => sorted,
     toggleSorting: vi.fn(),
-  }) as unknown as Column<unknown, unknown> & {
+  }) as unknown as Column<
+    DataTableFeatures,
+    Record<string, unknown>,
+    unknown
+  > & {
     setFilterValue: ReturnType<typeof vi.fn>;
     toggleSorting: ReturnType<typeof vi.fn>;
   };
