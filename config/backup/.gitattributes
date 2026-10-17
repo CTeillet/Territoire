@@ -1,0 +1,2 @@
+# Script exécuté dans un conteneur Linux : jamais de CRLF, même depuis un poste Windows
+*.sh text eol=lf

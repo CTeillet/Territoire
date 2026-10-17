@@ -84,3 +84,7 @@ fabric.properties
 .idea/
 *.iml
 .mcp.json
+
+# Sauvegarde de la base : config rclone (identifiants du stockage) et fichiers de restauration (clé privée age)
+/rclone/
+/restauration/

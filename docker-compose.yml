@@ -13,6 +13,38 @@ services:
     volumes:
       - postgis_data:/var/lib/postgresql/data
 
+  # Sauvegarde quotidienne chiffrée de la base vers un stockage externe (README > Sauvegardes)
+  db-backup:
+    build: ./config/backup
+    # Reconstruite (depuis le cache) à chaque déploiement : prend en compte les changements de config/backup
+    pull_policy: build
+    restart: always
+    init: true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    depends_on:
+      - postgis
+    environment:
+      PGHOST: postgis
+      PGUSER: admin
+      PGDATABASE: territoire
+      # Mot de passe déjà utilisé par le back pour le même utilisateur admin
+      PGPASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      RCLONE_CONFIG: /config/rclone/rclone.conf
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      BACKUP_HEALTHCHECK_URL: ${BACKUP_HEALTHCHECK_URL:-}
+      # Facultatifs, valeurs par défaut dans config/backup/db-backup.sh
+      BACKUP_TIME: ${BACKUP_TIME:-}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-}
+      BACKUP_MONTHLY_RETENTION_DAYS: ${BACKUP_MONTHLY_RETENTION_DAYS:-}
+    volumes:
+      # Hors de config/ : ce dossier est supprimé puis recopié à chaque déploiement
+      - ./rclone:/config/rclone
+
   territoire-back:
     image: ghcr.io/cteillet/territoire-back:latest
     container_name: territoire-back
