@@ -6,8 +6,12 @@ import { DeleteAssignmentsSection } from "@/components/parameters/other-paramete
 import { ExportTerritoriesMapButton } from "@/components/parameters/other-parameter/export-map-button";
 import { PublishersCountSection } from "@/components/parameters/other-parameter/publishers-count-section";
 import { LateReminderMessage } from "@/components/parameters/other-parameter/late-reminder-message";
+import { WhatsAppTestSection } from "@/components/parameters/other-parameter/whatsapp-test-section";
+import { useAppSelector } from "@/store/store";
 
 export default function OtherParameter() {
+  const role = useAppSelector((state) => state.auth.user?.role);
+
   return (
     <div className="p-6 space-y-8">
       <section className="border rounded-2xl shadow-sm bg-white p-4">
@@ -34,6 +38,13 @@ export default function OtherParameter() {
         <h2 className="text-xl font-bold mb-4">Messages types</h2>
         <LateReminderMessage showTitle={false} />
       </section>
+
+      {role === "ADMIN" && (
+        <section className="border rounded-2xl shadow-sm bg-white p-4">
+          <h2 className="text-xl font-bold mb-4">Test WhatsApp</h2>
+          <WhatsAppTestSection showTitle={false} />
+        </section>
+      )}
 
       <section className="border rounded-2xl shadow-sm bg-white p-4">
         <h2 className="text-xl font-bold mb-4">Maintenance</h2>
