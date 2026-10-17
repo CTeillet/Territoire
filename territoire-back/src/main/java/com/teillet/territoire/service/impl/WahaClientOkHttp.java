@@ -12,6 +12,7 @@ import java.util.Map;
 public class WahaClientOkHttp implements IWahaClient {
 	public static final int CONNECTION_TIMEOUT = 5;
 	public static final int READ_TIMEOUT = 10;
+	private static final int MAX_ERROR_BODY_LENGTH = 300;
 	private final OkHttpClient http;
 	private final String baseUrl;
 	private final String apiKey;
@@ -58,10 +59,18 @@ public class WahaClientOkHttp implements IWahaClient {
 
 		try (Response response = http.newCall(builder.build()).execute()) {
 			if (!response.isSuccessful()) {
-				throw new IOException("WAHA error: " + response.code() + " - " + response.message());
+				// Le corps explique le refus (clé invalide, session non connectée...) ; le motif HTTP est vide en HTTP/2
+				String reason = response.message().isBlank() ? "" : " " + response.message();
+				String detail = errorBody(response);
+				throw new IOException("WAHA error: " + response.code() + reason + (detail.isEmpty() ? "" : " - " + detail));
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Erreur lors de l'envoi du message à WAHA", e);
 		}
+	}
+
+	private static String errorBody(Response response) throws IOException {
+		String body = response.body().string().strip();
+		return body.length() > MAX_ERROR_BODY_LENGTH ? body.substring(0, MAX_ERROR_BODY_LENGTH) + "…" : body;
 	}
 }

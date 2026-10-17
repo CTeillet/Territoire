@@ -609,7 +609,10 @@ describe("ExportTerritoriesMapButton", () => {
 
 describe("OtherParameter", () => {
   it("regroupe toutes les sections", () => {
-    mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
+    mockApi({
+      "GET /api/settings/late-reminder-message": jsonResponse(""),
+      "GET /api/personnes": [],
+    });
     renderWithRole(<OtherParameter />, "ADMIN");
 
     for (const title of [
@@ -617,10 +620,23 @@ describe("OtherParameter", () => {
       "Données Excel",
       "Vérifications",
       "Messages types",
+      "Test WhatsApp",
       "Maintenance",
       "Export cartographique",
     ]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     }
+  });
+
+  it("réserve le test WhatsApp à l'administrateur", () => {
+    mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
+    renderWithRole(<OtherParameter />, "SUPERVISEUR");
+
+    expect(
+      screen.getByRole("heading", { name: "Messages types" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Test WhatsApp" })
+    ).not.toBeInTheDocument();
   });
 });

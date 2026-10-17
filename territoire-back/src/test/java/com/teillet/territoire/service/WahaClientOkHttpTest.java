@@ -50,4 +50,17 @@ class WahaClientOkHttpTest {
 		assertThrows(RuntimeException.class, () ->
 				wahaClient.sendMessage("+33612345678", "Bonjour test"));
 	}
+
+	@Test
+	void testSendMessage_Error_MessageContainsStatusAndBody() {
+		mockWebServer.enqueue(new MockResponse().setResponseCode(422)
+				.setBody("{\"message\":\"Session status is not as expected\"}"));
+
+		RuntimeException e = assertThrows(RuntimeException.class, () ->
+				wahaClient.sendMessage("+33612345678", "Bonjour test"));
+
+		String cause = e.getCause().getMessage();
+		assertTrue(cause.startsWith("WAHA error: 422"), cause);
+		assertTrue(cause.endsWith(" - {\"message\":\"Session status is not as expected\"}"), cause);
+	}
 }
