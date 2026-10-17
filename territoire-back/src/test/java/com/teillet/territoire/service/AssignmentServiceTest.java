@@ -254,6 +254,26 @@ class AssignmentServiceTest {
 		assertEquals(territory, saved.getTerritory());
 		assertEquals(campaign.getStartDate(), saved.getAssignmentDate());
 		assertEquals(campaign.getEndDate(), saved.getReturnDate());
+		verify(territoryService, times(1)).updateTerritoryStatus(territory, TerritoryStatus.PENDING);
+	}
+
+	@Test
+	void testCreateCampaignAssignments_KeepsStatusOfTerritoryStillInUse() {
+		Campaign campaign = new Campaign();
+		campaign.setStartDate(LocalDate.of(2024, 1, 1));
+		campaign.setEndDate(LocalDate.of(2024, 2, 1));
+
+		Territory assigned = new Territory();
+		assigned.setStatus(TerritoryStatus.ASSIGNED);
+		Territory late = new Territory();
+		late.setStatus(TerritoryStatus.LATE);
+		Territory pending = new Territory();
+		pending.setStatus(TerritoryStatus.PENDING);
+
+		assignmentService.createCampaignAssignments(campaign, List.of(assigned, late, pending));
+
+		verify(assignmentRepository, times(3)).save(any(Assignment.class));
+		verify(territoryService, never()).updateTerritoryStatus(any(), any());
 	}
 
 	@Test

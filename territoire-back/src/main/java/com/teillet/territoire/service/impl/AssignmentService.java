@@ -218,6 +218,12 @@ public class AssignmentService implements IAssignmentService {
 					.build();
 
 			assignmentRepository.save(assignment);
+
+			// Parcouru pendant la campagne : mêmes règles qu'un retour habituel (en attente 4 mois).
+			// Un territoire attribué ou en retard garde son statut : il est encore chez quelqu'un.
+			if (territory.getStatus() == TerritoryStatus.AVAILABLE) {
+				territoryService.updateTerritoryStatus(territory, TerritoryStatus.PENDING);
+			}
 			log.info("Assignation créée avec succès pour le territoire '{}'", territory.getName());
 		}
 	}
