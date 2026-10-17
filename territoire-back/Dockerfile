@@ -17,30 +17,10 @@ WORKDIR /app
 # Exécution sans les droits root
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=builder --chown=app:app /app/target/*.jar /app/app.jar
-COPY --chown=app:app opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
 USER app
 
-# Active l’agent pour tous les lancements Java
-ENV JAVA_TOOL_OPTIONS="-javaagent:/app/opentelemetry-javaagent.jar"
-
-# Vars OTel (quotes pour éviter les soucis)
-ENV OTEL_SERVICE_NAME="territoire-back" \
-    OTEL_EXPORTER_OTLP_ENDPOINT="http://collector:4317" \
-    OTEL_EXPORTER_OTLP_PROTOCOL="grpc" \
-    OTEL_TRACES_EXPORTER="otlp" \
-    OTEL_METRICS_EXPORTER="otlp" \
-    OTEL_LOGS_EXPORTER="otlp" \
-    OTEL_TRACES_SAMPLER="parentbased_always_on"
-
-# ⚠️ Mettre la ressource dans un ENV séparé pour l'égalité interne
-ENV OTEL_RESOURCE_ATTRIBUTES="deployment.environment=docker"
-
-# Instrumentation logback désactivée (rebuild forcé) : l'agent 2.13.x est incompatible avec logback 1.6.x
-# (NoSuchFieldError __opentelemetryVirtualField sur LoggingEvent au démarrage).
-# À réactiver après mise à jour de opentelemetry-javaagent.jar vers une version supportant logback 1.6.
-ENV OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED="false" \
-    OTEL_INSTRUMENTATION_LOGBACK_MDC_ENABLED="false" \
-    OTEL_LOGS_EXPORTER="none"
+# OpenTelemetry : pas d'agent Java, l'export OTLP est fait par Spring Boot (cf. application-docker.properties).
+# Ne pas définir de variables OTEL_* ici : Spring Boot les lit et elles priment sur la configuration de l'application.
 
 # Fuseau horaire explicite : les dates métier (LocalDate.now()) et les tâches de nuit suivent l'heure de Paris
 ENV JAVA_OPTS="-Xms256m -Xmx512m -Duser.timezone=Europe/Paris"

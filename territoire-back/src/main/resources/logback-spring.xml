@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true">
 
-    <!-- Encoder avec trace_id et span_id injectés par OpenTelemetry -->
+    <!-- Encoder avec traceId et spanId injectés par Micrometer Tracing -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - [%X{trace_id:-}] [%X{span_id:-}] %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - [%X{traceId:-}] [%X{spanId:-}] %msg%n</pattern>
         </encoder>
+    </appender>
+
+    <!-- Export OTLP des logs (avec le contexte de trace) ; installé sur le SDK de Spring Boot par ObservabilityConfig -->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <captureExperimentalAttributes>true</captureExperimentalAttributes>
     </appender>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="OTEL"/>
     </root>
 
 </configuration>

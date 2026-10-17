@@ -81,7 +81,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(http_server_request_duration_seconds_count{exported_job=\"$app_name\", uri!=\"/actuator/prometheus\"})",
+          "expr": "sum(http_server_requests_seconds_count{exported_job=\"$app_name\", uri!~\"/actuator.*\"})",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -164,10 +164,10 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "http_server_request_duration_seconds_count{}",
+          "expr": "sum by(method, uri) (http_server_requests_seconds_count{exported_job=\"$app_name\", uri!~\"/actuator.*\"})",
           "instant": true,
           "interval": "",
-          "legendFormat": "{{http_request_method}} {{http_route}}",
+          "legendFormat": "{{method}} {{uri}}",
           "range": true,
           "refId": "A"
         }
@@ -269,9 +269,9 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "http_server_request_duration_seconds_sum{}",
+          "expr": "sum by(method, uri) (http_server_requests_seconds_sum{exported_job=\"$app_name\", uri!~\"/actuator.*\"}) / sum by(method, uri) (http_server_requests_seconds_count{exported_job=\"$app_name\", uri!~\"/actuator.*\"})",
           "interval": "",
-          "legendFormat": "{{http_request_method}} {{http_route}}",
+          "legendFormat": "{{method}} {{uri}}",
           "range": true,
           "refId": "A"
         }
@@ -339,7 +339,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(http_server_request_duration_seconds_count{exported_job=\"$app_name\", http_response_status_code!=\"200\"})",
+          "expr": "sum(http_server_requests_seconds_count{exported_job=\"$app_name\", status=~\"5..\"})",
           "interval": "",
           "legendFormat": "",
           "range": true,
@@ -347,7 +347,7 @@
         }
       ],
       "timeFrom": "24h",
-      "title": "Total Exceptions",
+      "title": "Total 5xx Errors",
       "type": "stat"
     },
     {
@@ -441,9 +441,9 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by(http_route) (http_server_request_duration_seconds_count{exported_job=\"$app_name\", http_response_status_code=~\"2.*\"}) / sum by(http_route) (http_server_request_duration_seconds_count{exported_job=\"$app_name\"})",
+          "expr": "sum by(uri) (http_server_requests_seconds_count{exported_job=\"$app_name\", uri!~\"/actuator.*\", status=~\"2..\"}) / sum by(uri) (http_server_requests_seconds_count{exported_job=\"$app_name\", uri!~\"/actuator.*\"})",
           "interval": "",
-          "legendFormat": "__auto",
+          "legendFormat": "{{uri}}",
           "range": true,
           "refId": "A"
         }
@@ -542,7 +542,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by(uri) (http_server_requests_seconds_count{application=\"$app_name\", status=~\"5.*\", uri!=\"/actuator/prometheus\"}) / sum by(uri) (http_server_requests_seconds_count{application=\"$app_name\", uri!=\"/actuator/prometheus\"})",
+          "expr": "sum by(uri) (http_server_requests_seconds_count{exported_job=\"$app_name\", uri!~\"/actuator.*\", status=~\"5..\"}) / sum by(uri) (http_server_requests_seconds_count{exported_job=\"$app_name\", uri!~\"/actuator.*\"})",
           "interval": "",
           "legendFormat": "{{uri}}",
           "range": true,
@@ -642,7 +642,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "histogram_quantile(.99,sum(rate(http_server_request_duration_seconds_bucket{exported_job=\"$app_name\"}[1m])) by(http_route, le))",
+          "expr": "histogram_quantile(.99, sum by(uri, le) (rate(http_server_requests_seconds_bucket{exported_job=\"$app_name\", uri!~\"/actuator.*\"}[$__rate_interval])))",
           "interval": "",
           "legendFormat": "{{uri}}",
           "range": true,
@@ -742,7 +742,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "histogram_quantile(.95,sum(rate(http_server_request_duration_seconds_bucket{exported_job=\"$app_name\"}[1m])) by(http_route, le))",
+          "expr": "histogram_quantile(.95, sum by(uri, le) (rate(http_server_requests_seconds_bucket{exported_job=\"$app_name\", uri!~\"/actuator.*\"}[$__rate_interval])))",
           "interval": "",
           "legendFormat": "{{uri}}",
           "range": true,
@@ -842,7 +842,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum by(http_route)(rate(http_server_request_duration_seconds_count{exported_job=\"$app_name\"}[1m]))",
+          "expr": "sum by(uri) (rate(http_server_requests_seconds_count{exported_job=\"$app_name\", uri!~\"/actuator.*\"}[$__rate_interval]))",
           "interval": "",
           "legendFormat": "{{uri}}",
           "range": true,
@@ -987,7 +987,7 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "sum(rate({job=\"territoire-back\"} | json | severity!=\"\" [1m])) by (severity)",
+          "expr": "sum(rate({job=\"$app_name\"} | json | severity!=\"\" [1m])) by (severity)",
           "hide": false,
           "queryType": "range",
           "refId": "B"
@@ -1057,13 +1057,13 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(application)",
+        "definition": "label_values(http_server_requests_seconds_count, exported_job)",
         "includeAll": false,
         "label": "Application Name",
         "name": "app_name",
         "options": [],
         "query": {
-          "query": "label_values(application)",
+          "query": "label_values(http_server_requests_seconds_count, exported_job)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
