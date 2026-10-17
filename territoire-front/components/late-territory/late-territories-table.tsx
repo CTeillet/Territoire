@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { DataTable } from "@/components/territory/territory-data-table";
 import { ColumnDef } from "@tanstack/react-table";
+import { DataTableFeatures } from "@/components/ui/data-table-features";
 import { Territory } from "@/models/territory";
 import { DataTableColumnHeader } from "@/components/territory/territory-data-header";
 import { ReminderStatusBadge } from "./reminder-status-badge";
@@ -15,7 +16,7 @@ import { ReminderStatusBadge } from "./reminder-status-badge";
 
 interface LateTerritoriesTableProps {
   territories: Territory[];
-  columns: ColumnDef<Territory, unknown>[];
+  columns: ColumnDef<DataTableFeatures, Territory, unknown>[];
   tableId?: string; // Identifiant unique pour la table
 }
 
@@ -45,7 +46,7 @@ export function LateTerritoriesTable({
 export function createLateTerritoriesColumns(
   formatDate: (dateString: string | null) => string,
   hasReminder: (territoryId: string, personId: string) => boolean
-): ColumnDef<Territory, unknown>[] {
+): ColumnDef<DataTableFeatures, Territory, unknown>[] {
   return [
     {
       id: "name",
