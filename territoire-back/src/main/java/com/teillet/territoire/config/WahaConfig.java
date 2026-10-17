@@ -13,7 +13,7 @@ public class WahaConfig {
 	public IWahaClient wahaClient(
 			@Value("${waha.base-url}") String baseUrl,
 			@Value("${waha.apiKey:}") String apiKey,
-			@Value("${waha.session:default}") String session
+			@Value("${waha.session}") String session
 	) {
 		return new WahaClientOkHttp(baseUrl, apiKey, session);
 	}
