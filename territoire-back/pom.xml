@@ -27,7 +27,7 @@
         <logback.version>1.6.5</logback.version>
         <geotools.version>35.2</geotools.version>
         <!-- Aligné sur le SDK OpenTelemetry géré par Spring Boot (2.28.x ↔ SDK 1.62.0) -->
-        <opentelemetry-instrumentation.version>2.28.1-alpha</opentelemetry-instrumentation.version>
+        <opentelemetry-instrumentation.version>2.32.0-alpha</opentelemetry-instrumentation.version>
         <datasource-micrometer.version>2.3.0</datasource-micrometer.version>
     </properties>
     <dependencies>
