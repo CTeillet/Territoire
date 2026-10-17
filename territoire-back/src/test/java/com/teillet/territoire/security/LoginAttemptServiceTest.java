@@ -94,4 +94,20 @@ class LoginAttemptServiceTest {
 		assertDoesNotThrow(service::purgeExpired);
 		assertDoesNotThrow(() -> service.checkAllowed("user@test.fr", "1.1.1.1"));
 	}
+
+	@Test
+	void ipScope_BlocksAfterTooManyFailures_AndIsIsolatedFromLogin() {
+		for (int i = 0; i < 5; i++) {
+			service.recordIpFailure("lien-public", "1.2.3.4");
+		}
+
+		assertThrows(TooManyRequestsException.class, () -> service.checkIpAllowed("lien-public", "1.2.3.4"));
+		// Les autres usages et les autres IP ne sont pas touchés
+		assertDoesNotThrow(() -> service.checkIpAllowed("autre", "1.2.3.4"));
+		assertDoesNotThrow(() -> service.checkIpAllowed("lien-public", "5.6.7.8"));
+		assertDoesNotThrow(() -> service.checkAllowed("someone@example.com", "1.2.3.4"));
+
+		clock.advance(Duration.ofMinutes(16));
+		assertDoesNotThrow(() -> service.checkIpAllowed("lien-public", "1.2.3.4"));
+	}
 }

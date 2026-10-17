@@ -19,20 +19,28 @@ const PersonActions = ({
     <div className="flex gap-4">
       {editing ? (
         <>
-          <Button className="bg-green-500" onClick={onSave}>
+          <Button
+            className="bg-green-500"
+            onClick={onSave}
+            aria-label="Sauvegarder"
+          >
             <Save />
           </Button>
-          <Button className="bg-gray-500" onClick={onCancel}>
+          <Button
+            className="bg-gray-500"
+            onClick={onCancel}
+            aria-label="Annuler"
+          >
             <Ban />
           </Button>
         </>
       ) : (
-        <Button onClick={onEdit}>
+        <Button onClick={onEdit} aria-label="Modifier">
           <Edit />
         </Button>
       )}
-      <Link href="/personnes">
-        <Button className="bg-gray-500">
+      <Link href="/personnes" aria-label="Retour à la liste des personnes">
+        <Button className="bg-gray-500" tabIndex={-1}>
           <Undo2 />
         </Button>
       </Link>

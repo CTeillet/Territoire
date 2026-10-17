@@ -183,4 +183,32 @@ class UserServiceTest {
 		userService.deleteUser(userId);
 		verify(userRepository, times(1)).deleteById(userId);
 	}
+
+	@Test
+	void testDemoteAdmin_WhenAnotherAdminRemains_Allowed() {
+		UUID userId = UUID.randomUUID();
+		User admin = new User();
+		admin.setId(userId);
+		admin.setRole(Role.ADMIN);
+		when(userRepository.findById(userId)).thenReturn(Optional.of(admin));
+		when(userRepository.countByRole(Role.ADMIN)).thenReturn(2L);
+
+		userService.updateUserRole(userId, "SUPERVISEUR");
+
+		assertEquals(Role.SUPERVISEUR, admin.getRole());
+		verify(userRepository).save(admin);
+	}
+
+	@Test
+	void testDeleteAdmin_WhenAnotherAdminRemains_Allowed() {
+		UUID userId = UUID.randomUUID();
+		User admin = new User();
+		admin.setRole(Role.ADMIN);
+		when(userRepository.findById(userId)).thenReturn(Optional.of(admin));
+		when(userRepository.countByRole(Role.ADMIN)).thenReturn(2L);
+
+		userService.deleteUser(userId);
+
+		verify(userRepository).deleteById(userId);
+	}
 }

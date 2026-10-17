@@ -165,6 +165,12 @@
             <artifactId>poi-ooxml</artifactId>
             <version>5.5.1</version>
         </dependency>
+        <!-- Gabarits Liquid (messages WhatsApp rendus côté serveur, même syntaxe que liquidjs côté front) -->
+        <dependency>
+            <groupId>nl.big-o</groupId>
+            <artifactId>liqp</artifactId>
+            <version>0.9.2.3</version>
+        </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp-jvm</artifactId>

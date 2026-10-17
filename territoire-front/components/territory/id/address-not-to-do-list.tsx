@@ -185,6 +185,7 @@ const AddressNotToDoList = () => {
                   className="border p-1 rounded w-32"
                 />
                 <button
+                  aria-label="Enregistrer l'adresse"
                   onClick={handleSaveEdit}
                   className="bg-green-500 text-white p-1 rounded hover:bg-green-600 flex items-center gap-1"
                 >
@@ -199,6 +200,7 @@ const AddressNotToDoList = () => {
                 </span>
                 <div className="flex gap-2">
                   <button
+                    aria-label="Modifier l'adresse"
                     onClick={() => handleEdit(index)}
                     className="text-blue-500 hover:text-blue-700"
                   >
@@ -207,6 +209,7 @@ const AddressNotToDoList = () => {
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
+                        aria-label="Supprimer l'adresse"
                         variant="destructive"
                         className="p-2"
                         onClick={() => handleDeleteClick(index)}
@@ -282,6 +285,7 @@ const AddressNotToDoList = () => {
             className="border p-2 rounded"
           />
           <button
+            aria-label="Ajouter l'adresse"
             onClick={handleAddAddress}
             className="bg-red-500 text-white p-2 rounded hover:bg-red-600 flex items-center gap-1"
           >

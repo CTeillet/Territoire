@@ -1,7 +1,9 @@
 package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.AssignmentDto;
+import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.TerritoryStatus;
+import com.teillet.territoire.event.TerritoryAssignedEvent;
 import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.mapper.AssignmentMapper;
 import com.teillet.territoire.model.Assignment;
@@ -15,6 +17,7 @@ import com.teillet.territoire.service.ITerritoryService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
@@ -28,15 +31,18 @@ public class AssignmentService implements IAssignmentService {
 	private final AssignmentRepository assignmentRepository;
 	private final ITerritoryService territoryService;
 	private final IPersonService personService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public AssignmentService(
 		AssignmentRepository assignmentRepository,
 		@Lazy ITerritoryService territoryService,
-		IPersonService personService
+		IPersonService personService,
+		ApplicationEventPublisher eventPublisher
 	) {
 		this.assignmentRepository = assignmentRepository;
 		this.territoryService = territoryService;
 		this.personService = personService;
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional
@@ -57,7 +63,10 @@ public class AssignmentService implements IAssignmentService {
 				.build();
 
 		territoryService.updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
-		return AssignmentMapper.toDto(assignmentRepository.save(assignment));
+		Assignment saved = assignmentRepository.save(assignment);
+		// Message WhatsApp éventuel envoyé après validation de la transaction (cf. AssignmentNotificationListener)
+		eventPublisher.publishEvent(new TerritoryAssignedEvent(saved.getId(), personId, territoryId));
+		return AssignmentMapper.toDto(saved);
 	}
 
 	@Transactional
@@ -65,8 +74,22 @@ public class AssignmentService implements IAssignmentService {
 	public AssignmentDto returnTerritory(UUID territoryId) {
 		// Récupérer l'assignation en cours pour ce territoire
 		Assignment assignment = findAssignmentRunning(territoryId);
+		return completeReturn(assignment, ReturnSource.RESPONSABLE);
+	}
 
+	@Transactional
+	@Override
+	public AssignmentDto returnTerritoryByPerson(UUID territoryId, UUID personId) {
+		Assignment assignment = assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)
+				.filter(running -> running.getPerson() != null && personId.equals(running.getPerson().getId()))
+				.orElseThrow(() -> new NotFoundException("Ce territoire ne vous est pas attribué"));
+		log.info("Territoire {} rendu par la personne {} depuis son lien", territoryId, personId);
+		return completeReturn(assignment, ReturnSource.LIEN);
+	}
+
+	private AssignmentDto completeReturn(Assignment assignment, ReturnSource source) {
 		assignment.setReturnDate(LocalDate.now());
+		assignment.setReturnedVia(source);
 		assignmentRepository.save(assignment);
 		territoryService.updateTerritoryStatus(assignment.getTerritory(), TerritoryStatus.PENDING);
 		Assignment resultAssignment = getAssignment(assignment.getId());
@@ -195,6 +218,12 @@ public class AssignmentService implements IAssignmentService {
 					.build();
 
 			assignmentRepository.save(assignment);
+
+			// Parcouru pendant la campagne : mêmes règles qu'un retour habituel (en attente 4 mois).
+			// Un territoire attribué ou en retard garde son statut : il est encore chez quelqu'un.
+			if (territory.getStatus() == TerritoryStatus.AVAILABLE) {
+				territoryService.updateTerritoryStatus(territory, TerritoryStatus.PENDING);
+			}
 			log.info("Assignation créée avec succès pour le territoire '{}'", territory.getName());
 		}
 	}

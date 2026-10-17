@@ -48,6 +48,8 @@ public class SecurityConfig {
 								"/api/authentification/refresh",
 								"/api/authentification/deconnexion"
 						).permitAll()
+						// Liens personnels : sans compte, l'autorisation est portée par le jeton signé (cf. PersonAccessService)
+						.requestMatchers("/api/public/acces/**").permitAll()
 						// Sonde de santé publique (sans détails) ; le reste d'Actuator est réservé aux admins
 						.requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 						.requestMatchers("/actuator/**").hasRole("ADMIN")

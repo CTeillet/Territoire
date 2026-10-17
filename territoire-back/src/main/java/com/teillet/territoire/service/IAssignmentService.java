@@ -17,6 +17,14 @@ public interface IAssignmentService {
 	@Transactional
 	AssignmentDto returnTerritory(UUID assignment);
 
+	/**
+	 * Retour d'un territoire par la personne qui l'a en cours (depuis son lien personnel).
+	 *
+	 * @throws com.teillet.territoire.exception.NotFoundException si ce territoire ne lui est pas attribué
+	 */
+	@Transactional
+	AssignmentDto returnTerritoryByPerson(UUID territoryId, UUID personId);
+
     void checkOverdueAssignments();
 
     Assignment getAssignment(UUID assignmentId);

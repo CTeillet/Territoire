@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { TerritoryTypeData } from "@/models/chart-data";
 import { ChartWrapper } from "@/components/shared/charts/chart-wrapper";
+import { seriesLabel } from "./series-label";
 
 interface TerritoryTypeBarChartProps {
   data: TerritoryTypeData[];
@@ -28,20 +29,12 @@ export function TerritoryTypeBarChart({
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip
-          formatter={(value, name) => {
-            if (name === "used") return [value, statusTranslations.used];
-            if (name === "available")
-              return [value, statusTranslations.available];
-            return [value, name];
-          }}
+          formatter={(value, name) => [
+            value,
+            seriesLabel(name, statusTranslations),
+          ]}
         />
-        <Legend
-          formatter={(value) => {
-            if (value === "used") return statusTranslations.used;
-            if (value === "available") return statusTranslations.available;
-            return value;
-          }}
-        />
+        <Legend formatter={(value) => seriesLabel(value, statusTranslations)} />
         <Bar dataKey="used" name="used" fill="#0088FE" />
         <Bar dataKey="available" name="available" fill="#00C49F" />
       </BarChart>

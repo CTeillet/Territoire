@@ -9,6 +9,12 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class ConfigUtils {
 
+	/** Horloge du fuseau de la JVM (Europe/Paris en production), injectable pour les tests. */
+	@Bean
+	public java.time.Clock clock() {
+		return java.time.Clock.systemDefaultZone();
+	}
+
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();

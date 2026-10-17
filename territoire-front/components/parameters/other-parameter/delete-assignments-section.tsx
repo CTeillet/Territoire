@@ -54,9 +54,9 @@ export const DeleteAssignmentsSection = ({ showTitle = true }: Props) => {
       headers: {},
     };
 
-    const response = await authFetch(url, options);
+    const response = await authFetch(url, options).catch(() => null);
 
-    if (response.ok) {
+    if (response?.ok) {
       toast.success("Assignations supprimées avec succès !");
     } else {
       toast.error("Erreur lors de la suppression des assignations.");
@@ -77,7 +77,7 @@ export const DeleteAssignmentsSection = ({ showTitle = true }: Props) => {
           value={selectedCity}
           onValueChange={(value) => setSelectedCity(value)}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full" aria-label="Ville">
             <SelectValue placeholder="Choisir une ville" />
           </SelectTrigger>
           <SelectContent>

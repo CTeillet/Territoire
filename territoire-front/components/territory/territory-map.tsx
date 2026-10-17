@@ -3,10 +3,7 @@
 import dynamic from "next/dynamic";
 import React, { useEffect, useMemo, useState } from "react";
 import { TerritoryCollection, TerritoryFeature } from "@/models/territory";
-import {
-  STATUS_TRANSLATIONS,
-  TerritoryStatus,
-} from "@/models/territory-status";
+import { TerritoryStatus } from "@/models/territory-status";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import { createRoot } from "react-dom/client";
 import { Layer, PathOptions, PopupEvent } from "leaflet";
@@ -17,7 +14,7 @@ import MapUpdater from "@/components/territory/map-updater";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2 } from "lucide-react";
-import { getBadgeColor } from "@/components/utils";
+import { buildTerritoryPopup } from "@/components/territory/territory-popup";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
@@ -149,30 +146,8 @@ const onEachFeature = (feature: TerritoryFeature, layer: Layer) => {
   if (feature.properties) {
     const { id, name, status, territoryMapId } = feature.properties;
 
-    // Créer un conteneur pour le popup
-    const container = document.createElement("div");
-
-    // Contenu statique (nom + statut) construit avec le DOM : le nom d'un territoire est une saisie
-    // utilisateur et ne doit jamais être interprété comme du HTML (XSS).
-    const title = document.createElement("div");
-    title.className = "text-center";
-    const heading = document.createElement("h2");
-    heading.className = "text-lg font-bold";
-    heading.textContent = name;
-    title.appendChild(heading);
-
-    const badgeWrapper = document.createElement("div");
-    badgeWrapper.className = "flex justify-center mt-2 mb-5";
-    const badge = document.createElement("span");
-    badge.className = `${getBadgeColor(status)} text-white px-2 py-1 rounded w-full text-center`;
-    badge.textContent = STATUS_TRANSLATIONS[status] || status;
-    badgeWrapper.appendChild(badge);
-
-    // Un div spécifique pour React
-    const reactSlot = document.createElement("div");
-    reactSlot.id = `react-popup-${id}`;
-
-    container.append(title, badgeWrapper, reactSlot);
+    // Contenu construit avec le DOM (jamais innerHTML) : le nom est une saisie utilisateur
+    const container = buildTerritoryPopup(id, name, status);
 
     // Lier la popup au layer
     layer.bindPopup(container);

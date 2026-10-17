@@ -3,6 +3,7 @@ package com.teillet.territoire.service.impl;
 import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.repository.AssignmentRepository;
+import com.teillet.territoire.repository.PersonAccessRepository;
 import com.teillet.territoire.repository.PersonRepository;
 import com.teillet.territoire.repository.TerritoryReminderRepository;
 import com.teillet.territoire.service.IPersonService;
@@ -21,6 +22,7 @@ public class PersonService implements IPersonService {
 	private final PersonRepository personRepository;
 	private final AssignmentRepository assignmentRepository;
 	private final TerritoryReminderRepository reminderRepository;
+	private final PersonAccessRepository personAccessRepository;
 
 	@Override
 	public List<Person> getAllPersons() {
@@ -48,6 +50,8 @@ public class PersonService implements IPersonService {
 		if (!assignmentRepository.findByPerson_Id(id).isEmpty() || !reminderRepository.findByPerson_Id(id).isEmpty()) {
 			throw new IllegalStateException("Impossible de supprimer cette personne : elle apparaît dans l'historique des attributions ou des rappels");
 		}
+		// Le lien personnel n'a pas de valeur historique : il disparaît avec la personne
+		personAccessRepository.deleteByPerson_Id(id);
 		personRepository.deletePersonById(id);
 		log.info("Personne avec l'ID {} supprimée avec succès.", id);
 	}

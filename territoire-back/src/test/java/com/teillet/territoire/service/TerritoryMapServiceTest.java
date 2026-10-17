@@ -128,4 +128,11 @@ class TerritoryMapServiceTest {
 			public String getCityColorHex() { return color; }
 		};
 	}
+
+	@Test
+	void testGeneratePng_TooManyPixels_Rejected() {
+		// A3 à 600 DPI : environ 70 millions de pixels, au-delà de la limite
+		org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+				() -> territoryMapService.generatePng("A3", "landscape", 600, null, 14, true));
+	}
 }

@@ -26,13 +26,14 @@ const ActionButton: React.FC<ActionButtonProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         {href ? (
-          <Link href={href}>
-            <Button className={className}>
+          <Link href={href} aria-label={tooltip}>
+            <Button className={className} tabIndex={-1}>
               <Icon />
             </Button>
           </Link>
         ) : (
-          <Button className={className} onClick={onClick}>
+          // Bouton icône seule : l'infobulle sert aussi de nom accessible
+          <Button className={className} onClick={onClick} aria-label={tooltip}>
             <Icon />
           </Button>
         )}

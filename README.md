@@ -8,6 +8,7 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 - Attribution d'un territoire à une personne (échéance à 4 mois), retour, prolongation et annulation.
 - Passage automatique en retard et remise à disposition des territoires en attente (tâches de nuit).
 - Rappels WhatsApp (via WAHA) pour les territoires en retard.
+- Espace « mes territoires » : chaque personne reçoit un lien personnel (`/m/<jeton>`) pour consulter ses territoires en cours (carte, adresses à ne pas visiter) et les rendre elle-même. Envoi par WhatsApp, automatique à l'attribution si activé ; gestion (renvoi, régénération, révocation, expiration) dans Paramètres > Accès numériques et sur la fiche de chaque personne. Coexiste avec les cartes papier.
 - Campagnes, statistiques, historique quotidien des statuts.
 - Export / import Excel, impression de cartes, adresses à ne pas visiter.
 - Rôles et droits d'accès :
@@ -40,7 +41,7 @@ Backend (profil `local`, cookies sans HTTPS) :
 cd territoire-back
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
-Variables attendues : `JWT_SECRET_KEY` (clé base64), `WAHA_API_KEY_PLAIN_TEXT`.
+Variables attendues : `JWT_SECRET_KEY` (clé base64), `WAHA_API_KEY_PLAIN_TEXT`, et en option `ACCESS_LINK_SECRET` (clé des liens personnels, sinon dérivée de `JWT_SECRET_KEY`).
 
 Frontend (port 40000) :
 ```bash

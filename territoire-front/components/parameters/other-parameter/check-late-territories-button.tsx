@@ -11,9 +11,9 @@ export const CheckLateTerritoriesButton = ({ showTitle = true }: Props) => {
   const checkLateTerritories = async () => {
     const response = await authFetch("/api/attributions/verification-retard", {
       method: "PUT",
-    });
+    }).catch(() => null);
 
-    if (response.ok) {
+    if (response?.ok) {
       toast.success("Vérification des retards terminée !");
     } else {
       toast.error("Erreur lors de la vérification des retards.");

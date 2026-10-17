@@ -1,5 +1,6 @@
 package com.teillet.territoire.dto;
 
+import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.model.Person;
 import lombok.Builder;
 import lombok.Data;
@@ -16,5 +17,6 @@ public class AssignmentDto {
 	private LocalDate assignmentDate;
 	private LocalDate dueDate;
 	private LocalDate returnDate;
+	private ReturnSource returnedVia;
 	private CampaignDto campaign;
 }

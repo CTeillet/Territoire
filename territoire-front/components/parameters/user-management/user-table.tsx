@@ -64,10 +64,13 @@ const UserTable = ({
               <TableCell className="px-4 py-3">{user.email}</TableCell>
               <TableCell className="px-4 py-3">
                 <Select
-                  defaultValue={user.role}
+                  value={user.role}
                   onValueChange={(value: Role) => onUpdateRole(user.id, value)}
                 >
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger
+                    className="w-40"
+                    aria-label={`Rôle de ${user.username}`}
+                  >
                     <SelectValue placeholder="Sélectionner un rôle" />
                   </SelectTrigger>
                   <SelectContent>

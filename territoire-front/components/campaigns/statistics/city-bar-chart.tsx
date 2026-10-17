@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { CityData } from "@/models/chart-data";
 import { ChartWrapper } from "@/components/shared/charts/chart-wrapper";
+import { seriesLabel } from "./series-label";
 
 interface CityBarChartProps {
   data: CityData[];
@@ -34,20 +35,14 @@ export function CityBarChart({ data, statusTranslations }: CityBarChartProps) {
         />
         <YAxis />
         <Tooltip
-          formatter={(value, name) => {
-            if (name === "used") return [value, statusTranslations.used];
-            if (name === "available")
-              return [value, statusTranslations.available];
-            return [value, name];
-          }}
+          formatter={(value, name) => [
+            value,
+            seriesLabel(name, statusTranslations),
+          ]}
         />
         <Legend
           verticalAlign="top"
-          formatter={(value) => {
-            if (value === "used") return statusTranslations.used;
-            if (value === "available") return statusTranslations.available;
-            return value;
-          }}
+          formatter={(value) => seriesLabel(value, statusTranslations)}
         />
         <Bar dataKey="used" name="used" fill="#0088FE" />
         <Bar dataKey="available" name="available" fill="#00C49F" />

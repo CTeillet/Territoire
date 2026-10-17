@@ -80,7 +80,7 @@ const CreateUserDialog = ({ onCreate }: CreateUserDialogProps) => {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button>
+        <Button aria-label="Ajouter un utilisateur">
           <Plus />
         </Button>
       </AlertDialogTrigger>
@@ -162,6 +162,7 @@ const CreateUserDialog = ({ onCreate }: CreateUserDialogProps) => {
                         form.setValue("password", generatePassword())
                       }
                       className="ml-2"
+                      aria-label="Générer un nouveau mot de passe"
                     >
                       <RefreshCcw />
                     </Button>

@@ -37,6 +37,12 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 
 	List<Assignment> findByPerson_Id(UUID personId);
 
+	List<Assignment> findByPerson_IdAndReturnDateIsNull(UUID personId);
+
+	/** (personId, nombre d'attributions en cours) pour chaque personne ayant au moins un territoire. */
+	@Query("SELECT a.person.id, COUNT(a) FROM Assignment a WHERE a.returnDate IS NULL AND a.person IS NOT NULL GROUP BY a.person.id")
+	List<Object[]> countRunningAssignmentsByPerson();
+
 	@Query("SELECT MIN(a.assignmentDate) FROM Assignment a")
 	LocalDate findMinAssignmentDate();
 

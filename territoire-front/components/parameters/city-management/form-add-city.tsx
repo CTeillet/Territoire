@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { addCity } from "@/store/slices/city-slice";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,8 +49,13 @@ const FormAddCity: React.FC = () => {
     },
   });
 
-  const onSubmit = (values: CityFormValues) => {
-    dispatch(addCity(values));
+  const onSubmit = async (values: CityFormValues) => {
+    const result = await dispatch(addCity(values));
+    if (addCity.rejected.match(result)) {
+      // On garde la saisie pour pouvoir corriger et réessayer
+      toast.error(result.error.message ?? "Erreur lors de l'ajout de la ville");
+      return;
+    }
     form.reset();
   };
 
@@ -116,7 +122,12 @@ const FormAddCity: React.FC = () => {
                 )}
               />
 
-              <Button type="submit" variant="default" className="h-10 mt-2">
+              <Button
+                type="submit"
+                variant="default"
+                className="h-10 mt-2"
+                aria-label="Ajouter la ville"
+              >
                 <Plus />
               </Button>
             </div>

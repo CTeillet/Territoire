@@ -16,6 +16,20 @@ import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
 import { renderTemplate } from "@/lib/template";
 
+/** Lien personnel de la personne (variable {{ link }} du message), ou chaîne vide s'il n'est pas actif. */
+async function fetchPersonLink(personId: string): Promise<string> {
+  try {
+    const res = await authFetch(
+      `/api/personnes/${encodeURIComponent(personId)}/acces`
+    );
+    if (!res.ok) return "";
+    const access = await res.json();
+    return typeof access?.link === "string" ? access.link : "";
+  } catch {
+    return "";
+  }
+}
+
 export interface ReminderDialogData {
   person: {
     id: string;
@@ -87,7 +101,10 @@ export function ReminderDialog({
             if (text === null || text === undefined) {
               result = "";
             } else {
-              result = renderTemplate(text, dataRef.current);
+              result = renderTemplate(text, {
+                ...dataRef.current,
+                link: await fetchPersonLink(dataRef.current.person.id),
+              });
             }
             setMessage(result);
           }

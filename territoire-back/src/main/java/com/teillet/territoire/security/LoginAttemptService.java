@@ -68,6 +68,23 @@ public class LoginAttemptService {
 		record(ipKey(ip), now);
 	}
 
+	/**
+	 * Limitation par adresse IP seule, pour d'autres usages que la connexion (ex. liens personnels invalides).
+	 * Le {@code scope} isole les compteurs de chaque usage.
+	 */
+	public void checkIpAllowed(String scope, String ip) {
+		long wait = secondsUntilAllowed(scope + ":" + ipKey(ip), maxFailuresPerIp);
+		if (wait > 0) {
+			log.warn("Accès bloqué temporairement ({}, ip={})", scope, ip);
+			throw new TooManyRequestsException(
+					"Trop de tentatives. Réessayez dans " + Math.max(1, (wait + 59) / 60) + " minute(s).", wait);
+		}
+	}
+
+	public void recordIpFailure(String scope, String ip) {
+		record(scope + ":" + ipKey(ip), clock.instant());
+	}
+
 	public void recordSuccess(String email) {
 		failuresByKey.remove(accountKey(email));
 	}

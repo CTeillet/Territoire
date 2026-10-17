@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { deletePerson } from "@/store/slices/person-slice";
+import { toast } from "sonner";
 
 interface PersonCardProps {
   person: Person;
@@ -29,9 +30,14 @@ const PersonCard: React.FC<PersonCardProps> = ({ person }) => {
   const dispatch = useAppDispatch();
   const deleting = useAppSelector((state) => state.persons.deleting);
 
-  const handleDelete = () => {
-    if (person.id != null) {
-      dispatch(deletePerson(person.id));
+  const handleDelete = async () => {
+    if (person.id == null) return;
+    try {
+      await dispatch(deletePerson(person.id)).unwrap();
+    } catch (error) {
+      toast.error(
+        typeof error === "string" ? error : "Échec de la suppression"
+      );
     }
   };
 
@@ -51,15 +57,23 @@ const PersonCard: React.FC<PersonCardProps> = ({ person }) => {
         <div className="flex-grow"></div>
 
         <div className="flex gap-2 mt-2 justify-end">
-          <Link href={`/personnes/${person.id}`}>
-            <Button variant="outline" className="p-2">
+          <Link
+            href={`/personnes/${person.id}`}
+            aria-label={`Voir la fiche de ${person.firstName} ${person.lastName}`}
+          >
+            <Button variant="outline" className="p-2" tabIndex={-1}>
               <FileUser size={18} />
             </Button>
           </Link>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="p-2" disabled={deleting}>
+              <Button
+                variant="destructive"
+                className="p-2"
+                disabled={deleting}
+                aria-label={`Supprimer ${person.firstName} ${person.lastName}`}
+              >
                 {deleting ? "Suppression..." : <Trash2 size={18} />}
               </Button>
             </AlertDialogTrigger>

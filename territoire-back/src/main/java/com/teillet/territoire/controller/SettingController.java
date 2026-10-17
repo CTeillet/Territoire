@@ -1,6 +1,8 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.dto.AccessSettingsDto;
 import com.teillet.territoire.service.ISettingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,5 +40,17 @@ class SettingController {
         // Allow empty message to reset; trim excessive whitespace
         String sanitized = message == null ? "" : message.trim();
         return ResponseEntity.ok(settingService.updateLateReminderMessage(sanitized));
+    }
+
+    @GetMapping("/acces-numerique")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+    public ResponseEntity<AccessSettingsDto> getAccessSettings() {
+        return ResponseEntity.ok(settingService.getAccessSettings());
+    }
+
+    @PutMapping("/acces-numerique")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+    public ResponseEntity<AccessSettingsDto> updateAccessSettings(@Valid @RequestBody AccessSettingsDto settings) {
+        return ResponseEntity.ok(settingService.updateAccessSettings(settings));
     }
 }

@@ -54,8 +54,11 @@ export const PublishersCountSection = () => {
     <div className="space-y-3">
       <h2 className="text-xl font-bold">Paramètres généraux</h2>
       <div className="flex items-center gap-3">
-        <label className="min-w-64">Nombre de proclamateurs</label>
+        <label htmlFor="publishers-count" className="min-w-64">
+          Nombre de proclamateurs
+        </label>
         <Input
+          id="publishers-count"
           type="number"
           min={0}
           value={value}

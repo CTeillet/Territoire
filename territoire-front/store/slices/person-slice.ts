@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { Person } from "@/models/person";
 import { authFetch } from "@/utils/auth-fetch";
+import { apiErrorMessage } from "@/utils/api-error";
 import { Assignment } from "@/models/assignment";
 
 const BASE_URL = "/api/personnes";
@@ -106,8 +107,11 @@ export const deletePerson = createAsyncThunk(
     const response = await authFetch(`${BASE_URL}/${id}`, { method: "DELETE" });
 
     // 🔹 Vérifie si la requête a échoué et retourne immédiatement `rejectWithValue`
+    // (avec le motif du serveur, ex. personne présente dans l'historique)
     if (!response.ok) {
-      return rejectWithValue("Échec de la suppression");
+      return rejectWithValue(
+        await apiErrorMessage(response, "Échec de la suppression")
+      );
     }
 
     return id; // ✅ Retourne l'ID si la suppression a réussi

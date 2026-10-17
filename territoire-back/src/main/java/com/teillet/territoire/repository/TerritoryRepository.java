@@ -1,5 +1,6 @@
 package com.teillet.territoire.repository;
 
+import com.teillet.territoire.dto.AvailableTerritoryDto;
 import com.teillet.territoire.repository.projection.Bbox3857;
 import com.teillet.territoire.repository.projection.TerritoryHullRow;
 import com.teillet.territoire.repository.projection.TerritoryStatisticsProjection;
@@ -11,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,6 +58,28 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
     Territory findByName(String name);
 
     List<Territory> findByStatus(com.teillet.territoire.enums.TerritoryStatus status);
+
+    /** Territoires disponibles (données légères, sans cartes ni pâtés) avec la date de leur dernier retour. */
+    @Query("""
+            SELECT new com.teillet.territoire.dto.AvailableTerritoryDto(t.id, t.name, t.type, c.name,
+                (SELECT MAX(a.returnDate) FROM Assignment a WHERE a.territory = t))
+            FROM Territory t LEFT JOIN t.city c
+            WHERE t.status = com.teillet.territoire.enums.TerritoryStatus.AVAILABLE
+            """)
+    List<AvailableTerritoryDto> findAvailable();
+
+    /** Comme {@link #findAvailable()}, limité à une ville. */
+    @Query("""
+            SELECT new com.teillet.territoire.dto.AvailableTerritoryDto(t.id, t.name, t.type, c.name,
+                (SELECT MAX(a.returnDate) FROM Assignment a WHERE a.territory = t))
+            FROM Territory t JOIN t.city c
+            WHERE t.status = com.teillet.territoire.enums.TerritoryStatus.AVAILABLE AND c.id = :cityId
+            """)
+    List<AvailableTerritoryDto> findAvailableInCity(@Param("cityId") UUID cityId);
+
+    /** (id, nom) des territoires demandés, sans charger les entités. */
+    @Query("SELECT t.id, t.name FROM Territory t WHERE t.id IN :ids")
+    List<Object[]> findNamesByIds(@Param("ids") Collection<UUID> ids);
 
     List<Territory> findByCity_Name(String cityName);
 
