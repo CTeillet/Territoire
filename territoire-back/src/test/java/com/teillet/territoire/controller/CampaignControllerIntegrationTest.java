@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -209,6 +210,13 @@ class CampaignControllerIntegrationTest {
 		t.setCity(city);
 		t.setStatus(TerritoryStatus.AVAILABLE);
 		t.setType(TerritoryType.HOUSE);
+		t.setConcaveHull(geometryFactory.createMultiPolygon(new Polygon[]{geometryFactory.createPolygon(new Coordinate[]{
+				new Coordinate(-1.6777, 48.1173),
+				new Coordinate(-1.6677, 48.1173),
+				new Coordinate(-1.6677, 48.1273),
+				new Coordinate(-1.6777, 48.1273),
+				new Coordinate(-1.6777, 48.1173)
+		})}));
 		Territory savedTerritory = territoryRepository.save(t);
 
 		Campaign c = new Campaign();
@@ -226,7 +234,13 @@ class CampaignControllerIntegrationTest {
 
 		// GeoJson
 		mockMvc.perform(get("/api/campagnes/{id}/geojson", saved.getId()))
-				.andExpect(status().isOk());
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.type").value("FeatureCollection"))
+				.andExpect(jsonPath("$.features.length()").value(1))
+				.andExpect(jsonPath("$.features[0].geometry.type").value("MultiPolygon"))
+				.andExpect(jsonPath("$.features[0].properties.id").value(savedTerritory.getId().toString()))
+				.andExpect(jsonPath("$.features[0].properties.name").value("Territoire Stats"))
+				.andExpect(jsonPath("$.features[0].properties.usedInCampaign").value(true));
 
 		// Excel Export
 		mockMvc.perform(get("/api/campagnes/{id}/export/excel", saved.getId()))

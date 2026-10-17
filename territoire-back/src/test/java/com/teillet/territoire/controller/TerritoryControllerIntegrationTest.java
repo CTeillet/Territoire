@@ -19,6 +19,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -75,6 +77,18 @@ class TerritoryControllerIntegrationTest {
 		return t;
 	}
 
+	/** Enveloppe concave carrée de 0,01° dont le coin sud-ouest est (x, y). */
+	private MultiPolygon createSquareHull(double x, double y) {
+		Polygon square = geometryFactory.createPolygon(new Coordinate[]{
+				new Coordinate(x, y),
+				new Coordinate(x + 0.01, y),
+				new Coordinate(x + 0.01, y + 0.01),
+				new Coordinate(x, y + 0.01),
+				new Coordinate(x, y)
+		});
+		return geometryFactory.createMultiPolygon(new Polygon[]{square});
+	}
+
 	@BeforeEach
 	void setUp() {
 		addressNotToDoRepository.deleteAll();
@@ -113,10 +127,22 @@ class TerritoryControllerIntegrationTest {
 	@Test
 	@WithMockUser(roles = "UTILISATEUR")
 	void testGetTerritoriesGeoJson() throws Exception {
-		territoryRepository.save(createTestTerritory("Territoire GeoJson", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		Territory territory = createTestTerritory("Territoire GeoJson", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE);
+		territory.setConcaveHull(createSquareHull(-1.6777, 48.1173));
+		Territory saved = territoryRepository.save(territory);
 
 		mockMvc.perform(get("/api/territoires/geojson"))
-				.andExpect(status().isOk());
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.type").value("FeatureCollection"))
+				.andExpect(jsonPath("$.features.length()").value(1))
+				.andExpect(jsonPath("$.features[0].geometry.type").value("MultiPolygon"))
+				.andExpect(jsonPath("$.features[0].geometry.coordinates[0][0][0][0]").value(-1.6777))
+				.andExpect(jsonPath("$.features[0].geometry.coordinates[0][0][0][1]").value(48.1173))
+				.andExpect(jsonPath("$.features[0].properties.id").value(saved.getId().toString()))
+				.andExpect(jsonPath("$.features[0].properties.name").value("Territoire GeoJson"))
+				.andExpect(jsonPath("$.features[0].properties.status").value("AVAILABLE"))
+				.andExpect(jsonPath("$.features[0].properties.city").value("Rennes"))
+				.andExpect(jsonPath("$.features[0].properties.type").value("HOUSE"));
 	}
 
 	@Test
