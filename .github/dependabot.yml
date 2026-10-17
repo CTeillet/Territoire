@@ -1,15 +1,23 @@
 version: 2
+# Les mises à jour mineures et correctives sont regroupées en une seule PR par écosystème ;
+# les versions majeures restent dans des PR séparées, à examiner une par une.
 updates:
   - package-ecosystem: maven
     directory: /territoire-back
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      maven-mineures-correctives:
+        update-types: ["minor", "patch"]
   - package-ecosystem: npm
     directory: /territoire-front
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      npm-mineures-correctives:
+        update-types: ["minor", "patch"]
     ignore:
       # typescript-eslint (utilisé par eslint-config-next) n'accepte que typescript <6.1.0 :
       # retirer cette règle quand une version de typescript-eslint acceptera TypeScript 6.1+
@@ -19,6 +27,9 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions-mineures-correctives:
+        update-types: ["minor", "patch"]
   - package-ecosystem: docker
     directory: /territoire-back
     schedule:
@@ -27,7 +38,16 @@ updates:
     directory: /territoire-front
     schedule:
       interval: monthly
+    ignore:
+      # Même version LTS de Node que la CI (node-version dans ci.yml) et les postes de développement :
+      # la changer partout en même temps, la CI ne construisant pas l'image Docker
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /config/backup
     schedule:
       interval: monthly
+    ignore:
+      # Le client PostgreSQL garde la version majeure du serveur (postgis/postgis 17-3.5) : à monter avec lui
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
