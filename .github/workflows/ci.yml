@@ -17,6 +17,7 @@ jobs:
     outputs:
       back: ${{ steps.filter.outputs.back }}
       front: ${{ steps.filter.outputs.front }}
+      backup: ${{ steps.filter.outputs.backup }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
@@ -31,6 +32,10 @@ jobs:
               - '.github/workflows/ci.yml'
             front:
               - 'territoire-front/**'
+              - '.github/workflows/ci.yml'
+            backup:
+              - 'config/backup/**'
+              - 'docker-compose.yml'
               - '.github/workflows/ci.yml'
 
   frontend:
@@ -116,3 +121,76 @@ jobs:
           name: backend-jacoco-report
           path: territoire-back/target/site/jacoco/
           if-no-files-found: ignore
+
+  # Sauvegarde puis restauration de bout en bout, avec le service db-backup de docker-compose.yml
+  # et la procédure de restauration du README, sur une base PostGIS jetable
+  backup:
+    name: Backup BDD (sauvegarde & restauration)
+    runs-on: ubuntu-24.04
+    needs: changes
+    if: ${{ needs.changes.outputs.backup == 'true' }}
+    env:
+      # Valeurs de test pour la base jetable du runner
+      POSTGRES_PASSWORD: ci-secret
+      SPRING_DATASOURCE_PASSWORD: ci-secret
+      # Remote rclone "local" : les sauvegardes arrivent dans ./backups
+      BACKUP_REMOTE: ci:/backups
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Build Backup Image
+        run: docker compose build db-backup
+
+      - name: Start PostGIS and Seed Test Data
+        run: |
+          docker compose up -d postgis
+          # TCP uniquement : le serveur temporaire de l'initialisation n'écoute que sur le socket local
+          for i in $(seq 60); do
+            docker compose exec -T postgis pg_isready -q -h 127.0.0.1 -U admin -d territoire && break
+            sleep 2
+          done
+          docker compose exec -T postgis psql -U admin -d territoire -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE TABLE test_territoire (id bigserial PRIMARY KEY, nom text NOT NULL, contour geometry(Polygon, 4326));
+          INSERT INTO test_territoire (nom, contour)
+          SELECT 'Territoire ' || i || ' é', ST_Buffer(ST_SetSRID(ST_MakePoint(2.3 + i / 100.0, 48.8), 4326), 0.01)::geometry(Polygon, 4326)
+          FROM generate_series(1, 50) AS i;
+          SQL
+
+      - name: Prepare Remote, Key and Old Backups
+        run: |
+          mkdir -p rclone restauration backups/daily
+          printf '[ci]\ntype = local\n' > rclone/rclone.conf
+          docker compose run --rm -T --no-deps -v "$PWD/restauration:/restauration" db-backup age-keygen -o /restauration/cle.txt
+          echo "BACKUP_AGE_RECIPIENT=$(docker compose run --rm -T --no-deps -v "$PWD/restauration:/restauration" db-backup age-keygen -y /restauration/cle.txt)" >> "$GITHUB_ENV"
+          # Rotation : l'ancienne sauvegarde doit disparaître, le reste être conservé
+          touch -d '40 days ago' backups/daily/territoire_2000-01-01T0200Z.dump.age backups/daily/autre-fichier.txt
+          touch -d '2 days ago' backups/daily/territoire_recente.dump.age
+
+      - name: Run Backup
+        run: |
+          docker compose run --rm -T -v "$PWD/backups:/backups" db-backup run
+          docker compose run --rm -T -v "$PWD/backups:/backups" db-backup list
+          test ! -e backups/daily/territoire_2000-01-01T0200Z.dump.age
+          test -e backups/daily/autre-fichier.txt
+          test -e backups/daily/territoire_recente.dump.age
+          ls backups/daily/territoire_"$(date -u +%Y-%m-%d)"T*.dump.age
+          test -s backups/monthly/territoire_"$(date -u +%Y-%m)".dump.age
+
+      - name: Restore as Documented and Compare
+        run: |
+          file=$(cd backups/daily && ls territoire_"$(date -u +%Y-%m-%d)"T*.dump.age | tail -n 1)
+          docker compose run --rm -T -v "$PWD/backups:/backups" -v "$PWD/restauration:/restauration" db-backup fetch "daily/$file"
+          docker compose stop territoire-back postgres-exporter db-backup
+          docker compose exec -T postgis psql -U admin -d postgres -v ON_ERROR_STOP=1 \
+            -c 'ALTER DATABASE territoire RENAME TO territoire_avant_restauration' \
+            -c 'CREATE DATABASE territoire TEMPLATE template_postgis'
+          docker compose run --rm -T --no-deps -v "$PWD/restauration:/restauration" db-backup \
+            pg_restore --no-owner --exit-on-error --single-transaction --schema=public --dbname=territoire /restauration/territoire.dump
+          # Schéma et données de l'application identiques (hors lignes \restrict, aléatoires à chaque dump)
+          for db in territoire_avant_restauration territoire; do
+            docker compose exec -T postgis pg_dump -U admin --no-owner --schema=public "$db" | grep -vE '^\\(un)?restrict ' > "$db.sql"
+          done
+          diff territoire_avant_restauration.sql territoire.sql
+          grep -q 'Territoire 50 é' territoire.sql

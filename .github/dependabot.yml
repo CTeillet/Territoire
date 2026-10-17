@@ -27,3 +27,7 @@ updates:
     directory: /territoire-front
     schedule:
       interval: monthly
+  - package-ecosystem: docker
+    directory: /config/backup
+    schedule:
+      interval: monthly
