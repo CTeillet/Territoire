@@ -1,6 +1,8 @@
 services:
   postgis:
-    image: postgis/postgis:latest
+    # Version majeure figée : un serveur 18 refuse de démarrer sur les données d'un 17 (et PGDATA change en 18).
+    # À monter volontairement, avec migration des données et l'image de sauvegarde (config/backup/Dockerfile).
+    image: postgis/postgis:17-3.5
     container_name: postgis_container
     restart: always
     environment:
