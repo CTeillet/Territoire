@@ -81,8 +81,6 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
     @Query("SELECT t.id, t.name FROM Territory t WHERE t.id IN :ids")
     List<Object[]> findNamesByIds(@Param("ids") Collection<UUID> ids);
 
-    List<Territory> findByCity_Name(String cityName);
-
     @Query(value = """
                 SELECT COUNT(t)
                 FROM Territory t

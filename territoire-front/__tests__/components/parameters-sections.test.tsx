@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { DeleteAssignmentsSection } from "@/components/parameters/other-parameter/delete-assignments-section";
 import { LateReminderMessage } from "@/components/parameters/other-parameter/late-reminder-message";
 import ParametersPage from "@/app/(app)/parametres/page";
 import * as authFetchModule from "@/utils/auth-fetch";
@@ -26,23 +25,6 @@ vi.mock("@/components/parameters/access/access-management", () => ({
 
 const textResponse = (text: string, ok = true): Response =>
   ({ ok, status: ok ? 200 : 500, text: async () => text }) as Response;
-
-describe("DeleteAssignmentsSection", () => {
-  it("est réservée à l'ADMIN", () => {
-    const { container } = renderWithRole(
-      <DeleteAssignmentsSection />,
-      "SUPERVISEUR"
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("est visible pour l'ADMIN", () => {
-    renderWithRole(<DeleteAssignmentsSection />, "ADMIN");
-
-    expect(screen.getByText("Supprimer les assignations")).toBeInTheDocument();
-  });
-});
 
 describe("LateReminderMessage", () => {
   let authFetch: ReturnType<typeof vi.spyOn>;
