@@ -200,28 +200,6 @@ class TerritoryServiceTest {
 	}
 
 	@Test
-	void testRevokeAssignmentsBulk_WithCity() {
-		when(territoryRepository.findByCity_Name("Paris")).thenReturn(List.of(territory));
-
-		territoryService.revokeAssignmentsBulk("Paris");
-
-		verify(assignmentRepository, times(1)).deleteAssignmentByTerritory_City_Name("Paris");
-		assertEquals(TerritoryStatus.AVAILABLE, territory.getStatus());
-		verify(territoryRepository, times(1)).save(territory);
-	}
-
-	@Test
-	void testRevokeAssignmentsBulk_AllCities() {
-		when(territoryRepository.findAll()).thenReturn(List.of(territory));
-
-		territoryService.revokeAssignmentsBulk(null);
-
-		verify(assignmentRepository, times(1)).deleteAll();
-		assertEquals(TerritoryStatus.AVAILABLE, territory.getStatus());
-		verify(territoryRepository, times(1)).save(territory);
-	}
-
-	@Test
 	void testGetPeriodStatistics() {
 		LocalDate start = LocalDate.of(2024, 1, 1);
 		LocalDate end = LocalDate.of(2024, 6, 1);

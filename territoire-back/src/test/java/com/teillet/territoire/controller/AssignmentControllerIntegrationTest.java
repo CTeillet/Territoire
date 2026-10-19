@@ -4,7 +4,6 @@ import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.dto.SimplifiedTerritoryDto;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.service.IAssignmentService;
-import com.teillet.territoire.service.ITerritoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -34,9 +33,6 @@ class AssignmentControllerIntegrationTest {
 
 	@MockitoBean
 	private IAssignmentService assignmentService;
-
-	@MockitoBean
-	private ITerritoryService territoryService;
 
 	@Test
 	@WithMockUser(roles = "UTILISATEUR")
@@ -95,35 +91,11 @@ class AssignmentControllerIntegrationTest {
 
 	@Test
 	@WithMockUser(roles = "ADMIN")
-	void testDeleteAllAssignments_Admin_Success() throws Exception {
+	void testMassDeletion_NoLongerExists() throws Exception {
+		// La suppression de masse de l'historique des attributions a été retirée, y compris pour l'ADMIN
 		mockMvc.perform(delete("/api/attributions"))
-				.andExpect(status().isOk());
-
-		verify(territoryService).revokeAssignmentsBulk(null);
-	}
-
-	@Test
-	@WithMockUser(roles = "UTILISATEUR")
-	void testDeleteAllAssignments_User_Forbidden() throws Exception {
-		mockMvc.perform(delete("/api/attributions"))
-				.andExpect(status().isForbidden());
-	}
-
-	@Test
-	@WithMockUser(roles = "ADMIN")
-	void testDeleteAssignmentsByCity_Admin_Success() throws Exception {
+				.andExpect(status().is4xxClientError());
 		mockMvc.perform(delete("/api/attributions/{city}", "Rennes"))
-				.andExpect(status().isOk());
-
-		verify(territoryService).revokeAssignmentsBulk("Rennes");
-	}
-
-	@Test
-	@WithMockUser(roles = "SUPERVISEUR")
-	void testDeleteAssignmentsByCity_Superviseur_Forbidden() throws Exception {
-		mockMvc.perform(delete("/api/attributions/{city}", "Rennes"))
-				.andExpect(status().isForbidden());
-
-		verify(territoryService, never()).revokeAssignmentsBulk("Rennes");
+				.andExpect(status().is4xxClientError());
 	}
 }

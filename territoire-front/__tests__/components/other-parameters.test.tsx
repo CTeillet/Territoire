@@ -12,7 +12,6 @@ import { ExportExcelButton } from "@/components/parameters/other-parameter/expor
 import { ImportExcelSection } from "@/components/parameters/other-parameter/import-excel-section";
 import { CheckLateTerritoriesButton } from "@/components/parameters/other-parameter/check-late-territories-button";
 import { CheckAvailableTerritoriesButton } from "@/components/parameters/other-parameter/check-available-territories-button";
-import { DeleteAssignmentsSection } from "@/components/parameters/other-parameter/delete-assignments-section";
 import { LateReminderMessage } from "@/components/parameters/other-parameter/late-reminder-message";
 import { ExportTerritoriesMapButton } from "@/components/parameters/other-parameter/export-map-button";
 import OtherParameter from "@/components/parameters/other-parameter/other-parameter";
@@ -290,73 +289,6 @@ describe("Boutons de vérification", () => {
   );
 });
 
-describe("DeleteAssignmentsSection (ADMIN)", () => {
-  const chooseAndConfirm = async (city: string) => {
-    renderWithRole(<DeleteAssignmentsSection />, "ADMIN");
-    const button = screen.getByRole("button", {
-      name: "Supprimer les assignations",
-    });
-    expect(button).toBeDisabled();
-
-    await userEvent.click(screen.getByRole("combobox", { name: "Ville" }));
-    await userEvent.click(await screen.findByRole("option", { name: city }));
-    await userEvent.click(button);
-    const dialog = await screen.findByRole("alertdialog");
-    const description = dialog.textContent;
-    await userEvent.click(
-      within(dialog).getByRole("button", { name: "Confirmer" })
-    );
-    return description;
-  };
-
-  it("supprime toutes les assignations", async () => {
-    const api = mockApi({ "DELETE /api/attributions": null });
-
-    expect(await chooseAndConfirm("Toutes les villes")).toContain(
-      "Cela va supprimer toutes les assignations."
-    );
-
-    await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith(
-        "Assignations supprimées avec succès !"
-      )
-    );
-    expect(api).toHaveBeenCalledWith(
-      "/api/attributions",
-      expect.objectContaining({ method: "DELETE" })
-    );
-  });
-
-  it("supprime les assignations d'une ville", async () => {
-    const api = mockApi({ "DELETE /api/attributions/Rennes": null });
-
-    expect(await chooseAndConfirm("Rennes")).toContain(
-      "toutes les assignations pour Rennes"
-    );
-
-    await waitFor(() => expect(toast.success).toHaveBeenCalled());
-    expect(api).toHaveBeenCalledWith(
-      "/api/attributions/Rennes",
-      expect.objectContaining({ method: "DELETE" })
-    );
-  });
-
-  it.each([
-    ["un refus", jsonResponse({}, 403)],
-    ["une erreur réseau", networkError],
-  ])("signale %s", async (_, response) => {
-    mockApi({ "DELETE /api/attributions/Rennes": response });
-
-    await chooseAndConfirm("Rennes");
-
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "Erreur lors de la suppression des assignations."
-      )
-    );
-  });
-});
-
 describe("LateReminderMessage (cas d'erreur et copie)", () => {
   const writeText = vi.fn();
 
@@ -621,7 +553,6 @@ describe("OtherParameter", () => {
       "Vérifications",
       "Messages types",
       "Test WhatsApp",
-      "Maintenance",
       "Export cartographique",
     ]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();

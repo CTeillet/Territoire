@@ -2,7 +2,6 @@ import { ExportExcelButton } from "./export-excel-button";
 import { ImportExcelSection } from "./import-excel-section";
 import { CheckLateTerritoriesButton } from "@/components/parameters/other-parameter/check-late-territories-button";
 import { CheckAvailableTerritoriesButton } from "@/components/parameters/other-parameter/check-available-territories-button";
-import { DeleteAssignmentsSection } from "@/components/parameters/other-parameter/delete-assignments-section";
 import { ExportTerritoriesMapButton } from "@/components/parameters/other-parameter/export-map-button";
 import { PublishersCountSection } from "@/components/parameters/other-parameter/publishers-count-section";
 import { LateReminderMessage } from "@/components/parameters/other-parameter/late-reminder-message";
@@ -45,11 +44,6 @@ export default function OtherParameter() {
           <WhatsAppTestSection showTitle={false} />
         </section>
       )}
-
-      <section className="border rounded-2xl shadow-sm bg-white p-4">
-        <h2 className="text-xl font-bold mb-4">Maintenance</h2>
-        <DeleteAssignmentsSection showTitle={false} />
-      </section>
 
       <section className="border rounded-2xl shadow-sm bg-white p-4">
         <h2 className="text-xl font-bold mb-4">Export cartographique</h2>

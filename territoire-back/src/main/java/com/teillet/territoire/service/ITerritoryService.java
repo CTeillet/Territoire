@@ -38,9 +38,6 @@ public interface ITerritoryService {
 	@Transactional
 	void deleteTerritory(UUID id);
 
-    @Transactional
-    void revokeAssignmentsBulk(String cityName);
-
     long countTerritoriesNotAssignedSince(LocalDate startDate, LocalDate endDate);
 
     String getTerritoryCoverageGeoJson(LocalDate startDate, LocalDate endDate) throws IOException;

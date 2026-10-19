@@ -23,10 +23,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, UUID> {
 
 	List<Assignment> findAssignmentsByAssignmentDateAfterOrReturnDateAfter(LocalDate assignmentDateAfter, LocalDate returnDateAfter);
 
-	void deleteAssignmentByTerritory_City_Name(String cityName);
-
-	void deleteAll();
-
 	/** Dates (attribution, retour) des attributions terminées : suffisant pour calculer des durées sans charger les entités. */
 	@Query("SELECT a.assignmentDate, a.returnDate FROM Assignment a WHERE a.returnDate IS NOT NULL AND a.assignmentDate >= :startDate AND a.assignmentDate <= :endDate")
 	List<Object[]> findReturnedAssignmentDatesBetweenQuery(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
