@@ -1,6 +1,7 @@
 package com.teillet.territoire.scheduling;
 
 import com.teillet.territoire.service.IAssignmentService;
+import com.teillet.territoire.service.IRefreshTokenService;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.service.ITerritoryStatusHistoryService;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,9 @@ class NightlyJobsTest {
 	@Mock
 	private ITerritoryStatusHistoryService territoryStatusHistoryService;
 
+	@Mock
+	private IRefreshTokenService refreshTokenService;
+
 	@InjectMocks
 	private NightlyJobs nightlyJobs;
 
@@ -32,10 +36,11 @@ class NightlyJobsTest {
 	void runsStepsInOrder() {
 		nightlyJobs.run();
 
-		InOrder order = inOrder(assignmentService, territoryService, territoryStatusHistoryService);
+		InOrder order = inOrder(assignmentService, territoryService, territoryStatusHistoryService, refreshTokenService);
 		order.verify(assignmentService).checkOverdueAssignments();
 		order.verify(territoryService).releasePendingTerritories();
 		order.verify(territoryStatusHistoryService).recordDailyStatistics();
+		order.verify(refreshTokenService).purgeExpired();
 	}
 
 	@Test
@@ -46,5 +51,6 @@ class NightlyJobsTest {
 		assertDoesNotThrow(() -> nightlyJobs.run());
 
 		verify(territoryStatusHistoryService).recordDailyStatistics();
+		verify(refreshTokenService).purgeExpired();
 	}
 }

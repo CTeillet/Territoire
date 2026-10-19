@@ -4,20 +4,31 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.LoginRequest;
 import com.teillet.territoire.enums.Role;
 import com.teillet.territoire.model.User;
+import com.teillet.territoire.repository.RefreshTokenRepository;
 import com.teillet.territoire.repository.UserRepository;
 import com.teillet.territoire.service.IJwtService;
+import com.teillet.territoire.service.IRefreshTokenService;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Duration;
+import java.util.Base64;
+import java.util.Date;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,10 +52,20 @@ class AuthControllerIntegrationTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	@Autowired
+	private IRefreshTokenService refreshTokenService;
+
+	@Autowired
+	private RefreshTokenRepository refreshTokenRepository;
+
+	@Value("${jwt.secret}")
+	private String jwtSecret;
+
 	private User testUser;
 
 	@BeforeEach
 	void setUp() {
+		refreshTokenRepository.deleteAll();
 		userRepository.deleteAll();
 
 		testUser = new User();
@@ -76,6 +97,10 @@ class AuthControllerIntegrationTest {
 				.andExpect(cookie().httpOnly("refreshToken", true))
 				.andExpect(cookie().secure("refreshToken", true))
 				.andExpect(cookie().path("refreshToken", "/api/authentification"));
+
+		// Le refresh token émis est enregistré (empreinte uniquement), pas encore consommé
+		assertEquals(1, refreshTokenRepository.count());
+		assertNull(refreshTokenRepository.findAll().getFirst().getUsedAt());
 	}
 
 	@Test
@@ -218,13 +243,89 @@ class AuthControllerIntegrationTest {
 
 	@Test
 	void testRefreshTokenSuccess() throws Exception {
-		String refreshToken = jwtService.generateRefreshToken(testUser);
+		String refreshToken = refreshTokenService.issue(testUser);
 
-		mockMvc.perform(post("/api/authentification/refresh")
-						.cookie(new Cookie("refreshToken", refreshToken)))
+		String rotated = refresh(refreshToken)
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.token").isString())
-				.andExpect(cookie().exists("refreshToken"));
+				.andExpect(cookie().exists("refreshToken"))
+				.andReturn().getResponse().getCookie("refreshToken").getValue();
+
+		assertNotEquals(refreshToken, rotated);
+		refresh(rotated).andExpect(status().isOk());
+	}
+
+	@Test
+	void testRefreshToken_ConcurrentUse_AccessTokenWithoutNewCookie() throws Exception {
+		String refreshToken = refreshTokenService.issue(testUser);
+		refresh(refreshToken).andExpect(status().isOk()).andExpect(cookie().exists("refreshToken"));
+
+		// Deuxième onglet, dans la foulée, avec le même jeton : pas un vol
+		refresh(refreshToken)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.token").isString())
+				.andExpect(cookie().doesNotExist("refreshToken"));
+		assertEquals(0, userRepository.findByEmail("auth.test@territoire.fr").orElseThrow().getCurrentTokenVersion());
+	}
+
+	@Test
+	void testRefreshToken_ReusedLater_RevokesAllSessions() throws Exception {
+		String refreshToken = refreshTokenService.issue(testUser);
+		String rotated = refresh(refreshToken)
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getCookie("refreshToken").getValue();
+
+		backdateConsumedTokens(Duration.ofMinutes(5));
+		refresh(refreshToken)
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.error").value("Refresh token déjà utilisé"));
+
+		// Toutes les sessions sont révoquées, y compris celle du jeton qui venait d'être émis
+		assertEquals(1, userRepository.findByEmail("auth.test@territoire.fr").orElseThrow().getCurrentTokenVersion());
+		refresh(rotated).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void testRefreshToken_NotIssuedByServer_Rejected() throws Exception {
+		// Signature valide, mais jamais enregistré
+		refresh(jwtService.generateRefreshToken(testUser))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.error").value("Refresh token invalide"));
+	}
+
+	@Test
+	void testRefreshToken_LegacyToken_AcceptedOnce() throws Exception {
+		// Jeton émis avant la rotation à usage unique : ni identifiant, ni enregistrement
+		String legacy = Jwts.builder()
+				.subject(testUser.getEmail())
+				.claim("type", "refresh")
+				.claim("ver", 0)
+				.issuedAt(new Date())
+				.expiration(new Date(System.currentTimeMillis() + 86_400_000L))
+				.signWith(Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret)))
+				.compact();
+
+		refresh(legacy).andExpect(status().isOk()).andExpect(cookie().exists("refreshToken"));
+
+		backdateConsumedTokens(Duration.ofMinutes(5));
+		refresh(legacy)
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.error").value("Refresh token déjà utilisé"));
+	}
+
+	private org.springframework.test.web.servlet.ResultActions refresh(String refreshToken) throws Exception {
+		return mockMvc.perform(post("/api/authentification/refresh")
+				.cookie(new Cookie("refreshToken", refreshToken)));
+	}
+
+	/** Simule un jeton consommé il y a longtemps (hors du délai accordé aux onglets simultanés). */
+	private void backdateConsumedTokens(Duration delay) {
+		refreshTokenRepository.findAll().stream()
+				.filter(token -> token.getUsedAt() != null)
+				.forEach(token -> {
+					token.setUsedAt(token.getUsedAt().minus(delay));
+					refreshTokenRepository.save(token);
+				});
 	}
 
 	@Test
