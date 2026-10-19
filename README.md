@@ -80,29 +80,35 @@ Le test `Backup BDD` de la CI fait une sauvegarde puis une restauration complèt
    ```bash
    BACKUP_REMOTE=gdrive:territoire-backups
    BACKUP_AGE_RECIPIENT=age1…   # clé publique
-   BACKUP_HEALTHCHECK_URL=https://hc-ping.com/<uuid>   # facultatif, voir 5.
+   BACKUP_HEALTHCHECK_URL=https://hc-ping.com/<uuid>   # facultatif, voir 6.
    ```
-3. Après le déploiement, connecter le Drive depuis le VPS (dans `~/territoire`) avec `docker compose run --rm db-backup rclone config`, puis répondre :
+3. Créer un client OAuth Google : le client partagé de rclone cesse de fonctionner en 2026. Sur [console.cloud.google.com](https://console.cloud.google.com), avec le compte Google qui recevra les sauvegardes :
+   - créer un projet (ex. `territoire-backup`), puis activer « Google Drive API » (API et services > Bibliothèque) ;
+   - dans « Google Auth Platform » (API et services > Écran de consentement OAuth), configurer l'application (audience « Externe ») et ajouter le niveau d'accès `…/auth/drive.file` (Accès aux données) ;
+   - dans Branding, renseigner une page d'accueil et une page de règles de confidentialité sur ton domaine (l'adresse de Territoire suffit) et ajouter ce domaine aux domaines autorisés. Google l'exige pour publier. Pas de logo : il imposerait une validation de l'application par Google ;
+   - publier l'application (Audience > « Publier l'application », statut « En production »). En mode « Test », le jeton expire au bout de 7 jours et les sauvegardes s'arrêtent ;
+   - dans « Clients », créer un client de type « Application de bureau » et ranger son ID et son code secret dans le gestionnaire de mots de passe.
+4. Après le déploiement, connecter le Drive depuis le VPS (dans `~/territoire`) avec `docker compose run --rm db-backup rclone config`, puis répondre :
    - `n` (nouveau remote), nom `gdrive`, type de stockage `drive` ;
-   - `client_id` et `client_secret` : laisser vide ;
+   - `client_id` et `client_secret` : ceux du client créé à l'étape 3 ;
    - `scope` : `drive.file`. rclone ne voit alors que les fichiers qu'il a créés, pas le reste du Drive ;
    - `service_account_file` : laisser vide, puis `n` à la configuration avancée ;
    - « Use web browser to automatically authenticate? » : `n`. rclone affiche une commande `rclone authorize "drive" "…"` : la lancer sur le poste Windows, se connecter au compte Google dans le navigateur, puis coller dans le terminal du VPS le jeton affiché ;
    - « Configure this as a Shared Drive? » : `n`, puis `y` pour garder le remote et `q` pour quitter.
 
-   La configuration et le jeton Google sont enregistrés dans `~/territoire/rclone/`. Ne pas créer le dossier `territoire-backups` à la main : avec `drive.file`, rclone ne voit pas un dossier qu'il n'a pas créé lui-même. Si tu crées ton propre client OAuth Google au lieu de celui de rclone, passe-le en « Production » : en mode « Test », le jeton expire au bout de 7 jours.
-4. Démarrer le service, lancer une première sauvegarde et vérifier qu'elle est arrivée (elle apparaît aussi sur drive.google.com). Tant que les étapes 2 et 3 ne sont pas faites, `db-backup` redémarre en boucle avec « Configuration incomplète ».
+   La configuration et le jeton Google sont enregistrés dans `~/territoire/rclone/`. Ne pas créer le dossier `territoire-backups` à la main : avec `drive.file`, rclone ne voit pas un dossier qu'il n'a pas créé lui-même.
+5. Démarrer le service, lancer une première sauvegarde et vérifier qu'elle est arrivée (elle apparaît aussi sur drive.google.com). Tant que les étapes 2 à 4 ne sont pas faites, `db-backup` redémarre en boucle avec « Configuration incomplète ».
    ```bash
    docker compose up -d db-backup
    docker compose run --rm db-backup run
    docker compose run --rm db-backup list
    ```
-5. Supervision : créer un check sur [healthchecks.io](https://healthchecks.io) (période 1 jour, délai de grâce 2 h) et mettre son URL dans `BACKUP_HEALTHCHECK_URL`. Il prévient par e-mail quand une sauvegarde échoue ou n'a pas eu lieu, par exemple si le jeton Google a été révoqué. Il faut alors reconnecter le Drive avec `docker compose run --rm db-backup rclone config reconnect gdrive:`.
-6. Garder aussi une copie du fichier d'environnement du VPS dans le gestionnaire de mots de passe : sans `JWT_SECRET_KEY` / `ACCESS_LINK_SECRET`, les liens personnels `/m/…` seraient à régénérer.
+6. Supervision : créer un check sur [healthchecks.io](https://healthchecks.io) (période 1 jour, délai de grâce 2 h) et mettre son URL dans `BACKUP_HEALTHCHECK_URL`. Il prévient par e-mail quand une sauvegarde échoue ou n'a pas eu lieu, par exemple si le jeton Google a été révoqué. Il faut alors reconnecter le Drive avec `docker compose run --rm db-backup rclone config reconnect gdrive:`.
+7. Garder aussi une copie du fichier d'environnement du VPS dans le gestionnaire de mots de passe : sans `JWT_SECRET_KEY` / `ACCESS_LINK_SECRET`, les liens personnels `/m/…` seraient à régénérer.
 
 **Restauration**
 
-La procédure est la même sur le VPS actuel et sur un nouveau VPS. Sur un nouveau VPS, il faut d'abord remettre Docker, `docker-compose.yml`, `config/` et l'environnement, refaire l'étape 3 de la mise en place pour reconnecter le Drive, puis lancer `docker compose up -d postgis`. La base en place est renommée, jamais supprimée.
+La procédure est la même sur le VPS actuel et sur un nouveau VPS. Sur un nouveau VPS, il faut d'abord remettre Docker, `docker-compose.yml`, `config/` et l'environnement, refaire l'étape 4 de la mise en place pour reconnecter le Drive (le client OAuth de l'étape 3 reste valable), puis lancer `docker compose up -d postgis`. La base en place est renommée, jamais supprimée.
 ```bash
 cd ~/territoire
 mkdir -p restauration
