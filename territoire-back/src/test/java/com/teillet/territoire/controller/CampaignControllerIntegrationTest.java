@@ -129,7 +129,9 @@ class CampaignControllerIntegrationTest {
 		mockMvc.perform(post("/api/campagnes")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(dto)))
-				.andExpect(status().isBadRequest());
+				.andExpect(status().isBadRequest())
+				// Même format JSON que le reste de l'API
+				.andExpect(jsonPath("$.error").value("La date de fin doit être après la date de début"));
 	}
 
 	@Test

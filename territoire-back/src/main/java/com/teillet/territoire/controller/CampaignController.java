@@ -25,12 +25,6 @@ public class CampaignController {
 
     private final ICampaignService campaignService;
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.error("Erreur de validation: {}", e.getMessage());
-        return ResponseEntity.badRequest().body(e.getMessage());
-    }
-
     @GetMapping
     public ResponseEntity<List<CampaignDto>> getAllCampaigns() {
         log.info("Requête reçue : GET /api/campagnes");

@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { Campaign } from "@/models/campaign";
 import { authFetch } from "@/utils/auth-fetch";
+import { apiErrorMessage } from "@/utils/api-error";
 import { SimplifiedTerritory } from "@/models/territory";
 import { CampaignStatistics } from "@/models/campaign-statistics";
 import { toast } from "sonner";
@@ -121,7 +122,9 @@ export const createCampaign = createAsyncThunk(
     });
 
     if (!response.ok) {
-      return rejectWithValue("Échec de la création de la campagne");
+      return rejectWithValue(
+        await apiErrorMessage(response, "Échec de la création de la campagne")
+      );
     }
 
     try {
@@ -157,7 +160,10 @@ export const createCampaignWithRemainingTerritories = createAsyncThunk(
 
     if (!response.ok) {
       return rejectWithValue(
-        "Échec de la création de la campagne avec territoires restants"
+        await apiErrorMessage(
+          response,
+          "Échec de la création de la campagne avec territoires restants"
+        )
       );
     }
 
@@ -194,7 +200,10 @@ export const updateRemainingTerritories = createAsyncThunk(
 
     if (!response.ok) {
       return rejectWithValue(
-        "Échec de la mise à jour des territoires restants"
+        await apiErrorMessage(
+          response,
+          "Échec de la mise à jour des territoires restants"
+        )
       );
     }
 
@@ -219,7 +228,9 @@ export const closeCampaign = createAsyncThunk(
     });
 
     if (!response.ok) {
-      return rejectWithValue("Échec de la clôture de la campagne");
+      return rejectWithValue(
+        await apiErrorMessage(response, "Échec de la clôture de la campagne")
+      );
     }
 
     try {
@@ -243,7 +254,12 @@ export const deleteCampaign = createAsyncThunk(
     });
 
     if (!response.ok) {
-      return rejectWithValue("Échec de la suppression de la campagne");
+      return rejectWithValue(
+        await apiErrorMessage(
+          response,
+          "Échec de la suppression de la campagne"
+        )
+      );
     }
 
     return campaignId;
