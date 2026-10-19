@@ -9,6 +9,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends age ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
+# gosu ne sert qu'au point d'entrée de l'image postgres, remplacé ici : retiré avec les failles du Go
+# avec lequel il est compilé (signalées par Trivy)
+RUN rm -f /usr/local/bin/gosu
+
 COPY --from=rclone /usr/local/bin/rclone /usr/local/bin/rclone
 COPY db-backup.sh /usr/local/bin/db-backup
 RUN chmod 755 /usr/local/bin/db-backup

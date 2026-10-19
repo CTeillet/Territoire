@@ -1,0 +1,99 @@
+name: Trivy - Vulnérabilités des images
+
+# Analyse les images construites par le projet (paquets du système de base et dépendances embarquées).
+# Séparé du déploiement : ce workflow n'a accès ni aux secrets du VPS ni au registre d'images.
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'territoire-back/**'
+      - 'territoire-front/**'
+      - 'config/backup/**'
+      - '.github/workflows/trivy.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'territoire-back/**'
+      - 'territoire-front/**'
+      - 'config/backup/**'
+      - '.github/workflows/trivy.yml'
+  schedule:
+    # Chaque lundi : de nouvelles failles sont publiées sans que le code change
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trivy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Trivy (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # Résultats dans l'onglet Security > Code scanning (hors pull requests)
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: back
+            context: territoire-back
+          - name: front
+            context: territoire-front
+          - name: sauvegarde
+            context: config/backup
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Build Image
+        run: docker build -t territoire-${{ matrix.name }}:scan ./${{ matrix.context }}
+
+      # trivy-action épinglé par SHA : ses tags ont été détournés en mars 2026 (GHSA-69fq-xp46-6x23).
+      # v0.36.0 est une release immuable publiée après l'incident. Version de Trivy à monter volontairement.
+      - name: Report (HIGH, CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.75.0
+          image-ref: territoire-${{ matrix.name }}:scan
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+
+      - name: Fail on Fixable CRITICAL
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.75.0
+          skip-setup-trivy: true
+          image-ref: territoire-${{ matrix.name }}:scan
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      # Pas sur les pull requests : celles de Dependabot n'ont qu'un jeton en lecture seule
+      - name: Generate SARIF
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.75.0
+          skip-setup-trivy: true
+          image-ref: territoire-${{ matrix.name }}:scan
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-${{ matrix.name }}.sarif
+
+      - name: Upload SARIF
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-${{ matrix.name }}.sarif
+          category: trivy-${{ matrix.name }}
