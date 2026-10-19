@@ -5,6 +5,7 @@ import com.teillet.territoire.dto.LoginRequest;
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.security.ClientIpResolver;
 import com.teillet.territoire.security.LoginAttemptService;
+import com.teillet.territoire.service.IRefreshTokenService;
 import com.teillet.territoire.service.IUserService;
 import com.teillet.territoire.service.impl.JwtService;
 import jakarta.servlet.http.Cookie;
@@ -39,6 +40,7 @@ public class AuthController {
 	private final IUserService userService;
 	private final AuthenticationManager authenticationManager;
 	private final JwtService jwtService;
+	private final IRefreshTokenService refreshTokenService;
 	private final LoginAttemptService loginAttemptService;
 
 	/**
@@ -75,7 +77,7 @@ public class AuthController {
 		}
 
 		String accessToken = jwtService.generateToken(user);
-		String refreshToken = jwtService.generateRefreshToken(user);
+		String refreshToken = refreshTokenService.issue(user);
 		log.info("✅ Connexion réussie pour {}", request.getEmail());
 
 		// L'entité User ne sérialise ni le hash du mot de passe ni les champs techniques (@JsonIgnore)
@@ -85,7 +87,7 @@ public class AuthController {
 				.body(Map.of("user", user, "token", accessToken));
 	}
 
-	// 🔄 Endpoint de rafraîchissement du token d'accès (avec rotation du refresh token)
+	// 🔄 Endpoint de rafraîchissement du token d'accès (refresh token à usage unique, remplacé à chaque appel)
 	@PostMapping("/refresh")
 	public ResponseEntity<?> refreshToken(HttpServletRequest request) {
 		String refreshToken = readRefreshCookie(request);
@@ -110,13 +112,16 @@ public class AuthController {
 			return unauthorized("Refresh token révoqué");
 		}
 
-		String newAccessToken = jwtService.generateToken(user);
-		String newRefreshToken = jwtService.generateRefreshToken(user);
-
-		return ResponseEntity.ok()
-				.header(HttpHeaders.SET_COOKIE, refreshCookie(newRefreshToken).toString())
-				.header(HttpHeaders.SET_COOKIE, legacyCookieCleared().toString())
-				.body(Map.of("token", newAccessToken));
+		return switch (refreshTokenService.use(refreshToken, user)) {
+			case FIRST_USE -> ResponseEntity.ok()
+					.header(HttpHeaders.SET_COOKIE, refreshCookie(refreshTokenService.issue(user)).toString())
+					.header(HttpHeaders.SET_COOKIE, legacyCookieCleared().toString())
+					.body(Map.of("token", jwtService.generateToken(user)));
+			// Un autre onglet vient de renouveler avec ce jeton : il a déjà reçu le nouveau cookie
+			case CONCURRENT -> ResponseEntity.ok().body(Map.of("token", jwtService.generateToken(user)));
+			case REUSED -> unauthorized("Refresh token déjà utilisé");
+			case UNKNOWN -> unauthorized("Refresh token invalide");
+		};
 	}
 
 	/**

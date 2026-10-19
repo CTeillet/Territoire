@@ -6,6 +6,7 @@ import com.teillet.territoire.service.impl.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,6 +29,24 @@ class JwtServiceTest {
 		user.setEmail("test@territoire.fr");
 		user.setUsername("testuser");
 		user.setRole(Role.ADMIN);
+	}
+
+	@Test
+	void testRefreshTokens_UniqueIdAndExpiration() {
+		String first = jwtService.generateRefreshToken(user);
+		String second = jwtService.generateRefreshToken(user);
+
+		// Émis dans la même seconde, les deux jetons restent distincts grâce à leur identifiant
+		assertNotNull(jwtService.extractTokenId(first));
+		assertNotEquals(jwtService.extractTokenId(first), jwtService.extractTokenId(second));
+		assertNotEquals(first, second);
+
+		Instant expiresAt = jwtService.extractExpiration(first);
+		assertTrue(expiresAt.isAfter(Instant.now().plusMillis(refreshExpiration - 60_000)));
+		assertTrue(expiresAt.isBefore(Instant.now().plusMillis(refreshExpiration + 60_000)));
+
+		assertNull(jwtService.extractTokenId("invalid.token.string"));
+		assertNull(jwtService.extractExpiration("invalid.token.string"));
 	}
 
 	@Test

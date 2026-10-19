@@ -1,6 +1,7 @@
 package com.teillet.territoire.scheduling;
 
 import com.teillet.territoire.service.IAssignmentService;
+import com.teillet.territoire.service.IRefreshTokenService;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.service.ITerritoryStatusHistoryService;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,8 @@ import org.springframework.stereotype.Component;
  * <ol>
  *     <li>passage en retard des attributions échues ;</li>
  *     <li>remise à disposition des territoires en attente depuis plus de 4 mois ;</li>
- *     <li>photographie quotidienne des statuts (qui reflète donc l'état à jour).</li>
+ *     <li>photographie quotidienne des statuts (qui reflète donc l'état à jour) ;</li>
+ *     <li>purge des refresh tokens expirés.</li>
  * </ol>
  * Chaque étape est isolée : l'échec de l'une n'empêche pas les suivantes.
  * <p>
@@ -26,6 +28,7 @@ public class NightlyJobs {
 	private final IAssignmentService assignmentService;
 	private final ITerritoryService territoryService;
 	private final ITerritoryStatusHistoryService territoryStatusHistoryService;
+	private final IRefreshTokenService refreshTokenService;
 
 	@Scheduled(cron = "${territoire.nightly-jobs.cron:0 5 0 * * *}", zone = "Europe/Paris")
 	public void run() {
@@ -33,6 +36,7 @@ public class NightlyJobs {
 		runStep("vérification des retards", assignmentService::checkOverdueAssignments);
 		runStep("libération des territoires en attente", territoryService::releasePendingTerritories);
 		runStep("historique quotidien des statuts", territoryStatusHistoryService::recordDailyStatistics);
+		runStep("purge des refresh tokens expirés", refreshTokenService::purgeExpired);
 		log.info("🌙 Fin des traitements de nuit");
 	}
 

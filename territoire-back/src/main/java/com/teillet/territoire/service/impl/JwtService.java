@@ -11,8 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 @Slf4j
@@ -28,7 +30,7 @@ public class JwtService implements IJwtService {
 	public JwtService(
 			@Value("${jwt.secret}") String secretKey,
 			@Value("${jwt.expiration}") long expirationTime,
-			@Value("${jwt.refreshExpiration:7776000000}") long refreshExpirationTime // default 90 days
+			@Value("${jwt.refreshExpiration:2592000000}") long refreshExpirationTime // default 30 days
 	) {
 		// Décoder et sécuriser la clé secrète
 		byte[] keyBytes = Base64.getDecoder().decode(secretKey);
@@ -60,6 +62,8 @@ public class JwtService implements IJwtService {
 	@Override
 	public String generateRefreshToken(User user) {
 		return Jwts.builder()
+				// Identifiant unique : deux refresh tokens émis dans la même seconde restent distincts (usage unique)
+				.id(UUID.randomUUID().toString())
 				.subject(user.getEmail())
 				.claim(CLAIM_TYPE, "refresh")
 				.claim(CLAIM_VERSION, user.getCurrentTokenVersion())
@@ -101,6 +105,18 @@ public class JwtService implements IJwtService {
 		}
 		Object version = claims.get(CLAIM_VERSION);
 		return version instanceof Number number ? number.intValue() : 0;
+	}
+
+	@Override
+	public String extractTokenId(String token) {
+		Claims claims = parse(token);
+		return claims == null ? null : claims.getId();
+	}
+
+	@Override
+	public Instant extractExpiration(String token) {
+		Claims claims = parse(token);
+		return claims == null ? null : claims.getExpiration().toInstant();
 	}
 
 	private Claims parse(String token) {
