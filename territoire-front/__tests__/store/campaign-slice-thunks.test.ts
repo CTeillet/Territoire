@@ -217,6 +217,25 @@ describe("campaign-slice : thunks et reducers", () => {
     }
   );
 
+  it.each([
+    ["createCampaign", () => createCampaign({ name: "x" })],
+    ["closeCampaign", () => closeCampaign("c1")],
+    ["deleteCampaign", () => deleteCampaign("c1")],
+  ])("%s : affiche le motif renvoyé par le serveur", async (_name, thunk) => {
+    const store = newStore();
+    authFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: "La campagne est déjà clôturée" }),
+    } as Response);
+
+    await store.dispatch(thunk() as never);
+
+    expect(store.getState().campaigns.error).toBe(
+      "La campagne est déjà clôturée"
+    );
+  });
+
   it("updateRemainingTerritories et closeCampaign : mettent à jour la campagne courante et la liste", async () => {
     const store = newStore({
       campaigns: [campaign(), campaign({ id: "c2" })] as never,
