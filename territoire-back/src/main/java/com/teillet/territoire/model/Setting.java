@@ -36,4 +36,8 @@ public class Setting {
     /** Numéro WhatsApp (format international) prévenu à chaque demande de nouveau territoire. Null = pas de message. */
     @Column(name = "territory_request_phone")
     private String territoryRequestPhone;
+
+    /** Adresses e-mail (séparées par des virgules) qui reçoivent chaque semaine la liste des territoires en retard. Null = aucun envoi. */
+    @Column(name = "late_report_recipients", columnDefinition = "TEXT")
+    private String lateReportRecipients;
 }

@@ -8,6 +8,9 @@ import com.teillet.territoire.utils.MessageTemplateRenderer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -87,6 +90,30 @@ public class SettingService implements ISettingService {
         s.setTerritoryRequestPhone(blankToNull(settings.getTerritoryRequestPhone()));
         settingRepository.save(s);
         return getAccessSettings();
+    }
+
+    @Override
+    public List<String> getLateReportRecipients() {
+        String stored = getSingleton().getLateReportRecipients();
+        return stored == null ? List.of() : normalizeRecipients(Arrays.asList(stored.split(",")));
+    }
+
+    @Override
+    public List<String> updateLateReportRecipients(List<String> recipients) {
+        List<String> normalized = normalizeRecipients(recipients == null ? List.of() : recipients);
+        Setting s = getSingleton();
+        s.setLateReportRecipients(normalized.isEmpty() ? null : String.join(",", normalized));
+        settingRepository.save(s);
+        return normalized;
+    }
+
+    private static List<String> normalizeRecipients(List<String> recipients) {
+        return recipients.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(r -> !r.isEmpty())
+                .distinct()
+                .toList();
     }
 
     private static String orDefault(String value, String defaultValue) {

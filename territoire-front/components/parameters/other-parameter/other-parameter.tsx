@@ -6,6 +6,7 @@ import { ExportTerritoriesMapButton } from "@/components/parameters/other-parame
 import { PublishersCountSection } from "@/components/parameters/other-parameter/publishers-count-section";
 import { LateReminderMessage } from "@/components/parameters/other-parameter/late-reminder-message";
 import { WhatsAppTestSection } from "@/components/parameters/other-parameter/whatsapp-test-section";
+import { LateReportSection } from "@/components/parameters/other-parameter/late-report-section";
 import { useAppSelector } from "@/store/store";
 
 export default function OtherParameter() {
@@ -37,6 +38,15 @@ export default function OtherParameter() {
         <h2 className="text-xl font-bold mb-4">Messages types</h2>
         <LateReminderMessage showTitle={false} />
       </section>
+
+      {(role === "ADMIN" || role === "SUPERVISEUR") && (
+        <section className="border rounded-2xl shadow-sm bg-white p-4">
+          <h2 className="text-xl font-bold mb-4">
+            Récapitulatif des retards par e-mail
+          </h2>
+          <LateReportSection showTitle={false} />
+        </section>
+      )}
 
       {role === "ADMIN" && (
         <section className="border rounded-2xl shadow-sm bg-white p-4">

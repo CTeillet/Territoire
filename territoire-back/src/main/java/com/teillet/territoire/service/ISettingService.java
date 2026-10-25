@@ -2,6 +2,8 @@ package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.AccessSettingsDto;
 
+import java.util.List;
+
 public interface ISettingService {
     Integer getPublishersCount();
     Integer updatePublishersCount(Integer count);
@@ -16,4 +18,10 @@ public interface ISettingService {
      * @throws IllegalArgumentException si un gabarit est invalide
      */
     AccessSettingsDto updateAccessSettings(AccessSettingsDto settings);
+
+    /** Destinataires du récapitulatif hebdomadaire des territoires en retard (liste vide = aucun envoi). */
+    List<String> getLateReportRecipients();
+
+    /** Remplace les destinataires ; les doublons et adresses vides sont retirés. */
+    List<String> updateLateReportRecipients(List<String> recipients);
 }

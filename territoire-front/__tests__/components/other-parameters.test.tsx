@@ -543,6 +543,10 @@ describe("OtherParameter", () => {
   it("regroupe toutes les sections", () => {
     mockApi({
       "GET /api/settings/late-reminder-message": jsonResponse(""),
+      "GET /api/settings/recapitulatif-retards": {
+        recipients: [],
+        mailConfigured: true,
+      },
       "GET /api/personnes": [],
     });
     renderWithRole(<OtherParameter />, "ADMIN");
@@ -552,6 +556,7 @@ describe("OtherParameter", () => {
       "Données Excel",
       "Vérifications",
       "Messages types",
+      "Récapitulatif des retards par e-mail",
       "Test WhatsApp",
       "Export cartographique",
     ]) {
@@ -560,14 +565,36 @@ describe("OtherParameter", () => {
   });
 
   it("réserve le test WhatsApp à l'administrateur", () => {
-    mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
+    mockApi({
+      "GET /api/settings/late-reminder-message": jsonResponse(""),
+      "GET /api/settings/recapitulatif-retards": {
+        recipients: [],
+        mailConfigured: true,
+      },
+    });
     renderWithRole(<OtherParameter />, "SUPERVISEUR");
 
     expect(
       screen.getByRole("heading", { name: "Messages types" })
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("heading", {
+        name: "Récapitulatif des retards par e-mail",
+      })
+    ).toBeInTheDocument();
+    expect(
       screen.queryByRole("heading", { name: "Test WhatsApp" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("réserve le récapitulatif des retards aux administrateurs et superviseurs", () => {
+    mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
+    renderWithRole(<OtherParameter />, "GESTIONNAIRE");
+
+    expect(
+      screen.queryByRole("heading", {
+        name: "Récapitulatif des retards par e-mail",
+      })
     ).not.toBeInTheDocument();
   });
 });
