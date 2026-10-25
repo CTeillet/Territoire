@@ -5,6 +5,7 @@ import com.teillet.territoire.enums.TerritoryType;
 import com.teillet.territoire.model.*;
 import com.teillet.territoire.repository.*;
 import jakarta.mail.internet.MimeMessage;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -68,12 +69,7 @@ class LateTerritoryReportControllerIntegrationTest {
 
 	@BeforeEach
 	void setUp() {
-		territoryReminderRepository.deleteAll();
-		assignmentRepository.deleteAll();
-		territoryRepository.deleteAll();
-		personRepository.deleteAll();
-		cityRepository.deleteAll();
-		settingRepository.deleteAll();
+		cleanUp();
 		settingRepository.save(Setting.builder().publishersCount(30).lateReportRecipients("a@b.fr").build());
 
 		City city = new City();
@@ -95,6 +91,24 @@ class LateTerritoryReportControllerIntegrationTest {
 
 		Territory assigned = territory("T2", TerritoryStatus.ASSIGNED, city);
 		assignment(assigned, bruno, today.minusDays(10), today.plusDays(110), null);
+	}
+
+	/**
+	 * La base H2 est partagée par tous les contextes Spring des tests : les relances et attributions laissées ici
+	 * feraient échouer le nettoyage des territoires dans les classes qui ne les suppriment pas.
+	 */
+	@AfterEach
+	void tearDown() {
+		cleanUp();
+	}
+
+	private void cleanUp() {
+		territoryReminderRepository.deleteAll();
+		assignmentRepository.deleteAll();
+		territoryRepository.deleteAll();
+		personRepository.deleteAll();
+		cityRepository.deleteAll();
+		settingRepository.deleteAll();
 	}
 
 	private Territory territory(String name, TerritoryStatus status, City city) {
