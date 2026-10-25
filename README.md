@@ -8,6 +8,7 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 - Attribution d'un territoire à une personne (échéance à 4 mois), retour, prolongation et annulation.
 - Passage automatique en retard et remise à disposition des territoires en attente (tâches de nuit).
 - Rappels WhatsApp (via WAHA) pour les territoires en retard.
+- Récapitulatif hebdomadaire par e-mail des territoires en retard (lundi 8 h) : personne, échéance, durée du retard et dernière relance. Destinataires dans Paramètres > Autres paramètres, avec un bouton d'envoi immédiat pour tester.
 - Espace « mes territoires » : chaque personne reçoit un lien personnel (`/m/<jeton>`) pour consulter ses territoires en cours (carte, adresses à ne pas visiter) et les rendre elle-même. Envoi par WhatsApp, automatique à l'attribution si activé ; gestion (renvoi, régénération, révocation, expiration) dans Paramètres > Accès numériques et sur la fiche de chaque personne. Coexiste avec les cartes papier.
 - Campagnes, statistiques, historique quotidien des statuts.
 - Export / import Excel, impression de cartes, adresses à ne pas visiter.
@@ -60,6 +61,23 @@ cd territoire-front && npm test
 La CI (`.github/workflows`) lance lint et tests, construit les images (tags `latest` et SHA du commit) sur GitHub Container Registry, puis déploie sur le VPS via `docker compose`. Les secrets (`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, …) sont fournis par l'environnement du VPS.
 
 Le workflow `Trivy` analyse les images du back, du front et de la sauvegarde à chaque modification et chaque lundi. Il échoue sur une faille critique corrigeable ; les failles hautes et critiques apparaissent dans l'onglet Security > Code scanning du dépôt.
+
+### E-mails (récapitulatif des retards)
+Le back envoie chaque lundi à 8 h (heure de Paris) la liste des territoires en retard. Sans serveur SMTP, rien n'est envoyé et Paramètres > Autres paramètres le signale.
+
+**Mise en place avec Gmail (une fois)**
+1. Sur le compte Google expéditeur, activer la validation en deux étapes puis créer un mot de passe d'application sur [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) (nom : `territoire`). Le ranger dans le gestionnaire de mots de passe.
+2. Ajouter dans l'environnement du VPS, à côté des autres secrets :
+   ```bash
+   MAIL_HOST=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USERNAME=adresse@gmail.com
+   MAIL_PASSWORD=abcdefghijklmnop   # mot de passe d'application, sans espaces
+   MAIL_FROM=                        # facultatif, par défaut MAIL_USERNAME
+   ```
+3. Après le déploiement (`docker compose up -d territoire-back`), dans Paramètres > Autres paramètres : saisir les destinataires, « Enregistrer », puis « Envoyer maintenant » pour vérifier la réception.
+
+Tout autre serveur SMTP en STARTTLS sur le port 587 convient (Brevo, OVH…). L'horaire est réglé par `territoire.late-report.cron` dans `application.properties` (format cron Spring, `0 0 8 * * MON`).
 
 ### Sauvegardes de la base
 Le service `db-backup` (`config/backup`) fait chaque nuit à 02:00 UTC un `pg_dump`, le chiffre avec [age](https://age-encryption.org) et l'envoie avec [rclone](https://rclone.org) dans le dossier `territoire-backups` d'un Google Drive. Le VPS n'a que la clé publique : il ne peut pas relire ses propres sauvegardes, et Google ne voit que des fichiers chiffrés. Dans ce dossier :

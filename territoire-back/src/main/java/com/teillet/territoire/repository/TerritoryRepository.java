@@ -1,6 +1,7 @@
 package com.teillet.territoire.repository;
 
 import com.teillet.territoire.dto.AvailableTerritoryDto;
+import com.teillet.territoire.dto.LateTerritoryDto;
 import com.teillet.territoire.repository.projection.Bbox3857;
 import com.teillet.territoire.repository.projection.TerritoryHullRow;
 import com.teillet.territoire.repository.projection.TerritoryStatisticsProjection;
@@ -76,6 +77,22 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
             WHERE t.status = com.teillet.territoire.enums.TerritoryStatus.AVAILABLE AND c.id = :cityId
             """)
     List<AvailableTerritoryDto> findAvailableInCity(@Param("cityId") UUID cityId);
+
+    /**
+     * Territoires en retard (données légères) avec la personne qui les a, l'échéance et la dernière relance faite depuis
+     * l'attribution. Les plus anciennes échéances d'abord.
+     */
+    @Query("""
+            SELECT new com.teillet.territoire.dto.LateTerritoryDto(t.id, t.name, c.name, p.firstName, p.lastName, a.dueDate,
+                (SELECT MAX(r.reminderDate) FROM TerritoryReminder r JOIN r.territories rt
+                 WHERE rt = t AND r.person = p AND r.reminderDate >= a.assignmentDate))
+            FROM Territory t JOIN t.city c
+            LEFT JOIN t.assignments a ON a.returnDate IS NULL
+            LEFT JOIN a.person p
+            WHERE t.status = com.teillet.territoire.enums.TerritoryStatus.LATE
+            ORDER BY a.dueDate, t.name
+            """)
+    List<LateTerritoryDto> findLate();
 
     /** (id, nom) des territoires demandés, sans charger les entités. */
     @Query("SELECT t.id, t.name FROM Territory t WHERE t.id IN :ids")

@@ -10,10 +10,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -79,5 +81,35 @@ class SettingServiceTest {
 		String updated = settingService.updateLateReminderMessage("Nouveau message");
 		assertEquals("Nouveau message", updated);
 		verify(settingRepository).save(setting);
+	}
+
+	@Test
+	void testGetLateReportRecipients() {
+		when(settingRepository.findAll()).thenReturn(List.of(setting));
+		assertEquals(List.of(), settingService.getLateReportRecipients());
+
+		setting.setLateReportRecipients("a@b.fr, c@d.fr,");
+		assertEquals(List.of("a@b.fr", "c@d.fr"), settingService.getLateReportRecipients());
+	}
+
+	@Test
+	void testUpdateLateReportRecipients_TrimsAndRemovesDuplicates() {
+		when(settingRepository.findAll()).thenReturn(List.of(setting));
+		when(settingRepository.save(any(Setting.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		List<String> updated = settingService.updateLateReportRecipients(Arrays.asList(" a@b.fr ", "", null, "c@d.fr", "a@b.fr"));
+
+		assertEquals(List.of("a@b.fr", "c@d.fr"), updated);
+		assertEquals("a@b.fr,c@d.fr", setting.getLateReportRecipients());
+	}
+
+	@Test
+	void testUpdateLateReportRecipients_EmptyDisables() {
+		setting.setLateReportRecipients("a@b.fr");
+		when(settingRepository.findAll()).thenReturn(List.of(setting));
+		when(settingRepository.save(any(Setting.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		assertEquals(List.of(), settingService.updateLateReportRecipients(List.of()));
+		assertNull(setting.getLateReportRecipients());
 	}
 }
