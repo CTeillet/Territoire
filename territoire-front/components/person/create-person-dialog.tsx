@@ -178,7 +178,7 @@ const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({
 
             <AlertDialogFooter>
               <AlertDialogCancel type="button">Annuler</AlertDialogCancel>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Ajout en cours..." : "Ajouter la personne"}
               </Button>
             </AlertDialogFooter>

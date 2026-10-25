@@ -256,9 +256,7 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({
 
             <AlertDialogFooter>
               <AlertDialogCancel type="button">Annuler</AlertDialogCancel>
-              <Button type="submit" className="w-full">
-                Confirmer l&apos;assignation
-              </Button>
+              <Button type="submit">Confirmer l&apos;assignation</Button>
             </AlertDialogFooter>
           </form>
         </Form>
