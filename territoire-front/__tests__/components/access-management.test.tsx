@@ -120,8 +120,24 @@ describe("AccessManagement", () => {
 
     expect(await screen.findByText("Jean Dupont")).toBeInTheDocument();
     expect(screen.getByText("Anne Martin")).toBeInTheDocument();
-    expect(screen.getByText("(sans numéro)")).toBeInTheDocument();
+    expect(screen.getByText("sans numéro")).toBeInTheDocument();
     expect(screen.queryByText("Paul Sans Territoire")).not.toBeInTheDocument();
+  });
+
+  it("compte et filtre les personnes via les tuiles", async () => {
+    renderWithRole(<AccessManagement />, "ADMIN");
+
+    await screen.findByText("Jean Dupont");
+    const everyone = screen.getByRole("button", { name: /Tout le monde/ });
+    expect(within(everyone).getByText("3")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Avec un territoire en cours/ })
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(everyone);
+
+    expect(everyone).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Paul Sans Territoire")).toBeInTheDocument();
   });
 
   it("envoie le lien d'une personne", async () => {
