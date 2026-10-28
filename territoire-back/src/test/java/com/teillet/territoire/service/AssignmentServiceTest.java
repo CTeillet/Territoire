@@ -1,6 +1,7 @@
 package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.AssignmentDto;
+import com.teillet.territoire.dto.UpdateAssignmentDatesDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Campaign;
@@ -276,27 +277,132 @@ class AssignmentServiceTest {
 		verify(territoryService, never()).updateTerritoryStatus(any(), any());
 	}
 
-	@Test
-	void testUpdateAssignmentDate_ChangesToLate() {
-		LocalDate pastDate = LocalDate.now().minusMonths(5);
-		Assignment running = Assignment.builder()
+	private Assignment historyAssignment(LocalDate assignmentDate, LocalDate dueDate, LocalDate returnDate) {
+		Assignment assignment = Assignment.builder()
 				.id(UUID.randomUUID())
 				.territory(territory)
 				.person(person)
-				.assignmentDate(LocalDate.now())
-				.dueDate(LocalDate.now().plusMonths(4))
+				.assignmentDate(assignmentDate)
+				.dueDate(dueDate)
+				.returnDate(returnDate)
 				.build();
+		territory.getAssignments().add(assignment);
+		lenient().when(assignmentRepository.findById(assignment.getId())).thenReturn(Optional.of(assignment));
+		return assignment;
+	}
 
-		when(assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId))
-				.thenReturn(Optional.of(running));
-		when(assignmentRepository.save(any(Assignment.class)))
-				.thenAnswer(invocation -> invocation.getArgument(0));
+	private static UpdateAssignmentDatesDto dates(LocalDate assignmentDate, LocalDate dueDate, LocalDate returnDate) {
+		UpdateAssignmentDatesDto dto = new UpdateAssignmentDatesDto();
+		dto.setAssignmentDate(assignmentDate);
+		dto.setDueDate(dueDate);
+		dto.setReturnDate(returnDate);
+		return dto;
+	}
 
-		assignmentService.updateAssignmentDate(territoryId, pastDate);
+	@Test
+	void testUpdateAssignmentDates_RunningPastDueDate_SetsLate() {
+		LocalDate today = LocalDate.now();
+		territory.setStatus(TerritoryStatus.ASSIGNED);
+		Assignment running = historyAssignment(today, today.plusMonths(4), null);
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		assertEquals(pastDate, running.getAssignmentDate());
-		assertEquals(pastDate.plusMonths(4), running.getDueDate());
-		verify(territoryService, times(1)).updateTerritoryStatus(territory, TerritoryStatus.LATE);
+		assignmentService.updateAssignmentDates(running.getId(), dates(today.minusMonths(5), today.minusMonths(1), null));
+
+		assertEquals(today.minusMonths(5), running.getAssignmentDate());
+		assertEquals(today.minusMonths(1), running.getDueDate());
+		verify(territoryService).updateTerritoryStatus(territory, TerritoryStatus.LATE);
+	}
+
+	@Test
+	void testUpdateAssignmentDates_LateWithFutureDueDate_SetsAssignedAndKeepsDueDate() {
+		LocalDate today = LocalDate.now();
+		territory.setStatus(TerritoryStatus.LATE);
+		Assignment running = historyAssignment(today.minusMonths(5), today.minusMonths(1), null);
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// L'échéance saisie est conservée (pas recalculée à attribution + 4 mois)
+		assignmentService.updateAssignmentDates(running.getId(), dates(today.minusMonths(5), today.plusWeeks(2), null));
+
+		assertEquals(today.plusWeeks(2), running.getDueDate());
+		verify(territoryService).updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
+	}
+
+	@Test
+	void testUpdateAssignmentDates_ReturnOlderThanFourMonths_SetsAvailable() {
+		LocalDate today = LocalDate.now();
+		territory.setStatus(TerritoryStatus.PENDING);
+		Assignment returned = historyAssignment(today.minusMonths(2), today.plusMonths(2), today.minusMonths(1));
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		assignmentService.updateAssignmentDates(returned.getId(), dates(today.minusMonths(8), today.minusMonths(4), today.minusMonths(5)));
+
+		assertEquals(today.minusMonths(5), returned.getReturnDate());
+		verify(territoryService).updateTerritoryStatus(territory, TerritoryStatus.AVAILABLE);
+	}
+
+	@Test
+	void testUpdateAssignmentDates_RecentReturn_SetsPending() {
+		LocalDate today = LocalDate.now();
+		territory.setStatus(TerritoryStatus.AVAILABLE);
+		Assignment returned = historyAssignment(today.minusMonths(8), today.minusMonths(4), today.minusMonths(5));
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		assignmentService.updateAssignmentDates(returned.getId(), dates(today.minusMonths(3), today.plusMonths(1), today.minusWeeks(1)));
+
+		verify(territoryService).updateTerritoryStatus(territory, TerritoryStatus.PENDING);
+	}
+
+	@Test
+	void testUpdateAssignmentDates_OldAssignmentWhileRunning_KeepsStatus() {
+		LocalDate today = LocalDate.now();
+		territory.setStatus(TerritoryStatus.ASSIGNED);
+		historyAssignment(today.minusMonths(1), today.plusMonths(3), null);
+		Assignment old = historyAssignment(today.minusYears(1), today.minusMonths(8), today.minusMonths(9));
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		assignmentService.updateAssignmentDates(old.getId(), dates(today.minusMonths(3), today.plusMonths(1), today.minusWeeks(6)));
+
+		verify(territoryService, never()).updateTerritoryStatus(any(), any());
+	}
+
+	@Test
+	void testUpdateAssignmentDates_InvalidDates_Rejected() {
+		LocalDate today = LocalDate.now();
+		Assignment running = historyAssignment(today.minusMonths(1), today.plusMonths(3), null);
+		Assignment returned = historyAssignment(today.minusMonths(6), today.minusMonths(2), today.minusMonths(3));
+
+		List<Runnable> invalidUpdates = List.of(
+				// Attribution dans le futur
+				() -> assignmentService.updateAssignmentDates(running.getId(), dates(today.plusDays(1), today.plusMonths(4), null)),
+				// Échéance avant l'attribution
+				() -> assignmentService.updateAssignmentDates(running.getId(), dates(today.minusMonths(1), today.minusMonths(2), null)),
+				// Retour d'une attribution en cours : passe par l'action « Retour »
+				() -> assignmentService.updateAssignmentDates(running.getId(), dates(today.minusMonths(1), today.plusMonths(3), today)),
+				// Date de retour effacée
+				() -> assignmentService.updateAssignmentDates(returned.getId(), dates(today.minusMonths(6), today.minusMonths(2), null)),
+				// Retour avant l'attribution
+				() -> assignmentService.updateAssignmentDates(returned.getId(), dates(today.minusMonths(6), today.minusMonths(2), today.minusMonths(7))),
+				// Retour dans le futur
+				() -> assignmentService.updateAssignmentDates(returned.getId(), dates(today.minusMonths(6), today.minusMonths(2), today.plusDays(1)))
+		);
+
+		for (Runnable update : invalidUpdates) {
+			assertThrows(IllegalArgumentException.class, update::run);
+		}
+		assertEquals(today.minusMonths(1), running.getAssignmentDate());
+		assertEquals(today.minusMonths(3), returned.getReturnDate());
+		verify(assignmentRepository, never()).save(any());
+		verify(territoryService, never()).updateTerritoryStatus(any(), any());
+	}
+
+	@Test
+	void testUpdateAssignmentDates_NotFound() {
+		UUID unknown = UUID.randomUUID();
+		when(assignmentRepository.findById(unknown)).thenReturn(Optional.empty());
+		LocalDate today = LocalDate.now();
+
+		assertThrows(com.teillet.territoire.exception.NotFoundException.class,
+				() -> assignmentService.updateAssignmentDates(unknown, dates(today, today.plusMonths(4), null)));
 	}
 
 	@Test

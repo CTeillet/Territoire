@@ -502,43 +502,152 @@ describe("Historique des attributions", () => {
     ).toHaveAttribute("href", "/personnes/p2");
   });
 
-  it("modifie la date d'attribution en cours", async () => {
+  const openDatesDialog = () =>
+    userEvent.click(screen.getByRole("button", { name: "Modifier les dates" }));
+
+  it("modifie les dates de l'attribution en cours (l'échéance par défaut suit)", async () => {
     const api = mockApi({
-      "POST /api/territoires/t1/modifier-date-attribution": assignment({
-        assignmentDate: "2026-08-15",
+      "PUT /api/attributions/as1": assignment({
+        assignmentDate: "2026-05-15",
+        dueDate: "2026-09-15",
+        territory: { ...assignment().territory, status: "LATE" },
       }),
     });
     renderWithStore(<AssignmentsList assignments={[assignment()]} />);
 
-    await userEvent.click(screen.getByTitle("Modifier la date d'attribution"));
-    fireEvent.change(screen.getByDisplayValue("2026-09-01"), {
-      target: { value: "2026-08-15" },
+    await openDatesDialog();
+    expect(screen.queryByLabelText("Date de retour")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Date d'attribution"), {
+      target: { value: "2026-05-15" },
     });
-    await userEvent.click(
-      screen.getByRole("button", { name: "Enregistrer la date d'attribution" })
-    );
+    expect(screen.getByLabelText("Échéance")).toHaveValue("2026-09-15");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
 
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith(
-        "/api/territoires/t1/modifier-date-attribution?assignmentDate=2026-08-15",
-        expect.anything()
+        "/api/attributions/as1",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({
+            assignmentDate: "2026-05-15",
+            dueDate: "2026-09-15",
+            returnDate: null,
+          }),
+        })
+      )
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    );
+  });
+
+  it("garde une échéance prolongée et modifie la date de retour d'une attribution terminée", async () => {
+    const returned = assignment({
+      dueDate: "2027-03-01",
+      returnDate: "2026-10-01",
+    });
+    const api = mockApi({
+      "PUT /api/attributions/as1": assignment({
+        returnDate: "2026-09-20",
+        territory: { ...assignment().territory, status: "PENDING" },
+      }),
+    });
+    renderWithStore(<AssignmentsList assignments={[returned]} />);
+
+    await openDatesDialog();
+    fireEvent.change(screen.getByLabelText("Date d'attribution"), {
+      target: { value: "2026-08-20" },
+    });
+    expect(screen.getByLabelText("Échéance")).toHaveValue("2027-03-01");
+    fireEvent.change(screen.getByLabelText("Date de retour"), {
+      target: { value: "2026-09-20" },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith(
+        "/api/attributions/as1",
+        expect.objectContaining({
+          body: JSON.stringify({
+            assignmentDate: "2026-08-20",
+            dueDate: "2027-03-01",
+            returnDate: "2026-09-20",
+          }),
+        })
       )
     );
   });
 
-  it("annule la modification de la date", async () => {
+  it("signale des dates incohérentes puis l'erreur renvoyée par le serveur", async () => {
+    const api = mockApi({
+      "PUT /api/attributions/as1": jsonResponse(
+        { error: "Ce territoire vient d'être modifié par quelqu'un d'autre" },
+        409
+      ),
+    });
+    renderWithStore(
+      <AssignmentsList
+        assignments={[assignment({ returnDate: "2026-10-01" })]}
+      />
+    );
+
+    await openDatesDialog();
+    fireEvent.change(screen.getByLabelText("Date de retour"), {
+      target: { value: "2026-08-01" },
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "La date de retour ne peut pas précéder la date d'attribution"
+    );
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Date de retour"), {
+      target: { value: "2026-09-10" },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Ce territoire vient d'être modifié par quelqu'un d'autre"
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(api).toHaveBeenCalledTimes(1);
+  });
+
+  it("annule la modification des dates", async () => {
     const api = mockApi({});
     renderWithStore(<AssignmentsList assignments={[assignment()]} />);
 
-    await userEvent.click(screen.getByTitle("Modifier la date d'attribution"));
-    await userEvent.click(
-      screen.getByRole("button", { name: "Annuler la modification" })
-    );
+    await openDatesDialog();
+    await userEvent.click(screen.getByRole("button", { name: "Annuler" }));
 
-    expect(
-      screen.getByTitle("Modifier la date d'attribution")
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    );
     expect(api).not.toHaveBeenCalled();
+  });
+
+  it("ne propose pas la modification aux utilisateurs ni pour une campagne", () => {
+    const campaign = assignment({
+      id: "as2",
+      person: undefined,
+      campaign: { name: "Automne" } as never,
+      returnDate: "2026-10-01",
+    });
+    const { unmount } = renderWithStore(
+      <AssignmentsList assignments={[assignment()]} />,
+      "UTILISATEUR"
+    );
+    expect(
+      screen.queryByRole("button", { name: "Modifier les dates" })
+    ).not.toBeInTheDocument();
+    unmount();
+
+    renderWithStore(
+      <AssignmentsList assignments={[campaign]} />,
+      "GESTIONNAIRE"
+    );
+    expect(
+      screen.queryByRole("button", { name: "Modifier les dates" })
+    ).not.toBeInTheDocument();
   });
 });
 

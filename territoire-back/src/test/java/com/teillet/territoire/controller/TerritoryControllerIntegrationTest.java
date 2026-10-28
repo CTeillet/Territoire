@@ -7,6 +7,7 @@ import com.teillet.territoire.dto.UpdateTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
 import com.teillet.territoire.model.AddressNotToDo;
+import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
@@ -15,6 +16,7 @@ import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.repository.PersonRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -89,13 +91,19 @@ class TerritoryControllerIntegrationTest {
 		return geometryFactory.createMultiPolygon(new Polygon[]{square});
 	}
 
-	@BeforeEach
-	void setUp() {
+	/** Base H2 partagée entre les classes de test : nettoyée avant et après chaque test. */
+	@AfterEach
+	void cleanUp() {
 		addressNotToDoRepository.deleteAll();
 		assignmentRepository.deleteAll();
 		territoryRepository.deleteAll();
 		personRepository.deleteAll();
 		cityRepository.deleteAll();
+	}
+
+	@BeforeEach
+	void setUp() {
+		cleanUp();
 
 		City c = new City();
 		c.setName("Rennes");
@@ -239,11 +247,53 @@ class TerritoryControllerIntegrationTest {
 		mockMvc.perform(post("/api/territoires/{id}/prolongation", savedTerritory.getId())
 						.param("dueDate", LocalDate.now().plusMonths(6).toString()))
 				.andExpect(status().isOk());
+	}
 
-		// Modifier date d'attribution
-		mockMvc.perform(post("/api/territoires/{id}/modifier-date-attribution", savedTerritory.getId())
-						.param("assignmentDate", LocalDate.now().minusDays(10).toString()))
+	private static String datesJson(LocalDate assignmentDate, LocalDate dueDate, LocalDate returnDate) {
+		return "{\"assignmentDate\":\"%s\",\"dueDate\":\"%s\",\"returnDate\":%s}"
+				.formatted(assignmentDate, dueDate, returnDate == null ? "null" : "\"" + returnDate + "\"");
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testUpdateAssignmentDates_RefreshesTerritoryStatus() throws Exception {
+		LocalDate today = LocalDate.now();
+		Territory savedTerritory = territoryRepository.save(createTestTerritory("Territoire Dates", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		Person person = personRepository.save(Person.builder().firstName("Paul").lastName("Martin").build());
+		mockMvc.perform(post("/api/territoires/{id}/attribuer/{personId}", savedTerritory.getId(), person.getId()))
 				.andExpect(status().isOk());
+		Assignment assignment = assignmentRepository.findByReturnDateNullAndTerritory_Id(savedTerritory.getId()).orElseThrow();
+
+		// Échéance dépassée : le territoire passe en retard sans attendre le traitement de nuit
+		mockMvc.perform(put("/api/attributions/{id}", assignment.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(datesJson(today.minusMonths(6), today.minusMonths(2), null)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.assignmentDate").value(today.minusMonths(6).toString()))
+				.andExpect(jsonPath("$.dueDate").value(today.minusMonths(2).toString()))
+				.andExpect(jsonPath("$.territory.status").value("LATE"));
+		assertEquals(TerritoryStatus.LATE, territoryRepository.findById(savedTerritory.getId()).orElseThrow().getStatus());
+
+		mockMvc.perform(post("/api/territoires/{id}/retour", savedTerritory.getId()))
+				.andExpect(status().isOk());
+		assertEquals(TerritoryStatus.PENDING, territoryRepository.findById(savedTerritory.getId()).orElseThrow().getStatus());
+
+		// Retour antidaté de plus de 4 mois : le territoire redevient disponible
+		mockMvc.perform(put("/api/attributions/{id}", assignment.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(datesJson(today.minusMonths(6), today.minusMonths(2), today.minusMonths(5))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.returnDate").value(today.minusMonths(5).toString()))
+				.andExpect(jsonPath("$.territory.status").value("AVAILABLE"));
+
+		// Dates incohérentes : refusées, rien n'est modifié
+		mockMvc.perform(put("/api/attributions/{id}", assignment.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(datesJson(today.minusMonths(6), today.minusMonths(2), today.minusMonths(7))))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("La date de retour ne peut pas précéder la date d'attribution"));
+		assertEquals(today.minusMonths(5), assignmentRepository.findById(assignment.getId()).orElseThrow().getReturnDate());
+		assertEquals(TerritoryStatus.AVAILABLE, territoryRepository.findById(savedTerritory.getId()).orElseThrow().getStatus());
 	}
 
 	@Test
