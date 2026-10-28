@@ -609,7 +609,10 @@ describe("Historique des attributions", () => {
       "Ce territoire vient d'être modifié par quelqu'un d'autre"
     );
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(api).toHaveBeenCalledTimes(1);
+    // Un seul envoi : le premier clic était bloqué par la date incohérente
+    expect(
+      api.mock.calls.filter(([, init]) => init?.method === "PUT")
+    ).toHaveLength(1);
   });
 
   it("annule la modification des dates", async () => {
@@ -622,7 +625,30 @@ describe("Historique des attributions", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     );
-    expect(api).not.toHaveBeenCalled();
+    expect(api).not.toHaveBeenCalledWith(
+      "/api/attributions/as1",
+      expect.anything()
+    );
+  });
+
+  it("fait suivre l'échéance selon la durée d'attribution des paramètres", async () => {
+    mockApi({
+      "GET /api/settings/durees": {
+        assignmentDurationMonths: 3,
+        pendingDurationMonths: 4,
+      },
+    });
+    renderWithStore(
+      <AssignmentsList assignments={[assignment({ dueDate: "2026-12-01" })]} />
+    );
+
+    await openDatesDialog();
+    await screen.findByText("Par défaut : 3 mois après l'attribution");
+    fireEvent.change(screen.getByLabelText("Date d'attribution"), {
+      target: { value: "2026-05-15" },
+    });
+
+    expect(screen.getByLabelText("Échéance")).toHaveValue("2026-08-15");
   });
 
   it("ne propose pas la modification aux utilisateurs ni pour une campagne", () => {

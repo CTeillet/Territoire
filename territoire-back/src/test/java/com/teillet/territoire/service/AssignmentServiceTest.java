@@ -1,6 +1,7 @@
 package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.AssignmentDto;
+import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.dto.UpdateAssignmentDatesDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.Assignment;
@@ -42,6 +43,9 @@ class AssignmentServiceTest {
 	@Mock
 	private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
+	@Mock
+	private ISettingService settingService;
+
 	private AssignmentService assignmentService;
 
 	private Territory territory;
@@ -51,7 +55,8 @@ class AssignmentServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		assignmentService = new AssignmentService(assignmentRepository, territoryService, personService, eventPublisher);
+		assignmentService = new AssignmentService(assignmentRepository, territoryService, personService, eventPublisher, settingService);
+		lenient().when(settingService.getDurationSettings()).thenReturn(new DurationSettingsDto(4, 4));
 
 		territoryId = UUID.randomUUID();
 		personId = UUID.randomUUID();
@@ -86,6 +91,7 @@ class AssignmentServiceTest {
 		AssignmentDto result = assignmentService.assignTerritory(territoryId, personId);
 
 		assertNotNull(result);
+		assertEquals(LocalDate.now().plusMonths(4), result.getDueDate());
 		verify(territoryService, times(1)).updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
 		verify(assignmentRepository, times(1)).save(any(Assignment.class));
 		// Le message WhatsApp éventuel est déclenché par un événement traité après validation
@@ -196,6 +202,24 @@ class AssignmentServiceTest {
 		assignmentService.checkOverdueAssignments();
 
 		verify(territoryService, never()).updateTerritoryStatus(any(), any());
+	}
+
+	@Test
+	void testAssignAndExtend_UseAssignmentDurationSetting() {
+		when(settingService.getDurationSettings()).thenReturn(new DurationSettingsDto(2, 4));
+		when(personService.getPerson(personId)).thenReturn(person);
+		when(territoryService.getTerritory(territoryId)).thenReturn(territory);
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		AssignmentDto assigned = assignmentService.assignTerritory(territoryId, personId);
+		assertEquals(LocalDate.now().plusMonths(2), assigned.getDueDate());
+
+		Assignment running = Assignment.builder().id(UUID.randomUUID()).territory(territory).person(person)
+				.dueDate(LocalDate.now().minusDays(1)).build();
+		when(assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)).thenReturn(Optional.of(running));
+
+		assignmentService.extendTerritory(territoryId);
+		assertEquals(LocalDate.now().plusMonths(2), running.getDueDate());
 	}
 
 	@Test
@@ -348,6 +372,20 @@ class AssignmentServiceTest {
 		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		assignmentService.updateAssignmentDates(returned.getId(), dates(today.minusMonths(3), today.plusMonths(1), today.minusWeeks(1)));
+
+		verify(territoryService).updateTerritoryStatus(territory, TerritoryStatus.PENDING);
+	}
+
+	@Test
+	void testUpdateAssignmentDates_UsesPendingDurationSetting() {
+		when(settingService.getDurationSettings()).thenReturn(new DurationSettingsDto(4, 6));
+		LocalDate today = LocalDate.now();
+		territory.setStatus(TerritoryStatus.AVAILABLE);
+		Assignment returned = historyAssignment(today.minusMonths(8), today.minusMonths(4), today.minusMonths(7));
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// Rendu il y a 5 mois avec une attente de 6 mois : de nouveau en attente
+		assignmentService.updateAssignmentDates(returned.getId(), dates(today.minusMonths(8), today.minusMonths(4), today.minusMonths(5)));
 
 		verify(territoryService).updateTerritoryStatus(territory, TerritoryStatus.PENDING);
 	}

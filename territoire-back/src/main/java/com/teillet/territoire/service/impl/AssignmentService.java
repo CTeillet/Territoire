@@ -14,6 +14,7 @@ import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.IPersonService;
+import com.teillet.territoire.service.ISettingService;
 import com.teillet.territoire.service.ITerritoryService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -34,17 +35,20 @@ public class AssignmentService implements IAssignmentService {
 	private final ITerritoryService territoryService;
 	private final IPersonService personService;
 	private final ApplicationEventPublisher eventPublisher;
+	private final ISettingService settingService;
 
 	public AssignmentService(
 		AssignmentRepository assignmentRepository,
 		@Lazy ITerritoryService territoryService,
 		IPersonService personService,
-		ApplicationEventPublisher eventPublisher
+		ApplicationEventPublisher eventPublisher,
+		ISettingService settingService
 	) {
 		this.assignmentRepository = assignmentRepository;
 		this.territoryService = territoryService;
 		this.personService = personService;
 		this.eventPublisher = eventPublisher;
+		this.settingService = settingService;
 	}
 
 	@Transactional
@@ -61,7 +65,7 @@ public class AssignmentService implements IAssignmentService {
 				.territory(territory)
 				.person(person)
 				.assignmentDate(LocalDate.now())
-				.dueDate(LocalDate.now().plusMonths(4))
+				.dueDate(LocalDate.now().plusMonths(settingService.getDurationSettings().getAssignmentDurationMonths()))
 				.build();
 
 		territoryService.updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
@@ -166,8 +170,8 @@ public class AssignmentService implements IAssignmentService {
 
 	@Override
 	public AssignmentDto extendTerritory(UUID territoryId) {
-		// Default extension is 4 months
-		return extendTerritory(territoryId, LocalDate.now().plusMonths(4));
+		// Prolongation par défaut : la durée d'attribution des paramètres
+		return extendTerritory(territoryId, LocalDate.now().plusMonths(settingService.getDurationSettings().getAssignmentDurationMonths()));
 	}
 
 	@Override
@@ -221,7 +225,7 @@ public class AssignmentService implements IAssignmentService {
 
 			assignmentRepository.save(assignment);
 
-			// Parcouru pendant la campagne : mêmes règles qu'un retour habituel (en attente 4 mois).
+			// Parcouru pendant la campagne : mêmes règles qu'un retour habituel (en attente puis disponible).
 			// Un territoire attribué ou en retard garde son statut : il est encore chez quelqu'un.
 			if (territory.getStatus() == TerritoryStatus.AVAILABLE) {
 				territoryService.updateTerritoryStatus(territory, TerritoryStatus.PENDING);
@@ -287,10 +291,12 @@ public class AssignmentService implements IAssignmentService {
 	/**
 	 * Recalcule le statut du territoire à partir de ses attributions, avec les mêmes règles que les traitements
 	 * de nuit : en retard une fois l'échéance dépassée ({@link #checkOverdueAssignments()}), en attente pendant
-	 * 4 mois après le dernier retour puis disponible ({@link ITerritoryService#releasePendingTerritories()}).
+	 * la durée d'attente des paramètres après le dernier retour puis disponible
+	 * ({@link ITerritoryService#releasePendingTerritories()}).
 	 */
 	private void refreshTerritoryStatus(Territory territory) {
 		LocalDate today = LocalDate.now();
+		LocalDate pendingThreshold = today.minusMonths(settingService.getDurationSettings().getPendingDurationMonths());
 		List<Assignment> assignments = territory.getAssignments();
 		TerritoryStatus status = assignments.stream()
 				.filter(assignment -> assignment.getReturnDate() == null)
@@ -301,7 +307,7 @@ public class AssignmentService implements IAssignmentService {
 				.orElseGet(() -> assignments.stream()
 						.map(Assignment::getReturnDate)
 						.max(Comparator.naturalOrder())
-						.filter(lastReturn -> !lastReturn.isBefore(today.minusMonths(4)))
+						.filter(lastReturn -> !lastReturn.isBefore(pendingThreshold))
 						.map(lastReturn -> TerritoryStatus.PENDING)
 						.orElse(TerritoryStatus.AVAILABLE));
 

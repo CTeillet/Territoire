@@ -13,6 +13,7 @@ import com.teillet.territoire.repository.TerritoryReminderRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.ICampaignService;
 import com.teillet.territoire.service.ICityService;
+import com.teillet.territoire.service.ISettingService;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.GeoJsonUtils;
 import com.teillet.territoire.utils.SchoolYearUtils;
@@ -42,6 +43,7 @@ public class TerritoryService implements ITerritoryService {
 	private final ICampaignService campaignService;
 	private final ICityService cityService;
 	private final TerritoryReminderRepository reminderRepository;
+	private final ISettingService settingService;
 
 	public TerritoryService(
 		TerritoryRepository territoryRepository,
@@ -49,7 +51,8 @@ public class TerritoryService implements ITerritoryService {
 		AssignmentRepository assignmentRepository,
 		@Lazy ICampaignService campaignService,
 		ICityService cityService,
-		TerritoryReminderRepository reminderRepository
+		TerritoryReminderRepository reminderRepository,
+		ISettingService settingService
 	) {
 		this.territoryRepository = territoryRepository;
 		this.blockRepository = blockRepository;
@@ -57,6 +60,7 @@ public class TerritoryService implements ITerritoryService {
 		this.campaignService = campaignService;
 		this.cityService = cityService;
 		this.reminderRepository = reminderRepository;
+		this.settingService = settingService;
 	}
 
 	@Override
@@ -90,7 +94,7 @@ public class TerritoryService implements ITerritoryService {
 	}
 
 	/**
-	 * Remet à disposition les territoires « en attente » rendus depuis plus de 4 mois.
+	 * Remet à disposition les territoires « en attente » rendus depuis plus longtemps que la durée d'attente des paramètres.
 	 * Exécuté chaque nuit par {@link com.teillet.territoire.scheduling.NightlyJobs} (et à la demande).
 	 * Un territoire en attente sans date de retour exploitable est ignoré (et signalé dans les logs)
 	 * au lieu de faire échouer tout le traitement.
@@ -98,7 +102,7 @@ public class TerritoryService implements ITerritoryService {
 	@Transactional
 	@Override
 	public void releasePendingTerritories() {
-		LocalDate thresholdDate = LocalDate.now().minusMonths(4);
+		LocalDate thresholdDate = LocalDate.now().minusMonths(settingService.getDurationSettings().getPendingDurationMonths());
 		int released = 0;
 
 		for (Territory territory : territoryRepository.findByStatus(TerritoryStatus.PENDING)) {

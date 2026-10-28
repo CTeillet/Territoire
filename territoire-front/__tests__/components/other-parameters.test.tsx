@@ -15,6 +15,7 @@ import { CheckAvailableTerritoriesButton } from "@/components/parameters/other-p
 import { LateReminderMessage } from "@/components/parameters/other-parameter/late-reminder-message";
 import { ExportTerritoriesMapButton } from "@/components/parameters/other-parameter/export-map-button";
 import OtherParameter from "@/components/parameters/other-parameter/other-parameter";
+import { DurationsSection } from "@/components/parameters/other-parameter/durations-section";
 import { toast } from "sonner";
 import * as authFetchModule from "@/utils/auth-fetch";
 import { jsonResponse, mockApi, renderWithRole } from "../test-utils";
@@ -539,9 +540,85 @@ describe("ExportTerritoriesMapButton", () => {
   });
 });
 
+describe("DurationsSection", () => {
+  const durations = { assignmentDurationMonths: 4, pendingDurationMonths: 4 };
+
+  it("charge puis enregistre les durées", async () => {
+    const api = mockApi({
+      "GET /api/settings/durees": durations,
+      "PUT /api/settings/durees": {
+        assignmentDurationMonths: 3,
+        pendingDurationMonths: 6,
+      },
+    });
+    render(<DurationsSection />);
+
+    const assignment = screen.getByLabelText("Durée d'attribution (mois)");
+    await waitFor(() => expect(assignment).toHaveValue(4));
+    const save = screen.getByRole("button", { name: "Enregistrer" });
+    // Rien à enregistrer tant que les valeurs n'ont pas changé
+    expect(save).toBeDisabled();
+
+    fireEvent.change(assignment, { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Durée d'attente (mois)"), {
+      target: { value: "6" },
+    });
+    await userEvent.click(save);
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Durées enregistrées")
+    );
+    expect(api).toHaveBeenCalledWith(
+      "/api/settings/durees",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({
+          assignmentDurationMonths: 3,
+          pendingDurationMonths: 6,
+        }),
+      })
+    );
+    expect(save).toBeDisabled();
+  });
+
+  it("refuse une durée hors bornes et signale les erreurs de l'API", async () => {
+    mockApi({
+      "GET /api/settings/durees": durations,
+      "PUT /api/settings/durees": jsonResponse({ error: "Accès refusé" }, 403),
+    });
+    render(<DurationsSection />);
+    const pending = screen.getByLabelText("Durée d'attente (mois)");
+    await waitFor(() => expect(pending).toHaveValue(4));
+
+    fireEvent.change(pending, { target: { value: "0" } });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Chaque durée doit être un nombre entier de mois entre 1 et 24."
+    );
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+    fireEvent.change(pending, { target: { value: "5" } });
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Accès refusé")
+    );
+  });
+
+  it("signale l'échec du chargement", async () => {
+    mockApi({ "GET /api/settings/durees": networkError });
+    render(<DurationsSection />);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(screen.getByLabelText("Durée d'attribution (mois)")).toBeDisabled();
+  });
+});
+
 describe("OtherParameter", () => {
   it("regroupe toutes les sections", () => {
     mockApi({
+      "GET /api/settings/durees": {
+        assignmentDurationMonths: 4,
+        pendingDurationMonths: 4,
+      },
       "GET /api/settings/late-reminder-message": jsonResponse(""),
       "GET /api/settings/recapitulatif-retards": {
         recipients: [],
@@ -553,6 +630,7 @@ describe("OtherParameter", () => {
 
     for (const title of [
       "Paramètres généraux",
+      "Durées",
       "Données Excel",
       "Vérifications",
       "Messages types",
@@ -591,10 +669,10 @@ describe("OtherParameter", () => {
     mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
     renderWithRole(<OtherParameter />, "GESTIONNAIRE");
 
-    expect(
-      screen.queryByRole("heading", {
-        name: "Récapitulatif des retards par e-mail",
-      })
-    ).not.toBeInTheDocument();
+    for (const title of ["Récapitulatif des retards par e-mail", "Durées"]) {
+      expect(
+        screen.queryByRole("heading", { name: title })
+      ).not.toBeInTheDocument();
+    }
   });
 });

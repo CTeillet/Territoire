@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * Traitements de nuit, exécutés dans un ordre garanti :
  * <ol>
  *     <li>passage en retard des attributions échues ;</li>
- *     <li>remise à disposition des territoires en attente depuis plus de 4 mois ;</li>
+ *     <li>remise à disposition des territoires en attente depuis plus longtemps que la durée d'attente des paramètres ;</li>
  *     <li>photographie quotidienne des statuts (qui reflète donc l'état à jour) ;</li>
  *     <li>purge des refresh tokens expirés.</li>
  * </ol>

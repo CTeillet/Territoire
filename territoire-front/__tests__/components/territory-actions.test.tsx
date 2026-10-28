@@ -436,6 +436,16 @@ describe("Dialogue d'attribution", () => {
 });
 
 describe("Dialogue de prolongation", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    mockApi({
+      "GET /api/settings/durees": {
+        assignmentDurationMonths: 4,
+        pendingDurationMonths: 4,
+      },
+    });
+  });
+
   const renderDialog = () => {
     const onConfirm = vi.fn();
     const onClose = vi.fn();
@@ -459,6 +469,23 @@ describe("Dialogue de prolongation", () => {
     await userEvent.click(screen.getByRole("button", { name: "Confirmer" }));
 
     expect(onConfirm).toHaveBeenCalledWith(expected);
+  });
+
+  it("propose par défaut la durée d'attribution des paramètres", async () => {
+    mockApi({
+      "GET /api/settings/durees": {
+        assignmentDurationMonths: 3,
+        pendingDurationMonths: 4,
+      },
+    });
+    const { onConfirm } = renderDialog();
+
+    expect(await screen.findByLabelText("3 mois")).toBeChecked();
+    await userEvent.click(screen.getByRole("button", { name: "Confirmer" }));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      format(addMonths(new Date(), 3), "yyyy-MM-dd")
+    );
   });
 
   it("exige une date pour une prolongation personnalisée", async () => {

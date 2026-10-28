@@ -19,10 +19,7 @@ import { Assignment } from "@/models/assignment";
 import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { AppDispatch } from "@/store/store";
 import { updateAssignmentDates } from "@/store/slices/territory-slice";
-
-/** Échéance par défaut d'une attribution (même règle que le back : 4 mois). */
-const defaultDueDate = (assignmentDate: string) =>
-  format(addMonths(parseISO(assignmentDate), 4), "yyyy-MM-dd");
+import { useDurationSettings } from "@/hooks/use-duration-settings";
 
 /** Mêmes contrôles que le back, pour signaler l'erreur avant l'envoi (dates au format yyyy-MM-dd). */
 const validate = (
@@ -59,6 +56,7 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
   onClose,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const { assignmentDurationMonths } = useDurationSettings();
   const [assignmentDate, setAssignmentDate] = useState(
     assignment.assignmentDate
   );
@@ -71,6 +69,10 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
   const today = format(new Date(), "yyyy-MM-dd");
   const error =
     validate(assignmentDate, dueDate, returnDate, today) ?? serverError;
+
+  // Échéance par défaut d'une attribution : la durée d'attribution des paramètres
+  const defaultDueDate = (date: string) =>
+    format(addMonths(parseISO(date), assignmentDurationMonths), "yyyy-MM-dd");
 
   const handleAssignmentDateChange = (value: string) => {
     // Une échéance laissée par défaut suit la date d'attribution
@@ -141,6 +143,10 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
                 setServerError(null);
               }}
             />
+            <p className="text-xs text-muted-foreground">
+              Par défaut : {assignmentDurationMonths} mois après
+              l&apos;attribution
+            </p>
           </div>
           {returnDate !== null && (
             <div className="space-y-1">

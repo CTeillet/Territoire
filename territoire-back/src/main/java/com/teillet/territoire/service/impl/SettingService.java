@@ -1,6 +1,7 @@
 package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.AccessSettingsDto;
+import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.model.Setting;
 import com.teillet.territoire.repository.SettingRepository;
 import com.teillet.territoire.service.ISettingService;
@@ -32,6 +33,9 @@ public class SettingService implements ISettingService {
             {{ link }}
 
             Ce lien t'est réservé, merci de ne pas le partager.""";
+
+    /** Durée d'attribution et d'attente tant qu'elles n'ont pas été réglées dans les paramètres. */
+    public static final int DEFAULT_DURATION_MONTHS = 4;
 
     private final SettingRepository settingRepository;
     private final MessageTemplateRenderer templateRenderer;
@@ -105,6 +109,24 @@ public class SettingService implements ISettingService {
         s.setLateReportRecipients(normalized.isEmpty() ? null : String.join(",", normalized));
         settingRepository.save(s);
         return normalized;
+    }
+
+    @Override
+    public DurationSettingsDto getDurationSettings() {
+        Setting s = getSingleton();
+        return DurationSettingsDto.builder()
+                .assignmentDurationMonths(Optional.ofNullable(s.getAssignmentDurationMonths()).orElse(DEFAULT_DURATION_MONTHS))
+                .pendingDurationMonths(Optional.ofNullable(s.getPendingDurationMonths()).orElse(DEFAULT_DURATION_MONTHS))
+                .build();
+    }
+
+    @Override
+    public DurationSettingsDto updateDurationSettings(DurationSettingsDto durations) {
+        Setting s = getSingleton();
+        s.setAssignmentDurationMonths(durations.getAssignmentDurationMonths());
+        s.setPendingDurationMonths(durations.getPendingDurationMonths());
+        settingRepository.save(s);
+        return getDurationSettings();
     }
 
     private static List<String> normalizeRecipients(List<String> recipients) {

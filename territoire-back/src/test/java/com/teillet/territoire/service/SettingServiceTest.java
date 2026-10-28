@@ -1,5 +1,6 @@
 package com.teillet.territoire.service;
 
+import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.model.Setting;
 import com.teillet.territoire.repository.SettingRepository;
 import com.teillet.territoire.service.impl.SettingService;
@@ -62,6 +63,23 @@ class SettingServiceTest {
 
 		Integer updated = settingService.updatePublishersCount(50);
 		assertEquals(50, updated);
+		verify(settingRepository).save(setting);
+	}
+
+	@Test
+	void testDurationSettings_DefaultsThenUpdate() {
+		when(settingRepository.findAll()).thenReturn(List.of(setting));
+		when(settingRepository.save(any(Setting.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		DurationSettingsDto defaults = settingService.getDurationSettings();
+		assertEquals(4, defaults.getAssignmentDurationMonths());
+		assertEquals(4, defaults.getPendingDurationMonths());
+
+		DurationSettingsDto updated = settingService.updateDurationSettings(new DurationSettingsDto(3, 6));
+		assertEquals(3, updated.getAssignmentDurationMonths());
+		assertEquals(6, updated.getPendingDurationMonths());
+		assertEquals(3, setting.getAssignmentDurationMonths());
+		assertEquals(6, setting.getPendingDurationMonths());
 		verify(settingRepository).save(setting);
 	}
 

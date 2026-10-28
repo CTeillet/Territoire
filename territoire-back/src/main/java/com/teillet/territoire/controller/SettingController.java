@@ -1,6 +1,7 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.AccessSettingsDto;
+import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.service.ISettingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,5 +53,17 @@ class SettingController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     public ResponseEntity<AccessSettingsDto> updateAccessSettings(@Valid @RequestBody AccessSettingsDto settings) {
         return ResponseEntity.ok(settingService.updateAccessSettings(settings));
+    }
+
+    /** Lu par tous : la durée d'attribution sert aussi aux fenêtres de prolongation et de modification des dates. */
+    @GetMapping("/durees")
+    public ResponseEntity<DurationSettingsDto> getDurationSettings() {
+        return ResponseEntity.ok(settingService.getDurationSettings());
+    }
+
+    @PutMapping("/durees")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+    public ResponseEntity<DurationSettingsDto> updateDurationSettings(@Valid @RequestBody DurationSettingsDto durations) {
+        return ResponseEntity.ok(settingService.updateDurationSettings(durations));
     }
 }
