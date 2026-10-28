@@ -1,7 +1,9 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.AssignmentDto;
+import com.teillet.territoire.dto.UpdateAssignmentDatesDto;
 import com.teillet.territoire.service.IAssignmentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/attributions")
@@ -38,6 +41,17 @@ public class AssignmentController {
 
 		log.info("Réponse envoyée : {} attributions trouvées pour la période", assignments.size());
 		return assignments;
+	}
+
+	@PutMapping("/{assignmentId}")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
+	public AssignmentDto updateAssignmentDates(@PathVariable UUID assignmentId, @Valid @RequestBody UpdateAssignmentDatesDto dates) {
+		log.info("Requête reçue : PUT /api/attributions/{} : {}", assignmentId, dates);
+
+		AssignmentDto result = assignmentService.updateAssignmentDates(assignmentId, dates);
+
+		log.info("Dates de l'attribution {} modifiées, statut du territoire : {}", assignmentId, result.getTerritory().getStatus());
+		return result;
 	}
 
 	@PutMapping("/verification-retard")

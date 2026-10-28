@@ -1,6 +1,8 @@
 package com.teillet.territoire.service;
 
+import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.dto.exportExcel.CityExportDto;
+import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
@@ -15,6 +17,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,6 +25,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +48,9 @@ class ExcelServiceTest {
 
 	@Mock
 	private CityRepository cityRepository;
+
+	@Mock
+	private ISettingService settingService;
 
 	@InjectMocks
 	private ExcelService excelService;
@@ -103,10 +110,14 @@ class ExcelServiceTest {
 
 		when(personService.getAllPersons()).thenReturn(List.of(person));
 		when(territoryRepository.findByName("T01")).thenReturn(territory);
+		when(settingService.getDurationSettings()).thenReturn(new DurationSettingsDto(3, 4));
 
 		excelService.importExcel(file);
 
-		verify(assignmentRepository).save(any());
+		// Échéance = attribution + durée d'attribution des paramètres
+		ArgumentCaptor<Assignment> saved = ArgumentCaptor.forClass(Assignment.class);
+		verify(assignmentRepository).save(saved.capture());
+		assertEquals(LocalDate.of(2024, 4, 15), saved.getValue().getDueDate());
 		verify(territoryRepository).save(territory);
 	}
 
@@ -131,6 +142,7 @@ class ExcelServiceTest {
 		MockMultipartFile file = new MockMultipartFile("file", "test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelData);
 		when(personService.getAllPersons()).thenReturn(List.of());
 		when(territoryRepository.findByName("T01")).thenReturn(Territory.builder().id(UUID.randomUUID()).name("T01").build());
+		when(settingService.getDurationSettings()).thenReturn(new DurationSettingsDto(4, 4));
 
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> excelService.importExcel(file));
 		assertTrue(e.getMessage().contains("T01"));

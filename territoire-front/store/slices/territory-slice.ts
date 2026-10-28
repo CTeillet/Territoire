@@ -3,6 +3,7 @@ import { Territory, TerritoryCollection } from "@/models/territory";
 import { format } from "date-fns";
 import { Assignment } from "@/models/assignment";
 import { authFetch } from "@/utils/auth-fetch";
+import { apiErrorMessage } from "@/utils/api-error";
 import { AddressNotToDoDto } from "@/models/AddressNotToDoDto";
 import { UpdateTerritoryDto } from "@/models/update-territory-dto";
 import { TerritoryStatusHistoryDto } from "@/models/territory-status-history";
@@ -77,6 +78,29 @@ const updateSelectedIfSame = (
 ) => {
   if (state.selectedTerritory && state.selectedTerritory.id === affectedId) {
     updater(state.selectedTerritory);
+  }
+};
+
+/**
+ * Remplace une attribution modifiée et met à jour ce qui en découle : statut recalculé par le back,
+ * dates de l'attribution en cours et date du dernier parcours.
+ */
+const applyAssignmentUpdate = (t: Territory, updated: Assignment) => {
+  t.status = updated.territory.status;
+  t.assignments = Array.isArray(t.assignments)
+    ? t.assignments.map((a) => (a.id === updated.id ? updated : a))
+    : [updated];
+  if (updated.returnDate === null) {
+    t.assignedOn = updated.assignmentDate;
+    t.waitedFor = updated.dueDate;
+  }
+  const lastReturnDate = t.assignments
+    .map((a) => a.returnDate)
+    .filter((date): date is string => !!date)
+    .sort()
+    .at(-1);
+  if (lastReturnDate) {
+    t.lastVisitedOn = lastReturnDate;
   }
 };
 
@@ -203,31 +227,38 @@ export const assignTerritory = createAsyncThunk(
   }
 );
 
-export const updateAssignmentDate = createAsyncThunk(
-  "territories/updateAssignmentDate",
+/** Corrige les dates d'une attribution : le back recalcule le statut du territoire (renvoyé dans `territory.status`). */
+export const updateAssignmentDates = createAsyncThunk(
+  "territories/updateAssignmentDates",
   async (
     {
-      territoryId,
-      assignmentDate,
-    }: { territoryId: string; assignmentDate: string },
+      assignmentId,
+      ...dates
+    }: {
+      assignmentId: string;
+      assignmentDate: string;
+      dueDate: string;
+      returnDate: string | null;
+    },
     { rejectWithValue }
   ) => {
-    const url = `${BASE_URL}/${territoryId}/modifier-date-attribution?assignmentDate=${assignmentDate}`;
-
-    const response = await authFetch(url, {
-      method: "POST",
+    const response = await authFetch(`/api/attributions/${assignmentId}`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dates),
     });
 
     if (!response.ok) {
       return rejectWithValue(
-        (await response.text()) ||
-          "Erreur lors de la modification de la date d'attribution"
+        await apiErrorMessage(
+          response,
+          "Erreur lors de la modification des dates d'attribution"
+        )
       );
     }
 
     try {
-      return await response.json();
+      return (await response.json()) as Assignment;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error
@@ -1203,22 +1234,16 @@ const territorySlice = createSlice({
         state.error = action.payload as string;
       })
 
-      .addCase(updateAssignmentDate.pending, (state) => {
-        state.loading = true;
+      // `updating` plutôt que `loading` : la page du territoire reste affichée pendant l'enregistrement
+      .addCase(updateAssignmentDates.pending, (state) => {
+        state.updating = true;
+        state.error = null;
       })
-      .addCase(updateAssignmentDate.fulfilled, (state, action) => {
-        state.loading = false;
+      .addCase(updateAssignmentDates.fulfilled, (state, action) => {
+        state.updating = false;
         const updatedAssignment = action.payload;
-        console.log(
-          "✅ Assignation mise à jour avec succès",
-          updatedAssignment
-        );
-
-        if (
-          !updatedAssignment ||
-          !updatedAssignment.territory ||
-          !updatedAssignment.territory.territoryId
-        ) {
+        const affectedId = updatedAssignment?.territory?.territoryId;
+        if (!affectedId) {
           console.error(
             "❌ Problème : Assignation ou territoireId est undefined",
             updatedAssignment
@@ -1226,44 +1251,16 @@ const territorySlice = createSlice({
           return;
         }
 
-        const affectedId = updatedAssignment.territory.territoryId;
-
-        // Mettre à jour dans GeoJSON
-        if (state.territoriesGeojson) {
-          const feature = findFeatureById(state, affectedId);
-          if (feature) {
-            feature.properties.assignedOn = updatedAssignment.assignmentDate;
-            feature.properties.status = updatedAssignment.territory.status;
-            feature.properties.waitedFor = updatedAssignment.dueDate;
-            // Ne pas oublier lastModifiedDate si présent dans la réponse
-            const assignments = feature.properties.assignments || [];
-            if (Array.isArray(assignments)) {
-              feature.properties.assignments = assignments.map(
-                (a: Assignment) =>
-                  a.id === updatedAssignment.id ? updatedAssignment : a
-              );
-            } else {
-              feature.properties.assignments = [updatedAssignment];
-            }
-          }
+        const feature = findFeatureById(state, affectedId);
+        if (feature) {
+          applyAssignmentUpdate(feature.properties, updatedAssignment);
         }
-
-        // Mettre à jour dans le territoire sélectionné
-        updateSelectedIfSame(state, affectedId, (t) => {
-          t.assignedOn = updatedAssignment.assignmentDate;
-          t.status = updatedAssignment.territory.status;
-          t.waitedFor = updatedAssignment.dueDate;
-          if (Array.isArray(t.assignments)) {
-            t.assignments = t.assignments.map((a: Assignment) =>
-              a.id === updatedAssignment.id ? updatedAssignment : a
-            );
-          } else {
-            t.assignments = [updatedAssignment];
-          }
-        });
+        updateSelectedIfSame(state, affectedId, (t) =>
+          applyAssignmentUpdate(t, updatedAssignment)
+        );
       })
-      .addCase(updateAssignmentDate.rejected, (state, action) => {
-        state.loading = false;
+      .addCase(updateAssignmentDates.rejected, (state, action) => {
+        state.updating = false;
         state.error = action.payload as string;
       })
 

@@ -40,4 +40,12 @@ public class Setting {
     /** Adresses e-mail (séparées par des virgules) qui reçoivent chaque semaine la liste des territoires en retard. Null = aucun envoi. */
     @Column(name = "late_report_recipients", columnDefinition = "TEXT")
     private String lateReportRecipients;
+
+    /** Durée d'une attribution en mois (échéance d'une nouvelle attribution, prolongation par défaut). Null = 4 mois. */
+    @Column(name = "assignment_duration_months")
+    private Integer assignmentDurationMonths;
+
+    /** Durée en mois pendant laquelle un territoire rendu reste en attente avant d'être disponible. Null = 4 mois. */
+    @Column(name = "pending_duration_months")
+    private Integer pendingDurationMonths;
 }

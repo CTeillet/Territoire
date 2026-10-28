@@ -1,6 +1,7 @@
 package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.AccessSettingsDto;
+import com.teillet.territoire.dto.DurationSettingsDto;
 
 import java.util.List;
 
@@ -24,4 +25,9 @@ public interface ISettingService {
 
     /** Remplace les destinataires ; les doublons et adresses vides sont retirés. */
     List<String> updateLateReportRecipients(List<String> recipients);
+
+    /** Durées d'attribution et d'attente (4 mois chacune tant qu'elles n'ont pas été réglées). */
+    DurationSettingsDto getDurationSettings();
+
+    DurationSettingsDto updateDurationSettings(DurationSettingsDto durations);
 }

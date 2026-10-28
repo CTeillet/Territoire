@@ -2,20 +2,19 @@
 
 import { Assignment } from "@/models/assignment";
 import ActionButton from "@/components/shared/action-button";
-import { Edit, Eye, Check, X } from "lucide-react";
+import { CalendarCog, Eye } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/store/store";
-import { updateAssignmentDate } from "@/store/slices/territory-slice";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import { canManageAssignments } from "@/models/role";
+import EditAssignmentDatesDialog from "@/components/territory/id/edit-assignment-dates-dialog";
 
 const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
-  const dispatch = useDispatch<AppDispatch>();
-  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(
+  const role = useSelector((state: RootState) => state.auth.user?.role);
+  const [editedAssignment, setEditedAssignment] = useState<Assignment | null>(
     null
   );
-  const [tempDate, setTempDate] = useState<string>("");
 
   // Sort assignments: completed assignments first, then campaigns, then current assignments
   const sortedAssignments = [...assignments].sort((a, b) => {
@@ -29,22 +28,6 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
       new Date(a.assignmentDate).getTime()
     );
   });
-
-  const handleEditClick = (assignment: Assignment) => {
-    setEditingAssignmentId(assignment.id);
-    setTempDate(assignment.assignmentDate);
-  };
-
-  const handleSave = (territoryId: string) => {
-    if (editingAssignmentId) {
-      dispatch(updateAssignmentDate({ territoryId, assignmentDate: tempDate }));
-      setEditingAssignmentId(null);
-    }
-  };
-
-  const handleCancel = () => {
-    setEditingAssignmentId(null);
-  };
 
   return (
     <div className="mt-6 border border-gray-200 bg-white p-6 rounded-lg shadow-sm">
@@ -67,67 +50,43 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                   <br />
                   <span className="text-sm text-gray-600">
                     📅{" "}
-                    {editingAssignmentId === assignment.id ? (
-                      <div className="inline-flex items-center gap-2">
-                        <Input
-                          type="date"
-                          value={tempDate}
-                          onChange={(e) => setTempDate(e.target.value)}
-                          className="w-40 h-8 text-sm"
-                        />
-                        <button
-                          aria-label="Enregistrer la date d'attribution"
-                          onClick={() =>
-                            handleSave(assignment.territory.territoryId)
-                          }
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          aria-label="Annuler la modification"
-                          onClick={handleCancel}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        {new Date(
-                          assignment.assignmentDate
-                        ).toLocaleDateString()}
-                        {assignment.returnDate === null && (
-                          <button
-                            onClick={() => handleEditClick(assignment)}
-                            className="ml-2 text-blue-500 hover:text-blue-700"
-                            title="Modifier la date d'attribution"
-                          >
-                            <Edit className="w-3 h-3 inline" />
-                          </button>
-                        )}
-                      </>
-                    )}{" "}
-                    →{" "}
+                    {new Date(assignment.assignmentDate).toLocaleDateString()} →{" "}
                     {assignment.returnDate
                       ? new Date(assignment.returnDate).toLocaleDateString()
                       : "En cours"}
                   </span>
                 </div>
-                {assignment.person && (
-                  <TooltipProvider>
-                    <ActionButton
-                      icon={Eye}
-                      tooltip="Voir les détails de la personne"
-                      href={`/personnes/${assignment.person.id}`}
-                      className="bg-gray-500 hover:bg-gray-600 text-white"
-                    />
-                  </TooltipProvider>
-                )}
+                <TooltipProvider>
+                  <div className="flex gap-2">
+                    {/* Les dates d'une campagne suivent celles de la campagne */}
+                    {assignment.person && canManageAssignments(role) && (
+                      <ActionButton
+                        icon={CalendarCog}
+                        tooltip="Modifier les dates"
+                        onClick={() => setEditedAssignment(assignment)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                      />
+                    )}
+                    {assignment.person && (
+                      <ActionButton
+                        icon={Eye}
+                        tooltip="Voir les détails de la personne"
+                        href={`/personnes/${assignment.person.id}`}
+                        className="bg-gray-500 hover:bg-gray-600 text-white"
+                      />
+                    )}
+                  </div>
+                </TooltipProvider>
               </div>
             </li>
           ))}
         </ul>
+      )}
+      {editedAssignment && (
+        <EditAssignmentDatesDialog
+          assignment={editedAssignment}
+          onClose={() => setEditedAssignment(null)}
+        />
       )}
     </div>
   );

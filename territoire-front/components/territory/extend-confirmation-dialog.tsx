@@ -19,6 +19,7 @@ import { format, addMonths, addWeeks } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDurationSettings } from "@/hooks/use-duration-settings";
 
 interface ExtendConfirmationDialogProps {
   isOpen: boolean;
@@ -26,15 +27,17 @@ interface ExtendConfirmationDialogProps {
   onConfirm: (dueDate?: string) => void;
 }
 
-type ExtensionOption = "4months" | "1month" | "1week" | "custom";
+type ExtensionOption = "default" | "1month" | "1week" | "custom";
 
 const ExtendConfirmationDialog: React.FC<ExtendConfirmationDialogProps> = ({
   isOpen,
   onClose,
   onConfirm,
 }) => {
+  // Option par défaut : la durée d'attribution réglée dans les paramètres
+  const { assignmentDurationMonths } = useDurationSettings();
   const [selectedOption, setSelectedOption] =
-    useState<ExtensionOption>("4months");
+    useState<ExtensionOption>("default");
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -42,8 +45,11 @@ const ExtendConfirmationDialog: React.FC<ExtendConfirmationDialogProps> = ({
     let dueDate: string | undefined;
 
     switch (selectedOption) {
-      case "4months":
-        dueDate = format(addMonths(new Date(), 4), "yyyy-MM-dd");
+      case "default":
+        dueDate = format(
+          addMonths(new Date(), assignmentDurationMonths),
+          "yyyy-MM-dd"
+        );
         break;
       case "1month":
         dueDate = format(addMonths(new Date(), 1), "yyyy-MM-dd");
@@ -75,8 +81,8 @@ const ExtendConfirmationDialog: React.FC<ExtendConfirmationDialogProps> = ({
             }
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="4months" id="4months" />
-              <Label htmlFor="4months">4 mois</Label>
+              <RadioGroupItem value="default" id="default" />
+              <Label htmlFor="default">{assignmentDurationMonths} mois</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="1month" id="1month" />

@@ -7,6 +7,7 @@ import { PublishersCountSection } from "@/components/parameters/other-parameter/
 import { LateReminderMessage } from "@/components/parameters/other-parameter/late-reminder-message";
 import { WhatsAppTestSection } from "@/components/parameters/other-parameter/whatsapp-test-section";
 import { LateReportSection } from "@/components/parameters/other-parameter/late-report-section";
+import { DurationsSection } from "@/components/parameters/other-parameter/durations-section";
 import { useAppSelector } from "@/store/store";
 
 export default function OtherParameter() {
@@ -17,6 +18,13 @@ export default function OtherParameter() {
       <section className="border rounded-2xl shadow-sm bg-white p-4">
         <PublishersCountSection />
       </section>
+
+      {(role === "ADMIN" || role === "SUPERVISEUR") && (
+        <section className="border rounded-2xl shadow-sm bg-white p-4">
+          <h2 className="text-xl font-bold mb-4">Durées</h2>
+          <DurationsSection showTitle={false} />
+        </section>
+      )}
 
       <section className="border rounded-2xl shadow-sm bg-white p-4">
         <h2 className="text-xl font-bold mb-4">Données Excel</h2>

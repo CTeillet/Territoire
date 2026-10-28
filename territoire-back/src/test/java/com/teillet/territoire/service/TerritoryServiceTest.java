@@ -1,6 +1,7 @@
 package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.AverageAssignmentDurationDto;
+import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.dto.SchoolYearPeriodDto;
 import com.teillet.territoire.dto.TerritoryDistributionByCityDto;
 import com.teillet.territoire.dto.TerritoryPeriodStatisticsDto;
@@ -53,6 +54,9 @@ class TerritoryServiceTest {
 	@Mock
 	private ICityService cityService;
 
+	@Mock
+	private ISettingService settingService;
+
 	private TerritoryService territoryService;
 
 	private City city;
@@ -67,8 +71,10 @@ class TerritoryServiceTest {
 				assignmentRepository,
 				campaignService,
 				cityService,
-				reminderRepository
+				reminderRepository,
+				settingService
 		);
+		lenient().when(settingService.getDurationSettings()).thenReturn(new DurationSettingsDto(4, 4));
 
 		territoryId = UUID.randomUUID();
 
@@ -136,6 +142,22 @@ class TerritoryServiceTest {
 
 		assertEquals(TerritoryStatus.AVAILABLE, pendingTerritory.getStatus());
 		verify(territoryRepository, times(1)).save(pendingTerritory);
+	}
+
+	@Test
+	void testReleasePendingTerritories_UsesPendingDurationSetting() {
+		when(settingService.getDurationSettings()).thenReturn(new DurationSettingsDto(4, 6));
+		Territory returnedFiveMonthsAgo = new Territory();
+		returnedFiveMonthsAgo.setId(UUID.randomUUID());
+		returnedFiveMonthsAgo.setStatus(TerritoryStatus.PENDING);
+		returnedFiveMonthsAgo.setAssignments(List.of(Assignment.builder().returnDate(LocalDate.now().minusMonths(5)).build()));
+		when(territoryRepository.findByStatus(TerritoryStatus.PENDING)).thenReturn(List.of(returnedFiveMonthsAgo));
+
+		territoryService.releasePendingTerritories();
+
+		// Attente de 6 mois : rendu il y a 5 mois, le territoire reste en attente
+		assertEquals(TerritoryStatus.PENDING, returnedFiveMonthsAgo.getStatus());
+		verify(territoryRepository, never()).save(any(Territory.class));
 	}
 
 	@Test

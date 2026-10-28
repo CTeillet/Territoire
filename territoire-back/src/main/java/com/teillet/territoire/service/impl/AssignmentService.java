@@ -1,6 +1,7 @@
 package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.dto.AssignmentDto;
+import com.teillet.territoire.dto.UpdateAssignmentDatesDto;
 import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.event.TerritoryAssignedEvent;
@@ -13,6 +14,7 @@ import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.IPersonService;
+import com.teillet.territoire.service.ISettingService;
 import com.teillet.territoire.service.ITerritoryService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -22,6 +24,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,17 +35,20 @@ public class AssignmentService implements IAssignmentService {
 	private final ITerritoryService territoryService;
 	private final IPersonService personService;
 	private final ApplicationEventPublisher eventPublisher;
+	private final ISettingService settingService;
 
 	public AssignmentService(
 		AssignmentRepository assignmentRepository,
 		@Lazy ITerritoryService territoryService,
 		IPersonService personService,
-		ApplicationEventPublisher eventPublisher
+		ApplicationEventPublisher eventPublisher,
+		ISettingService settingService
 	) {
 		this.assignmentRepository = assignmentRepository;
 		this.territoryService = territoryService;
 		this.personService = personService;
 		this.eventPublisher = eventPublisher;
+		this.settingService = settingService;
 	}
 
 	@Transactional
@@ -59,7 +65,7 @@ public class AssignmentService implements IAssignmentService {
 				.territory(territory)
 				.person(person)
 				.assignmentDate(LocalDate.now())
-				.dueDate(LocalDate.now().plusMonths(4))
+				.dueDate(LocalDate.now().plusMonths(settingService.getDurationSettings().getAssignmentDurationMonths()))
 				.build();
 
 		territoryService.updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
@@ -164,8 +170,8 @@ public class AssignmentService implements IAssignmentService {
 
 	@Override
 	public AssignmentDto extendTerritory(UUID territoryId) {
-		// Default extension is 4 months
-		return extendTerritory(territoryId, LocalDate.now().plusMonths(4));
+		// Prolongation par défaut : la durée d'attribution des paramètres
+		return extendTerritory(territoryId, LocalDate.now().plusMonths(settingService.getDurationSettings().getAssignmentDurationMonths()));
 	}
 
 	@Override
@@ -219,7 +225,7 @@ public class AssignmentService implements IAssignmentService {
 
 			assignmentRepository.save(assignment);
 
-			// Parcouru pendant la campagne : mêmes règles qu'un retour habituel (en attente 4 mois).
+			// Parcouru pendant la campagne : mêmes règles qu'un retour habituel (en attente puis disponible).
 			// Un territoire attribué ou en retard garde son statut : il est encore chez quelqu'un.
 			if (territory.getStatus() == TerritoryStatus.AVAILABLE) {
 				territoryService.updateTerritoryStatus(territory, TerritoryStatus.PENDING);
@@ -243,25 +249,71 @@ public class AssignmentService implements IAssignmentService {
 
 	@Override
 	@Transactional
-	public AssignmentDto updateAssignmentDate(UUID territoryId, LocalDate assignmentDate) {
-		Assignment assignment = findAssignmentRunning(territoryId);
-		assignment.setAssignmentDate(assignmentDate);
-		
-		// Mettre à jour la date d'échéance pour que la vérification des retards soit cohérente (4 mois par défaut)
-		LocalDate newDueDate = assignmentDate.plusMonths(4);
-		assignment.setDueDate(newDueDate);
+	public AssignmentDto updateAssignmentDates(UUID assignmentId, UpdateAssignmentDatesDto dates) {
+		Assignment assignment = getAssignment(assignmentId);
+		validateDates(assignment, dates);
 
-		// Mettre à jour le statut du territoire en fonction de la nouvelle date d'échéance
-		Territory territory = assignment.getTerritory();
-		if (newDueDate.isBefore(LocalDate.now())) {
-			if (territory.getStatus() != TerritoryStatus.LATE) {
-				territoryService.updateTerritoryStatus(territory, TerritoryStatus.LATE);
-			}
-		} else if (territory.getStatus() == TerritoryStatus.LATE) {
-			territoryService.updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
-		}
-
+		assignment.setAssignmentDate(dates.getAssignmentDate());
+		assignment.setDueDate(dates.getDueDate());
+		assignment.setReturnDate(dates.getReturnDate());
 		Assignment result = assignmentRepository.save(assignment);
+		log.info("Dates de l'attribution modifiées : {}", result);
+
+		refreshTerritoryStatus(result.getTerritory());
 		return AssignmentMapper.toDto(result);
+	}
+
+	private static void validateDates(Assignment assignment, UpdateAssignmentDatesDto dates) {
+		LocalDate today = LocalDate.now();
+		if (dates.getAssignmentDate().isAfter(today)) {
+			throw new IllegalArgumentException("La date d'attribution ne peut pas être dans le futur");
+		}
+		if (dates.getDueDate().isBefore(dates.getAssignmentDate())) {
+			throw new IllegalArgumentException("L'échéance ne peut pas précéder la date d'attribution");
+		}
+		if (assignment.getReturnDate() == null) {
+			if (dates.getReturnDate() != null) {
+				throw new IllegalArgumentException("Pour rendre le territoire, utilisez l'action « Retour »");
+			}
+			return;
+		}
+		if (dates.getReturnDate() == null) {
+			throw new IllegalArgumentException("La date de retour est obligatoire pour une attribution terminée");
+		}
+		if (dates.getReturnDate().isBefore(dates.getAssignmentDate())) {
+			throw new IllegalArgumentException("La date de retour ne peut pas précéder la date d'attribution");
+		}
+		if (dates.getReturnDate().isAfter(today)) {
+			throw new IllegalArgumentException("La date de retour ne peut pas être dans le futur");
+		}
+	}
+
+	/**
+	 * Recalcule le statut du territoire à partir de ses attributions, avec les mêmes règles que les traitements
+	 * de nuit : en retard une fois l'échéance dépassée ({@link #checkOverdueAssignments()}), en attente pendant
+	 * la durée d'attente des paramètres après le dernier retour puis disponible
+	 * ({@link ITerritoryService#releasePendingTerritories()}).
+	 */
+	private void refreshTerritoryStatus(Territory territory) {
+		LocalDate today = LocalDate.now();
+		LocalDate pendingThreshold = today.minusMonths(settingService.getDurationSettings().getPendingDurationMonths());
+		List<Assignment> assignments = territory.getAssignments();
+		TerritoryStatus status = assignments.stream()
+				.filter(assignment -> assignment.getReturnDate() == null)
+				.findFirst()
+				.map(running -> running.getDueDate() != null && running.getDueDate().isBefore(today)
+						? TerritoryStatus.LATE
+						: TerritoryStatus.ASSIGNED)
+				.orElseGet(() -> assignments.stream()
+						.map(Assignment::getReturnDate)
+						.max(Comparator.naturalOrder())
+						.filter(lastReturn -> !lastReturn.isBefore(pendingThreshold))
+						.map(lastReturn -> TerritoryStatus.PENDING)
+						.orElse(TerritoryStatus.AVAILABLE));
+
+		if (territory.getStatus() != status) {
+			log.info("Territoire {} : statut {} → {} après modification des dates", territory.getName(), territory.getStatus(), status);
+			territoryService.updateTerritoryStatus(territory, status);
+		}
 	}
 }

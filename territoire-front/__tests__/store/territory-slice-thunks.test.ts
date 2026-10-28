@@ -22,7 +22,7 @@ import territoryReducer, {
   fetchTerritoryStatusHistory,
   modifyAddressNotToVisit,
   returnTerritory,
-  updateAssignmentDate,
+  updateAssignmentDates,
   updateTerritory,
 } from "@/store/slices/territory-slice";
 import * as authFetchModule from "@/utils/auth-fetch";
@@ -584,9 +584,11 @@ describe("territory-slice : thunks et reducers", () => {
         returnTerritory("t1"),
         cancelAssignment("t1"),
         extendTerritory({ territoryId: "t1" }),
-        updateAssignmentDate({
-          territoryId: "t1",
+        updateAssignmentDates({
+          assignmentId: "as1",
           assignmentDate: "2026-01-01",
+          dueDate: "2026-05-01",
+          returnDate: null,
         }),
       ]) {
         authFetch.mockResolvedValueOnce({
@@ -642,25 +644,20 @@ describe("territory-slice : thunks et reducers", () => {
       );
     });
 
-    it("updateAssignmentDate : met à jour la date, l'échéance et le statut", async () => {
+    it("updateAssignmentDates : envoie les dates et met à jour l'attribution en cours et le statut", async () => {
       const existing = assignment({ id: "as1", assignmentDate: "2026-01-01" });
+      const withAssignments = territory({
+        status: "LATE",
+        assignments: [existing] as never,
+      });
       const store = newStore({
         territoriesGeojson: {
           ...collection("LATE"),
           features: [
-            {
-              ...collection("LATE").features[0],
-              properties: territory({
-                status: "LATE",
-                assignments: [existing] as never,
-              }),
-            },
+            { ...collection("LATE").features[0], properties: withAssignments },
           ],
         },
-        selectedTerritory: territory({
-          status: "LATE",
-          assignments: [existing] as never,
-        }),
+        selectedTerritory: withAssignments,
       });
       const updated = assignment({
         id: "as1",
@@ -671,27 +668,90 @@ describe("territory-slice : thunks et reducers", () => {
       authFetch.mockResolvedValueOnce(ok(updated));
 
       await store.dispatch(
-        updateAssignmentDate({
-          territoryId: "t1",
+        updateAssignmentDates({
+          assignmentId: "as1",
           assignmentDate: "2026-09-01",
+          dueDate: "2027-01-01",
+          returnDate: null,
         })
       );
 
       expect(authFetch).toHaveBeenLastCalledWith(
-        "/api/territoires/t1/modifier-date-attribution?assignmentDate=2026-09-01",
-        expect.objectContaining({ method: "POST" })
+        "/api/attributions/as1",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({
+            assignmentDate: "2026-09-01",
+            dueDate: "2027-01-01",
+            returnDate: null,
+          }),
+        })
       );
       const props =
         store.getState().territories.territoriesGeojson!.features[0].properties;
       expect(props.status).toBe("ASSIGNED");
       expect(props.assignedOn).toBe("2026-09-01");
       expect(props.assignments[0].assignmentDate).toBe("2026-09-01");
-      expect(store.getState().territories.selectedTerritory?.waitedFor).toBe(
-        "2027-01-01"
-      );
+      const selected = store.getState().territories.selectedTerritory!;
+      expect(selected.waitedFor).toBe("2027-01-01");
+      expect(selected.lastVisitedOn).toBe("nouveau");
+      expect(store.getState().territories.updating).toBe(false);
+      // La page du territoire reste affichée pendant l'enregistrement
+      expect(store.getState().territories.loading).toBe(false);
     });
 
-    it("updateAssignmentDate : tolère des attributions absentes et les erreurs", async () => {
+    it("updateAssignmentDates : un retour antidaté met à jour le dernier parcours sans toucher à l'attribution en cours", async () => {
+      const returned = assignment({
+        id: "as0",
+        assignmentDate: "2026-01-01",
+        returnDate: "2026-03-01",
+      });
+      const older = assignment({
+        id: "as-old",
+        assignmentDate: "2025-01-01",
+        returnDate: "2025-02-01",
+      });
+      const store = newStore({
+        selectedTerritory: territory({
+          status: "PENDING",
+          assignments: [older, returned] as never,
+          lastVisitedOn: "2026-03-01",
+          assignedOn: "N/A",
+        }),
+      });
+      authFetch.mockResolvedValueOnce(
+        ok(
+          assignment({
+            id: "as0",
+            assignmentDate: "2025-03-01",
+            returnDate: "2025-05-01",
+            territory: { territoryId: "t1", status: "AVAILABLE" },
+          })
+        )
+      );
+
+      await store.dispatch(
+        updateAssignmentDates({
+          assignmentId: "as0",
+          assignmentDate: "2025-03-01",
+          dueDate: "2025-07-01",
+          returnDate: "2025-05-01",
+        })
+      );
+
+      const selected = store.getState().territories.selectedTerritory!;
+      expect(selected.status).toBe("AVAILABLE");
+      expect(selected.lastVisitedOn).toBe("2025-05-01");
+      expect(selected.assignedOn).toBe("N/A");
+    });
+
+    it("updateAssignmentDates : tolère des attributions absentes et les erreurs", async () => {
+      const dates = {
+        assignmentId: "as1",
+        assignmentDate: "2026-09-01",
+        dueDate: "2027-01-01",
+        returnDate: null,
+      };
       const store = newStore({
         // Valeur inattendue (non tableau) côté carte : remplacée par l'attribution reçue
         territoriesGeojson: {
@@ -706,12 +766,7 @@ describe("territory-slice : thunks et reducers", () => {
         selectedTerritory: territory({ assignments: undefined as never }),
       });
       authFetch.mockResolvedValueOnce(ok(assignment()));
-      await store.dispatch(
-        updateAssignmentDate({
-          territoryId: "t1",
-          assignmentDate: "2026-09-01",
-        })
-      );
+      await store.dispatch(updateAssignmentDates(dates));
       expect(
         store.getState().territories.selectedTerritory?.assignments
       ).toHaveLength(1);
@@ -721,26 +776,21 @@ describe("territory-slice : thunks et reducers", () => {
       ).toHaveLength(1);
 
       authFetch.mockResolvedValueOnce(ok({ territory: null }));
-      await store.dispatch(
-        updateAssignmentDate({
-          territoryId: "t1",
-          assignmentDate: "2026-09-01",
-        })
-      );
-      expect(store.getState().territories.loading).toBe(false);
+      await store.dispatch(updateAssignmentDates(dates));
+      expect(store.getState().territories.updating).toBe(false);
 
-      authFetch.mockResolvedValueOnce(failing(400, "Date invalide"));
-      await store.dispatch(
-        updateAssignmentDate({ territoryId: "t1", assignmentDate: "x" })
-      );
+      authFetch.mockResolvedValueOnce({
+        ...failing(400),
+        json: async () => ({ error: "Date invalide" }),
+      } as Response);
+      await store.dispatch(updateAssignmentDates(dates));
       expect(store.getState().territories.error).toBe("Date invalide");
+      expect(store.getState().territories.updating).toBe(false);
 
-      authFetch.mockResolvedValueOnce(failing(400, ""));
-      await store.dispatch(
-        updateAssignmentDate({ territoryId: "t1", assignmentDate: "x" })
-      );
+      authFetch.mockResolvedValueOnce(failing(500));
+      await store.dispatch(updateAssignmentDates(dates));
       expect(store.getState().territories.error).toBe(
-        "Erreur lors de la modification de la date d'attribution"
+        "Erreur lors de la modification des dates d'attribution"
       );
     });
   });

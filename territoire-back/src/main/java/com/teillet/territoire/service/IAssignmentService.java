@@ -1,6 +1,7 @@
 package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.AssignmentDto;
+import com.teillet.territoire.dto.UpdateAssignmentDatesDto;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Campaign;
 import com.teillet.territoire.model.Territory;
@@ -44,6 +45,12 @@ public interface IAssignmentService {
 	void createCampaignAssignments(Campaign campaign, List<Territory> usedTerritories);
 
 	List<AssignmentDto> getAssignmentsByPersonId(UUID personId);
+
+	/**
+	 * Corrige les dates d'une attribution (en cours ou terminée) puis recalcule le statut du territoire.
+	 *
+	 * @throws IllegalArgumentException si les dates sont incohérentes
+	 */
 	@Transactional
-	AssignmentDto updateAssignmentDate(UUID territoryId, LocalDate assignmentDate);
+	AssignmentDto updateAssignmentDates(UUID assignmentId, UpdateAssignmentDatesDto dates);
 }

@@ -11,6 +11,7 @@ import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.IExcelService;
+import com.teillet.territoire.service.ISettingService;
 import com.teillet.territoire.utils.SchoolYearUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class ExcelService implements IExcelService {
 	private final TerritoryRepository territoryRepository;
 	private final AssignmentRepository assignmentRepository;
 	private final CityRepository cityRepository;
+	private final ISettingService settingService;
 
 	@Override
 	public void generateExcel(List<CityExportDto> cities, ByteArrayOutputStream outputStream, int startYear) throws IOException {
@@ -80,6 +82,7 @@ public class ExcelService implements IExcelService {
 
 	private void extractTerritories(Sheet sheet) {
 		List<Person> personList = personService.getAllPersons();
+		int assignmentDurationMonths = settingService.getDurationSettings().getAssignmentDurationMonths();
 
 		// Ici on parse comme dans l’exemple précédent
 		for (int rowIndex = 4; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
@@ -93,14 +96,15 @@ public class ExcelService implements IExcelService {
 				continue;
 			}
 
-			extractAssignments(row, sheet, rowIndex, terrId, personList, territory);
+			extractAssignments(row, sheet, rowIndex, terrId, personList, territory, assignmentDurationMonths);
 
 			// Sauter la ligne suivante car elle a déjà été lue pour les dates
 			rowIndex++;
 		}
 	}
 
-	private void extractAssignments(Row row, Sheet sheet, int rowIndex, String terrId, List<Person> personList, Territory territory) {
+	private void extractAssignments(Row row, Sheet sheet, int rowIndex, String terrId, List<Person> personList, Territory territory,
+	                                int assignmentDurationMonths) {
 		for (int col = 2; col < row.getLastCellNum(); col += 2) {
 			String name = getCellValue(row.getCell(col, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK));
 
@@ -135,7 +139,7 @@ public class ExcelService implements IExcelService {
 				Assignment assignment = new Assignment();
 				assignment.setTerritory(territory);
 				assignment.setAssignmentDate(assignmentDate);
-				assignment.setDueDate(assignmentDate.plusMonths(4));
+				assignment.setDueDate(assignmentDate.plusMonths(assignmentDurationMonths));
 				assignment.setPerson(person);
 				if (parcouruLe != null && !parcouruLe.isEmpty()) {
 					LocalDate returnDate = parseDate(parcouruLe, terrId, "retour");
