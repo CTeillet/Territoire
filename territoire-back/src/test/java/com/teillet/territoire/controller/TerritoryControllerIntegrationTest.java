@@ -15,6 +15,7 @@ import com.teillet.territoire.repository.AddressNotToDoRepository;
 import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.repository.PersonRepository;
+import com.teillet.territoire.repository.TerritoryReminderRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,6 +65,9 @@ class TerritoryControllerIntegrationTest {
 	private AddressNotToDoRepository addressNotToDoRepository;
 
 	@Autowired
+	private TerritoryReminderRepository territoryReminderRepository;
+
+	@Autowired
 	private ObjectMapper objectMapper;
 
 	private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
@@ -94,6 +98,7 @@ class TerritoryControllerIntegrationTest {
 	/** Base H2 partagée entre les classes de test : nettoyée avant et après chaque test. */
 	@AfterEach
 	void cleanUp() {
+		territoryReminderRepository.deleteAll();
 		addressNotToDoRepository.deleteAll();
 		assignmentRepository.deleteAll();
 		territoryRepository.deleteAll();

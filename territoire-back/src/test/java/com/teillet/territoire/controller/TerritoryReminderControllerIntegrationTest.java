@@ -10,6 +10,7 @@ import com.teillet.territoire.repository.PersonRepository;
 import com.teillet.territoire.repository.TerritoryReminderRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.service.IWahaClient;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -56,12 +57,18 @@ class TerritoryReminderControllerIntegrationTest {
 	private Territory territory;
 	private Person person;
 
-	@BeforeEach
-	void setUp() {
+	/** Base H2 partagée entre les classes de test : nettoyée avant et après chaque test. */
+	@AfterEach
+	void cleanUp() {
 		territoryReminderRepository.deleteAll();
 		territoryRepository.deleteAll();
 		personRepository.deleteAll();
 		cityRepository.deleteAll();
+	}
+
+	@BeforeEach
+	void setUp() {
+		cleanUp();
 
 		City c = new City();
 		c.setName("Rennes");
