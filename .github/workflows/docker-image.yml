@@ -6,145 +6,131 @@ on:
     types: [completed]
     branches:
       - master
-  # Déploiement forcé depuis l'onglet Actions (sur master) : reconstruit et redéploie back et front
+  # Déploiement manuel depuis l'onglet Actions (sur master) : redéploie la dernière version de master
   workflow_dispatch:
+    inputs:
+      rebuild:
+        description: "Reconstruire les images même si elles existent déjà (ex. pour les correctifs des images de base)"
+        type: boolean
+        default: false
 
 permissions:
   packages: write
   contents: read
 
-# Un seul déploiement à la fois, dans l'ordre (sans annuler celui en cours)
+# Un seul déploiement à la fois, sans annuler celui en cours. Un run en attente remplacé par le suivant ne perd rien :
+# chaque run déploie l'état complet de master, pas seulement les changements de son commit.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
 
 jobs:
-  changes:
-    name: Detect changes
+  version:
+    name: Detect versions
     runs-on: ubuntu-24.04
     if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') }}
     outputs:
-      back: ${{ steps.filter.outputs.back }}
-      front: ${{ steps.filter.outputs.front }}
-      sha: ${{ steps.filter.outputs.sha }}
+      deploy: ${{ steps.version.outputs.deploy }}
+      sha: ${{ steps.version.outputs.sha }}
+      back: ${{ steps.version.outputs.back }}
+      front: ${{ steps.version.outputs.front }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          fetch-depth: 2
-      - name: Filter paths
-        id: filter
+          # Historique complet : le tag d'une image est le dernier commit qui a modifié son dossier
+          fetch-depth: 0
+
+      - name: Compute Image Tags
+        id: version
         run: |
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Déploiement forcé : back et front"
-            echo "back=true" >> "$GITHUB_OUTPUT"
-            echo "front=true" >> "$GITHUB_OUTPUT"
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          # Les CI ne finissent pas dans l'ordre des merges : un commit qui n'est plus le dernier de master
+          # remettrait en production une version plus ancienne. Le run d'un commit plus récent déploiera tout.
+          master=$(git ls-remote origin refs/heads/master | cut -f1)
+          if [ "$sha" != "$master" ]; then
+            echo "::notice::$sha n'est plus le dernier commit de master ($master) : déploiement ignoré"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if git rev-parse --verify -q HEAD~1 > /dev/null; then
-            files=$(git diff --name-only HEAD~1 HEAD)
-          else
-            files=$(git ls-tree -r --name-only HEAD)
-          fi
-          echo "$files"
-          if echo "$files" | grep -q '^territoire-back/'; then echo "back=true" >> "$GITHUB_OUTPUT"; else echo "back=false" >> "$GITHUB_OUTPUT"; fi
-          if echo "$files" | grep -q '^territoire-front/'; then echo "front=true" >> "$GITHUB_OUTPUT"; else echo "front=false" >> "$GITHUB_OUTPUT"; fi
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+          # Une image ne dépend que de son dossier : même contenu, même tag, quel que soit le commit déployé
+          echo "back=$(git log -1 --format=%H -- territoire-back)" >> "$GITHUB_OUTPUT"
+          echo "front=$(git log -1 --format=%H -- territoire-front)" >> "$GITHUB_OUTPUT"
 
   build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-24.04
-    needs: changes
+    needs: version
+    if: ${{ needs.version.outputs.deploy == 'true' }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
         with:
-          ref: ${{ needs.changes.outputs.sha }}
+          ref: ${{ needs.version.outputs.sha }}
 
       - name: Log in to GitHub Container Registry
-        if: ${{ needs.changes.outputs.back == 'true' || needs.changes.outputs.front == 'true' }}
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Build and Push Backend Image
-        if: ${{ needs.changes.outputs.back == 'true' }}
+      # Seules les images absentes de GHCR sont construites : un changement jamais déployé (CI en échec,
+      # run remplacé) est rattrapé par le déploiement suivant
+      - name: Build and Push Missing Images
+        env:
+          REBUILD: ${{ inputs.rebuild == true }}
         run: |
-          # Tag SHA en plus de latest : permet de revenir à une version précise (rollback)
-          docker build -t ghcr.io/cteillet/territoire-back:latest -t ghcr.io/cteillet/territoire-back:${{ needs.changes.outputs.sha }} ./territoire-back
-          docker push ghcr.io/cteillet/territoire-back:latest
-          docker push ghcr.io/cteillet/territoire-back:${{ needs.changes.outputs.sha }}
-
-      - name: Build and Push Frontend Image
-        if: ${{ needs.changes.outputs.front == 'true' }}
-        run: |
-          docker build -t ghcr.io/cteillet/territoire-front:latest -t ghcr.io/cteillet/territoire-front:${{ needs.changes.outputs.sha }} ./territoire-front
-          docker push ghcr.io/cteillet/territoire-front:latest
-          docker push ghcr.io/cteillet/territoire-front:${{ needs.changes.outputs.sha }}
+          build() {
+            image="ghcr.io/cteillet/$1:$2"
+            if [ "$REBUILD" != true ] && docker manifest inspect "$image" > /dev/null 2>&1; then
+              echo "$image existe déjà"
+              return
+            fi
+            docker build -t "$image" "./$1"
+            docker push "$image"
+          }
+          build territoire-back "${{ needs.version.outputs.back }}"
+          build territoire-front "${{ needs.version.outputs.front }}"
 
   deploy:
     name: Deploy to VPS
-    needs: [changes, build-and-push]
+    needs: [version, build-and-push]
     runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
         with:
-          ref: ${{ needs.changes.outputs.sha }}
+          ref: ${{ needs.version.outputs.sha }}
 
-      - name: Copy docker-compose.yml to VPS
+      # Dossier d'attente vidé à chaque fois ; deploy/deploy.sh en met le contenu en place
+      - name: Copy Compose, Config and Deploy Script to VPS
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_SSH_ID }}
           password: ${{ secrets.VPS_SSH_PASSWORD }}
-          source: "docker-compose.yml"
-          target: "/home/${{ secrets.VPS_SSH_ID }}/territoire/"
+          source: "docker-compose.yml,config,deploy/deploy.sh"
+          target: "/home/${{ secrets.VPS_SSH_ID }}/territoire/.deploy"
+          rm: true
 
-      - name: Connect to VPS and remove older config folder
+      - name: Deploy, Check Health and Roll Back on Failure
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_SSH_ID }}
           password: ${{ secrets.VPS_SSH_PASSWORD }}
+          command_timeout: 15m
           script: |
-            rm -rf /home/${{ secrets.VPS_SSH_ID }}/territoire/config
-
-      - name: Copy config folder to VPS
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_SSH_ID }}
-          password: ${{ secrets.VPS_SSH_PASSWORD }}
-          source: "config"
-          target: "/home/${{ secrets.VPS_SSH_ID }}/territoire/"
-
-      - name: Connect to VPS and Deploy
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_SSH_ID }}
-          password: ${{ secrets.VPS_SSH_PASSWORD }}
-          script: |
-            if [ "${{ needs.changes.outputs.back }}" = "true" ] || [ "${{ needs.changes.outputs.front }}" = "true" ]; then
-              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u cteillet --password-stdin
-            fi
-            if [ "${{ needs.changes.outputs.back }}" = "true" ]; then
-              docker pull ghcr.io/cteillet/territoire-back:latest
-            fi
-            if [ "${{ needs.changes.outputs.front }}" = "true" ]; then
-              docker pull ghcr.io/cteillet/territoire-front:latest
-            fi
+            set -e
             cd /home/${{ secrets.VPS_SSH_ID }}/territoire
-            docker compose up -d --force-recreate
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u cteillet --password-stdin
+            bash .deploy/deploy/deploy.sh "${{ needs.version.outputs.back }}" "${{ needs.version.outputs.front }}"
 
-      - name: Clean up old Docker images
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_SSH_ID }}
-          password: ${{ secrets.VPS_SSH_PASSWORD }}
-          script: |
-            # Uniquement les images orphelines : les images taguées (SHA) restent disponibles pour un rollback
-            docker image prune -f
+      # Sur GHCR aussi, latest désigne la version en production (docker compose pull sur le VPS)
+      - name: Tag Deployed Images as latest
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker buildx imagetools create -t ghcr.io/cteillet/territoire-back:latest "ghcr.io/cteillet/territoire-back:${{ needs.version.outputs.back }}"
+          docker buildx imagetools create -t ghcr.io/cteillet/territoire-front:latest "ghcr.io/cteillet/territoire-front:${{ needs.version.outputs.front }}"

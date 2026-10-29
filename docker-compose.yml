@@ -48,6 +48,7 @@ services:
       - ./rclone:/config/rclone
 
   territoire-back:
+    # latest = version en production : deploy/deploy.sh le fait pointer sur l'image déployée
     image: ghcr.io/cteillet/territoire-back:latest
     container_name: territoire-back
     restart: always
@@ -75,6 +76,7 @@ services:
 
 
   territoire-front:
+    # latest = version en production, comme pour territoire-back
     image: ghcr.io/cteillet/territoire-front:latest
     container_name: territoire-front
     restart: always

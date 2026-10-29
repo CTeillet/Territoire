@@ -58,7 +58,19 @@ cd territoire-front && npm test
 ```
 
 ## Déploiement
-La CI (`.github/workflows`) lance lint et tests, construit les images (tags `latest` et SHA du commit) sur GitHub Container Registry, puis déploie sur le VPS via `docker compose`. Les secrets (`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, …) sont fournis par l'environnement du VPS.
+La CI (`.github/workflows`) lance lint et tests. Sur master, le workflow `Build and Deploy` prend ensuite le relais :
+- chaque image est taguée par le dernier commit qui a modifié son dossier (`territoire-back`, `territoire-front`) et n'est construite que si ce tag manque sur GitHub Container Registry : un changement jamais déployé (CI en échec, run remplacé par un plus récent) part avec le déploiement suivant ;
+- un run dont le commit n'est plus le dernier de master ne déploie rien : les CI ne finissent pas forcément dans l'ordre des merges ;
+- sur le VPS, `deploy/deploy.sh` met en place `docker-compose.yml` et `config/`, fait pointer `latest` sur les images à déployer et lance `docker compose up -d` : seuls les services modifiés sont recréés, PostGIS reste en place. Il attend ensuite que le back et le front soient en bonne santé ; sinon il remet les images précédentes et le workflow échoue.
+
+`latest` désigne donc la version en production, sur le VPS comme sur GHCR. Lancé à la main depuis l'onglet Actions, le workflow redéploie la dernière version de master (case `rebuild` : reconstruire les images, par exemple pour les correctifs des images de base). Pour revenir à une version précise depuis le VPS (`~/territoire`) :
+```bash
+docker pull ghcr.io/cteillet/territoire-back:<commit>
+docker tag ghcr.io/cteillet/territoire-back:<commit> ghcr.io/cteillet/territoire-back:latest
+docker compose up -d territoire-back
+```
+
+Les secrets (`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, …) sont fournis par l'environnement du VPS.
 
 Le workflow `Trivy` analyse les images du back, du front et de la sauvegarde à chaque modification et chaque lundi. Il échoue sur une faille critique corrigeable ; les failles hautes et critiques apparaissent dans l'onglet Security > Code scanning du dépôt.
 

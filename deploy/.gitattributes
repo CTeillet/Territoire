@@ -1,0 +1,2 @@
+# Script exécuté sur le VPS (Linux) : jamais de CRLF, même depuis un poste Windows
+*.sh text eol=lf
