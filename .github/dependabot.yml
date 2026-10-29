@@ -51,3 +51,14 @@ updates:
       # Le client PostgreSQL garde la version majeure du serveur (postgis/postgis 17-3.5) : à monter avec lui
       - dependency-name: postgres
         update-types: ["version-update:semver-major"]
+  # Images de docker-compose.yml (PostGIS, observabilité, exporter) : versions figées, à monter PR par PR
+  # (les montées majeures de l'observabilité changent souvent la configuration de config/)
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: monthly
+    ignore:
+      # Un serveur PostgreSQL d'une autre version majeure ne démarre pas sur les données en place :
+      # à monter volontairement, avec migration des données et l'image de sauvegarde (cf. docker-compose.yml)
+      - dependency-name: postgis/postgis
+        update-types: ["version-update:semver-major"]
