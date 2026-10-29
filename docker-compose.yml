@@ -143,7 +143,7 @@ services:
     # Pas de port publié (accès via Grafana)
 
   loki:
-    image: grafana/loki:3.7.8
+    image: grafana/loki:3.7.9
     # Pas de port publié (accès via Grafana)
     command: -config.file=/etc/loki-config.yaml
     volumes:
