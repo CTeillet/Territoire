@@ -6,6 +6,8 @@ on:
     types: [completed]
     branches:
       - master
+  # Déploiement forcé depuis l'onglet Actions (sur master) : reconstruit et redéploie back et front
+  workflow_dispatch:
 
 permissions:
   packages: write
@@ -20,19 +22,27 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-24.04
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') }}
     outputs:
       back: ${{ steps.filter.outputs.back }}
       front: ${{ steps.filter.outputs.front }}
+      sha: ${{ steps.filter.outputs.sha }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 2
       - name: Filter paths
         id: filter
         run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Déploiement forcé : back et front"
+            echo "back=true" >> "$GITHUB_OUTPUT"
+            echo "front=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if git rev-parse --verify -q HEAD~1 > /dev/null; then
             files=$(git diff --name-only HEAD~1 HEAD)
           else
@@ -51,7 +61,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.changes.outputs.sha }}
 
       - name: Log in to GitHub Container Registry
         if: ${{ needs.changes.outputs.back == 'true' || needs.changes.outputs.front == 'true' }}
@@ -61,16 +71,16 @@ jobs:
         if: ${{ needs.changes.outputs.back == 'true' }}
         run: |
           # Tag SHA en plus de latest : permet de revenir à une version précise (rollback)
-          docker build -t ghcr.io/cteillet/territoire-back:latest -t ghcr.io/cteillet/territoire-back:${{ github.event.workflow_run.head_sha }} ./territoire-back
+          docker build -t ghcr.io/cteillet/territoire-back:latest -t ghcr.io/cteillet/territoire-back:${{ needs.changes.outputs.sha }} ./territoire-back
           docker push ghcr.io/cteillet/territoire-back:latest
-          docker push ghcr.io/cteillet/territoire-back:${{ github.event.workflow_run.head_sha }}
+          docker push ghcr.io/cteillet/territoire-back:${{ needs.changes.outputs.sha }}
 
       - name: Build and Push Frontend Image
         if: ${{ needs.changes.outputs.front == 'true' }}
         run: |
-          docker build -t ghcr.io/cteillet/territoire-front:latest -t ghcr.io/cteillet/territoire-front:${{ github.event.workflow_run.head_sha }} ./territoire-front
+          docker build -t ghcr.io/cteillet/territoire-front:latest -t ghcr.io/cteillet/territoire-front:${{ needs.changes.outputs.sha }} ./territoire-front
           docker push ghcr.io/cteillet/territoire-front:latest
-          docker push ghcr.io/cteillet/territoire-front:${{ github.event.workflow_run.head_sha }}
+          docker push ghcr.io/cteillet/territoire-front:${{ needs.changes.outputs.sha }}
 
   deploy:
     name: Deploy to VPS
@@ -81,7 +91,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.changes.outputs.sha }}
 
       - name: Copy docker-compose.yml to VPS
         uses: appleboy/scp-action@v1.0.0
