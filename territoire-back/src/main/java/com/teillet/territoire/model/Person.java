@@ -1,5 +1,7 @@
 package com.teillet.territoire.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.teillet.territoire.security.ContactDetailsSerializer;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,6 +21,13 @@ public class Person {
 
 	private String firstName;
 	private String lastName;
+
+	// Coordonnées : absentes des logs (toString) et du JSON envoyé à un UTILISATEUR
+	@ToString.Exclude
+	@JsonSerialize(using = ContactDetailsSerializer.class)
 	private String phoneNumber;
+
+	@ToString.Exclude
+	@JsonSerialize(using = ContactDetailsSerializer.class)
 	private String email;
 }
