@@ -172,7 +172,7 @@
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
-            <version>5.5.1</version>
+            <version>6.0.0</version>
         </dependency>
         <!-- Gabarits Liquid (messages WhatsApp rendus côté serveur, même syntaxe que liquidjs côté front) -->
         <dependency>
