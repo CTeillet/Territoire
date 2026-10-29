@@ -138,6 +138,8 @@ services:
       - --enable-feature=native-histograms
     volumes:
       - ./config/prometheus-config.yaml:/etc/prometheus.yaml
+      # Métriques (rétention par défaut : 15 jours), dans data/ du répertoire de travail /prometheus
+      - prometheus_data:/prometheus
     # Pas de port publié (accès via Grafana)
 
   loki:
@@ -146,6 +148,8 @@ services:
     command: -config.file=/etc/loki-config.yaml
     volumes:
       - ./config/loki-config.yaml:/etc/loki-config.yaml
+      # Logs (rétention : 14 jours, cf. config/loki-config.yaml)
+      - loki_data:/loki
 
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
@@ -159,3 +163,5 @@ volumes:
   postgis_data:
   grafana_data:
   tempo_data:
+  prometheus_data:
+  loki_data:
