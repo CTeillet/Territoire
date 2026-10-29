@@ -90,9 +90,10 @@ if [ ${#restart[@]} -gt 0 ]; then
 fi
 
 if wait_healthy; then
-	# En local, seul latest est gardé : les autres versions restent sur GHCR
+	# En local, seul latest est gardé : les autres versions restent sur GHCR. Les images sans tag (<none>),
+	# dont celles qui viennent d'être remplacées, sont supprimées par le prune
 	for image in "$BACK_IMAGE" "$FRONT_IMAGE"; do
-		docker image ls --format '{{.Repository}}:{{.Tag}}' "$image" | grep -v ':latest$' | xargs -r docker image rm > /dev/null || true
+		docker image ls --format '{{.Repository}}:{{.Tag}}' "$image" | grep -v -e ':latest$' -e ':<none>$' | xargs -r docker image rm > /dev/null || true
 	done
 	docker image prune -f > /dev/null
 	rm -rf "$STAGING"

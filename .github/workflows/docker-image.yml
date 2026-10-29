@@ -88,7 +88,13 @@ jobs:
               return
             fi
             docker build -t "$image" "./$1"
-            docker push "$image"
+            # GHCR répond parfois « unknown blob » en fin d'envoi : erreur passagère, un nouvel essai passe
+            for attempt in 1 2 3; do
+              docker push "$image" && return
+              echo "Envoi de $image en échec (essai $attempt sur 3)"
+              [ "$attempt" -lt 3 ] && sleep 15
+            done
+            return 1
           }
           build territoire-back "${{ needs.version.outputs.back }}"
           build territoire-front "${{ needs.version.outputs.front }}"
