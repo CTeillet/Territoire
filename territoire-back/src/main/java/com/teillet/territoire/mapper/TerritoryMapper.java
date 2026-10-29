@@ -31,8 +31,9 @@ public class TerritoryMapper {
 		territoryDto.setAssignedOn(TerritoryUtils.getAssignedOn(territory));
 		territoryDto.setWaitedFor(TerritoryUtils.getWaitedFor(territory));
 
-		// Set territory map ID if a map exists
-		if (territory.getTerritoryMap() != null && territory.getTerritoryMap().length > 0) {
+		// Carte présente : le type MIME est toujours enregistré avec elle (cf. TerritoryService.uploadTerritoryMap).
+		// Ne pas tester l'image elle-même, chargée à la demande : la lire ici la chargerait pour chaque territoire listé
+		if (territory.getTerritoryMapContentType() != null) {
 			territoryDto.setTerritoryMapId(territory.getId().toString());
 		}
 		return territoryDto;

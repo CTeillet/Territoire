@@ -377,8 +377,12 @@ public class TerritoryService implements ITerritoryService {
 	}
 
 	@Override
+	@Transactional
 	public Territory getTerritoryWithMap(UUID territoryId) {
 		log.info("Récupération de la carte du territoire {}", territoryId);
-		return getTerritory(territoryId);
+		Territory territory = getTerritory(territoryId);
+		// Carte chargée à la demande (@Basic(fetch = LAZY)) : lue ici, tant que la transaction est ouverte
+		territory.getTerritoryMap();
+		return territory;
 	}
 }
