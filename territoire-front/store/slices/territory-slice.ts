@@ -1020,10 +1020,6 @@ const territorySlice = createSlice({
           feature.properties.assignedTo = "";
           feature.properties.assignedOn = "";
           feature.properties.waitedFor = "";
-
-          console.log(
-            `✅ Territoire ${affectedId} retourné et mis à jour dans le store`
-          );
         } else {
           console.warn(
             `⚠️ Territoire introuvable dans le store pour ID ${affectedId}`
@@ -1089,10 +1085,6 @@ const territorySlice = createSlice({
           feature.properties.assignedTo = "";
           feature.properties.assignedOn = "";
           feature.properties.waitedFor = "";
-
-          console.log(
-            `✅ Assignation du territoire ${affectedId} annulée et mis à jour dans le store`
-          );
         } else {
           console.warn(
             `⚠️ Territoire introuvable dans le store pour ID ${affectedId}`
@@ -1208,9 +1200,6 @@ const territorySlice = createSlice({
               returnDate,
             },
           ];
-          console.log(
-            `✅ Territoire ${affectedId} retourné et mis à jour dans le store`
-          );
         } else {
           console.warn(
             `⚠️ Territoire introuvable dans le store pour ID ${affectedId}`

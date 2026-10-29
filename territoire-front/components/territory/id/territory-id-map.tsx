@@ -53,8 +53,6 @@ const TerritoryMap = ({
   > | null>(null);
 
   const cityCenter: LatLngBoundsExpression = useMemo(() => {
-    console.log("📍 City center:", city); // Log pour vérifier les infos de la ville
-
     return [
       [city.center.latitude, city.center.longitude],
       [city.center.latitude, city.center.longitude],
@@ -126,7 +124,6 @@ const TerritoryMap = ({
           territory.geojson
         ) as FeatureCollection<Polygon, PolygonProperties>;
         setGeoJsonData(parsedGeoJson);
-        console.log("✅ Conversion réussie de geojson :", parsedGeoJson);
       } catch (error) {
         console.error("❌ Erreur lors de la conversion de `geojson` :", error);
       }
@@ -174,8 +171,6 @@ const TerritoryMap = ({
       );
       return;
     }
-
-    console.log(`✅ Block supprimé: ${blockId}`);
 
     // Rafraîchir le territoire dans Redux pour récupérer la mise à jour
     dispatch(fetchTerritoryById(territory.id));

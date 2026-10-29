@@ -486,11 +486,6 @@ export default function CampaignDetailPage() {
                                                 return;
                                               }
                                               const id = territory.territoryId;
-                                              console.log(
-                                                "Checkbox onCheckedChange",
-                                                id,
-                                                checked
-                                              );
                                               if (id) {
                                                 handleToggleTerritory(
                                                   id,

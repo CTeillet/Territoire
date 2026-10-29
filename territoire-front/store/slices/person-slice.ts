@@ -34,7 +34,6 @@ const initialState: PersonState = {
 export const fetchPersons = createAsyncThunk(
   "persons/fetchPersons",
   async (_, { rejectWithValue }) => {
-    console.log("Récup");
     const response = await authFetch(BASE_URL);
 
     // 🔹 Retourner immédiatement `rejectWithValue` au lieu de `throw`
@@ -57,9 +56,6 @@ export const fetchPersons = createAsyncThunk(
     condition: (_, { getState }) => {
       const state = getState() as { persons: PersonState };
       if (state.persons.isFetchingPersons) {
-        console.log(
-          "Une récupération des personnes est déjà en cours. Opération annulée."
-        );
         return false; // Skip this thunk execution
       }
       return true; // Proceed with the thunk execution
