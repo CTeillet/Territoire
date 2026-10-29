@@ -557,7 +557,7 @@ export default function CampaignDetailPage() {
                 Carte de la campagne
               </CardTitle>
               <CardDescription className="text-base">
-                Visualisez la couverture géographique et l'avancement de la
+                Visualisez la couverture géographique et l&apos;avancement de la
                 campagne
               </CardDescription>
             </CardHeader>

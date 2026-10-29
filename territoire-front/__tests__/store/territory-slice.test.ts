@@ -26,7 +26,9 @@ describe("territory slice", () => {
 
   const dummyCollection: TerritoryCollection = {
     type: "FeatureCollection",
-    features: [dummyFeature as any],
+    features: [
+      dummyFeature as unknown as TerritoryCollection["features"][number],
+    ],
   };
 
   const dummyCity: City = {
@@ -51,7 +53,7 @@ describe("territory slice", () => {
     assignedTo: "",
   };
 
-  const initialState: any = {
+  const initialState = {
     territoriesGeojson: null,
     selectedTerritory: null,
     loading: false,
@@ -70,7 +72,7 @@ describe("territory slice", () => {
     periodAssignments: [],
     schoolYearPeriods: [],
     statisticsLoading: false,
-  };
+  } as unknown as ReturnType<typeof territoryReducer>;
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -117,7 +119,7 @@ describe("territory slice", () => {
         ...initialState,
         territoriesGeojson: dummyCollection,
         selectedTerritory: dummyTerritory,
-      };
+      } as unknown as typeof initialState;
 
       const fulfilled = territoryReducer(stateWithTerritories, {
         type: deleteTerritory.fulfilled.type,
@@ -141,7 +143,7 @@ describe("territory slice", () => {
           ],
         },
         selectedTerritory: { ...dummyTerritory, status: "ASSIGNED" },
-      };
+      } as unknown as typeof initialState;
 
       const fulfilled = territoryReducer(stateWithTerritories, {
         type: returnTerritory.fulfilled.type,
@@ -170,7 +172,7 @@ describe("territory slice", () => {
           ],
         },
         selectedTerritory: { ...dummyTerritory, status: "ASSIGNED" },
-      };
+      } as unknown as typeof initialState;
 
       const fulfilled = territoryReducer(stateWithTerritories, {
         type: cancelAssignment.fulfilled.type,

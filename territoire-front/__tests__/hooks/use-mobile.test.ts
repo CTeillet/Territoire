@@ -9,17 +9,13 @@ describe("useIsMobile", () => {
 
   it("should return true when window width is less than 768", () => {
     window.innerWidth = 500;
-    let listener: (() => void) | null = null;
-
     window.matchMedia = vi.fn().mockImplementation((query) => ({
       matches: true,
       media: query,
       onchange: null,
       addListener: vi.fn(),
       removeListener: vi.fn(),
-      addEventListener: vi.fn((event, cb) => {
-        listener = cb;
-      }),
+      addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
     }));

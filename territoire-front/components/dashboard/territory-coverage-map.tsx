@@ -9,6 +9,9 @@ import { useSidebar } from "@/components/ui/sidebar";
 import MapUpdater from "@/components/territory/map-updater";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchTerritoryCoverageMap } from "@/store/slices/territory-slice";
+import type { Feature, Geometry } from "geojson";
+import { TerritoryCoverageProperties } from "@/models/territory";
+import { geoJsonCenter } from "@/lib/geo";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
@@ -50,50 +53,15 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({
     setIsExpanded(!isExpanded);
   };
 
-  const calculateCenter = (): [number, number] => {
-    if (
-      !territoryCoverageGeojson ||
-      territoryCoverageGeojson.features.length === 0
-    )
-      return defaultCenter;
+  const center = useMemo(
+    () => geoJsonCenter(territoryCoverageGeojson, defaultCenter),
+    [territoryCoverageGeojson]
+  );
 
-    let sumLat = 0;
-    let sumLng = 0;
-    let count = 0;
-
-    territoryCoverageGeojson.features.forEach((feature: any) => {
-      if (!feature.geometry) return;
-      if (feature.geometry.type === "Polygon") {
-        feature.geometry.coordinates[0].forEach(
-          ([lng, lat]: [number, number]) => {
-            sumLat += lat;
-            sumLng += lng;
-            count++;
-          }
-        );
-      } else if (feature.geometry.type === "MultiPolygon") {
-        feature.geometry.coordinates.forEach((polygon: any) => {
-          polygon[0].forEach((coord: [number, number]) => {
-            const [lng, lat] = coord;
-            sumLat += lat;
-            sumLng += lng;
-            count++;
-          });
-        });
-      }
-    });
-
-    if (count > 0) {
-      return [sumLat / count, sumLng / count];
-    }
-
-    return defaultCenter;
-  };
-
-  const center = useMemo(calculateCenter, [territoryCoverageGeojson]);
-
-  const getTerritoryStyle = (feature: any) => {
-    const parcouru = feature.properties.parcouru;
+  const getTerritoryStyle = (
+    feature?: Feature<Geometry, TerritoryCoverageProperties>
+  ) => {
+    const parcouru = feature?.properties.parcouru;
 
     return {
       fillColor: parcouru ? "#22c55e" : "#ef4444", // green-500 : red-500
@@ -146,7 +114,7 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({
             {territoryCoverageGeojson && (
               <GeoJSON
                 key={`territory-coverage-${startDate}-${endDate}`}
-                data={territoryCoverageGeojson as any}
+                data={territoryCoverageGeojson}
                 style={getTerritoryStyle}
               />
             )}

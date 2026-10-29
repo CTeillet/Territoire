@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { Campaign } from "@/models/campaign";
+import { Campaign, CampaignMap } from "@/models/campaign";
 import { authFetch } from "@/utils/auth-fetch";
 import { apiErrorMessage } from "@/utils/api-error";
 import { SimplifiedTerritory } from "@/models/territory";
@@ -20,7 +20,7 @@ interface CampaignState {
   closing: boolean;
   loadingStatistics: boolean;
   loadingMap: boolean;
-  currentCampaignGeoJson: any | null;
+  currentCampaignGeoJson: CampaignMap | null;
   error: string | null;
   isFetchingCampaigns: boolean;
   isFetchingCampaign: boolean;
@@ -303,7 +303,7 @@ export const fetchCampaignMap = createAsyncThunk(
     }
 
     try {
-      return await response.json();
+      return (await response.json()) as CampaignMap;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error

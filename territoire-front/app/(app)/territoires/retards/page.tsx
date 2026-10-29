@@ -24,6 +24,36 @@ import { Person } from "@/models/person";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 
+// Normalisation pour comparer les chaînes sans casse ni accents
+function normalizeString(str?: string | null): string {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Recherche une personne soit par son ID (UUID), soit par son nom complet
+function findPerson(
+  personList: Person[],
+  key?: string | null
+): Person | undefined {
+  if (!key || !personList?.length) return undefined;
+
+  const byId = personList.find((p) => p.id === key);
+  if (byId) return byId;
+
+  const normKey = normalizeString(key);
+
+  return personList.find((p) => {
+    const firstLast = normalizeString(`${p.firstName} ${p.lastName}`);
+    const lastFirst = normalizeString(`${p.lastName} ${p.firstName}`);
+    return firstLast === normKey || lastFirst === normKey;
+  });
+}
+
 export default function LateTerritoriesPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -81,36 +111,6 @@ export default function LateTerritoriesPage() {
       router.push("/login");
     }
   }, [isAuthenticated, router]);
-
-  // Normalisation pour comparer les chaînes sans casse ni accents
-  function normalizeString(str?: string | null): string {
-    if (!str) return "";
-    return str
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  // Recherche une personne soit par son ID (UUID), soit par son nom complet
-  function findPerson(
-    personList: Person[],
-    key?: string | null
-  ): Person | undefined {
-    if (!key || !personList?.length) return undefined;
-
-    const byId = personList.find((p) => p.id === key);
-    if (byId) return byId;
-
-    const normKey = normalizeString(key);
-
-    return personList.find((p) => {
-      const firstLast = normalizeString(`${p.firstName} ${p.lastName}`);
-      const lastFirst = normalizeString(`${p.lastName} ${p.firstName}`);
-      return firstLast === normKey || lastFirst === normKey;
-    });
-  }
 
   // Format date
   const formatDate = (dateString: string | null) => {

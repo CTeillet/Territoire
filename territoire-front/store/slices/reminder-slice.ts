@@ -77,7 +77,7 @@ export const createReminder = createAsyncThunk(
             const text = await response.text();
             message = text || message;
           }
-        } catch (_) {
+        } catch {
           // ignore parsing errors and keep default message
         }
         throw new Error(message);

@@ -10,6 +10,7 @@ import campaignReducer, {
   fetchCampaignMap,
 } from "@/store/slices/campaign-slice";
 import { Campaign } from "@/models/campaign";
+import { CampaignStatistics } from "@/models/campaign-statistics";
 import * as authFetchModule from "@/utils/auth-fetch";
 
 vi.mock("sonner", () => ({
@@ -66,7 +67,7 @@ describe("campaign slice", () => {
     const state = campaignReducer(
       {
         ...initialState,
-        currentCampaignGeoJson: { type: "FeatureCollection" },
+        currentCampaignGeoJson: { type: "FeatureCollection", features: [] },
       },
       clearCampaignMap()
     );
@@ -149,7 +150,7 @@ describe("campaign slice", () => {
         totalAssignments: 15,
         totalCompleted: 10,
         completionRate: 66.6,
-      } as any;
+      } as unknown as CampaignStatistics;
 
       const fulfilled = campaignReducer(initialState, {
         type: fetchCampaignStatistics.fulfilled.type,

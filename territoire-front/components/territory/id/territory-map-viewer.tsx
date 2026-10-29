@@ -97,6 +97,8 @@ const TerritoryMapViewer: React.FC<TerritoryMapViewerProps> = ({
             </div>
           )}
           {imageUrl && (
+            // Image chargée par authFetch (en-tête Authorization) puis servie en blob: : rien à optimiser pour next/image
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={imageUrl}
               alt="Carte du territoire"

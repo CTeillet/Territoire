@@ -19,6 +19,27 @@ interface TerritoryDistribution {
   percentage: number;
 }
 
+// Infobulle du graphique, définie hors du composant pour ne pas être recréée à chaque rendu
+const CustomTooltip = ({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: TerritoryDistribution }>;
+}) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white p-2 border rounded shadow-sm">
+        <p className="font-semibold">{data.cityName}</p>
+        <p>Territoires: {data.territoryCount}</p>
+        <p>Pourcentage: {data.percentage.toFixed(2)}%</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 interface TerritoryDistributionChartProps {
   startDate?: string;
   endDate?: string;
@@ -52,27 +73,6 @@ export const TerritoryDistributionChart: React.FC<
     "#FF6B6B",
     "#6B66FF",
   ];
-
-  // Custom tooltip formatter
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: Array<{ payload: TerritoryDistribution }>;
-  }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-2 border rounded shadow-sm">
-          <p className="font-semibold">{data.cityName}</p>
-          <p>Territoires: {data.territoryCount}</p>
-          <p>Pourcentage: {data.percentage.toFixed(2)}%</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   const descriptionText = periodLabel
     ? `Répartition des territoires par ville pour la période ${periodLabel}`

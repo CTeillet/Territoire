@@ -74,7 +74,7 @@ export default function NonVisitedTerritoriesPage() {
             (t.status === "AVAILABLE" || t.status === "PENDING") &&
             lastVisitDate < referenceDate
           );
-        } catch (e) {
+        } catch {
           // Only include if it's not assigned or late, even when we can't parse the date
           return t.status !== "ASSIGNED" && t.status !== "LATE"; // Only include non-assigned and non-late territories when date parsing fails
         }

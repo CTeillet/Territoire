@@ -30,7 +30,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { ChevronsUpDown } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Person } from "@/models/person";
@@ -114,7 +114,7 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({
     onOpenChange(false);
   };
 
-  const selectedPerson = form.watch("personId");
+  const selectedPerson = useWatch({ control: form.control, name: "personId" });
   const isDisabled = selectedPerson !== null;
 
   return (
