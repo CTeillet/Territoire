@@ -44,6 +44,8 @@ function redirectToLogin() {
     typeof window !== "undefined" &&
     !window.location.pathname.startsWith("/login")
   ) {
+    // Rechargement complet voulu, hors composant React : repart d'un état Redux vide
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/login";
   }
 }

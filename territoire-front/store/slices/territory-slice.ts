@@ -1,5 +1,9 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { Territory, TerritoryCollection } from "@/models/territory";
+import {
+  Territory,
+  TerritoryCollection,
+  TerritoryCoverageMap,
+} from "@/models/territory";
 import { format } from "date-fns";
 import { Assignment } from "@/models/assignment";
 import { authFetch } from "@/utils/auth-fetch";
@@ -30,7 +34,7 @@ type TerritoryState = {
   // Statistics state
   territoryStatusHistory: TerritoryStatusHistoryDto[];
   territoriesNotAssignedSince: number;
-  territoryCoverageGeojson: any | null;
+  territoryCoverageGeojson: TerritoryCoverageMap | null;
   loadingCoverageMap: boolean;
   averageAssignmentDurationByMonth: AverageAssignmentDuration[];
   overallAverageAssignmentDuration: number | null;
@@ -336,7 +340,7 @@ export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
 );
 
 export const fetchTerritoryCoverageMap = createAsyncThunk<
-  any,
+  TerritoryCoverageMap,
   { startDate?: string; endDate?: string } | undefined
 >(
   "territories/fetchTerritoryCoverageMap",

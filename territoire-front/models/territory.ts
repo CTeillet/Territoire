@@ -43,3 +43,17 @@ type PolygonType = "BLOCK" | "CONCAVE_HULL";
 export type TerritoryFeature = Feature<Polygon, Territory>;
 
 export type TerritoryCollection = FeatureCollection<Polygon, Territory>;
+
+/** Carte de couverture d'une période (GET /api/territoires/statistiques/carte-couverture). */
+export interface TerritoryCoverageProperties {
+  id: string;
+  name: string;
+  city: string;
+  type: TerritoryType;
+  parcouru: boolean;
+}
+
+export type TerritoryCoverageMap = FeatureCollection<
+  MultiPolygon | null,
+  TerritoryCoverageProperties
+>;

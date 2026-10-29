@@ -1,6 +1,37 @@
-import type { Feature, Position } from "geojson";
+import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
 
 export type LatLng = { lat: number; lng: number };
+
+/**
+ * Centre d'une carte de territoires : moyenne des sommets extérieurs de leurs polygones,
+ * en [latitude, longitude] comme l'attend Leaflet. `fallback` sans polygone.
+ */
+export function geoJsonCenter<G extends Geometry | null, P>(
+  collection: FeatureCollection<G, P> | null | undefined,
+  fallback: [number, number]
+): [number, number] {
+  let sumLat = 0;
+  let sumLng = 0;
+  let count = 0;
+  const addRing = (ring: Position[]) => {
+    ring.forEach(([lng, lat]) => {
+      sumLat += lat;
+      sumLng += lng;
+      count++;
+    });
+  };
+
+  collection?.features.forEach((feature) => {
+    const geometry = feature.geometry;
+    if (geometry?.type === "Polygon") {
+      addRing(geometry.coordinates[0]);
+    } else if (geometry?.type === "MultiPolygon") {
+      geometry.coordinates.forEach((polygon) => addRing(polygon[0]));
+    }
+  });
+
+  return count > 0 ? [sumLat / count, sumLng / count] : fallback;
+}
 
 const EARTH_RADIUS_M = 6_371_000;
 const toRad = (deg: number) => (deg * Math.PI) / 180;

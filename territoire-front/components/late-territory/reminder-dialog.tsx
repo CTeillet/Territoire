@@ -80,7 +80,9 @@ export function ReminderDialog({
   // `data` est recréé à chaque rendu du parent : on le lit via une ref pour ne pas relancer le
   // chargement (ni écraser le message en cours de saisie) à chaque rendu.
   const dataRef = useRef(data);
-  dataRef.current = data;
+  useEffect(() => {
+    dataRef.current = data;
+  });
 
   // Charge le message type uniquement à l'ouverture de la boîte de dialogue
   useEffect(() => {

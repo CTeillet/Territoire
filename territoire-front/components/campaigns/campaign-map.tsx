@@ -3,7 +3,10 @@
 import dynamic from "next/dynamic";
 import React, { useEffect, useMemo, useState } from "react";
 import "leaflet/dist/leaflet.css";
+import type { Feature, Geometry } from "geojson";
 import { TerritoryType } from "@/models/territory-type";
+import { CampaignMapProperties } from "@/models/campaign";
+import { geoJsonCenter } from "@/lib/geo";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2, Info, Loader2 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -61,6 +64,8 @@ const CampaignMap: React.FC<CampaignMapProps> = ({
     return () => {
       dispatch(clearCampaignMap());
     };
+    // Chargé une fois par campagne : currentCampaignGeoJson est vidé au démontage, l'ajouter relancerait le chargement en boucle
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaignId, dispatch]);
 
   const remainingIds = useMemo(
@@ -72,47 +77,16 @@ const CampaignMap: React.FC<CampaignMapProps> = ({
     setIsExpanded(!isExpanded);
   };
 
-  const calculateCenter = (): [number, number] => {
-    if (!currentCampaignGeoJson || currentCampaignGeoJson.features.length === 0)
-      return defaultCenter;
+  const center = useMemo(
+    () => geoJsonCenter(currentCampaignGeoJson, defaultCenter),
+    [currentCampaignGeoJson]
+  );
 
-    let sumLat = 0;
-    let sumLng = 0;
-    let count = 0;
-
-    currentCampaignGeoJson.features.forEach((feature: any) => {
-      if (feature.geometry.type === "Polygon") {
-        feature.geometry.coordinates[0].forEach(
-          ([lng, lat]: [number, number]) => {
-            sumLat += lat;
-            sumLng += lng;
-            count++;
-          }
-        );
-      } else if (feature.geometry.type === "MultiPolygon") {
-        feature.geometry.coordinates.forEach((polygon: any) => {
-          polygon[0].forEach((coord: [number, number]) => {
-            const [lng, lat] = coord;
-            sumLat += lat;
-            sumLng += lng;
-            count++;
-          });
-        });
-      }
-    });
-
-    if (count > 0) {
-      return [sumLat / count, sumLng / count];
-    }
-
-    return defaultCenter;
-  };
-
-  const center = useMemo(calculateCenter, [currentCampaignGeoJson]);
-
-  const getTerritoryStyle = (feature: any) => {
-    const isVisited = !remainingIds.has(feature.properties.id);
-    const type = feature.properties.type;
+  const getTerritoryStyle = (
+    feature?: Feature<Geometry, CampaignMapProperties>
+  ) => {
+    const isVisited = !remainingIds.has(feature?.properties.id ?? "");
+    const type = feature?.properties.type;
 
     let fillColor = "#94a3b8"; // Default slate-400
 
@@ -219,7 +193,7 @@ const CampaignMap: React.FC<CampaignMapProps> = ({
             {currentCampaignGeoJson && (
               <GeoJSON
                 key={`campaign-geojson-${colorBy}-${remainingTerritoryIds.length}`}
-                data={currentCampaignGeoJson as any}
+                data={currentCampaignGeoJson}
                 style={getTerritoryStyle}
               />
             )}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { formatPhoneNumber, getBadgeColor } from "@/components/utils";
+import { TerritoryStatus } from "@/models/territory-status";
 
 describe("components utils", () => {
   describe("formatPhoneNumber", () => {
@@ -15,7 +16,9 @@ describe("components utils", () => {
       expect(getBadgeColor("ASSIGNED")).toBe("bg-green-500");
       expect(getBadgeColor("LATE")).toBe("bg-pink-500");
       expect(getBadgeColor("PENDING")).toBe("bg-blue-500");
-      expect(getBadgeColor("UNKNOWN" as any)).toBe("bg-gray-500");
+      expect(getBadgeColor("UNKNOWN" as unknown as TerritoryStatus)).toBe(
+        "bg-gray-500"
+      );
     });
   });
 });

@@ -9,8 +9,9 @@ vi.mock("react-redux", () => ({
 
 describe("useAuth", () => {
   it("should return isAuthenticated false when no token", () => {
-    vi.mocked(reactRedux.useSelector).mockImplementation((selector: any) =>
-      selector({ auth: { user: null, token: null } })
+    vi.mocked(reactRedux.useSelector).mockImplementation(
+      (selector: (state: unknown) => unknown) =>
+        selector({ auth: { user: null, token: null } })
     );
 
     const { result } = renderHook(() => useAuth());
@@ -25,8 +26,9 @@ describe("useAuth", () => {
       username: "a",
       role: "ADMIN",
     };
-    vi.mocked(reactRedux.useSelector).mockImplementation((selector: any) =>
-      selector({ auth: { user: dummyUser, token: "token-123" } })
+    vi.mocked(reactRedux.useSelector).mockImplementation(
+      (selector: (state: unknown) => unknown) =>
+        selector({ auth: { user: dummyUser, token: "token-123" } })
     );
 
     const { result } = renderHook(() => useAuth());
