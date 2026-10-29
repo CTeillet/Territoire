@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.teillet</groupId>
@@ -199,12 +199,12 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp-jvm</artifactId>
-            <version>5.5.0</version>
+            <version>5.5.1</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
-            <version>5.5.0</version>
+            <version>5.5.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -293,7 +293,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.15</version>
+                <version>0.8.16</version>
                 <executions>
                     <execution>
                         <goals>
