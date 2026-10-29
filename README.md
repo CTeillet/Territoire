@@ -27,7 +27,9 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 | `docker-compose.yml` | Déploiement complet (base, sauvegarde, API, front, WAHA, observabilité) |
 
 ### Base de données
-Le schéma est géré par Hibernate (`ddl-auto=update`). Flyway est présent pour les changements que Hibernate ne sait pas faire seul (renommage, suppression de colonne, transformation de données) : ajouter un fichier `V2__description.sql` dans `territoire-back/src/main/resources/db/migration`.
+Le schéma est géré par Flyway (`territoire-back/src/main/resources/db/migration`) : `V2__schema_complet.sql` décrit le schéma de production, et chaque changement (nouvelle colonne, nouvelle table, renommage...) ajoute une migration `V3__description.sql`, `V4__...`. Hibernate ne modifie plus la base : il vérifie au démarrage que chaque entité correspond aux tables (`ddl-auto=validate`) et l'application refuse de démarrer sinon.
+
+Une entité modifiée sans migration est détectée en CI par `FlywayValidateIntegrationTest`, qui démarre l'application sur une copie du schéma de production (`src/test/resources/db/schema-production.sql`) dans un conteneur PostGIS. `FlywaySchemaIntegrationTest` vérifie que les migrations ne changent rien à ce schéma et le recréent à l'identique sur une base vide.
 
 ## Développement local
 Prérequis : Docker, Java 25, Node.js 24.
