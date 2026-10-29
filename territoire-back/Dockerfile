@@ -14,6 +14,10 @@ RUN ./mvnw clean package -DskipTests
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 
+# Correctifs de sécurité Alpine publiés depuis la dernière image eclipse-temurin
+# (ex. brotli-libs, CVE-2026-111497, signalée par Trivy avant la reconstruction de l'image de base)
+RUN apk upgrade --no-cache
+
 # Exécution sans les droits root
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=builder --chown=app:app /app/target/*.jar /app/app.jar

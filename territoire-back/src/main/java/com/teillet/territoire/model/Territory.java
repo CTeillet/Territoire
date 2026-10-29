@@ -1,5 +1,6 @@
 package com.teillet.territoire.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
@@ -75,11 +76,16 @@ public class Territory {
 	@JoinColumn(name = "city_id", nullable = false)
 	private City city;
 
+	/**
+	 * Image de la carte, chargée seulement quand on la lit (enhancement Hibernate, cf. pom.xml).
+	 * Servie par GET /api/territoires/{id}/carte, jamais dans le JSON d'un territoire.
+	 */
 	@Lob
 	@Column(name = "territory_map")
 	@Basic(fetch = FetchType.LAZY)
 	@JdbcTypeCode(SqlTypes.BINARY)
 	@ToString.Exclude
+	@JsonIgnore
 	private byte[] territoryMap;
 
 	@Column(name = "territory_map_name")

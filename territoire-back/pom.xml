@@ -285,6 +285,20 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <!-- Enhancement des entités à la compilation : sans lui, Hibernate ignore @Basic(fetch = LAZY)
+                 et lit l'image de carte (jusqu'à 5 Mo) avec chaque territoire chargé -->
+            <plugin>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-maven-plugin</artifactId>
+                <version>${hibernate.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>enhance</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
