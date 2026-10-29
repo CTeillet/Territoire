@@ -88,7 +88,6 @@ services:
     depends_on:
       - territoire-back
     environment:
-      NEXT_PUBLIC_API_URL: http://territoire-back:8080
       # Traces du serveur Next.js (instrumentation.ts) vers le collector
       OTEL_EXPORTER_OTLP_ENDPOINT: http://collector:4318
     ports:

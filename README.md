@@ -24,7 +24,8 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 | `territoire-back` | API REST Spring Boot 4 (Java 25), Spring Security + JWT, PostgreSQL/PostGIS, Hibernate, Flyway |
 | `territoire-front` | Next.js 16 / React 19, TypeScript, Tailwind CSS, shadcn/ui, Redux Toolkit |
 | `config` | Configuration de l'observabilité (OpenTelemetry, Prometheus, Loki, Tempo, Grafana) et image de sauvegarde de la base (`config/backup`) |
-| `docker-compose.yml` | Déploiement complet (base, sauvegarde, API, front, WAHA, observabilité) |
+| `docker-compose.yml` | Déploiement complet (base, sauvegarde, API, front, observabilité). WAHA est hébergé à part (`waha.baseUrl`) |
+| `docker-compose-mini.yml` | Environnement local : base PostGIS et observabilité, sans l'application |
 
 ### Base de données
 Le schéma est géré par Flyway (`territoire-back/src/main/resources/db/migration`) : `V2__schema_complet.sql` décrit le schéma de production, et chaque changement (nouvelle colonne, nouvelle table, renommage...) ajoute une migration `V3__description.sql`, `V4__...`. Hibernate ne modifie plus la base : il vérifie au démarrage que chaque entité correspond aux tables (`ddl-auto=validate`) et l'application refuse de démarrer sinon.
@@ -52,6 +53,7 @@ cd territoire-front
 npm ci
 npm run dev
 ```
+Les appels `/api` du front sont redirigés vers le back local `http://localhost:8080` (autre adresse : `API_URL` dans `.env.local`). En production, nginx envoie `/api/` directement au back.
 
 Tests :
 ```bash

@@ -51,11 +51,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // En production, nginx envoie /api/ directement au back : cette réécriture ne sert qu'en développement
+  // (npm run dev, back local) et aux accès directs au conteneur (API_URL de .env.production, réseau Docker).
+  // L'adresse est lue au build et figée dans l'image : la changer demande de reconstruire le front.
   async rewrites() {
     return [
       {
-        source: "/api/:path*", // Capture toutes les requêtes vers /api/*
-        destination: process.env.API_URL + "/api/:path*",
+        source: "/api/:path*",
+        destination: `${process.env.API_URL ?? "http://localhost:8080"}/api/:path*`,
       },
     ];
   },
