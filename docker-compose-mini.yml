@@ -1,6 +1,7 @@
 services:
   postgis:
-    image: postgis/postgis:latest
+    # Même version que la production (docker-compose.yml)
+    image: postgis/postgis:17-3.5
     container_name: postgis_container
     restart: always
     environment:
