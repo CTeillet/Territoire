@@ -16,7 +16,6 @@ function ServiceWorker() {
       })
       .then((registration) => {
         if (!registration) return;
-        console.log("✅ Service Worker enregistré", registration);
 
         if (registration.waiting) {
           registration.waiting.postMessage({ type: "SKIP_WAITING" });
@@ -27,7 +26,6 @@ function ServiceWorker() {
           if (newWorker) {
             newWorker.addEventListener("statechange", () => {
               if (newWorker.state === "installed") {
-                console.log("🆕 Nouveau SW installé (state=installed)");
                 newWorker.postMessage({ type: "SKIP_WAITING" });
               }
             });
@@ -39,7 +37,6 @@ function ServiceWorker() {
       if (refreshing) return;
       refreshing = true;
 
-      console.log("🔁 Nouveau SW activé, rechargement...");
       window.location.reload();
     });
   }, []);

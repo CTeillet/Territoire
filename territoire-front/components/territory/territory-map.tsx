@@ -1,7 +1,7 @@
 "use client"; // Indique que ce fichier doit être exécuté côté client
 
 import dynamic from "next/dynamic";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { TerritoryCollection, TerritoryFeature } from "@/models/territory";
 import { TerritoryStatus } from "@/models/territory-status";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
@@ -51,10 +51,6 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({ geoJsonData }) => {
       return "700px";
     }
   }, [isExpanded]);
-
-  useEffect(() => {
-    console.log("Map height", mapHeight);
-  }, [mapHeight]);
 
   return (
     <div className="relative">

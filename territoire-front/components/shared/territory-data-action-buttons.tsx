@@ -86,18 +86,12 @@ export function TerritoryDataActionButtons({
           createPerson(newPerson)
         ).unwrap();
         personId = createdPerson.id;
-        console.log(
-          `✅ Nouvelle personne créée: ${createdPerson.firstName} ${createdPerson.lastName}`
-        );
       }
 
       if (personId) {
         await dispatch(
           assignTerritory({ territoryId: territoryId, personId })
         ).unwrap();
-        console.log(
-          `✅ Territoire ${territoryId} attribué à la personne ${personId}`
-        );
       }
     } catch (error) {
       console.error("❌ Erreur lors de l'assignation :", error);
@@ -110,7 +104,6 @@ export function TerritoryDataActionButtons({
   const handleReturn = async () => {
     try {
       await dispatch(returnTerritory(territoryId)).unwrap();
-      console.log(`✅ Territoire ${territoryId} retourné avec succès`);
     } catch (error) {
       console.error("❌ Erreur lors du retour du territoire :", error);
     }
@@ -121,9 +114,6 @@ export function TerritoryDataActionButtons({
   const handleCancelAssignment = async () => {
     try {
       await dispatch(cancelAssignment(territoryId)).unwrap();
-      console.log(
-        `✅ Assignation du territoire ${territoryId} annulée avec succès`
-      );
     } catch (error) {
       console.error("❌ Erreur lors de l'annulation de l'assignation :", error);
     }
@@ -133,9 +123,6 @@ export function TerritoryDataActionButtons({
   const handleExtension = async (dueDate?: string) => {
     try {
       await dispatch(extendTerritory({ territoryId, dueDate })).unwrap();
-      console.log(
-        `✅ Territoire ${territoryId} prolongé avec succès jusqu'au ${dueDate || "date par défaut"}`
-      );
     } catch (error) {
       console.error("❌ Erreur lors de la prolongation du territoire :", error);
     }
@@ -169,7 +156,6 @@ export function TerritoryDataActionButtons({
       );
 
       if (response.ok) {
-        console.log("✅ Carte du territoire téléchargée avec succès");
         // Recharger la page pour voir les changements
         window.location.reload();
       } else {

@@ -67,9 +67,6 @@ export const fetchCampaigns = createAsyncThunk(
     condition: (_, { getState }) => {
       const state = getState() as { campaigns: CampaignState };
       if (state.campaigns.isFetchingCampaigns) {
-        console.log(
-          "Une récupération des campagnes est déjà en cours. Opération annulée."
-        );
         return false;
       }
       return true;
@@ -101,9 +98,6 @@ export const fetchCampaign = createAsyncThunk(
     condition: (_, { getState }) => {
       const state = getState() as { campaigns: CampaignState };
       if (state.campaigns.isFetchingCampaign) {
-        console.log(
-          "Une récupération de campagne est déjà en cours. Opération annulée."
-        );
         return false;
       }
       return true;
