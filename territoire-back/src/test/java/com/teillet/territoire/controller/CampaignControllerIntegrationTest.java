@@ -11,6 +11,7 @@ import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.repository.CampaignRepository;
 import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.repository.TerritoryRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -56,11 +57,17 @@ class CampaignControllerIntegrationTest {
 	private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 	private City city;
 
-	@BeforeEach
-	void setUp() {
+	/** Base H2 partagée entre les classes de test : nettoyée avant et après chaque test. */
+	@AfterEach
+	void cleanUp() {
 		campaignRepository.deleteAll();
 		territoryRepository.deleteAll();
 		cityRepository.deleteAll();
+	}
+
+	@BeforeEach
+	void setUp() {
+		cleanUp();
 
 		City c = new City();
 		c.setName("Rennes");
