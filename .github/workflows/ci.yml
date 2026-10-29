@@ -10,13 +10,14 @@ on:
       - master
       - main
 
+# Sur master, chaque push lance tous les jobs : le déploiement (docker-image.yml) part du dernier commit de master
+# dès que sa CI est verte, et ce commit contient aussi les merges précédents, dont la CI peut ne pas être finie.
+# Une CI verte sur ce commit garantit ainsi que tout ce qui est déployé a été testé ensemble.
 jobs:
   changes:
     name: Detect Changes
     runs-on: ubuntu-24.04
     outputs:
-      back: ${{ steps.filter.outputs.back }}
-      front: ${{ steps.filter.outputs.front }}
       backup: ${{ steps.filter.outputs.backup }}
     steps:
       - name: Checkout Repository
@@ -27,12 +28,6 @@ jobs:
         uses: dorny/paths-filter@v4
         with:
           filters: |
-            back:
-              - 'territoire-back/**'
-              - '.github/workflows/ci.yml'
-            front:
-              - 'territoire-front/**'
-              - '.github/workflows/ci.yml'
             backup:
               - 'config/backup/**'
               - 'docker-compose.yml'
@@ -41,8 +36,6 @@ jobs:
   frontend:
     name: Frontend (Lint & Tests)
     runs-on: ubuntu-24.04
-    needs: changes
-    if: ${{ needs.changes.outputs.front == 'true' || github.event_name == 'pull_request' }}
     defaults:
       run:
         working-directory: ./territoire-front
@@ -91,8 +84,6 @@ jobs:
   backend:
     name: Backend (Compilation & Tests)
     runs-on: ubuntu-24.04
-    needs: changes
-    if: ${{ needs.changes.outputs.back == 'true' || github.event_name == 'pull_request' }}
     defaults:
       run:
         working-directory: ./territoire-back
@@ -128,7 +119,7 @@ jobs:
     name: Backup BDD (sauvegarde & restauration)
     runs-on: ubuntu-24.04
     needs: changes
-    if: ${{ needs.changes.outputs.backup == 'true' }}
+    if: ${{ needs.changes.outputs.backup == 'true' || github.event_name == 'push' }}
     env:
       # Valeurs de test pour la base jetable du runner
       POSTGRES_PASSWORD: ci-secret
