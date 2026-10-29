@@ -34,7 +34,7 @@ public class PersonService implements IPersonService {
 
 	@Override
 	public Person createPerson(Person person) {
-		log.info("Enregistrement d'une nouvelle personne dans la base de données : {}", person);
+		log.info("Enregistrement d'une nouvelle personne dans la base de données");
 		// Une création ne doit jamais écraser une personne existante via un id fourni dans le corps
 		person.setId(null);
 		Person savedPerson = personRepository.save(person);

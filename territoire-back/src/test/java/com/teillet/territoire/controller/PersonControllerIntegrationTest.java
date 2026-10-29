@@ -1,6 +1,7 @@
 package com.teillet.territoire.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.repository.PersonRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -49,6 +51,49 @@ class PersonControllerIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].firstName").value("Alice"))
 				.andExpect(jsonPath("$[0].lastName").value("Dupont"));
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testGetAllPersons_User_SeesNamesOnly() throws Exception {
+		personRepository.save(personWithContactDetails());
+
+		mockMvc.perform(get("/api/personnes"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].firstName").value("Alice"))
+				.andExpect(jsonPath("$[0].phoneNumber").doesNotExist())
+				.andExpect(jsonPath("$[0].email").doesNotExist());
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testGetAllPersons_Manager_SeesContactDetails() throws Exception {
+		personRepository.save(personWithContactDetails());
+
+		mockMvc.perform(get("/api/personnes"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].phoneNumber").value("+33612345678"))
+				.andExpect(jsonPath("$[0].email").value("alice@example.com"));
+	}
+
+	/** Les attributions (territoires, historique d'une personne...) embarquent la personne : mêmes règles. */
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testAssignmentJson_User_SeesNamesOnly() throws Exception {
+		String json = objectMapper.writeValueAsString(AssignmentDto.builder().person(personWithContactDetails()).build());
+
+		assertTrue(json.contains("\"firstName\":\"Alice\""), json);
+		assertFalse(json.contains("+33612345678"), json);
+		assertFalse(json.contains("alice@example.com"), json);
+	}
+
+	private static Person personWithContactDetails() {
+		return Person.builder()
+				.firstName("Alice")
+				.lastName("Dupont")
+				.phoneNumber("+33612345678")
+				.email("alice@example.com")
+				.build();
 	}
 
 	@Test

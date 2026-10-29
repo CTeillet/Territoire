@@ -31,7 +31,7 @@ class PersonController {
 	@PostMapping
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public Person createPerson(@RequestBody Person person) {
-		log.info("Début : Création personne : {}", person);
+		log.info("Début : Création personne");
 		Person personCreated = personService.createPerson(person);
 		log.info("Fin : Création personne");
 		return personCreated;
@@ -48,7 +48,7 @@ class PersonController {
 	@PutMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public Person modifyPerson(@PathVariable UUID id, @RequestBody Person person) {
-		log.info("Début : Modification personne, id {} : {}", id, person);
+		log.info("Début : Modification personne, id {}", id);
 		Person modifiedPerson = personService.modifyPerson(id, person);
 		log.info("Fin : Modification personne");
 		return modifiedPerson;
