@@ -122,7 +122,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASS}
 
   tempo:
-    image: grafana/tempo:3.0.4
+    image: grafana/tempo:3.1.1
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./config/tempo-config.yaml:/etc/tempo.yaml
