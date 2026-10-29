@@ -30,13 +30,15 @@ datasources:
         datasourceUid: prometheus
       streamingEnabled:
         search: true
-      # Depuis un span : logs Loki du même service contenant le traceId (uid généré de la datasource Loki)
+      # Depuis un span : logs Loki du même service portant ce trace_id (métadonnée structurée de l'ingestion OTLP).
+      # ${__tags} devient {service_name="..."} ; uid généré de la datasource Loki
       tracesToLogsV2:
         datasourceUid: P8E80F9AEF21F6940
         tags:
           - key: service.name
-            value: job
-        filterByTraceID: true
+            value: service_name
+        customQuery: true
+        query: '{$${__tags}} | trace_id="$${__trace.traceId}"'
         spanStartTimeShift: -5m
         spanEndTimeShift: 5m
   - name: Loki
@@ -49,9 +51,10 @@ datasources:
     version: 1
     editable: false
     jsonData:
-      # Lien vers la trace Tempo depuis une ligne de log (format JSON de l'exporter loki du collector)
+      # Lien vers la trace Tempo depuis un log : métadonnée structurée trace_id (ingestion OTLP de Loki)
       derivedFields:
         - name: TraceID
-          matcherRegex: '"traceid":"(\w+)"'
+          matcherType: label
+          matcherRegex: trace_id
           url: '$${__value.raw}'
           datasourceUid: tempo

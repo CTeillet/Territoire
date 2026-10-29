@@ -11,12 +11,14 @@ processors:
 exporters:
   debug:
     verbosity: detailed
-  otlp:
+  otlp_grpc:
     endpoint: tempo:4317
     tls:
       insecure: true
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
+  # Ingestion OTLP native de Loki (3.x) : service.name devient le label service_name, le corps du log est la ligne,
+  # niveau, trace_id, span_id et attributs sont en métadonnées structurées (requêtes sans | json)
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
   prometheus:
     endpoint: "0.0.0.0:8889"
 
@@ -32,7 +34,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp_grpc]
     metrics:
       receivers: [otlp]
       processors: [batch]
@@ -40,4 +42,4 @@ service:
     logs:
       receivers: [otlp]
       processors: [ batch ]
-      exporters: [loki]
+      exporters: [otlp_http/loki]
