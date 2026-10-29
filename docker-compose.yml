@@ -130,7 +130,7 @@ services:
     # Pas de port publié : Grafana et le collector y accèdent par le réseau Docker interne
 
   prometheus:
-    image: prom/prometheus:v3.15.0
+    image: prom/prometheus:v3.15.1
     command:
       - --config.file=/etc/prometheus.yaml
       - --web.enable-remote-write-receiver
