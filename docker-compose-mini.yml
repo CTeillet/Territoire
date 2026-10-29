@@ -45,7 +45,7 @@ services:
       - "5317:4317"     # otlp grpc
 
   prometheus:
-    image: prom/prometheus:v3.15.0
+    image: prom/prometheus:v3.15.1
     command:
       - --config.file=/etc/prometheus.yaml
       - --web.enable-remote-write-receiver
