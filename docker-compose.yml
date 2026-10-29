@@ -97,7 +97,7 @@ services:
 
   # Observabilité : versions figées et à monter volontairement (les montées majeures changent la config, ex. Tempo 3)
   collector:
-    image: otel/opentelemetry-collector-contrib:0.98.0
+    image: otel/opentelemetry-collector-contrib:0.163.2-386
     volumes:
       - ./config/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
     # Aucun port publié : le backend et le front (OTLP/HTTP http://collector:4318) et Prometheus (collector:8889)
