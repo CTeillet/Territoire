@@ -133,7 +133,7 @@
             "type": "loki",
             "uid": "P8E80F9AEF21F6940"
           },
-          "expr": "sum(count_over_time({job=\"$app\"} |= \"$search\" [$__interval]))",
+          "expr": "sum(count_over_time({service_name=\"$app\"} |= \"$search\" [$__interval]))",
           "legendFormat": "",
           "refId": "A"
         }
@@ -176,7 +176,7 @@
             "type": "loki",
             "uid": "P8E80F9AEF21F6940"
           },
-          "expr": "{job=\"$app\"} |= \"$search\" | json",
+          "expr": "{service_name=\"$app\"} |= \"$search\"",
           "hide": false,
           "legendFormat": "",
           "refId": "A"
@@ -199,12 +199,12 @@
           "value": ""
         },
         "datasource": "P8E80F9AEF21F6940",
-        "definition": "label_values(job)",
+        "definition": "label_values(service_name)",
         "includeAll": false,
         "label": "App",
         "name": "app",
         "options": [],
-        "query": "label_values(job)",
+        "query": "label_values(service_name)",
         "refresh": 1,
         "regex": "",
         "type": "query"

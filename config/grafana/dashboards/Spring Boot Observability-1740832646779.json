@@ -987,7 +987,7 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "sum(rate({job=\"$app_name\"} | json | severity!=\"\" [1m])) by (severity)",
+          "expr": "sum by (severity_text) (rate({service_name=\"$app_name\"} | severity_text!=\"\" [1m]))",
           "hide": false,
           "queryType": "range",
           "refId": "B"
@@ -1032,7 +1032,7 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{job=\"$app_name\"} | json | line_format  \"{{.severity}}  {{.body}}\"",
+          "expr": "{service_name=\"$app_name\"} | line_format \"{{.severity_text}}  {{__line__}}\"",
           "hide": false,
           "queryType": "range",
           "refId": "A"
