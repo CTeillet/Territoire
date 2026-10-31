@@ -8,10 +8,16 @@ import { DataTableColumnHeader } from "@/components/territory/territory-data-hea
 const fakeColumn = (
   id: string,
   sorted: false | "asc" | "desc" = false,
-  filter?: string
+  filter?: string,
+  values: string[] = []
 ) =>
   ({
     id,
+    table: {
+      getCoreRowModel: () => ({
+        rows: values.map((value) => ({ getValue: () => value })),
+      }),
+    },
     getFilterValue: () => filter,
     setFilterValue: vi.fn(),
     getIsSorted: () => sorted,
@@ -72,6 +78,7 @@ describe("DataTableColumnHeader", () => {
     ["name", () => screen.getByPlaceholderText("Filtrer Nom")],
     ["status", () => screen.getByRole("combobox")],
     ["type", () => screen.getByRole("combobox")],
+    ["city", () => screen.getByRole("combobox")],
   ])(
     "garde le menu ouvert pendant la saisie dans le filtre (%s)",
     async (id, field) => {
@@ -105,5 +112,36 @@ describe("DataTableColumnHeader", () => {
       target: { value: "LATE" },
     });
     expect(status.setFilterValue).toHaveBeenCalledWith("LATE");
+  });
+
+  it("propose les villes du tableau, triées et sans doublon", async () => {
+    const city = fakeColumn("city", false, undefined, [
+      "Rennes",
+      "Cesson",
+      "Rennes",
+      "",
+      "Bruz",
+    ]);
+    await open(city, "Ville");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Toutes",
+      "Bruz",
+      "Cesson",
+      "Rennes",
+    ]);
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "Cesson" },
+    });
+    expect(city.setFilterValue).toHaveBeenCalledWith("Cesson");
+  });
+
+  it("garde la ville filtrée dans la liste même absente du tableau", async () => {
+    await open(fakeColumn("city", false, "Bruz", ["Rennes"]), "Ville");
+    expect(screen.getByRole("combobox")).toHaveValue("Bruz");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Toutes",
+      "Bruz",
+      "Rennes",
+    ]);
   });
 });

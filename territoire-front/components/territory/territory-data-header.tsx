@@ -33,6 +33,21 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
     column.setFilterValue(value || undefined); // Si vide, supprimer le filtre
   };
 
+  // Villes des territoires du tableau, plus la ville filtrée si elle n'y figure plus
+  const cities =
+    column.id === "city"
+      ? Array.from(
+          new Set(
+            [
+              ...column.table
+                .getCoreRowModel()
+                .rows.map((row) => row.getValue<string>(column.id)),
+              filterValue as string,
+            ].filter(Boolean)
+          )
+        ).sort((a, b) => a.localeCompare(b, "fr"))
+      : [];
+
   return (
     <div
       className={cn("flex items-center space-x-2 justify-center", className)}
@@ -97,6 +112,22 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
                 <option value="">Tous</option>
                 <option value="BUILDING">Immeuble</option>
                 <option value="HOUSE">Pavillon</option>
+              </select>
+            ) : column.id === "city" ? (
+              // Select pour filtrer les villes
+              <select
+                value={filterValue as string}
+                onChange={(e) => handleFilterChange(e.target.value)}
+                className="p-1 text-sm border rounded-md w-full"
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <option value="">Toutes</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
               </select>
             ) : (
               // Input texte pour les autres colonnes
