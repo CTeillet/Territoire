@@ -22,7 +22,9 @@ import { authFetch } from "@/utils/auth-fetch";
 import { ReminderDialog } from "@/components/late-territory/reminder-dialog";
 import { Person } from "@/models/person";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import ActionButton from "@/components/shared/action-button";
+import { ChevronDown, Eye } from "lucide-react";
 
 // Normalisation pour comparer les chaînes sans casse ni accents
 function normalizeString(str?: string | null): string {
@@ -147,6 +149,8 @@ export default function LateTerritoriesPage() {
     personId: string;
     personName: string;
     firstName: string;
+    // Faux quand le nom ne correspond à aucune personne : pas de fiche à ouvrir
+    hasProfile: boolean;
     phone?: string;
     territories: Territory[];
     oldest?: string;
@@ -190,6 +194,7 @@ export default function LateTerritoriesPage() {
         personId: personId,
         personName: displayName,
         firstName: firstName,
+        hasProfile: !!person,
         phone: phone,
         territories: [],
         oldest: undefined,
@@ -341,6 +346,16 @@ export default function LateTerritoriesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {g.hasProfile && (
+                    <TooltipProvider>
+                      <ActionButton
+                        icon={Eye}
+                        tooltip="Voir la fiche de la personne"
+                        href={`/personnes/${g.personId}`}
+                        className="bg-gray-500 hover:bg-gray-600 text-white"
+                      />
+                    </TooltipProvider>
+                  )}
                   <ReminderDialog
                     title="Rappeler tout"
                     description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
