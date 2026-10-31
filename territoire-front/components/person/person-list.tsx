@@ -2,6 +2,7 @@
 
 import { Person } from "@/models/person";
 import PersonCard from "./person-card";
+import { phoneMatches } from "@/components/utils";
 import React, { useState, useMemo } from "react";
 
 interface PersonListProps {
@@ -21,7 +22,7 @@ const PersonList: React.FC<PersonListProps> = ({ persons }) => {
         person.firstName.toLowerCase().includes(query) ||
         person.lastName.toLowerCase().includes(query) ||
         (person.email && person.email.toLowerCase().includes(query)) ||
-        (person.phoneNumber && person.phoneNumber.toLowerCase().includes(query))
+        (person.phoneNumber && phoneMatches(person.phoneNumber, query))
     );
   }, [persons, searchQuery]);
 

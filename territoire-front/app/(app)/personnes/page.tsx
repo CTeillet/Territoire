@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 const PersonsPage = () => {
   const dispatch = useAppDispatch();
-  const { persons, loading, creating } = useAppSelector(
+  const { persons, loading, loaded, creating } = useAppSelector(
     (state) => state.persons
   );
   const { isAuthenticated } = useAuth();
@@ -53,7 +53,11 @@ const PersonsPage = () => {
           onCreate={handleCreatePerson}
           isLoading={creating} // Ajout de l'état de création
         />
-        <ImportContactsDialog persons={persons} onCreate={handleCreatePerson} />
+        <ImportContactsDialog
+          persons={persons}
+          personsLoaded={loaded}
+          onCreate={handleCreatePerson}
+        />
       </div>
     </div>
   );

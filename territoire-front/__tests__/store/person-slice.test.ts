@@ -27,6 +27,7 @@ describe("person slice", () => {
     updating: false,
     error: null,
     isFetchingPersons: false,
+    loaded: false,
     assignedTerritories: [],
     loadingAssignedTerritories: false,
   };
@@ -53,6 +54,7 @@ describe("person slice", () => {
       });
       expect(fulfilled.loading).toBe(false);
       expect(fulfilled.isFetchingPersons).toBe(false);
+      expect(fulfilled.loaded).toBe(true);
       expect(fulfilled.persons).toEqual([dummyPerson]);
 
       const rejected = personReducer(pending, {
@@ -60,6 +62,7 @@ describe("person slice", () => {
         payload: "Erreur récupération",
       });
       expect(rejected.loading).toBe(false);
+      expect(rejected.loaded).toBe(false);
       expect(rejected.error).toBe("Erreur récupération");
     });
 

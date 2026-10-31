@@ -26,6 +26,8 @@ import { Contact } from "lucide-react";
 
 type ImportContactsDialogProps = {
   persons: Person[];
+  /** Faux tant que la liste des personnes n'est pas chargée : tout contact passerait pour nouveau. */
+  personsLoaded: boolean;
   onCreate: (person: Person) => Promise<void>;
 };
 
@@ -58,6 +60,7 @@ function toRows(contacts: VCardContact[], persons: Person[]): Row[] {
 
 const ImportContactsDialog: React.FC<ImportContactsDialogProps> = ({
   persons,
+  personsLoaded,
   onCreate,
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -162,7 +165,12 @@ const ImportContactsDialog: React.FC<ImportContactsDialogProps> = ({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline" size="lg" className="mt-4">
+        <Button
+          variant="outline"
+          size="lg"
+          className="mt-4"
+          disabled={!personsLoaded}
+        >
           <Contact className="w-4 h-4" />
           Importer des contacts
         </Button>

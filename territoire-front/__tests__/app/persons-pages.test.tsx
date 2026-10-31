@@ -221,9 +221,11 @@ describe("Liste des personnes", () => {
   ].join("\r\n");
 
   const openImport = async (text: string) => {
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Importer des contacts" })
-    );
+    const button = await screen.findByRole("button", {
+      name: "Importer des contacts",
+    });
+    await waitFor(() => expect(button).toBeEnabled());
+    await userEvent.click(button);
     await userEvent.upload(
       screen.getByLabelText("Fichier de contacts (.vcf)"),
       new File([text], "contacts.vcf", { type: "text/vcard" })
@@ -298,6 +300,43 @@ describe("Liste des personnes", () => {
     expect(
       within(dialog).getByRole("button", { name: "Importer 2 personnes" })
     ).toBeEnabled();
+  });
+
+  it("bloque l'import tant que la liste n'est pas chargée (doublons indétectables)", async () => {
+    setup({ "GET /api/personnes": jsonResponse({}, 500) });
+    renderWithStore(<PersonsPage />);
+
+    expect(
+      await screen.findByText("Aucune personne trouvée.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Importer des contacts" })
+    ).toBeDisabled();
+  });
+
+  it("retrouve un numéro international tapé à la française", async () => {
+    setup({
+      "GET /api/personnes": [
+        ...persons,
+        {
+          id: "p5",
+          firstName: "Marie",
+          lastName: "Morel",
+          phoneNumber: "+33611223344",
+        },
+      ],
+    });
+    renderWithStore(<PersonsPage />);
+    const search = await screen.findByPlaceholderText(
+      "Rechercher une personne..."
+    );
+
+    for (const query of ["06 11 22", "0611", "+33 6 11"]) {
+      await userEvent.clear(search);
+      await userEvent.type(search, query);
+      expect(screen.getByText("Marie Morel")).toBeInTheDocument();
+      expect(screen.queryByText("Jean Dupont")).not.toBeInTheDocument();
+    }
   });
 
   it("signale un fichier sans contact", async () => {
