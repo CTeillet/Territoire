@@ -5,6 +5,7 @@ import {
   ColumnFiltersState,
   ColumnVisibilityState,
   flexRender,
+  PaginationState,
   SortingState,
   useTable,
 } from "@tanstack/react-table";
@@ -67,10 +68,31 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
     return [];
   });
 
-  const [pagination, setPagination] = useState({
-    pageIndex: 0, //initial page index
-    pageSize: 10, //default page size
+  // Page courante gardée le temps de la session : revenir d'un territoire ramène à la même page
+  const [pagination, setPagination] = useState<PaginationState>(() => {
+    const defaultPagination = { pageIndex: 0, pageSize: 10 };
+    if (typeof window !== "undefined") {
+      const storageKey = `tablePagination${tableId ? `-${tableId}` : ""}`;
+      const stored = sessionStorage.getItem(storageKey);
+      try {
+        return stored ? JSON.parse(stored) : defaultPagination;
+      } catch {
+        return defaultPagination;
+      }
+    }
+    return defaultPagination;
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storageKey = `tablePagination${tableId ? `-${tableId}` : ""}`;
+      sessionStorage.setItem(storageKey, JSON.stringify(pagination));
+    }
+  }, [pagination, tableId]);
+
+  // Trier ou filtrer ramène à la première page ; une mise à jour des données (assignation, retour…), non
+  const resetPageIndex = () =>
+    setPagination((old) => ({ ...old, pageIndex: 0 }));
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -92,9 +114,16 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
     data,
     columns,
     onColumnVisibilityChange: setColumnVisibility,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onSortingChange: (updater) => {
+      setSorting(updater);
+      resetPageIndex();
+    },
+    onColumnFiltersChange: (updater) => {
+      setColumnFilters(updater);
+      resetPageIndex();
+    },
     onPaginationChange: setPagination,
+    autoResetPageIndex: false,
     state: {
       columnVisibility,
       sorting,
@@ -102,6 +131,13 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
       pagination,
     },
   });
+
+  // La page courante peut ne plus exister si des lignes sortent du filtre (ex. territoire assigné) :
+  // on se replace alors sur la dernière page (sauf tableau vide, ex. données pas encore chargées)
+  const pageCount = table.getPageCount();
+  if (pageCount > 0 && pagination.pageIndex >= pageCount) {
+    setPagination({ ...pagination, pageIndex: pageCount - 1 });
+  }
 
   const exportToExcel = () => {
     const filteredData: Record<string, TValue>[] = table
