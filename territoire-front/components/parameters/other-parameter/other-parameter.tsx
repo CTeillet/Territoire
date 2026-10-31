@@ -8,6 +8,7 @@ import { LateReminderMessage } from "@/components/parameters/other-parameter/lat
 import { WhatsAppTestSection } from "@/components/parameters/other-parameter/whatsapp-test-section";
 import { LateReportSection } from "@/components/parameters/other-parameter/late-report-section";
 import { DurationsSection } from "@/components/parameters/other-parameter/durations-section";
+import { ContactsPhoneSection } from "@/components/parameters/other-parameter/contacts-phone-section";
 import { useAppSelector } from "@/store/store";
 
 export default function OtherParameter() {
@@ -33,6 +34,13 @@ export default function OtherParameter() {
           <ImportExcelSection showTitle={false} />
         </div>
       </section>
+
+      {(role === "ADMIN" || role === "SUPERVISEUR") && (
+        <section className="border rounded-2xl shadow-sm bg-white p-4">
+          <h2 className="text-xl font-bold mb-4">Numéros de téléphone</h2>
+          <ContactsPhoneSection showTitle={false} />
+        </section>
+      )}
 
       <section className="border rounded-2xl shadow-sm bg-white p-4">
         <h2 className="text-xl font-bold mb-4">Vérifications</h2>

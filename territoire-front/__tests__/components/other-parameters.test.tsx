@@ -16,6 +16,7 @@ import { LateReminderMessage } from "@/components/parameters/other-parameter/lat
 import { ExportTerritoriesMapButton } from "@/components/parameters/other-parameter/export-map-button";
 import OtherParameter from "@/components/parameters/other-parameter/other-parameter";
 import { DurationsSection } from "@/components/parameters/other-parameter/durations-section";
+import { ContactsPhoneSection } from "@/components/parameters/other-parameter/contacts-phone-section";
 import { toast } from "sonner";
 import * as authFetchModule from "@/utils/auth-fetch";
 import { jsonResponse, mockApi, renderWithRole } from "../test-utils";
@@ -612,6 +613,176 @@ describe("DurationsSection", () => {
   });
 });
 
+describe("ContactsPhoneSection", () => {
+  const persons = [
+    { id: "p1", firstName: "Jean", lastName: "Dupont" },
+    {
+      id: "p2",
+      firstName: "Anne",
+      lastName: "Martin",
+      email: "anne@exemple.fr",
+      phoneNumber: "0611111111",
+    },
+    { id: "p3", firstName: "Paul", lastName: "Durand" },
+    {
+      id: "p4",
+      firstName: "Lucie",
+      lastName: "Bernard",
+      phoneNumber: "+33622222222",
+    },
+    {
+      id: "p5",
+      firstName: "Marc",
+      lastName: "Petit",
+      phoneNumber: "06 33 33 33 33",
+    },
+  ];
+
+  const vcf = [
+    ["Dupont;Jean", "06 12 34 56 78"],
+    ["Martin;Anne", "06 99 99 99 99"],
+    ["Bernard;Lucie", "06 22 22 22 22"],
+    ["Petit;Marc", "06 33 33 33 33"],
+    ["Contact;Inconnu", "06 44 44 44 44"],
+  ]
+    .map(([name, tel]) =>
+      ["BEGIN:VCARD", `N:${name};;;`, `TEL;type=CELL:${tel}`, "END:VCARD"].join(
+        "\r\n"
+      )
+    )
+    .join("\r\n");
+
+  const setup = (extra: Record<string, unknown> = {}) =>
+    mockApi({
+      "GET /api/personnes": persons,
+      "PUT /api/personnes": (init?: RequestInit) =>
+        JSON.parse(String(init?.body)),
+      ...extra,
+    });
+
+  const upload = async (text = vcf) => {
+    render(<ContactsPhoneSection />);
+    const input = screen.getByLabelText("Fichier de contacts (.vcf)");
+    await waitFor(() => expect(input).toBeEnabled());
+    await userEvent.upload(
+      input,
+      new File([text], "contacts.vcf", { type: "text/vcard" })
+    );
+  };
+
+  it("complète les numéros des personnes existantes, sans en créer", async () => {
+    const api = setup();
+    await upload();
+
+    expect(
+      await screen.findByText(
+        "3 numéros à reporter · 1 déjà à jour · 1 contact sans correspondance"
+      )
+    ).toBeInTheDocument();
+    // Personne sans numéro : cochée ; numéro différent ou format à changer : à cocher soi-même
+    expect(screen.getByRole("checkbox", { name: /Jean Dupont/ })).toBeChecked();
+    const anne = screen.getByRole("checkbox", { name: /Anne Martin/ });
+    expect(anne).not.toBeChecked();
+    expect(
+      screen.getByText("06 11 11 11 11 → +33 6 99 99 99 99")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Remplace le numéro actuel")).toBeInTheDocument();
+    const marc = screen.getByRole("checkbox", { name: /Marc Petit/ });
+    expect(marc).not.toBeChecked();
+    expect(
+      screen.getByText("06 33 33 33 33 → +33 6 33 33 33 33")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Mise au format international (même numéro)")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Toujours sans numéro (1) : Paul Durand")
+    ).toBeInTheDocument();
+
+    await userEvent.click(anne);
+    await userEvent.click(marc);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Mettre à jour 3 numéros" })
+    );
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("3 numéros mis à jour !")
+    );
+    const calls = api.mock.calls.filter(([, init]) => init?.method);
+    expect(calls.map(([url, init]) => [init?.method, url])).toEqual([
+      ["PUT", "/api/personnes/p1"],
+      ["PUT", "/api/personnes/p2"],
+      ["PUT", "/api/personnes/p5"],
+    ]);
+    expect(calls.map(([, init]) => JSON.parse(String(init?.body)))).toEqual([
+      {
+        id: "p1",
+        firstName: "Jean",
+        lastName: "Dupont",
+        phoneNumber: "+33612345678",
+      },
+      {
+        id: "p2",
+        firstName: "Anne",
+        lastName: "Martin",
+        email: "anne@exemple.fr",
+        phoneNumber: "+33699999999",
+      },
+      {
+        id: "p5",
+        firstName: "Marc",
+        lastName: "Petit",
+        phoneNumber: "+33633333333",
+      },
+    ]);
+    expect(
+      screen.getByText(
+        "0 numéro à reporter · 4 déjà à jour · 1 contact sans correspondance"
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("garde cochés les numéros en échec", async () => {
+    setup({ "PUT /api/personnes": jsonResponse({}, 500) });
+    await upload();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Mettre à jour 1 numéro" })
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Échec de la mise à jour de 1 numéro. Veuillez réessayer."
+      )
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(screen.getByText("Échec de la mise à jour")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Jean Dupont/ })).toBeChecked();
+  });
+
+  it("signale un fichier sans contact", async () => {
+    setup();
+    await upload("nom;prénom\nDupont;Jean");
+
+    expect(
+      await screen.findByText(
+        "Aucun contact trouvé : choisissez un fichier .vcf exporté depuis l'app Contacts."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("bloque le choix du fichier si les personnes ne sont pas chargées", async () => {
+    setup({ "GET /api/personnes": jsonResponse({}, 500) });
+    render(<ContactsPhoneSection />);
+
+    expect(
+      await screen.findByText("Impossible de charger les personnes")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Fichier de contacts (.vcf)")).toBeDisabled();
+  });
+});
+
 describe("OtherParameter", () => {
   it("regroupe toutes les sections", () => {
     mockApi({
@@ -632,6 +803,7 @@ describe("OtherParameter", () => {
       "Paramètres généraux",
       "Durées",
       "Données Excel",
+      "Numéros de téléphone",
       "Vérifications",
       "Messages types",
       "Récapitulatif des retards par e-mail",
@@ -669,7 +841,11 @@ describe("OtherParameter", () => {
     mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
     renderWithRole(<OtherParameter />, "GESTIONNAIRE");
 
-    for (const title of ["Récapitulatif des retards par e-mail", "Durées"]) {
+    for (const title of [
+      "Récapitulatif des retards par e-mail",
+      "Durées",
+      "Numéros de téléphone",
+    ]) {
       expect(
         screen.queryByRole("heading", { name: title })
       ).not.toBeInTheDocument();

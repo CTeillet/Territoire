@@ -56,26 +56,96 @@ const nameKey = (firstName: string, lastName: string) =>
     .trim()
     .toLowerCase();
 
-/** Personne déjà enregistrée qui correspond au contact : même nom, même téléphone ou même e-mail. */
-export function findExistingPerson(
-  contact: VCardContact,
-  persons: Person[]
-): Person | undefined {
-  const key = nameKey(contact.firstName, contact.lastName);
-  const email = contact.email?.toLowerCase();
-  return persons.find(
-    (person) =>
-      nameKey(person.firstName, person.lastName) === key ||
-      (!!email && person.email?.toLowerCase() === email) ||
-      (!!contact.phoneNumber &&
-        !!person.phoneNumber &&
-        normalizePhone(person.phoneNumber) === contact.phoneNumber)
-  );
+/** Numéro du fichier à reporter sur une personne de l'application. */
+export interface PhoneProposal {
+  person: Person;
+  /** Au format international (E.164). */
+  phoneNumber: string;
+  /** Plusieurs numéros pour ce nom dans le fichier, ou homonymes dans l'application : à vérifier. */
+  ambiguous: boolean;
+  /**
+   * Même numéro, mais enregistré sans indicatif (« 06… ») : réécrit au format international,
+   * sans lequel l'envoi WhatsApp échoue (le serveur retire seulement le « + »).
+   */
+  reformat: boolean;
 }
 
-/** Même nom (accents, casse et tirets ignorés). */
-export function sameName(a: VCardContact, b: VCardContact): boolean {
-  return nameKey(a.firstName, a.lastName) === nameKey(b.firstName, b.lastName);
+export interface PhoneMatching {
+  /** Personnes sans numéro, dont le numéro diffère de celui du fichier ou reste à mettre au format international. */
+  proposals: PhoneProposal[];
+  /** Personnes dont le numéro est déjà celui du fichier, au format international. */
+  upToDate: number;
+  /** Contacts avec un numéro qui ne correspondent à aucune personne (ignorés). */
+  unmatchedContacts: number;
+  /** Personnes sans numéro que le fichier ne permet pas de compléter. */
+  stillMissing: Person[];
+}
+
+/**
+ * Rapproche les contacts du fichier des personnes de l'application par le nom
+ * (accents, casse, tirets et ordre prénom/nom ignorés). Aucune personne n'est créée :
+ * les contacts sans correspondance sont seulement comptés.
+ */
+export function matchPhones(
+  persons: Person[],
+  contacts: VCardContact[]
+): PhoneMatching {
+  const contactsByName = new Map<string, VCardContact[]>();
+  for (const contact of contacts.filter((c) => c.phoneNumber)) {
+    const keys = new Set([
+      nameKey(contact.firstName, contact.lastName),
+      nameKey(contact.lastName, contact.firstName),
+    ]);
+    keys.forEach((key) =>
+      contactsByName.set(key, [...(contactsByName.get(key) ?? []), contact])
+    );
+  }
+  const personsByName = new Map<string, number>();
+  persons.forEach((person) => {
+    const key = nameKey(person.firstName, person.lastName);
+    personsByName.set(key, (personsByName.get(key) ?? 0) + 1);
+  });
+
+  const matched = new Set<VCardContact>();
+  const result: PhoneMatching = {
+    proposals: [],
+    upToDate: 0,
+    unmatchedContacts: 0,
+    stillMissing: [],
+  };
+  for (const person of persons) {
+    const key = nameKey(person.firstName, person.lastName);
+    const found = contactsByName.get(key) ?? [];
+    found.forEach((contact) => matched.add(contact));
+    const phones = [...new Set(found.map((c) => c.phoneNumber!))];
+    const current = person.phoneNumber?.trim();
+    const normalized = current ? normalizePhone(current) : undefined;
+
+    if (phones.length === 0) {
+      if (!current) result.stillMissing.push(person);
+    } else if (normalized && phones.includes(normalized)) {
+      // Le numéro de la personne figure dans le fichier : seul son format peut changer
+      if (normalized === person.phoneNumber) result.upToDate++;
+      else
+        result.proposals.push({
+          person,
+          phoneNumber: normalized,
+          ambiguous: false,
+          reformat: true,
+        });
+    } else {
+      result.proposals.push({
+        person,
+        phoneNumber: phones[0],
+        ambiguous: phones.length > 1 || personsByName.get(key)! > 1,
+        reformat: false,
+      });
+    }
+  }
+  result.unmatchedContacts = contacts.filter(
+    (c) => c.phoneNumber && !matched.has(c)
+  ).length;
+  return result;
 }
 
 /**
