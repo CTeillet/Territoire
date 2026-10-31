@@ -8,6 +8,11 @@ describe("components utils", () => {
       expect(formatPhoneNumber("0612345678")).toBe("06 12 34 56 78");
       expect(formatPhoneNumber("0145892310")).toBe("01 45 89 23 10");
     });
+
+    it("should group an international number by its country", () => {
+      expect(formatPhoneNumber("+33612345678")).toBe("+33 6 12 34 56 78");
+      expect(formatPhoneNumber("+447911123456")).toBe("+44 7911 123456");
+    });
   });
 
   describe("getBadgeColor", () => {

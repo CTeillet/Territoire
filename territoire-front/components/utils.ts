@@ -1,6 +1,9 @@
+import { formatPhoneNumberIntl } from "react-phone-number-input";
 import { TerritoryStatus } from "@/models/territory-status";
 
 export const formatPhoneNumber = (phone: string): string => {
+  // Numéro international (saisi avec l'indicatif ou importé) : groupage propre au pays
+  if (phone.startsWith("+")) return formatPhoneNumberIntl(phone) || phone;
   return phone.replace(/(\d{2})(?=\d)/g, "$1 ").trim();
 };
 

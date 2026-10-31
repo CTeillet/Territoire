@@ -1,0 +1,134 @@
+import { describe, it, expect } from "vitest";
+import { findExistingPerson, normalizePhone, parseVCards } from "@/lib/vcard";
+
+const card = (...lines: string[]) =>
+  ["BEGIN:VCARD", ...lines, "END:VCARD"].join("\r\n");
+
+describe("parseVCards", () => {
+  it("lit un export de l'iPhone : nom structuré, mobile préféré, e-mail", () => {
+    const text = card(
+      "VERSION:3.0",
+      "PRODID:-//Apple Inc.//iPhone OS 18.0//EN",
+      "N:Bernard;Lucie;;;",
+      "FN:Lucie Bernard",
+      "TEL;type=HOME;type=VOICE;type=pref:02 99 12 34 56",
+      "TEL;type=CELL;type=VOICE:06 12 34 56 78",
+      "item1.EMAIL;type=INTERNET;type=pref:lucie@exemple.fr",
+      "item1.X-ABLabel:_$!<Other>!$_",
+      "PHOTO;ENCODING=b;TYPE=JPEG:/9j/4AAQSkZJRgABAQAAAQABAAD",
+      " /2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8Q"
+    );
+
+    expect(parseVCards(text)).toEqual([
+      {
+        firstName: "Lucie",
+        lastName: "Bernard",
+        email: "lucie@exemple.fr",
+        phoneNumber: "+33612345678",
+      },
+    ]);
+  });
+
+  it("lit plusieurs fiches, les lignes repliées et les caractères échappés", () => {
+    const text = [
+      card("VERSION:3.0", "N:Dupont\\, junior;Jean;Pierre;;", "FN:Jean Dupont"),
+      card("VERSION:3.0", "N:Le Gall;Hé", " loïse;;;", "TEL:+44 7911 123456"),
+    ].join("\n");
+
+    expect(parseVCards(text)).toEqual([
+      { firstName: "Jean Pierre", lastName: "Dupont, junior" },
+      {
+        firstName: "Héloïse",
+        lastName: "Le Gall",
+        phoneNumber: "+447911123456",
+      },
+    ]);
+  });
+
+  it("décode le quoted-printable des exports Android (vCard 2.1)", () => {
+    const text = card(
+      "VERSION:2.1",
+      "N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Le=20Gall;H=C3=A9l=",
+      "=C3=A8ne;;;",
+      "TEL;CELL;PREF:06 12 34 56 78"
+    );
+
+    expect(parseVCards(text)).toEqual([
+      { firstName: "Hélène", lastName: "Le Gall", phoneNumber: "+33612345678" },
+    ]);
+  });
+
+  it("lit les numéros au format URI (vCard 4)", () => {
+    const text = card(
+      "VERSION:4.0",
+      "N:Petit;Marc;;;",
+      'TEL;VALUE=uri;TYPE="cell,voice":tel:+33-6-12-34-56-78'
+    );
+
+    expect(parseVCards(text)[0].phoneNumber).toBe("+33612345678");
+  });
+
+  it("se rabat sur le nom affiché et signale un numéro non reconnu", () => {
+    const text = [
+      card("VERSION:3.0", "N:;;;;", "FN:Jean de la Fontaine", "TEL:12"),
+      card("VERSION:3.0", "N:;Maman;;;", "EMAIL:pas-un-email"),
+    ].join("\n");
+
+    expect(parseVCards(text)).toEqual([
+      { firstName: "Jean", lastName: "de la Fontaine", invalidPhone: "12" },
+      { firstName: "Maman", lastName: "" },
+    ]);
+  });
+
+  it("ne trouve rien dans un fichier qui n'est pas une vCard", () => {
+    expect(parseVCards("nom;prénom\nDupont;Jean")).toEqual([]);
+  });
+});
+
+describe("normalizePhone", () => {
+  it("met les numéros au format international, français par défaut", () => {
+    expect(normalizePhone("06 12 34 56 78")).toBe("+33612345678");
+    expect(normalizePhone("0033 6 12 34 56 78")).toBe("+33612345678");
+    expect(normalizePhone("12")).toBeUndefined();
+  });
+});
+
+describe("findExistingPerson", () => {
+  const persons = [
+    { id: "p1", firstName: "Hélène", lastName: "Le-Gall" },
+    {
+      id: "p2",
+      firstName: "Jean",
+      lastName: "Dupont",
+      phoneNumber: "0612345678",
+    },
+    {
+      id: "p3",
+      firstName: "Anne",
+      lastName: "Martin",
+      email: "Anne@Exemple.fr",
+    },
+  ];
+
+  it("reconnaît le même nom, téléphone ou e-mail", () => {
+    expect(
+      findExistingPerson({ firstName: "helene", lastName: "Le Gall" }, persons)
+        ?.id
+    ).toBe("p1");
+    expect(
+      findExistingPerson(
+        { firstName: "J.", lastName: "Dupont", phoneNumber: "+33612345678" },
+        persons
+      )?.id
+    ).toBe("p2");
+    expect(
+      findExistingPerson(
+        { firstName: "Anne-Sophie", lastName: "M", email: "anne@exemple.fr" },
+        persons
+      )?.id
+    ).toBe("p3");
+    expect(
+      findExistingPerson({ firstName: "Paul", lastName: "Durand" }, persons)
+    ).toBeUndefined();
+  });
+});

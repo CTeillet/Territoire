@@ -202,6 +202,116 @@ describe("Liste des personnes", () => {
     );
   });
 
+  const vcf = [
+    "BEGIN:VCARD",
+    "N:Bernard;Lucie;;;",
+    "TEL;type=CELL:06 11 22 33 44",
+    "EMAIL:lucie@exemple.fr",
+    "END:VCARD",
+    "BEGIN:VCARD",
+    "N:Dupont;Jean;;;",
+    "END:VCARD",
+    "BEGIN:VCARD",
+    "N:;Maman;;;",
+    "END:VCARD",
+    "BEGIN:VCARD",
+    "N:Petit;Marc;;;",
+    "TEL:12",
+    "END:VCARD",
+  ].join("\r\n");
+
+  const openImport = async (text: string) => {
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Importer des contacts" })
+    );
+    await userEvent.upload(
+      screen.getByLabelText("Fichier de contacts (.vcf)"),
+      new File([text], "contacts.vcf", { type: "text/vcard" })
+    );
+  };
+
+  it("importe les contacts cochés d'un fichier .vcf", async () => {
+    setup();
+    renderWithStore(<PersonsPage />);
+    await openImport(vcf);
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("checkbox", { name: /Lucie Bernard/ })
+    ).toBeChecked();
+    // Doublon décoché d'office, contact sans nom de famille non importable
+    expect(
+      within(dialog).getByRole("checkbox", { name: /Jean Dupont/ })
+    ).not.toBeChecked();
+    expect(
+      within(dialog).getByText("Déjà dans l'application (Jean Dupont)")
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("checkbox", { name: /Maman/ })
+    ).toBeDisabled();
+    expect(
+      within(dialog).getByText("Numéro non reconnu, non importé : 12")
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Importer 2 personnes" })
+    );
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("2 personnes importées !")
+    );
+    const posts = api.mock.calls
+      .filter(([, init]) => init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)));
+    expect(posts).toEqual([
+      {
+        id: null,
+        firstName: "Lucie",
+        lastName: "Bernard",
+        email: "lucie@exemple.fr",
+        phoneNumber: "+33611223344",
+      },
+      { id: null, firstName: "Marc", lastName: "Petit" },
+    ]);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await screen.findByText("Lucie Bernard")).toBeInTheDocument();
+    expect(screen.getByText("+33 6 11 22 33 44")).toBeInTheDocument();
+  });
+
+  it("garde le dialogue ouvert sur les contacts en échec", async () => {
+    setup({ "POST /api/personnes": jsonResponse({}, 500) });
+    renderWithStore(<PersonsPage />);
+    await openImport(vcf);
+
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Importer 2 personnes" })
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Échec de l'import de 2 contacts. Veuillez réessayer."
+      )
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(within(dialog).getAllByText("Échec de l'import")).toHaveLength(2);
+    expect(
+      within(dialog).getByRole("button", { name: "Importer 2 personnes" })
+    ).toBeEnabled();
+  });
+
+  it("signale un fichier sans contact", async () => {
+    setup();
+    renderWithStore(<PersonsPage />);
+    await openImport("nom;prénom\nDupont;Jean");
+
+    expect(
+      await screen.findByText(
+        "Aucun contact trouvé : choisissez un fichier .vcf exporté depuis l'app Contacts."
+      )
+    ).toBeInTheDocument();
+  });
+
   it("indique une liste vide, le chargement et redirige sans connexion", async () => {
     setup({ "GET /api/personnes": [] });
     const { unmount } = renderWithStore(<PersonsPage />);
