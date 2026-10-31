@@ -14,8 +14,6 @@ interface PersonState {
   updating: boolean;
   error: string | null;
   isFetchingPersons: boolean;
-  /** La liste a été récupérée au moins une fois : sans elle, impossible de repérer les doublons. */
-  loaded: boolean;
   assignedTerritories: Assignment[];
   loadingAssignedTerritories: boolean;
 }
@@ -28,7 +26,6 @@ const initialState: PersonState = {
   updating: false,
   error: null,
   isFetchingPersons: false,
-  loaded: false,
   assignedTerritories: [],
   loadingAssignedTerritories: false,
 };
@@ -184,7 +181,6 @@ const personSlice = createSlice({
       .addCase(fetchPersons.fulfilled, (state, action) => {
         state.loading = false;
         state.isFetchingPersons = false;
-        state.loaded = true;
         state.persons = action.payload;
       })
       .addCase(fetchPersons.rejected, (state, action) => {

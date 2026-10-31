@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findExistingPerson, normalizePhone, parseVCards } from "@/lib/vcard";
+import { matchPhones, normalizePhone, parseVCards } from "@/lib/vcard";
 
 const card = (...lines: string[]) =>
   ["BEGIN:VCARD", ...lines, "END:VCARD"].join("\r\n");
@@ -93,7 +93,7 @@ describe("normalizePhone", () => {
   });
 });
 
-describe("findExistingPerson", () => {
+describe("matchPhones", () => {
   const persons = [
     { id: "p1", firstName: "Hélène", lastName: "Le-Gall" },
     {
@@ -106,29 +106,55 @@ describe("findExistingPerson", () => {
       id: "p3",
       firstName: "Anne",
       lastName: "Martin",
-      email: "Anne@Exemple.fr",
+      phoneNumber: "+33600000000",
     },
+    { id: "p4", firstName: "Paul", lastName: "Durand" },
+    { id: "p5", firstName: "Luc", lastName: "Morel" },
+    { id: "p6", firstName: "Luc", lastName: "Morel" },
   ];
 
-  it("reconnaît le même nom, téléphone ou e-mail", () => {
+  it("propose les numéros des personnes existantes, sans en créer", () => {
+    const result = matchPhones(persons, [
+      // Accents, casse, tiret et ordre prénom/nom ignorés
+      { firstName: "Le Gall", lastName: "helene", phoneNumber: "+33611111111" },
+      // Même numéro, écrit à la française dans l'application
+      { firstName: "Jean", lastName: "Dupont", phoneNumber: "+33612345678" },
+      { firstName: "Anne", lastName: "Martin", phoneNumber: "+33622222222" },
+      { firstName: "Luc", lastName: "Morel", phoneNumber: "+33633333333" },
+      {
+        firstName: "Inconnu",
+        lastName: "Contact",
+        phoneNumber: "+33644444444",
+      },
+      { firstName: "Paul", lastName: "Durand", invalidPhone: "12" },
+    ]);
+
     expect(
-      findExistingPerson({ firstName: "helene", lastName: "Le Gall" }, persons)
-        ?.id
-    ).toBe("p1");
-    expect(
-      findExistingPerson(
-        { firstName: "J.", lastName: "Dupont", phoneNumber: "+33612345678" },
-        persons
-      )?.id
-    ).toBe("p2");
-    expect(
-      findExistingPerson(
-        { firstName: "Anne-Sophie", lastName: "M", email: "anne@exemple.fr" },
-        persons
-      )?.id
-    ).toBe("p3");
-    expect(
-      findExistingPerson({ firstName: "Paul", lastName: "Durand" }, persons)
-    ).toBeUndefined();
+      result.proposals.map((p) => [p.person.id, p.phoneNumber, p.ambiguous])
+    ).toEqual([
+      ["p1", "+33611111111", false],
+      ["p3", "+33622222222", false],
+      // Homonymes dans l'application : à vérifier
+      ["p5", "+33633333333", true],
+      ["p6", "+33633333333", true],
+    ]);
+    expect(result.upToDate).toBe(1);
+    expect(result.unmatchedContacts).toBe(1);
+    expect(result.stillMissing.map((p) => p.id)).toEqual(["p4"]);
+  });
+
+  it("signale plusieurs numéros pour un même nom, sauf si l'actuel en fait partie", () => {
+    const contacts = [
+      { firstName: "Paul", lastName: "Durand", phoneNumber: "+33655555555" },
+      { firstName: "Paul", lastName: "Durand", phoneNumber: "+33666666666" },
+      { firstName: "Jean", lastName: "Dupont", phoneNumber: "+33677777777" },
+      { firstName: "Jean", lastName: "Dupont", phoneNumber: "+33612345678" },
+    ];
+
+    const result = matchPhones(persons, contacts);
+    expect(result.proposals).toEqual([
+      { person: persons[3], phoneNumber: "+33655555555", ambiguous: true },
+    ]);
+    expect(result.upToDate).toBe(1);
   });
 });

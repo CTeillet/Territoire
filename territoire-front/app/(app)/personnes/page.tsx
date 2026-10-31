@@ -5,14 +5,13 @@ import { useAppDispatch, useAppSelector } from "@/store/store";
 import { createPerson, fetchPersons } from "@/store/slices/person-slice";
 import PersonList from "@/components/person/person-list";
 import CreatePersonDialog from "@/components/person/create-person-dialog";
-import ImportContactsDialog from "@/components/person/import-contacts-dialog";
 import { Person } from "@/models/person";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 
 const PersonsPage = () => {
   const dispatch = useAppDispatch();
-  const { persons, loading, loaded, creating } = useAppSelector(
+  const { persons, loading, creating } = useAppSelector(
     (state) => state.persons
   );
   const { isAuthenticated } = useAuth();
@@ -48,17 +47,10 @@ const PersonsPage = () => {
       ) : (
         <PersonList persons={persons} />
       )}
-      <div className="flex flex-wrap gap-2">
-        <CreatePersonDialog
-          onCreate={handleCreatePerson}
-          isLoading={creating} // Ajout de l'état de création
-        />
-        <ImportContactsDialog
-          persons={persons}
-          personsLoaded={loaded}
-          onCreate={handleCreatePerson}
-        />
-      </div>
+      <CreatePersonDialog
+        onCreate={handleCreatePerson}
+        isLoading={creating} // Ajout de l'état de création
+      />
     </div>
   );
 };
