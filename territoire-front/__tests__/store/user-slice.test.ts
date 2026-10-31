@@ -4,6 +4,7 @@ import userReducer, {
   createUserThunk,
   updateUserRoleThunk,
   deleteUserThunk,
+  resetUserPasswordThunk,
 } from "@/store/slices/user-slice";
 import { User } from "@/models/user";
 import { Role } from "@/models/role";
@@ -142,6 +143,45 @@ describe("user slice", () => {
       const result = await thunk(dispatch, () => ({}), undefined);
 
       expect(result.payload).toBe("u-1");
+    });
+
+    it("resetUserPasswordThunk should put the new password", async () => {
+      const authFetch = vi
+        .spyOn(authFetchModule, "authFetch")
+        .mockResolvedValueOnce({ ok: true } as Response);
+
+      const dispatch = vi.fn();
+      const thunk = resetUserPasswordThunk({
+        id: "u-1",
+        password: "Nouveau-mdp-123",
+      });
+      const result = await thunk(dispatch, () => ({}), undefined);
+
+      expect(result.type).toBe(resetUserPasswordThunk.fulfilled.type);
+      expect(authFetch).toHaveBeenCalledWith(
+        "/api/utilisateurs/u-1/mot-de-passe",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({ password: "Nouveau-mdp-123" }),
+        })
+      );
+    });
+
+    it("resetUserPasswordThunk should reject with the server reason", async () => {
+      vi.spyOn(authFetchModule, "authFetch").mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Utilisateur non trouvé" }),
+      } as Response);
+
+      const dispatch = vi.fn();
+      const thunk = resetUserPasswordThunk({
+        id: "u-1",
+        password: "Nouveau-mdp-123",
+      });
+      const result = await thunk(dispatch, () => ({}), undefined);
+
+      expect(result.type).toBe(resetUserPasswordThunk.rejected.type);
+      expect(result.payload).toBe("Utilisateur non trouvé");
     });
   });
 });

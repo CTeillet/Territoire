@@ -1,10 +1,12 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.RegisterRequest;
+import com.teillet.territoire.dto.ResetPasswordRequest;
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.service.IUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/utilisateurs")
 @RequiredArgsConstructor
+@Slf4j
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 	private final IUserService userService;
@@ -49,6 +52,14 @@ public class UserController {
 
 		userService.updateUserRole(id, newRole);
 		return ResponseEntity.ok(Map.of("message", "Rôle mis à jour avec succès"));
+	}
+
+	// 🔹 Réinitialiser le mot de passe d’un utilisateur (ses sessions en cours sont révoquées)
+	@PutMapping("/{id}/mot-de-passe")
+	public ResponseEntity<?> resetPassword(@PathVariable UUID id, @Valid @RequestBody ResetPasswordRequest request) {
+		userService.resetPassword(id, request.getPassword());
+		log.info("🔑 Mot de passe réinitialisé pour l'utilisateur {}", id);
+		return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès"));
 	}
 
 	// 🔹 Supprimer un utilisateur
