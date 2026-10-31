@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import DeleteUserDialog from "@/components/parameters/user-management/delete-user-dialog";
+import ResetPasswordDialog from "@/components/parameters/user-management/reset-password-dialog";
 import { Role } from "@/models/role";
 import { User } from "@/models/user"; // Assure-toi que ce type existe
 
@@ -27,6 +28,7 @@ type Props = {
   deletingUserId: string | null;
   onUpdateRole: (id: string, role: Role) => void;
   onDelete: (id: string) => void;
+  onResetPassword: (id: string, password: string) => Promise<boolean>;
 };
 
 const UserTable = ({
@@ -36,6 +38,7 @@ const UserTable = ({
   deletingUserId,
   onUpdateRole,
   onDelete,
+  onResetPassword,
 }: Props) => {
   return (
     <Table className="w-full border border-gray-200 rounded-sm shadow-sm mb-5">
@@ -83,12 +86,19 @@ const UserTable = ({
               </TableCell>
               <TableCell className="px-4 py-3">
                 {currentUserId !== user.id ? (
-                  <DeleteUserDialog
-                    username={user.username}
-                    userId={user.id}
-                    isDeleting={deletingUserId === user.id}
-                    onDelete={onDelete}
-                  />
+                  <div className="flex gap-2">
+                    <ResetPasswordDialog
+                      username={user.username}
+                      userId={user.id}
+                      onReset={onResetPassword}
+                    />
+                    <DeleteUserDialog
+                      username={user.username}
+                      userId={user.id}
+                      isDeleting={deletingUserId === user.id}
+                      onDelete={onDelete}
+                    />
+                  </div>
                 ) : (
                   <Button
                     disabled

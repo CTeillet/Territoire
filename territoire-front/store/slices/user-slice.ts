@@ -77,6 +77,27 @@ export const updateUserRoleThunk = createAsyncThunk<
   return response.json();
 });
 
+// Réinitialisation du mot de passe d’un utilisateur (le serveur révoque ses sessions)
+export const resetUserPasswordThunk = createAsyncThunk<
+  void,
+  { id: string; password: string },
+  { rejectValue: string }
+>("users/resetUserPassword", async ({ id, password }, { rejectWithValue }) => {
+  const response = await authFetch(`${BASE_URL}/${id}/mot-de-passe`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok)
+    return rejectWithValue(
+      await apiErrorMessage(
+        response,
+        "Erreur lors de la réinitialisation du mot de passe"
+      )
+    );
+});
+
 // Suppression d’un utilisateur
 export const deleteUserThunk = createAsyncThunk<
   string,

@@ -31,4 +31,10 @@ public interface IUserService extends UserDetailsService {
 	 * @throws IllegalArgumentException si le mot de passe actuel est incorrect
 	 */
 	void changePassword(UUID userId, String currentPassword, String newPassword);
+
+	/**
+	 * Remplace le mot de passe sans vérifier l'ancien (réinitialisation par un administrateur),
+	 * et révoque tous les jetons existants.
+	 */
+	void resetPassword(UUID userId, String newPassword);
 }

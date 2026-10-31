@@ -104,4 +104,12 @@ public class UserService implements IUserService {
 		user.incrementTokenVersion();
 		userRepository.save(user);
 	}
+
+	@Override
+	public void resetPassword(UUID userId, String newPassword) {
+		User user = getUser(userId);
+		user.setPassword(passwordEncoder.encode(newPassword));
+		user.incrementTokenVersion();
+		userRepository.save(user);
+	}
 }

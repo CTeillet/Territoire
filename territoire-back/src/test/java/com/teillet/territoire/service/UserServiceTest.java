@@ -2,6 +2,7 @@ package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.RegisterRequest;
 import com.teillet.territoire.enums.Role;
+import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.repository.UserRepository;
 import com.teillet.territoire.service.impl.UserService;
@@ -172,6 +173,31 @@ class UserServiceTest {
 		when(passwordEncoder.matches("bad", "old-hash")).thenReturn(false);
 
 		assertThrows(IllegalArgumentException.class, () -> userService.changePassword(userId, "bad", "new-password-123"));
+		verify(userRepository, never()).save(any());
+	}
+
+	@Test
+	void testResetPassword_ReplacesPasswordAndRevokesTokens() {
+		UUID userId = UUID.randomUUID();
+		User user = new User();
+		user.setPassword("old-hash");
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+		when(passwordEncoder.encode("new-password-123")).thenReturn("new-hash");
+
+		userService.resetPassword(userId, "new-password-123");
+
+		assertEquals("new-hash", user.getPassword());
+		assertEquals(1, user.getCurrentTokenVersion());
+		verify(userRepository).save(user);
+		verify(passwordEncoder, never()).matches(any(), any());
+	}
+
+	@Test
+	void testResetPassword_NotFound() {
+		UUID userId = UUID.randomUUID();
+		when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+		assertThrows(NotFoundException.class, () -> userService.resetPassword(userId, "new-password-123"));
 		verify(userRepository, never()).save(any());
 	}
 

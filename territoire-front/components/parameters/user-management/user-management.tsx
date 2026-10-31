@@ -6,6 +6,7 @@ import {
   createUserThunk,
   deleteUserThunk,
   fetchUsersThunk,
+  resetUserPasswordThunk,
   updateUserRoleThunk,
 } from "@/store/slices/user-slice";
 import { RootState, useAppDispatch } from "@/store/store";
@@ -42,6 +43,18 @@ const UserManagement = () => {
     }
   };
 
+  const handleResetPassword = async (id: string, password: string) => {
+    const result = await dispatch(resetUserPasswordThunk({ id, password }));
+    if (resetUserPasswordThunk.rejected.match(result)) {
+      toast.error(
+        result.payload ?? "Erreur lors de la réinitialisation du mot de passe"
+      );
+      return false;
+    }
+    toast.success("Mot de passe réinitialisé");
+    return true;
+  };
+
   const handleCreateUser = async (user: RegisterRequest) => {
     const result = await dispatch(createUserThunk(user));
     if (createUserThunk.rejected.match(result)) {
@@ -60,6 +73,7 @@ const UserManagement = () => {
         deletingUserId={deletingUserId}
         onDelete={handleDeleteUser}
         onUpdateRole={handleUpdateRole}
+        onResetPassword={handleResetPassword}
       />
       <CreateUserDialog onCreate={handleCreateUser} />
     </div>

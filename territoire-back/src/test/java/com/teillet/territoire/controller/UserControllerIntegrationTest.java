@@ -16,9 +16,11 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -204,5 +206,60 @@ class UserControllerIntegrationTest {
 				.andExpect(status().isOk());
 
 		assertEquals(1, userRepository.findById(saved.getId()).orElseThrow().getCurrentTokenVersion());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testResetPassword_Success_RevokesExistingTokens() throws Exception {
+		User saved = userRepository.save(createUser("reset@example.com", "ancien-secret", Role.UTILISATEUR));
+
+		mockMvc.perform(put("/api/utilisateurs/{id}/mot-de-passe", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(Map.of("password", "Nouveau-mdp-123"))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.message").value("Mot de passe réinitialisé avec succès"));
+
+		User updated = userRepository.findById(saved.getId()).orElseThrow();
+		assertTrue(passwordEncoder.matches("Nouveau-mdp-123", updated.getPassword()));
+		assertEquals(1, updated.getCurrentTokenVersion());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testResetPassword_ShortPassword_BadRequest() throws Exception {
+		User saved = userRepository.save(createUser("resetcourt@example.com", "ancien-secret", Role.UTILISATEUR));
+
+		mockMvc.perform(put("/api/utilisateurs/{id}/mot-de-passe", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(Map.of("password", "court"))))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.fields.password").exists());
+
+		User unchanged = userRepository.findById(saved.getId()).orElseThrow();
+		assertTrue(passwordEncoder.matches("ancien-secret", unchanged.getPassword()));
+		assertEquals(0, unchanged.getCurrentTokenVersion());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testResetPassword_UnknownUser_NotFound() throws Exception {
+		mockMvc.perform(put("/api/utilisateurs/{id}/mot-de-passe", UUID.randomUUID())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(Map.of("password", "Nouveau-mdp-123"))))
+				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testResetPassword_NonAdmin_Forbidden() throws Exception {
+		User saved = userRepository.save(createUser("resetinterdit@example.com", "ancien-secret", Role.UTILISATEUR));
+
+		mockMvc.perform(put("/api/utilisateurs/{id}/mot-de-passe", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(Map.of("password", "Nouveau-mdp-123"))))
+				.andExpect(status().isForbidden());
+
+		assertTrue(passwordEncoder.matches("ancien-secret",
+				userRepository.findById(saved.getId()).orElseThrow().getPassword()));
 	}
 }
