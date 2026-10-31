@@ -21,15 +21,24 @@ import { AppDispatch } from "@/store/store";
 import { updateAssignmentDates } from "@/store/slices/territory-slice";
 import { useDurationSettings } from "@/hooks/use-duration-settings";
 
-/** Mêmes contrôles que le back, pour signaler l'erreur avant l'envoi (dates au format yyyy-MM-dd). */
+/**
+ * Mêmes contrôles que le back, pour signaler l'erreur avant l'envoi (dates au format yyyy-MM-dd).
+ * Un champ date vaut "" s'il est vide, incomplet ou s'il affiche un jour inexistant (31/06…).
+ */
 const validate = (
   assignmentDate: string,
   dueDate: string,
   returnDate: string | null,
   today: string
 ): string | null => {
-  if (!assignmentDate || !dueDate || returnDate === "") {
-    return "Toutes les dates sont obligatoires";
+  if (!assignmentDate) {
+    return "Date d'attribution invalide ou incomplète";
+  }
+  if (!dueDate) {
+    return "Échéance invalide ou incomplète";
+  }
+  if (returnDate === "") {
+    return "Date de retour invalide ou incomplète";
   }
   if (assignmentDate > today) {
     return "La date d'attribution ne peut pas être dans le futur";
@@ -63,6 +72,10 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
   const [dueDate, setDueDate] = useState(assignment.dueDate);
   // null : attribution en cours (le retour se fait par l'action « Retour »)
   const [returnDate, setReturnDate] = useState(assignment.returnDate);
+  // Dernière date d'attribution valide : la saisie passe par des valeurs vides
+  const [lastAssignmentDate, setLastAssignmentDate] = useState(
+    assignment.assignmentDate
+  );
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -75,9 +88,12 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
     format(addMonths(parseISO(date), assignmentDurationMonths), "yyyy-MM-dd");
 
   const handleAssignmentDateChange = (value: string) => {
-    // Une échéance laissée par défaut suit la date d'attribution
-    if (assignmentDate && dueDate === defaultDueDate(assignmentDate) && value) {
-      setDueDate(defaultDueDate(value));
+    if (value) {
+      // Une échéance laissée par défaut suit la date d'attribution
+      if (dueDate === defaultDueDate(lastAssignmentDate)) {
+        setDueDate(defaultDueDate(value));
+      }
+      setLastAssignmentDate(value);
     }
     setAssignmentDate(value);
     setServerError(null);
@@ -128,6 +144,7 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
               type="date"
               value={assignmentDate}
               max={today}
+              aria-invalid={!assignmentDate}
               onChange={(e) => handleAssignmentDateChange(e.target.value)}
             />
           </div>
@@ -138,6 +155,7 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
               type="date"
               value={dueDate}
               min={assignmentDate}
+              aria-invalid={!dueDate}
               onChange={(e) => {
                 setDueDate(e.target.value);
                 setServerError(null);
@@ -157,6 +175,7 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
                 value={returnDate}
                 min={assignmentDate}
                 max={today}
+                aria-invalid={!returnDate}
                 onChange={(e) => {
                   setReturnDate(e.target.value);
                   setServerError(null);

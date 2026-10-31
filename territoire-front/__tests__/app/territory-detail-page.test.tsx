@@ -615,6 +615,26 @@ describe("Historique des attributions", () => {
     ).toHaveLength(1);
   });
 
+  it("désigne une date inexistante et garde l'échéance par défaut qui suit", async () => {
+    mockApi({});
+    renderWithStore(<AssignmentsList assignments={[assignment()]} />);
+
+    await openDatesDialog();
+    const assignmentDate = screen.getByLabelText("Date d'attribution");
+    // Un 31/06 saisi au clavier : le navigateur donne une valeur vide
+    fireEvent.change(assignmentDate, { target: { value: "" } });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Date d'attribution invalide ou incomplète"
+    );
+    expect(assignmentDate).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+    fireEvent.change(assignmentDate, { target: { value: "2026-07-31" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Échéance")).toHaveValue("2026-11-30");
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  });
+
   it("annule la modification des dates", async () => {
     const api = mockApi({});
     renderWithStore(<AssignmentsList assignments={[assignment()]} />);
