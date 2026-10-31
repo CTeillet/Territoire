@@ -5,6 +5,8 @@ import territoryReducer, {
   deleteTerritory,
   returnTerritory,
   cancelAssignment,
+  assignTerritory,
+  extendTerritory,
 } from "@/store/slices/territory-slice";
 import { Territory, TerritoryCollection } from "@/models/territory";
 import { City } from "@/models/city";
@@ -104,6 +106,27 @@ describe("territory slice", () => {
       });
       expect(rejected.loading).toBe(false);
       expect(rejected.error).toBe("Erreur territoires");
+    });
+
+    // `loading` masque les tableaux : ils perdraient leur page courante à chaque action
+    it.each([
+      ["assignTerritory", assignTerritory],
+      ["returnTerritory", returnTerritory],
+      ["cancelAssignment", cancelAssignment],
+      ["extendTerritory", extendTerritory],
+    ])("%s passe par `updating` sans toucher à `loading`", (_, thunk) => {
+      const pending = territoryReducer(initialState, {
+        type: thunk.pending.type,
+      });
+      expect(pending.updating).toBe(true);
+      expect(pending.loading).toBe(false);
+
+      const rejected = territoryReducer(pending, {
+        type: thunk.rejected.type,
+        payload: "Erreur",
+      });
+      expect(rejected.updating).toBe(false);
+      expect(rejected.loading).toBe(false);
     });
 
     it("should handle fetchTerritoryById fulfilled", () => {

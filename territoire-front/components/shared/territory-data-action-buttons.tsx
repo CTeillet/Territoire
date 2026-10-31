@@ -100,33 +100,36 @@ export function TerritoryDataActionButtons({
     setIsDialogOpen(false);
   };
 
+  // Les fenêtres de confirmation se ferment avant l'appel : le tableau reste affiché
+  // pendant l'enregistrement, un second clic enverrait l'action deux fois
+
   // 🔹 Fonction pour gérer le retour du  territoire
   const handleReturn = async () => {
+    setIsReturnDialogOpen(false);
     try {
       await dispatch(returnTerritory(territoryId)).unwrap();
     } catch (error) {
       console.error("❌ Erreur lors du retour du territoire :", error);
     }
-    setIsReturnDialogOpen(false);
   };
 
   // 🔹 Fonction pour gérer l'annulation de l'assignation
   const handleCancelAssignment = async () => {
+    setIsCancelDialogOpen(false);
     try {
       await dispatch(cancelAssignment(territoryId)).unwrap();
     } catch (error) {
       console.error("❌ Erreur lors de l'annulation de l'assignation :", error);
     }
-    setIsCancelDialogOpen(false);
   };
 
   const handleExtension = async (dueDate?: string) => {
+    setIsExtendDialogOpen(false);
     try {
       await dispatch(extendTerritory({ territoryId, dueDate })).unwrap();
     } catch (error) {
       console.error("❌ Erreur lors de la prolongation du territoire :", error);
     }
-    setIsExtendDialogOpen(false);
   };
 
   // Fonction pour ouvrir l'explorateur de fichiers

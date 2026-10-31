@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DataTable } from "@/components/territory/territory-data-table";
 import { territoryDataColumns } from "@/components/territory/territory-data-columns";
@@ -50,8 +50,14 @@ const shownNames = () =>
     .slice(1)
     .map((row) => within(row).getAllByRole("cell")[0].textContent);
 
+const goToNextPage = () =>
+  userEvent.click(screen.getByRole("button", { name: "Page suivante" }));
+
 describe("DataTable des territoires", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
 
   it("pagine par 10 lignes et passe à la page suivante", async () => {
     renderTable();
@@ -97,6 +103,59 @@ describe("DataTable des territoires", () => {
       "R-4",
       "R-3",
     ]);
+  });
+
+  it("reste sur la page courante quand les données changent (ex. après une assignation)", async () => {
+    const { rerender } = render(
+      <DataTable columns={columns} data={data} tableId="test" />
+    );
+    await goToNextPage();
+
+    // Le store renvoie un nouveau tableau, avec R-11 désormais assigné
+    const updated = data.map((t) =>
+      t.name === "R-11" ? { ...t, status: "ASSIGNED" as TerritoryStatus } : t
+    );
+    rerender(<DataTable columns={columns} data={updated} tableId="test" />);
+    // TanStack planifie son retour automatique à la page 1 dans une microtâche : on la laisse passer
+    await act(async () => {});
+
+    expect(screen.getByText("Page 2 sur 2")).toBeInTheDocument();
+    expect(shownNames()).toEqual(["R-11", "R-12", "B-1"]);
+  });
+
+  it("retrouve sa page quand on revient sur le tableau", async () => {
+    const { unmount } = render(
+      <DataTable columns={columns} data={data} tableId="test" />
+    );
+    await goToNextPage();
+    unmount();
+
+    renderTable();
+    expect(screen.getByText("Page 2 sur 2")).toBeInTheDocument();
+  });
+
+  it("revient à la première page quand on change les filtres", async () => {
+    renderTable({ filters: [{ id: "city", value: "Rennes" }] });
+    await goToNextPage();
+    expect(screen.getByText("Page 2 sur 2")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Réinitialiser les filtres" })
+    );
+    expect(screen.getByText("Page 1 sur 2")).toBeInTheDocument();
+  });
+
+  it("se replace sur la dernière page quand la page courante n'existe plus", async () => {
+    const { rerender } = render(
+      <DataTable columns={columns} data={data} tableId="test" />
+    );
+    await goToNextPage();
+
+    rerender(
+      <DataTable columns={columns} data={data.slice(0, 10)} tableId="test" />
+    );
+    expect(screen.getByText("Page 1 sur 1")).toBeInTheDocument();
+    expect(shownNames()).toHaveLength(10);
   });
 
   it("réinitialise les filtres", async () => {

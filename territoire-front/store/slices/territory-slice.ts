@@ -924,11 +924,13 @@ const territorySlice = createSlice({
         }
       })
 
+      // Assignation, retour, annulation, prolongation : `updating` plutôt que `loading`,
+      // sinon les pages masquent leur tableau pendant l'enregistrement et il perd sa page courante
       .addCase(assignTerritory.pending, (state) => {
-        state.loading = true;
+        state.updating = true;
       })
       .addCase(assignTerritory.fulfilled, (state, action) => {
-        state.loading = false;
+        state.updating = false;
         const assignment = action.payload;
 
         if (
@@ -981,15 +983,15 @@ const territorySlice = createSlice({
         });
       })
       .addCase(assignTerritory.rejected, (state, action) => {
-        state.loading = false;
+        state.updating = false;
         state.error = action.payload as string;
       })
 
       .addCase(returnTerritory.pending, (state) => {
-        state.loading = true;
+        state.updating = true;
       })
       .addCase(returnTerritory.fulfilled, (state, action) => {
-        state.loading = false;
+        state.updating = false;
         const updatedAssignment = action.payload;
 
         if (
@@ -1046,15 +1048,15 @@ const territorySlice = createSlice({
         });
       })
       .addCase(returnTerritory.rejected, (state, action) => {
-        state.loading = false;
+        state.updating = false;
         state.error = action.payload as string;
       })
 
       .addCase(cancelAssignment.pending, (state) => {
-        state.loading = true;
+        state.updating = true;
       })
       .addCase(cancelAssignment.fulfilled, (state, action) => {
-        state.loading = false;
+        state.updating = false;
         const updatedAssignment = action.payload;
 
         if (
@@ -1111,7 +1113,7 @@ const territorySlice = createSlice({
         });
       })
       .addCase(cancelAssignment.rejected, (state, action) => {
-        state.loading = false;
+        state.updating = false;
         state.error = action.payload as string;
       })
 
@@ -1171,10 +1173,10 @@ const territorySlice = createSlice({
       })
 
       .addCase(extendTerritory.pending, (state) => {
-        state.loading = true;
+        state.updating = true;
       })
       .addCase(extendTerritory.fulfilled, (state, action) => {
-        state.loading = false;
+        state.updating = false;
         const updatedAssignment = action.payload;
 
         if (
@@ -1223,7 +1225,7 @@ const territorySlice = createSlice({
         });
       })
       .addCase(extendTerritory.rejected, (state, action) => {
-        state.loading = false;
+        state.updating = false;
         state.error = action.payload as string;
       })
 
