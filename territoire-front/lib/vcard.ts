@@ -63,12 +63,17 @@ export interface PhoneProposal {
   phoneNumber: string;
   /** Plusieurs numéros pour ce nom dans le fichier, ou homonymes dans l'application : à vérifier. */
   ambiguous: boolean;
+  /**
+   * Même numéro, mais enregistré sans indicatif (« 06… ») : réécrit au format international,
+   * sans lequel l'envoi WhatsApp échoue (le serveur retire seulement le « + »).
+   */
+  reformat: boolean;
 }
 
 export interface PhoneMatching {
-  /** Personnes sans numéro, ou dont le numéro diffère de celui du fichier. */
+  /** Personnes sans numéro, dont le numéro diffère de celui du fichier ou reste à mettre au format international. */
   proposals: PhoneProposal[];
-  /** Personnes dont le numéro est déjà celui du fichier. */
+  /** Personnes dont le numéro est déjà celui du fichier, au format international. */
   upToDate: number;
   /** Contacts avec un numéro qui ne correspondent à aucune personne (ignorés). */
   unmatchedContacts: number;
@@ -114,16 +119,26 @@ export function matchPhones(
     found.forEach((contact) => matched.add(contact));
     const phones = [...new Set(found.map((c) => c.phoneNumber!))];
     const current = person.phoneNumber?.trim();
+    const normalized = current ? normalizePhone(current) : undefined;
 
     if (phones.length === 0) {
       if (!current) result.stillMissing.push(person);
-    } else if (current && phones.includes(normalizePhone(current) ?? current)) {
-      result.upToDate++;
+    } else if (normalized && phones.includes(normalized)) {
+      // Le numéro de la personne figure dans le fichier : seul son format peut changer
+      if (normalized === person.phoneNumber) result.upToDate++;
+      else
+        result.proposals.push({
+          person,
+          phoneNumber: normalized,
+          ambiguous: false,
+          reformat: true,
+        });
     } else {
       result.proposals.push({
         person,
         phoneNumber: phones[0],
         ambiguous: phones.length > 1 || personsByName.get(key)! > 1,
+        reformat: false,
       });
     }
   }

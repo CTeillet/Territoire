@@ -195,50 +195,54 @@ export function ContactsPhoneSection({
               </div>
 
               <ul className="max-h-[50vh] divide-y overflow-y-auto rounded-md border">
-                {proposals.map(({ person, phoneNumber, ambiguous }) => {
-                  const id = person.id!;
-                  return (
-                    <li key={id} className="flex items-start gap-3 p-3">
-                      <Checkbox
-                        id={`phone-${id}`}
-                        className="mt-0.5"
-                        checked={selected.has(id)}
-                        disabled={updating}
-                        onCheckedChange={(checked) =>
-                          toggle(id, checked === true)
-                        }
-                      />
-                      <label
-                        htmlFor={`phone-${id}`}
-                        className="min-w-0 flex-1 text-sm"
-                      >
-                        <span className="font-medium">
-                          {personToString(person)}
-                        </span>
-                        <span className="block text-muted-foreground">
-                          {person.phoneNumber
-                            ? `${formatPhoneNumber(person.phoneNumber)} → ${formatPhoneNumber(phoneNumber)}`
-                            : `Ajout : ${formatPhoneNumber(phoneNumber)}`}
-                        </span>
-                        {person.phoneNumber && (
-                          <span className="block text-xs text-amber-600">
-                            Remplace le numéro actuel
+                {proposals.map(
+                  ({ person, phoneNumber, ambiguous, reformat }) => {
+                    const id = person.id!;
+                    return (
+                      <li key={id} className="flex items-start gap-3 p-3">
+                        <Checkbox
+                          id={`phone-${id}`}
+                          className="mt-0.5"
+                          checked={selected.has(id)}
+                          disabled={updating}
+                          onCheckedChange={(checked) =>
+                            toggle(id, checked === true)
+                          }
+                        />
+                        <label
+                          htmlFor={`phone-${id}`}
+                          className="min-w-0 flex-1 text-sm"
+                        >
+                          <span className="font-medium">
+                            {personToString(person)}
                           </span>
-                        )}
-                        {ambiguous && (
-                          <span className="block text-xs text-amber-600">
-                            Plusieurs numéros ou homonymes : à vérifier
+                          <span className="block text-muted-foreground">
+                            {person.phoneNumber
+                              ? `${formatPhoneNumber(person.phoneNumber)} → ${formatPhoneNumber(phoneNumber)}`
+                              : `Ajout : ${formatPhoneNumber(phoneNumber)}`}
                           </span>
-                        )}
-                        {failed.has(id) && (
-                          <span className="block text-xs text-destructive">
-                            Échec de la mise à jour
-                          </span>
-                        )}
-                      </label>
-                    </li>
-                  );
-                })}
+                          {person.phoneNumber && (
+                            <span className="block text-xs text-amber-600">
+                              {reformat
+                                ? "Mise au format international (même numéro)"
+                                : "Remplace le numéro actuel"}
+                            </span>
+                          )}
+                          {ambiguous && (
+                            <span className="block text-xs text-amber-600">
+                              Plusieurs numéros ou homonymes : à vérifier
+                            </span>
+                          )}
+                          {failed.has(id) && (
+                            <span className="block text-xs text-destructive">
+                              Échec de la mise à jour
+                            </span>
+                          )}
+                        </label>
+                      </li>
+                    );
+                  }
+                )}
               </ul>
 
               <Button

@@ -111,16 +111,31 @@ describe("matchPhones", () => {
     { id: "p4", firstName: "Paul", lastName: "Durand" },
     { id: "p5", firstName: "Luc", lastName: "Morel" },
     { id: "p6", firstName: "Luc", lastName: "Morel" },
+    {
+      id: "p7",
+      firstName: "Marc",
+      lastName: "Petit",
+      phoneNumber: "+33688888888",
+    },
   ];
+
+  const summary = (result: ReturnType<typeof matchPhones>) =>
+    result.proposals.map((p) => [
+      p.person.id,
+      p.phoneNumber,
+      p.ambiguous,
+      p.reformat,
+    ]);
 
   it("propose les numéros des personnes existantes, sans en créer", () => {
     const result = matchPhones(persons, [
       // Accents, casse, tiret et ordre prénom/nom ignorés
       { firstName: "Le Gall", lastName: "helene", phoneNumber: "+33611111111" },
-      // Même numéro, écrit à la française dans l'application
+      // Même numéro, enregistré sans indicatif dans l'application
       { firstName: "Jean", lastName: "Dupont", phoneNumber: "+33612345678" },
       { firstName: "Anne", lastName: "Martin", phoneNumber: "+33622222222" },
       { firstName: "Luc", lastName: "Morel", phoneNumber: "+33633333333" },
+      { firstName: "Marc", lastName: "Petit", phoneNumber: "+33688888888" },
       {
         firstName: "Inconnu",
         lastName: "Contact",
@@ -129,14 +144,14 @@ describe("matchPhones", () => {
       { firstName: "Paul", lastName: "Durand", invalidPhone: "12" },
     ]);
 
-    expect(
-      result.proposals.map((p) => [p.person.id, p.phoneNumber, p.ambiguous])
-    ).toEqual([
-      ["p1", "+33611111111", false],
-      ["p3", "+33622222222", false],
+    expect(summary(result)).toEqual([
+      ["p1", "+33611111111", false, false],
+      // Mise au format international, sans changer de numéro
+      ["p2", "+33612345678", false, true],
+      ["p3", "+33622222222", false, false],
       // Homonymes dans l'application : à vérifier
-      ["p5", "+33633333333", true],
-      ["p6", "+33633333333", true],
+      ["p5", "+33633333333", true, false],
+      ["p6", "+33633333333", true, false],
     ]);
     expect(result.upToDate).toBe(1);
     expect(result.unmatchedContacts).toBe(1);
@@ -149,12 +164,14 @@ describe("matchPhones", () => {
       { firstName: "Paul", lastName: "Durand", phoneNumber: "+33666666666" },
       { firstName: "Jean", lastName: "Dupont", phoneNumber: "+33677777777" },
       { firstName: "Jean", lastName: "Dupont", phoneNumber: "+33612345678" },
+      { firstName: "Marc", lastName: "Petit", phoneNumber: "+33699999999" },
+      { firstName: "Marc", lastName: "Petit", phoneNumber: "+33688888888" },
     ];
 
-    const result = matchPhones(persons, contacts);
-    expect(result.proposals).toEqual([
-      { person: persons[3], phoneNumber: "+33655555555", ambiguous: true },
+    expect(summary(matchPhones(persons, contacts))).toEqual([
+      ["p2", "+33612345678", false, true],
+      ["p4", "+33655555555", true, false],
     ]);
-    expect(result.upToDate).toBe(1);
+    expect(matchPhones(persons, contacts).upToDate).toBe(1);
   });
 });

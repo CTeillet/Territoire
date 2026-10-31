@@ -630,12 +630,19 @@ describe("ContactsPhoneSection", () => {
       lastName: "Bernard",
       phoneNumber: "+33622222222",
     },
+    {
+      id: "p5",
+      firstName: "Marc",
+      lastName: "Petit",
+      phoneNumber: "06 33 33 33 33",
+    },
   ];
 
   const vcf = [
     ["Dupont;Jean", "06 12 34 56 78"],
     ["Martin;Anne", "06 99 99 99 99"],
     ["Bernard;Lucie", "06 22 22 22 22"],
+    ["Petit;Marc", "06 33 33 33 33"],
     ["Contact;Inconnu", "06 44 44 44 44"],
   ]
     .map(([name, tel]) =>
@@ -669,10 +676,10 @@ describe("ContactsPhoneSection", () => {
 
     expect(
       await screen.findByText(
-        "2 numéros à reporter · 1 déjà à jour · 1 contact sans correspondance"
+        "3 numéros à reporter · 1 déjà à jour · 1 contact sans correspondance"
       )
     ).toBeInTheDocument();
-    // Personne sans numéro : cochée ; numéro différent : remplacement à cocher soi-même
+    // Personne sans numéro : cochée ; numéro différent ou format à changer : à cocher soi-même
     expect(screen.getByRole("checkbox", { name: /Jean Dupont/ })).toBeChecked();
     const anne = screen.getByRole("checkbox", { name: /Anne Martin/ });
     expect(anne).not.toBeChecked();
@@ -680,22 +687,32 @@ describe("ContactsPhoneSection", () => {
       screen.getByText("06 11 11 11 11 → +33 6 99 99 99 99")
     ).toBeInTheDocument();
     expect(screen.getByText("Remplace le numéro actuel")).toBeInTheDocument();
+    const marc = screen.getByRole("checkbox", { name: /Marc Petit/ });
+    expect(marc).not.toBeChecked();
+    expect(
+      screen.getByText("06 33 33 33 33 → +33 6 33 33 33 33")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Mise au format international (même numéro)")
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Toujours sans numéro (1) : Paul Durand")
     ).toBeInTheDocument();
 
     await userEvent.click(anne);
+    await userEvent.click(marc);
     await userEvent.click(
-      screen.getByRole("button", { name: "Mettre à jour 2 numéros" })
+      screen.getByRole("button", { name: "Mettre à jour 3 numéros" })
     );
 
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith("2 numéros mis à jour !")
+      expect(toast.success).toHaveBeenCalledWith("3 numéros mis à jour !")
     );
     const calls = api.mock.calls.filter(([, init]) => init?.method);
     expect(calls.map(([url, init]) => [init?.method, url])).toEqual([
       ["PUT", "/api/personnes/p1"],
       ["PUT", "/api/personnes/p2"],
+      ["PUT", "/api/personnes/p5"],
     ]);
     expect(calls.map(([, init]) => JSON.parse(String(init?.body)))).toEqual([
       {
@@ -711,10 +728,16 @@ describe("ContactsPhoneSection", () => {
         email: "anne@exemple.fr",
         phoneNumber: "+33699999999",
       },
+      {
+        id: "p5",
+        firstName: "Marc",
+        lastName: "Petit",
+        phoneNumber: "+33633333333",
+      },
     ]);
     expect(
       screen.getByText(
-        "0 numéro à reporter · 3 déjà à jour · 1 contact sans correspondance"
+        "0 numéro à reporter · 4 déjà à jour · 1 contact sans correspondance"
       )
     ).toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
