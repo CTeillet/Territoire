@@ -72,13 +72,15 @@ const ResetPasswordDialog = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Réinitialiser le mot de passe</AlertDialogTitle>
           <AlertDialogDescription>
-            Un nouveau mot de passe va être attribué à <b>{username}</b>. Notez-le
-            avant de valider pour le lui transmettre : ses sessions en cours
-            seront déconnectées.
+            Un nouveau mot de passe va être attribué à <b>{username}</b>.
+            Notez-le avant de valider pour le lui transmettre : ses sessions en
+            cours seront déconnectées.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-2">
-          <Label htmlFor={`reset-password-${userId}`}>Nouveau mot de passe</Label>
+          <Label htmlFor={`reset-password-${userId}`}>
+            Nouveau mot de passe
+          </Label>
           <div className="flex items-center gap-2">
             <Input
               id={`reset-password-${userId}`}

@@ -58,7 +58,9 @@ describe("ResetPasswordDialog", () => {
     await open();
     const shown = passwordInput().value;
 
-    await userEvent.click(screen.getByRole("button", { name: "Réinitialiser" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Réinitialiser" })
+    );
 
     expect(onReset).toHaveBeenCalledWith("u-1", shown);
     expect(
@@ -70,9 +72,13 @@ describe("ResetPasswordDialog", () => {
     renderDialog(false);
     await open();
 
-    await userEvent.click(screen.getByRole("button", { name: "Réinitialiser" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Réinitialiser" })
+    );
 
-    expect(screen.getByText("Réinitialiser le mot de passe")).toBeInTheDocument();
+    expect(
+      screen.getByText("Réinitialiser le mot de passe")
+    ).toBeInTheDocument();
   });
 
   it("copie le mot de passe dans le presse-papiers", async () => {
