@@ -70,8 +70,8 @@ describe("DataTable des territoires", () => {
     expect(shownNames()).toEqual(["R-1", "R-10", "R-11", "R-12"]);
   });
 
-  it("filtre la ville", () => {
-    renderTable({ filters: [{ id: "city", value: "bord" }] });
+  it("filtre la ville sur la valeur exacte", () => {
+    renderTable({ filters: [{ id: "city", value: "Bordeaux" }] });
     expect(shownNames()).toEqual(["B-1"]);
   });
 

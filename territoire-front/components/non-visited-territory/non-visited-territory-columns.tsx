@@ -60,6 +60,9 @@ export const nonVisitedTerritoryColumns: ColumnDef<
       );
     },
     enableColumnFilter: true,
+    filterFn: (row, columnId, filterValue) => {
+      return filterValue === "" || row.getValue(columnId) === filterValue;
+    },
   },
   {
     id: "status",

@@ -107,11 +107,17 @@ describe("Liste des territoires", () => {
     );
     expect(rowNames()[0]).toBe("R-12");
 
-    // Filtre texte sur la ville
+    // Filtre sur la ville, choisie parmi celles du tableau
     await userEvent.click(screen.getByRole("button", { name: /Ville/ }));
-    fireEvent.change(await screen.findByPlaceholderText("Filtrer Ville"), {
-      target: { value: "Cesson" },
-    });
+    const citySelect = within(await screen.findByRole("menu")).getByRole(
+      "combobox"
+    );
+    expect(
+      within(citySelect)
+        .getAllByRole("option")
+        .map((o) => o.textContent)
+    ).toEqual(["Toutes", "Cesson", "Rennes"]);
+    fireEvent.change(citySelect, { target: { value: "Cesson" } });
     await userEvent.keyboard("{Escape}");
     expect(rowNames()).toEqual(["C-05"]);
     expect(
