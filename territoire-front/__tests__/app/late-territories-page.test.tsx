@@ -92,6 +92,25 @@ describe("Page des territoires en retard", () => {
     expect(screen.queryByText("R-15")).not.toBeInTheDocument();
   });
 
+  it("propose la fiche de la personne seulement quand elle est connue", async () => {
+    setup();
+    renderWithStore(<LateTerritoriesPage />);
+
+    const header = (await screen.findByText("JEAN Dupont")).closest(
+      "div.border"
+    )! as HTMLElement;
+    expect(
+      within(header).getByRole("link", {
+        name: "Voir la fiche de la personne",
+      })
+    ).toHaveAttribute("href", "/personnes/p1");
+    // Nom sans personne correspondante : aucune fiche vers laquelle renvoyer
+    const unknown = screen
+      .getByText("Personne Inconnue")
+      .closest("div.border")! as HTMLElement;
+    expect(within(unknown).queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("déplie un groupe pour voir le détail de ses territoires", async () => {
     setup([{ id: "r0", personId: "p1", territoryIds: ["t1"] }]);
     renderWithStore(<LateTerritoriesPage />);
