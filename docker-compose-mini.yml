@@ -14,7 +14,7 @@ services:
       - postgis_data:/var/lib/postgresql/data
 
   collector:
-    image: otel/opentelemetry-collector-contrib:0.163.2
+    image: otel/opentelemetry-collector-contrib:0.164.0
     volumes:
       - ./config/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
     ports:
