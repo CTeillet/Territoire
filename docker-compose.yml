@@ -103,7 +103,7 @@ services:
     # y accèdent par le réseau Docker interne.
 
   grafana:
-    image: grafana/grafana:13.2.4
+    image: grafana/grafana:13.3.0
     ports:
       - "127.0.0.1:4000:3000"
     volumes:
