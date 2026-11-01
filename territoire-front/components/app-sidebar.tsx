@@ -11,6 +11,7 @@ import {
   ChevronRight,
   BarChart3,
   Inbox,
+  Printer,
 } from "lucide-react";
 
 import {
@@ -28,9 +29,10 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import NavUser from "@/components/nav-user";
+import { useIsClient } from "@/hooks/use-is-client";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-import React, { useEffect, useState, useSyncExternalStore } from "react";
+import React, { useEffect, useState } from "react";
 import { canSendAccess } from "@/lib/person-access-api";
 import {
   fetchPendingTerritoryRequestCount,
@@ -62,6 +64,11 @@ const territoryItems = [
     title: "Territoires non parcourus",
     url: "/territoires/non-parcourus",
     icon: MapPin,
+  },
+  {
+    title: "Impression des cartes",
+    url: "/territoires/impression",
+    icon: Printer,
   },
 ];
 
@@ -208,17 +215,6 @@ export function AppSidebar() {
         )}
       </SidebarContent>
     </Sidebar>
-  );
-}
-
-const noSubscription = () => () => {};
-
-/** Faux pendant le rendu serveur et l'hydratation, vrai ensuite. */
-function useIsClient() {
-  return useSyncExternalStore(
-    noSubscription,
-    () => true,
-    () => false
   );
 }
 

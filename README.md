@@ -11,7 +11,8 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 - Récapitulatif hebdomadaire par e-mail des territoires en retard (lundi 8 h) : personne, échéance, durée du retard et dernière relance. Destinataires dans Paramètres > Autres paramètres, avec un bouton d'envoi immédiat pour tester.
 - Espace « mes territoires » : chaque personne reçoit un lien personnel (`/m/<jeton>`) pour consulter ses territoires en cours (carte, adresses à ne pas visiter) et les rendre elle-même. Envoi par WhatsApp, automatique à l'attribution si activé ; gestion (renvoi, régénération, révocation, expiration) dans Paramètres > Accès numériques et sur la fiche de chaque personne. Coexiste avec les cartes papier.
 - Campagnes, statistiques, historique quotidien des statuts.
-- Export / import Excel, impression de cartes, adresses à ne pas visiter.
+- Impression des cartes de territoires (Territoire > Impression des cartes) : on choisit les territoires (recherche, ville) et leurs cartes s'impriment par 4 sur des feuilles A4 en paysage, à découper en quarts. Les marges blanches des cartes numérisées sont retirées.
+- Export / import Excel, export PNG de la carte de tous les territoires, adresses à ne pas visiter.
 - Rôles et droits d'accès :
   - **ADMIN** : accès total.
   - **SUPERVISEUR** : modification des territoires et des personnes, attribution et retour.
