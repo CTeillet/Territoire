@@ -145,7 +145,8 @@ export default function TerritoryPrintPage() {
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[22rem_1fr]">
-        <div className="space-y-3 rounded-md border bg-white p-4">
+        {/* En deux colonnes, la sélection reste à l'écran pendant qu'on fait défiler l'aperçu */}
+        <div className="space-y-3 rounded-md border bg-white p-4 lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100svh-3rem)] lg:flex-col">
           <Input
             placeholder="Rechercher un territoire"
             aria-label="Rechercher un territoire"
@@ -184,7 +185,7 @@ export default function TerritoryPrintPage() {
               Chargement des territoires...
             </p>
           ) : (
-            <ul className="max-h-[60vh] overflow-y-auto">
+            <ul className="max-h-[60vh] overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
               {visible.map((t) => (
                 <li key={t.id}>
                   <label
