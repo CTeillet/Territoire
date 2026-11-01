@@ -106,6 +106,7 @@ public class GeoJsonUtils {
 		builder.add("type", String.class);
 		builder.add("geometry", MultiPolygon.class);
 		builder.add("assignments", List.class);
+		builder.add("territoryMapId", String.class);
 		return builder.buildFeatureType();
 	}
 
@@ -162,6 +163,8 @@ public class GeoJsonUtils {
 		featureBuilder.add(territory.getType());
 		featureBuilder.add(territory.getConcaveHull());
 		featureBuilder.add(territory.getAssignments());
+		// Comme TerritoryMapper : le type MIME suffit à savoir qu'une carte existe, sans charger l'image
+		featureBuilder.add(territory.getTerritoryMapContentType() != null ? territory.getId().toString() : null);
 		return featureBuilder.buildFeature(null);
 	}
 	private static SimpleFeature createTerritoryFeatureCampaign(SimpleFeatureType featureType, Territory territory, boolean usedInCampaign) {

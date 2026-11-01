@@ -111,6 +111,19 @@ class GeoJsonUtilsTest {
 	}
 
 	@Test
+	void convertToGeoJSON_territories_withMap_givesTerritoryMapId() throws Exception {
+		Territory withMap = territory("Avec carte", TerritoryStatus.AVAILABLE, TerritoryType.HOUSE, null);
+		withMap.setTerritoryMapContentType("image/png");
+		Territory withoutMap = territory("Sans carte", TerritoryStatus.AVAILABLE, TerritoryType.HOUSE, null);
+
+		JsonNode features = parse(GeoJsonUtils.convertToGeoJSON(List.of(withMap, withoutMap))).path("features");
+
+		// Seul le type MIME est lu : l'image elle-même n'est chargée que par GET /api/territoires/{id}/carte
+		assertEquals(withMap.getId().toString(), features.get(0).path("properties").path("territoryMapId").asText());
+		assertFalse(features.get(1).path("properties").has("territoryMapId"));
+	}
+
+	@Test
 	void convertToGeoJSON_territories_keepsOrderOfTerritories() throws Exception {
 		Territory first = territory("A", TerritoryStatus.AVAILABLE, TerritoryType.HOUSE, square(1, 45));
 		Territory second = territory("B", TerritoryStatus.LATE, TerritoryType.BUILDING, square(2, 46));
