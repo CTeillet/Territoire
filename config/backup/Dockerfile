@@ -1,8 +1,8 @@
 # Image du service db-backup (docker-compose.yml) : pg_dump, age (chiffrement) et rclone (envoi externe)
 FROM rclone/rclone:1.75.2 AS rclone
 
-# Seul le client PostgreSQL sert : même version majeure que le serveur (postgis/postgis:17-3.5, docker-compose.yml),
-# à monter en même temps que lui. Pas l'image postgis : elle repose sur Debian bullseye, dont les dépôts ne répondent plus.
+# Seul le client PostgreSQL sert : même version majeure que le serveur (17, image postgis/postgis de docker-compose.yml),
+# à monter en même temps que lui. Pas l'image postgis : les bibliothèques PostGIS sont inutiles pour pg_dump.
 FROM postgres:17-bookworm
 
 RUN apt-get update \

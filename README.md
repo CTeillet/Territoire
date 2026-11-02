@@ -173,6 +173,27 @@ rm -rf restauration
 ```
 Si la restauration échoue, la base vide peut être supprimée et `territoire_avant_restauration` renommée en `territoire`. Une fois l'application vérifiée, `territoire_avant_restauration` peut être supprimée (`DROP DATABASE`).
 
+### Montée de version de PostGIS
+L'image `postgis/postgis` est figée dans `docker-compose.yml`. Une montée mineure (ex. `17-3.5` → `17-3.6`) recrée le conteneur au déploiement sur les données en place, mais deux étapes restent à faire à la main :
+- les extensions PostGIS gardent leur ancienne version tant qu'elles ne sont pas mises à jour : `SELECT postgis_full_version();` affiche « need upgrade » ;
+- si l'image change de version de Debian (`17-3.6` : bullseye → trixie), la glibc change aussi, et avec elle l'ordre de tri du texte. Les index sur du texte sont alors à reconstruire. PostgreSQL le signale à chaque connexion (« collation version mismatch » dans `docker compose logs postgis`).
+
+Les données ne sont pas modifiées : seuls les index et les fonctions de PostGIS sont reconstruits. Depuis `~/territoire` :
+```bash
+# Avant de fusionner la montée de version : une sauvegarde à jour
+docker compose run --rm db-backup run
+
+# Après le déploiement : extensions PostGIS (bases territoire et template_postgis)
+docker compose exec postgis update-postgis.sh
+
+# Si la version de Debian a changé : index et version de collation de chaque base
+for db in territoire postgres template1 template_postgis; do
+  docker compose exec postgis psql -U admin -d "$db" -v ON_ERROR_STOP=1 \
+    -c "REINDEX DATABASE \"$db\"" -c "ALTER DATABASE \"$db\" REFRESH COLLATION VERSION"
+done
+```
+En local, la base de `docker-compose-mini.yml` se met à jour de la même façon (`docker compose -f docker-compose-mini.yml exec postgis …`).
+
 ## Évolutions envisagées
 - Relances automatiques avant échéance et en cas de retard.
 - Journal d'audit (auteur des actions).

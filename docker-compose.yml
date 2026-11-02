@@ -2,6 +2,7 @@ services:
   postgis:
     # Version majeure figée : un serveur 18 refuse de démarrer sur les données d'un 17 (et PGDATA change en 18).
     # À monter volontairement, avec migration des données et l'image de sauvegarde (config/backup/Dockerfile).
+    # Montée de version mineure (ex. 17-3.5 → 17-3.6) : étapes à faire à la main après le déploiement (README > Montée de version de PostGIS).
     image: postgis/postgis:17-3.6
     container_name: postgis_container
     restart: always
