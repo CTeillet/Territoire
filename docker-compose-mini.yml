@@ -27,7 +27,7 @@ services:
       - "55679:55679" # zpages extension
 
   grafana:
-    image: grafana/grafana:13.2.4
+    image: grafana/grafana:13.3.0
     ports:
       - "4000:3000"
     volumes:
