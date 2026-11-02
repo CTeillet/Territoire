@@ -54,7 +54,7 @@ class PostgisIntegrationTest {
 	@Container
 	@ServiceConnection
 	static final PostgreSQLContainer POSTGIS = new PostgreSQLContainer(
-			DockerImageName.parse("postgis/postgis:17-3.5").asCompatibleSubstituteFor("postgres"));
+			DockerImageName.parse("postgis/postgis:17-3.6").asCompatibleSubstituteFor("postgres"));
 
 	private static final double RENNES_LON = -1.6777;
 	private static final double RENNES_LAT = 48.1173;

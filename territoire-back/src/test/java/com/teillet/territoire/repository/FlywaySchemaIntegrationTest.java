@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Testcontainers(disabledWithoutDocker = true)
 class FlywaySchemaIntegrationTest {
-	private static final DockerImageName POSTGIS = DockerImageName.parse("postgis/postgis:17-3.5").asCompatibleSubstituteFor("postgres");
+	private static final DockerImageName POSTGIS = DockerImageName.parse("postgis/postgis:17-3.6").asCompatibleSubstituteFor("postgres");
 
 	/** Schéma de production avant migration, chargé par le script d'initialisation de l'image. */
 	@Container

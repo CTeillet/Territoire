@@ -48,7 +48,7 @@ updates:
     schedule:
       interval: monthly
     ignore:
-      # Le client PostgreSQL garde la version majeure du serveur (postgis/postgis 17-3.5) : à monter avec lui
+      # Le client PostgreSQL garde la version majeure du serveur (17, image postgis/postgis) : à monter avec lui
       - dependency-name: postgres
         update-types: ["version-update:semver-major"]
   # Images de docker-compose.yml (PostGIS, observabilité, exporter) : versions figées, à monter PR par PR

@@ -45,7 +45,7 @@ class FlywayValidateIntegrationTest {
 	@Container
 	@ServiceConnection
 	static final PostgreSQLContainer POSTGIS = new PostgreSQLContainer(
-			DockerImageName.parse("postgis/postgis:17-3.5").asCompatibleSubstituteFor("postgres"))
+			DockerImageName.parse("postgis/postgis:17-3.6").asCompatibleSubstituteFor("postgres"))
 			.withCopyFileToContainer(MountableFile.forClasspathResource("db/schema-production.sql"),
 					"/docker-entrypoint-initdb.d/20_schema_production.sql");
 
