@@ -108,6 +108,32 @@ const applyAssignmentUpdate = (t: Territory, updated: Assignment) => {
   }
 };
 
+/**
+ * Prolongation : l'attribution en cours se termine le jour où commence celle reçue (même personne, nouvelle
+ * échéance). Attribuée le jour même, l'attribution garde son identifiant et est simplement remplacée.
+ * Le dernier parcours ne change pas : une prolongation n'est pas un retour.
+ */
+const applyExtension = (t: Territory, extended: Assignment) => {
+  const assignments = (Array.isArray(t.assignments) ? t.assignments : []).map(
+    (a) =>
+      a.id === extended.id
+        ? extended
+        : a.returnDate === null
+          ? {
+              ...a,
+              returnDate: extended.assignmentDate,
+              returnedVia: "PROLONGATION" as const,
+            }
+          : a
+  );
+  t.assignments = assignments.some((a) => a.id === extended.id)
+    ? assignments
+    : [...assignments, extended];
+  t.status = extended.territory.status;
+  t.assignedOn = extended.assignmentDate;
+  t.waitedFor = extended.dueDate;
+};
+
 export const extendTerritory = createAsyncThunk(
   "territories/extendTerritory",
   async (
@@ -1177,35 +1203,27 @@ const territorySlice = createSlice({
       })
       .addCase(extendTerritory.fulfilled, (state, action) => {
         state.updating = false;
-        const updatedAssignment = action.payload;
+        const extendedAssignment = action.payload;
 
         if (
           !state.territoriesGeojson ||
-          !updatedAssignment ||
-          !updatedAssignment.territory.territoryId
+          !extendedAssignment ||
+          !extendedAssignment.territory.territoryId
         ) {
           console.error(
             "❌ Problème : Assignation ou territoireId est undefined",
-            updatedAssignment
+            extendedAssignment
           );
           return;
         }
 
-        const { territory, returnDate, assignmentDate } = updatedAssignment;
-        const affectedId = territory.territoryId;
+        const affectedId = extendedAssignment.territory.territoryId;
 
         // ✅ Recherche du territoire correspondant dans `FeatureCollection`
         const feature = findFeatureById(state, affectedId);
 
         if (feature) {
-          feature.properties.status = "ASSIGNED";
-          feature.properties.lastVisitedOn = assignmentDate;
-          feature.properties.assignments = [
-            {
-              ...updatedAssignment,
-              returnDate,
-            },
-          ];
+          applyExtension(feature.properties, extendedAssignment);
         } else {
           console.warn(
             `⚠️ Territoire introuvable dans le store pour ID ${affectedId}`
@@ -1213,16 +1231,9 @@ const territorySlice = createSlice({
         }
 
         // ✅ Met à jour aussi le territoire sélectionné si c'est le même
-        updateSelectedIfSame(state, affectedId, (t) => {
-          t.status = "ASSIGNED";
-          t.lastVisitedOn = assignmentDate;
-          t.assignments = [
-            {
-              ...updatedAssignment,
-              returnDate,
-            },
-          ];
-        });
+        updateSelectedIfSame(state, affectedId, (t) =>
+          applyExtension(t, extendedAssignment)
+        );
       })
       .addCase(extendTerritory.rejected, (state, action) => {
         state.updating = false;

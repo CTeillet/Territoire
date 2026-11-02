@@ -502,6 +502,26 @@ describe("Historique des attributions", () => {
     ).toHaveAttribute("href", "/personnes/p2");
   });
 
+  it("signale une attribution close par une prolongation", () => {
+    renderWithStore(
+      <AssignmentsList
+        assignments={[
+          assignment({
+            id: "as1",
+            assignmentDate: "2026-06-01",
+            returnDate: "2026-11-02",
+            returnedVia: "PROLONGATION",
+          }),
+          assignment({ id: "as2", assignmentDate: "2026-11-02" }),
+        ]}
+      />
+    );
+
+    const [extended, running] = screen.getAllByRole("listitem");
+    expect(extended).toHaveTextContent("(prolongé)");
+    expect(running).not.toHaveTextContent("(prolongé)");
+  });
+
   const openDatesDialog = () =>
     userEvent.click(screen.getByRole("button", { name: "Modifier les dates" }));
 

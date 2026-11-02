@@ -10,4 +10,6 @@ export interface Assignment {
   assignmentDate: string;
   dueDate: string;
   returnDate: string | null;
+  /** Origine du retour : null pour une attribution en cours ou un retour antérieur à cette information. */
+  returnedVia?: "RESPONSABLE" | "LIEN" | "PROLONGATION" | null;
 }

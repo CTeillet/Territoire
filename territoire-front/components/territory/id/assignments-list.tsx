@@ -54,6 +54,7 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                     {assignment.returnDate
                       ? new Date(assignment.returnDate).toLocaleDateString()
                       : "En cours"}
+                    {assignment.returnedVia === "PROLONGATION" && " (prolongé)"}
                   </span>
                 </div>
                 <TooltipProvider>

@@ -3,6 +3,7 @@ package com.teillet.territoire.service;
 import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.dto.UpdateAssignmentDatesDto;
+import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Campaign;
@@ -215,21 +216,24 @@ class AssignmentServiceTest {
 		assertEquals(LocalDate.now().plusMonths(2), assigned.getDueDate());
 
 		Assignment running = Assignment.builder().id(UUID.randomUUID()).territory(territory).person(person)
-				.dueDate(LocalDate.now().minusDays(1)).build();
+				.assignmentDate(LocalDate.now().minusMonths(2)).dueDate(LocalDate.now().minusDays(1)).build();
 		when(assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)).thenReturn(Optional.of(running));
 
-		assignmentService.extendTerritory(territoryId);
-		assertEquals(LocalDate.now().plusMonths(2), running.getDueDate());
+		AssignmentDto extended = assignmentService.extendTerritory(territoryId);
+		assertEquals(LocalDate.now().plusMonths(2), extended.getDueDate());
 	}
 
 	@Test
-	void testExtendTerritory_Success() {
-		LocalDate newDueDate = LocalDate.now().plusMonths(6);
+	void testExtendTerritory_ClosesRunningAssignmentAndStartsANewOne() {
+		LocalDate today = LocalDate.now();
+		LocalDate newDueDate = today.plusMonths(6);
+		territory.setStatus(TerritoryStatus.ASSIGNED);
 		Assignment running = Assignment.builder()
 				.id(UUID.randomUUID())
 				.territory(territory)
 				.person(person)
-				.dueDate(LocalDate.now().plusMonths(2))
+				.assignmentDate(today.minusMonths(3))
+				.dueDate(today.plusMonths(1))
 				.build();
 
 		when(assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId))
@@ -239,8 +243,77 @@ class AssignmentServiceTest {
 
 		AssignmentDto result = assignmentService.extendTerritory(territoryId, newDueDate);
 
-		assertNotNull(result);
-		assertEquals(newDueDate, running.getDueDate());
+		// L'attribution en cours se termine aujourd'hui en gardant son échéance
+		assertEquals(today, running.getReturnDate());
+		assertEquals(ReturnSource.PROLONGATION, running.getReturnedVia());
+		assertEquals(today.plusMonths(1), running.getDueDate());
+
+		// La nouvelle commence aujourd'hui pour la même personne
+		ArgumentCaptor<Assignment> saved = ArgumentCaptor.forClass(Assignment.class);
+		verify(assignmentRepository, times(2)).save(saved.capture());
+		Assignment created = saved.getAllValues().get(1);
+		assertNotSame(running, created);
+		assertEquals(territory, created.getTerritory());
+		assertEquals(person, created.getPerson());
+		assertEquals(today, created.getAssignmentDate());
+		assertEquals(newDueDate, created.getDueDate());
+		assertNull(created.getReturnDate());
+
+		assertEquals(today, result.getAssignmentDate());
+		assertEquals(newDueDate, result.getDueDate());
+		assertNull(result.getReturnDate());
+		verify(territoryService, never()).updateTerritoryStatus(any(), any());
+	}
+
+	@Test
+	void testExtendTerritory_LateTerritoryBecomesAssigned() {
+		LocalDate today = LocalDate.now();
+		territory.setStatus(TerritoryStatus.LATE);
+		Assignment running = Assignment.builder()
+				.id(UUID.randomUUID())
+				.territory(territory)
+				.person(person)
+				.assignmentDate(today.minusMonths(5))
+				.dueDate(today.minusMonths(1))
+				.build();
+		when(assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)).thenReturn(Optional.of(running));
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		assignmentService.extendTerritory(territoryId, today.plusMonths(1));
+
+		verify(territoryService).updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
+	}
+
+	@Test
+	void testExtendTerritory_AssignedTodayOnlyChangesDueDate() {
+		LocalDate today = LocalDate.now();
+		territory.setStatus(TerritoryStatus.ASSIGNED);
+		Assignment running = Assignment.builder()
+				.id(UUID.randomUUID())
+				.territory(territory)
+				.person(person)
+				.assignmentDate(today)
+				.dueDate(today.plusMonths(4))
+				.build();
+		when(assignmentRepository.findByReturnDateNullAndTerritory_Id(territoryId)).thenReturn(Optional.of(running));
+		when(assignmentRepository.save(any(Assignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		AssignmentDto result = assignmentService.extendTerritory(territoryId, today.plusMonths(6));
+
+		assertEquals(running.getId(), result.getId());
+		assertEquals(today.plusMonths(6), running.getDueDate());
+		assertNull(running.getReturnDate());
+		assertNull(running.getReturnedVia());
+		verify(assignmentRepository, times(1)).save(any(Assignment.class));
+	}
+
+	@Test
+	void testExtendTerritory_RejectsDueDateNotAfterToday() {
+		LocalDate today = LocalDate.now();
+
+		assertThrows(IllegalArgumentException.class, () -> assignmentService.extendTerritory(territoryId, today));
+		assertThrows(IllegalArgumentException.class, () -> assignmentService.extendTerritory(territoryId, today.minusDays(1)));
+		verifyNoInteractions(assignmentRepository, territoryService);
 	}
 
 	@Test
