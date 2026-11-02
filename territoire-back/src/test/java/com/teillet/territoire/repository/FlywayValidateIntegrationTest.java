@@ -25,6 +25,7 @@ import org.testcontainers.utility.MountableFile;
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Démarrage de l'application comme en production sur une copie du schéma de production : Flyway applique V2, V3..., puis
@@ -72,6 +73,8 @@ class FlywayValidateIntegrationTest {
 		territory.setStatus(TerritoryStatus.AVAILABLE);
 		territory.setType(TerritoryType.HOUSE);
 		territory.setLastModifiedDate(LocalDate.now());
+		// V4 : colonne territory.lost
+		territory.setLost(true);
 		territoryRepository.save(territory);
 		// V3 : valeur autorisée par la contrainte assignment_returned_via_check
 		assignmentRepository.save(Assignment.builder()
@@ -89,6 +92,7 @@ class FlywayValidateIntegrationTest {
 		userRepository.save(user);
 
 		assertEquals(0L, territoryRepository.findByName("Territoire").getVersion());
+		assertTrue(territoryRepository.findByName("Territoire").isLost());
 		assertEquals("admin", userRepository.findByEmail("admin@example.com").orElseThrow().getUsername());
 	}
 }

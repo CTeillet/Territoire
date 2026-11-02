@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Printer } from "lucide-react";
+import { Printer, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsClient } from "@/hooks/use-is-client";
 import { usePrintableMaps } from "@/hooks/use-printable-maps";
 import { cn } from "@/lib/utils";
+import { canManageAssignments } from "@/models/role";
 import {
   CARDS_PER_SHEET,
   cityName,
@@ -22,7 +24,10 @@ import {
   MapState,
 } from "@/lib/territory-print";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { fetchTerritories } from "@/store/slices/territory-slice";
+import {
+  fetchTerritories,
+  updateTerritoryLost,
+} from "@/store/slices/territory-slice";
 
 // À l'impression, seules les feuilles (rendues dans <body> par un portail) sont visibles, en A4 paysage sans marge
 const PRINT_CSS = `
@@ -42,6 +47,7 @@ interface PrintableTerritory {
   name: string;
   city: string;
   hasMap: boolean;
+  lost: boolean;
 }
 
 /** Sélection des territoires dont on imprime les cartes, 4 par feuille A4. */
@@ -54,9 +60,11 @@ export default function TerritoryPrintPage() {
     (state) => state.territories.territoriesGeojson
   );
   const loading = useAppSelector((state) => state.territories.loading);
+  const user = useAppSelector((state) => state.auth.user);
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [clearingLost, setClearingLost] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -79,6 +87,7 @@ export default function TerritoryPrintPage() {
           name: properties.name ?? "",
           city: cityName(properties),
           hasMap: Boolean(properties.territoryMapId),
+          lost: Boolean(properties.lost),
         }))
         .sort(
           (a, b) => compareNames(a.city, b.city) || compareNames(a.name, b.name)
@@ -98,10 +107,20 @@ export default function TerritoryPrintPage() {
     );
   }, [territories, city, search]);
 
+  // Territoires dont la carte papier a disparu : proposés à la réimpression
+  const lostTerritories = useMemo(
+    () => territories.filter((t) => t.lost),
+    [territories]
+  );
+  const lostToSelect = lostTerritories.filter(
+    (t) => t.hasMap && !selected.has(t.id)
+  );
+
   const selectedTerritories = useMemo(
     () => territories.filter((t) => selected.has(t.id)),
     [territories, selected]
   );
+  const selectedLost = selectedTerritories.filter((t) => t.lost);
   const selectedIds = useMemo(
     () => selectedTerritories.map((t) => t.id),
     [selectedTerritories]
@@ -132,6 +151,40 @@ export default function TerritoryPrintPage() {
         ])
     );
 
+  const selectLost = () =>
+    setSelected(
+      (previous) => new Set([...previous, ...lostToSelect.map((t) => t.id)])
+    );
+
+  // Cartes réimprimées : les territoires ne sont plus proposés (ils restent sélectionnés)
+  const clearLost = async () => {
+    setClearingLost(true);
+    const results = await Promise.allSettled(
+      selectedLost.map((t) =>
+        dispatch(
+          updateTerritoryLost({ territoryId: t.id, lost: false })
+        ).unwrap()
+      )
+    );
+    setClearingLost(false);
+    const failed = results.filter((r) => r.status === "rejected").length;
+    const cleared = results.length - failed;
+    if (cleared > 0) {
+      toast.success(
+        cleared > 1
+          ? `${cleared} territoires retirés des perdus.`
+          : "Territoire retiré des perdus."
+      );
+    }
+    if (failed > 0) {
+      toast.error(
+        failed > 1
+          ? `${failed} territoires n'ont pas pu être retirés des perdus.`
+          : "Un territoire n'a pas pu être retiré des perdus."
+      );
+    }
+  };
+
   if (!isClient) return null;
 
   return (
@@ -147,6 +200,34 @@ export default function TerritoryPrintPage() {
       <div className="grid items-start gap-6 lg:grid-cols-[22rem_1fr]">
         {/* En deux colonnes, la sélection reste à l'écran pendant qu'on fait défiler l'aperçu */}
         <div className="space-y-3 rounded-md border bg-white p-4 lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100svh-3rem)] lg:flex-col">
+          {lostTerritories.length > 0 && (
+            <section
+              aria-label="Territoires perdus"
+              className="space-y-2 rounded-md border border-orange-300 bg-orange-50 p-3"
+            >
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-orange-800">
+                <TriangleAlert className="h-4 w-4 shrink-0" />
+                {plural(
+                  lostTerritories.length,
+                  "territoire perdu à réimprimer",
+                  "territoires perdus à réimprimer"
+                )}
+              </h2>
+              <p className="text-sm">
+                {lostTerritories
+                  .map((t) => (t.hasMap ? t.name : `${t.name} (sans carte)`))
+                  .join(", ")}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectLost}
+                disabled={lostToSelect.length === 0}
+              >
+                Sélectionner les territoires perdus
+              </Button>
+            </section>
+          )}
           <Input
             placeholder="Rechercher un territoire"
             aria-label="Rechercher un territoire"
@@ -208,9 +289,16 @@ export default function TerritoryPrintPage() {
                     <span className="text-sm text-muted-foreground">
                       {t.city}
                     </span>
-                    {!t.hasMap && (
-                      <span className="ml-auto text-xs italic">sans carte</span>
-                    )}
+                    <span className="ml-auto flex items-center gap-2">
+                      {t.lost && (
+                        <span className="rounded bg-orange-100 px-1.5 text-xs font-medium text-orange-700">
+                          perdu
+                        </span>
+                      )}
+                      {!t.hasMap && (
+                        <span className="text-xs italic">sans carte</span>
+                      )}
+                    </span>
                   </label>
                 </li>
               ))}
@@ -252,6 +340,24 @@ export default function TerritoryPrintPage() {
                 : "Imprimer"}
             </Button>
           </div>
+
+          {selectedLost.length > 0 && canManageAssignments(user?.role) && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-orange-300 bg-orange-50 p-3 text-sm">
+              <p>
+                {selectedLost.length > 1
+                  ? `${selectedLost.length} territoires perdus sélectionnés : une fois leurs cartes imprimées, retirez-les des perdus.`
+                  : `${selectedLost[0].name} est perdu : une fois sa carte imprimée, retirez-le des perdus.`}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearLost}
+                disabled={clearingLost}
+              >
+                Retirer des perdus
+              </Button>
+            </div>
+          )}
 
           {cards.length === 0 ? (
             <p className="rounded-md border border-dashed bg-white p-10 text-center text-muted-foreground">

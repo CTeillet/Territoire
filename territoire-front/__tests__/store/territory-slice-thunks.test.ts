@@ -24,6 +24,7 @@ import territoryReducer, {
   returnTerritory,
   updateAssignmentDates,
   updateTerritory,
+  updateTerritoryLost,
 } from "@/store/slices/territory-slice";
 import * as authFetchModule from "@/utils/auth-fetch";
 import { Territory, TerritoryCollection } from "@/models/territory";
@@ -390,6 +391,54 @@ describe("territory-slice : thunks et reducers", () => {
       } as unknown as Response);
       await store.dispatch(updateTerritory({ id: "t1", dto: {} as never }));
       expect(store.getState().territories.error).toBe("JSON invalide");
+    });
+
+    it("updateTerritoryLost : signale le territoire perdu puis le retire des perdus", async () => {
+      const store = newStore({
+        territoriesGeojson: collection(),
+        selectedTerritory: territory(),
+      });
+      const state = () => store.getState().territories;
+
+      authFetch.mockResolvedValueOnce(ok(territory({ lost: true })));
+      await store.dispatch(
+        updateTerritoryLost({ territoryId: "t1", lost: true })
+      );
+
+      expect(authFetch).toHaveBeenLastCalledWith(
+        "/api/territoires/t1/perdu",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({ lost: true }),
+        })
+      );
+      expect(state().territoriesGeojson?.features[0].properties.lost).toBe(
+        true
+      );
+      expect(state().selectedTerritory?.lost).toBe(true);
+      expect(state().updating).toBe(false);
+
+      authFetch.mockResolvedValueOnce(ok(territory({ lost: false })));
+      await store.dispatch(
+        updateTerritoryLost({ territoryId: "t1", lost: false })
+      );
+      expect(state().territoriesGeojson?.features[0].properties.lost).toBe(
+        false
+      );
+      expect(state().selectedTerritory?.lost).toBe(false);
+
+      authFetch.mockResolvedValueOnce(failing(403));
+      const rejected = await store.dispatch(
+        updateTerritoryLost({ territoryId: "t1", lost: true })
+      );
+      expect(rejected.payload).toBe(
+        "Erreur lors du signalement du territoire perdu"
+      );
+      expect(state().error).toBe(
+        "Erreur lors du signalement du territoire perdu"
+      );
+      expect(state().selectedTerritory?.lost).toBe(false);
+      expect(state().updating).toBe(false);
     });
 
     it("deleteTerritory : retire le territoire, ou signale l'erreur", async () => {

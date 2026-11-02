@@ -35,6 +35,10 @@ public interface ITerritoryService {
 	@Transactional
 	TerritoryDto updateTerritory(UUID id, UpdateTerritoryDto updateDto) throws IOException;
 
+	/** Signale la carte du territoire comme perdue (lost = true) ou la retire des perdus, sans toucher au reste. */
+	@Transactional
+	TerritoryDto updateLost(UUID id, boolean lost) throws IOException;
+
 	@Transactional
 	void deleteTerritory(UUID id);
 

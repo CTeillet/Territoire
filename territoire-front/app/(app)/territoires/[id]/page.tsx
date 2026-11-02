@@ -77,6 +77,7 @@ const TerritoryPage = () => {
         note={selectedTerritory.note}
         territoryId={selectedTerritory.id}
         territoryMapId={selectedTerritory.territoryMapId}
+        lost={selectedTerritory.lost}
       />
 
       {/* Carte du territoire (GeoJSON) */}

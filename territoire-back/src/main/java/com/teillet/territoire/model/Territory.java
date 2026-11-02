@@ -52,6 +52,13 @@ public class Territory {
 
 	private String note;
 
+	/**
+	 * Carte papier perdue, quel que soit le statut du territoire : il est proposé à la réimpression
+	 * (page « Impression des cartes ») jusqu'à ce qu'on le retire des perdus.
+	 */
+	@Column(nullable = false)
+	private boolean lost;
+
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
 	@JsonManagedReference
 	@ToString.Exclude

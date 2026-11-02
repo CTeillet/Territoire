@@ -234,6 +234,37 @@ describe("Boutons d'action d'un territoire", () => {
     );
   });
 
+  it("signale le territoire perdu, puis le retire des perdus", async () => {
+    setup({ "PUT /api/territoires/t1/perdu": {} });
+    const { unmount } = renderWithStore(
+      <TerritoryDataActionButtons territoryId="t1" status="ASSIGNED" />,
+      "GESTIONNAIRE"
+    );
+
+    await userEvent.click(button("Signaler comme perdu"));
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("/api/territoires/t1/perdu", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lost: true }),
+      })
+    );
+    unmount();
+
+    renderWithStore(
+      <TerritoryDataActionButtons territoryId="t1" status="ASSIGNED" lost />,
+      "GESTIONNAIRE"
+    );
+    await userEvent.click(button("Retirer des territoires perdus"));
+    await waitFor(() =>
+      expect(api).toHaveBeenLastCalledWith("/api/territoires/t1/perdu", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lost: false }),
+      })
+    );
+  });
+
   it("masque les actions de gestion à un simple utilisateur", () => {
     setup();
     renderWithStore(
@@ -250,6 +281,9 @@ describe("Boutons d'action d'un territoire", () => {
       screen.queryByRole("button", {
         name: "Télécharger une carte de territoire",
       })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Signaler comme perdu" })
     ).not.toBeInTheDocument();
   });
 

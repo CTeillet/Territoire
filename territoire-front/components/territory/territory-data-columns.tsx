@@ -10,6 +10,7 @@ import React from "react";
 import { DataTableColumnHeader } from "@/components/territory/territory-data-header";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import { getBadgeColor } from "@/components/utils";
+import { LostBadge } from "@/components/territory/lost-badge";
 
 export const COLUMNS_ID_TRANSLATIONS = {
   actions: "Actions",
@@ -79,7 +80,7 @@ export const territoryDataColumns: ColumnDef<
     },
     cell: ({ row }) => {
       return (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-1">
           <Badge
             className={`${getBadgeColor(row.getValue("status"))} text-white px-2 py-1 rounded w-full `}
           >
@@ -89,6 +90,7 @@ export const territoryDataColumns: ColumnDef<
               ]
             }
           </Badge>
+          {row.original.lost && <LostBadge className="w-full" />}
         </div>
       );
     },
@@ -187,6 +189,7 @@ export const territoryDataColumns: ColumnDef<
           territoryId={row.getValue("id")}
           status={row.original.status}
           territoryMapId={row.original.territoryMapId}
+          lost={row.original.lost}
         />
       );
     },

@@ -447,6 +447,65 @@ class TerritoryControllerIntegrationTest {
 	}
 
 	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testUpdateTerritoryLost() throws Exception {
+		LocalDate lastModifiedDate = LocalDate.now().minusMonths(2);
+		Territory territory = createTestTerritory("Territoire Perdu", TerritoryType.HOUSE, TerritoryStatus.ASSIGNED);
+		territory.setLastModifiedDate(lastModifiedDate);
+		Territory saved = territoryRepository.save(territory);
+
+		mockMvc.perform(put("/api/territoires/{id}/perdu", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"lost\": true}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.lost").value(true))
+				.andExpect(jsonPath("$.status").value("ASSIGNED"));
+
+		Territory lost = territoryRepository.findById(saved.getId()).orElseThrow();
+		assertTrue(lost.isLost());
+		// La carte papier n'est pas le territoire : sa date de modification ne change pas
+		assertEquals(lastModifiedDate, lost.getLastModifiedDate());
+
+		mockMvc.perform(get("/api/territoires/geojson"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.features[0].properties.lost").value(true));
+
+		mockMvc.perform(put("/api/territoires/{id}/perdu", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"lost\": false}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.lost").value(false));
+
+		assertFalse(territoryRepository.findById(saved.getId()).orElseThrow().isLost());
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testUpdateTerritoryLost_WithoutValue_BadRequest() throws Exception {
+		Territory saved = territoryRepository.save(createTestTerritory("Territoire", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+
+		mockMvc.perform(put("/api/territoires/{id}/perdu", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isBadRequest());
+
+		assertFalse(territoryRepository.findById(saved.getId()).orElseThrow().isLost());
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testUpdateTerritoryLost_ForbiddenForUser() throws Exception {
+		Territory saved = territoryRepository.save(createTestTerritory("Territoire", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+
+		mockMvc.perform(put("/api/territoires/{id}/perdu", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"lost\": true}"))
+				.andExpect(status().isForbidden());
+
+		assertFalse(territoryRepository.findById(saved.getId()).orElseThrow().isLost());
+	}
+
+	@Test
 	@WithMockUser(roles = "UTILISATEUR")
 	void testGetTerritory_UnknownId_NotFound() throws Exception {
 		mockMvc.perform(get("/api/territoires/{id}", java.util.UUID.randomUUID()))
