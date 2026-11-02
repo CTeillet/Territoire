@@ -13,7 +13,10 @@ export const RoleSchema = z.enum(ROLES);
 export const canManageCampaigns = (role?: Role | null): boolean =>
   role === "ADMIN" || role === "SUPERVISEUR";
 
-/** Attribution, retour, prolongation et correction des dates d'attribution (cf. TerritoryController, AssignmentController). */
+/**
+ * Attribution, retour, prolongation, correction des dates d'attribution et territoires perdus
+ * (cf. TerritoryController, AssignmentController).
+ */
 export const canManageAssignments = (role?: Role | null): boolean =>
   role === "ADMIN" || role === "SUPERVISEUR" || role === "GESTIONNAIRE";
 

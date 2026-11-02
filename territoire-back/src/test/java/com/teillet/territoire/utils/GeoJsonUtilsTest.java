@@ -60,7 +60,7 @@ class GeoJsonUtilsTest {
 		assertMultiPolygonSquare(feature.path("geometry"));
 
 		JsonNode properties = feature.path("properties");
-		assertEquals(Set.of("id", "name", "status", "city", "lastVisitedOn", "assignedTo", "assignedOn", "waitedFor", "type", "assignments"),
+		assertEquals(Set.of("id", "name", "status", "city", "lastVisitedOn", "assignedTo", "assignedOn", "waitedFor", "type", "assignments", "lost"),
 				propertyNames(properties));
 		assertEquals(territory.getId().toString(), properties.path("id").asText());
 		assertEquals("Territoire 1", properties.path("name").asText());
@@ -128,7 +128,7 @@ class GeoJsonUtilsTest {
 		// FeatureJSON n'écrit ni les propriétés nulles ni la clé "geometry" quand la géométrie est nulle.
 		assertFalse(feature.has("geometry"));
 		JsonNode properties = feature.path("properties");
-		assertEquals(Set.of("id", "status", "city", "lastVisitedOn", "assignedTo", "assignedOn", "waitedFor", "assignments"),
+		assertEquals(Set.of("id", "status", "city", "lastVisitedOn", "assignedTo", "assignedOn", "waitedFor", "assignments", "lost"),
 				propertyNames(properties));
 		assertEquals(TerritoryUtils.NA, properties.path("assignedTo").asText());
 		assertTrue(properties.path("assignments").isArray());
@@ -146,6 +146,19 @@ class GeoJsonUtilsTest {
 		// Seul le type MIME est lu : l'image elle-même n'est chargée que par GET /api/territoires/{id}/carte
 		assertEquals(withMap.getId().toString(), features.get(0).path("properties").path("territoryMapId").asText());
 		assertFalse(features.get(1).path("properties").has("territoryMapId"));
+	}
+
+	@Test
+	void convertToGeoJSON_territories_givesLost() throws Exception {
+		Territory lost = territory("Perdu", TerritoryStatus.ASSIGNED, TerritoryType.HOUSE, null);
+		lost.setLost(true);
+		Territory notLost = territory("Pas perdu", TerritoryStatus.AVAILABLE, TerritoryType.HOUSE, null);
+
+		JsonNode features = parse(GeoJsonUtils.convertToGeoJSON(List.of(lost, notLost))).path("features");
+
+		assertTrue(features.get(0).path("properties").path("lost").isBoolean());
+		assertTrue(features.get(0).path("properties").path("lost").booleanValue());
+		assertFalse(features.get(1).path("properties").path("lost").booleanValue());
 	}
 
 	@Test

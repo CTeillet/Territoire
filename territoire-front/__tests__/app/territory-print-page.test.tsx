@@ -1,21 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 import TerritoryPrintPage from "@/app/(app)/territoires/impression/page";
 import { jsonResponse, mockApi, renderWithStore } from "../test-utils";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const feature = (
   id: string,
   name: string,
   city: string,
-  territoryMapId?: string
+  territoryMapId?: string,
+  lost = false
 ) => ({
   type: "Feature",
   geometry: null,
-  properties: { id, name, status: "AVAILABLE", city, territoryMapId },
+  properties: { id, name, status: "AVAILABLE", city, territoryMapId, lost },
 });
 
 const collection = {
@@ -29,12 +32,28 @@ const collection = {
   ],
 };
 
+// PVP10 et M106 perdus ; C1, perdu lui aussi, n'a pas de carte à imprimer
+const collectionWithLost = {
+  type: "FeatureCollection",
+  features: [
+    feature("t1", "PVP10", "Paray Vieille Poste", "t1", true),
+    feature("t2", "PVP2", "Paray Vieille Poste", "t2"),
+    feature("t3", "M106", "Morangis", "t3", true),
+    feature("t4", "C1", "Commerces", undefined, true),
+    feature("t5", "M2", "Morangis", "t5"),
+  ],
+};
+
 const printButton = () => screen.getByRole("button", { name: /Imprimer/ });
+const lostSuggestions = () =>
+  screen.queryByRole("region", { name: "Territoires perdus" });
 
 describe("Impression des cartes", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     push.mockClear();
+    vi.mocked(toast.success).mockClear();
+    vi.mocked(toast.error).mockClear();
     URL.createObjectURL = vi.fn(() => "blob:carte");
     URL.revokeObjectURL = vi.fn();
     vi.stubGlobal(
@@ -78,6 +97,8 @@ describe("Impression des cartes", () => {
     ).toBeDisabled();
     expect(screen.getByText("sans carte")).toBeInTheDocument();
     expect(printButton()).toBeDisabled();
+    // Aucun territoire perdu : rien à proposer
+    expect(lostSuggestions()).not.toBeInTheDocument();
 
     // « Tout sélectionner » ne prend que les territoires affichés
     await userEvent.selectOptions(
@@ -131,6 +152,131 @@ describe("Impression des cartes", () => {
       screen.getByText("0 territoire sélectionné · 0 feuille A4")
     ).toBeInTheDocument();
     expect(document.querySelector(".territory-print")).toBeNull();
+  });
+
+  it("propose les territoires perdus puis les retire des perdus une fois imprimés", async () => {
+    const api = mockApi({
+      "GET /api/territoires/geojson": collectionWithLost,
+      "GET /api/territoires/": jsonResponse({}),
+      "PUT /api/territoires/": jsonResponse({}),
+    });
+    renderWithStore(<TerritoryPrintPage />, "GESTIONNAIRE");
+
+    const suggestions = await screen.findByRole("region", {
+      name: "Territoires perdus",
+    });
+    expect(
+      within(suggestions).getByRole("heading", {
+        name: "3 territoires perdus à réimprimer",
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(suggestions).getByText("C1 (sans carte), M106, PVP10")
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("perdu")).toHaveLength(3);
+
+    // Seuls les perdus qui ont une carte sont sélectionnés
+    const selectLost = within(suggestions).getByRole("button", {
+      name: "Sélectionner les territoires perdus",
+    });
+    await userEvent.click(selectLost);
+    expect(
+      screen.getByText("2 territoires sélectionnés · 1 feuille A4")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: "M106, Morangis" })
+    ).toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: "PVP10, Paray Vieille Poste" })
+    ).toBeChecked();
+    expect(selectLost).toBeDisabled();
+
+    expect(
+      screen.getByText(
+        "2 territoires perdus sélectionnés : une fois leurs cartes imprimées, retirez-les des perdus."
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Retirer des perdus" })
+    );
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "2 territoires retirés des perdus."
+      )
+    );
+    for (const id of ["t1", "t3"]) {
+      expect(api).toHaveBeenCalledWith("/api/territoires/" + id + "/perdu", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lost: false }),
+      });
+    }
+    // Reste C1, sans carte à imprimer ; la sélection ne change pas
+    expect(
+      within(lostSuggestions()!).getByRole("heading", {
+        name: "1 territoire perdu à réimprimer",
+      })
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("perdu")).toHaveLength(1);
+    expect(
+      screen.getByText("2 territoires sélectionnés · 1 feuille A4")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Retirer des perdus" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("signale les territoires qui n'ont pas pu être retirés des perdus", async () => {
+    mockApi({
+      "GET /api/territoires/geojson": collectionWithLost,
+      "GET /api/territoires/": jsonResponse({}),
+      "PUT /api/territoires/t1/perdu": jsonResponse({}),
+      "PUT /api/territoires/t3/perdu": jsonResponse({ error: "Refusé" }, 500),
+    });
+    renderWithStore(<TerritoryPrintPage />, "GESTIONNAIRE");
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Sélectionner les territoires perdus",
+      })
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Retirer des perdus" })
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Un territoire n'a pas pu être retiré des perdus."
+      )
+    );
+    expect(toast.success).toHaveBeenCalledWith("Territoire retiré des perdus.");
+    expect(
+      screen.getByText(
+        "M106 est perdu : une fois sa carte imprimée, retirez-le des perdus."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("ne permet pas à un simple utilisateur de retirer des perdus", async () => {
+    mockApi({
+      "GET /api/territoires/geojson": collectionWithLost,
+      "GET /api/territoires/": jsonResponse({}),
+    });
+    renderWithStore(<TerritoryPrintPage />, "UTILISATEUR");
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Sélectionner les territoires perdus",
+      })
+    );
+
+    expect(
+      screen.getByText("2 territoires sélectionnés · 1 feuille A4")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Retirer des perdus" })
+    ).not.toBeInTheDocument();
   });
 
   it("signale une carte qui n'a pas pu être chargée", async () => {

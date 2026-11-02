@@ -7,9 +7,12 @@ import {
   Eye,
   IterationCcw,
   Upload,
+  FileCheck,
   FileImage,
   FileUp,
+  FileX,
 } from "lucide-react";
+import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AssignTerritoryDialog from "@/components/territory/assign-territory-dialog";
 import ReturnConfirmationDialog from "@/components/territory/return-confirmation-dialog";
@@ -23,23 +26,27 @@ import {
   cancelAssignment,
   extendTerritory,
   returnTerritory,
+  updateTerritoryLost,
 } from "@/store/slices/territory-slice";
 import { Person } from "@/models/person";
 import ExtendConfirmationDialog from "@/components/territory/extend-confirmation-dialog";
 import CancelAssignmentDialog from "@/components/territory/cancel-assignment-dialog";
 import { authFetch } from "@/utils/auth-fetch";
+import { canManageAssignments } from "@/models/role";
 
 interface TerritoryDataActionButtonsProps {
   territoryId: string;
   showDetails?: boolean;
   status: TerritoryStatus;
   territoryMapId?: string;
+  lost?: boolean;
 }
 
 export function TerritoryDataActionButtons({
   territoryId,
   status,
   territoryMapId,
+  lost = false,
   showDetails = true,
 }: TerritoryDataActionButtonsProps) {
   const dispatch = useAppDispatch();
@@ -129,6 +136,22 @@ export function TerritoryDataActionButtons({
       await dispatch(extendTerritory({ territoryId, dueDate })).unwrap();
     } catch (error) {
       console.error("❌ Erreur lors de la prolongation du territoire :", error);
+    }
+  };
+
+  // Sans confirmation : l'action se défait d'un clic sur le même bouton
+  const handleToggleLost = async () => {
+    try {
+      await dispatch(
+        updateTerritoryLost({ territoryId, lost: !lost })
+      ).unwrap();
+      toast.success(
+        lost
+          ? "Territoire retiré des perdus."
+          : "Territoire signalé perdu : il sera proposé à la réimpression."
+      );
+    } catch (error) {
+      toast.error(String(error));
     }
   };
 
@@ -270,6 +293,17 @@ export function TerritoryDataActionButtons({
               className="bg-red-500 hover:bg-red-600 text-white"
             />
           )}
+
+        {canManageAssignments(user?.role) && (
+          <ActionButton
+            icon={lost ? FileCheck : FileX}
+            tooltip={
+              lost ? "Retirer des territoires perdus" : "Signaler comme perdu"
+            }
+            onClick={handleToggleLost}
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+          />
+        )}
 
         {/* Bouton pour télécharger une carte de territoire */}
         {(user?.role === "ADMIN" || user?.role === "SUPERVISEUR") && (

@@ -342,6 +342,34 @@ export const updateTerritory = createAsyncThunk(
   }
 );
 
+/** Signale un territoire perdu (sa carte papier a disparu) ou le retire des perdus. */
+export const updateTerritoryLost = createAsyncThunk(
+  "territories/updateTerritoryLost",
+  async (
+    { territoryId, lost }: { territoryId: string; lost: boolean },
+    { rejectWithValue }
+  ) => {
+    const response = await authFetch(`${BASE_URL}/${territoryId}/perdu`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lost }),
+    });
+
+    if (!response.ok) {
+      return rejectWithValue(
+        await apiErrorMessage(
+          response,
+          lost
+            ? "Erreur lors du signalement du territoire perdu"
+            : "Erreur lors du retrait du territoire des perdus"
+        )
+      );
+    }
+
+    return { territoryId, lost };
+  }
+);
+
 export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
   "territories/fetchGeoJson",
   async (_, { rejectWithValue }) => {
@@ -933,6 +961,25 @@ const territorySlice = createSlice({
         }
       })
       .addCase(updateTerritory.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      })
+
+      .addCase(updateTerritoryLost.pending, (state) => {
+        state.updating = true;
+      })
+      .addCase(updateTerritoryLost.fulfilled, (state, action) => {
+        state.updating = false;
+        const { territoryId, lost } = action.payload;
+        const feature = findFeatureById(state, territoryId);
+        if (feature) {
+          feature.properties.lost = lost;
+        }
+        updateSelectedIfSame(state, territoryId, (t) => {
+          t.lost = lost;
+        });
+      })
+      .addCase(updateTerritoryLost.rejected, (state, action) => {
         state.updating = false;
         state.error = action.payload as string;
       })

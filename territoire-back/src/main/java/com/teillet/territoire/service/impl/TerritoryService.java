@@ -185,6 +185,15 @@ public class TerritoryService implements ITerritoryService {
 		return TerritoryMapper.toDto(territoryRepository.save(territory));
 	}
 
+	/** La date de dernière modification ne bouge pas : elle suit le territoire lui-même (nom, ville, pâtés), pas sa carte papier. */
+	@Transactional
+	@Override
+	public TerritoryDto updateLost(UUID id, boolean lost) throws IOException {
+		Territory territory = getTerritory(id);
+		territory.setLost(lost);
+		return TerritoryMapper.toDto(territoryRepository.save(territory));
+	}
+
 	@Override
 	@Transactional
 	public void deleteTerritory(UUID territoryId) {

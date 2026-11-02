@@ -134,6 +134,17 @@ class TerritoryController {
 		}
 	}
 
+	/** Territoire perdu (sa carte papier a disparu) ou retiré des perdus : les perdus sont proposés à la réimpression. */
+	@PutMapping("/{territoryId}/perdu")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
+	public TerritoryDto updateTerritoryLost(@PathVariable UUID territoryId, @Valid @RequestBody UpdateTerritoryLostDto dto) throws IOException {
+		String action = dto.getLost() ? "signalé perdu" : "retiré des perdus";
+		log.info("Début : Territoire {} {}", territoryId, action);
+		TerritoryDto territory = territoryService.updateLost(territoryId, dto.getLost());
+		log.info("Fin : Territoire {} {}", territoryId, action);
+		return territory;
+	}
+
 	@PostMapping("/{territoryId}/adresses-a-ne-pas-visiter")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public AddressNotToDo addAddressNotToDo(@PathVariable UUID territoryId, @RequestBody AddAddressNotToDoDto addressNotToDoDto) {

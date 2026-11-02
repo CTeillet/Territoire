@@ -21,6 +21,8 @@ export interface Territory {
   assignments: Assignment[];
   geojson: string;
   note?: string | null;
+  /** Carte papier perdue : le territoire est proposé à la réimpression (page « Impression des cartes »). */
+  lost?: boolean;
   lastVisitedOn: string;
   assignedOn: string;
   waitedFor: string;

@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { getBadgeColor } from "@/components/utils";
+import { LostBadge } from "@/components/territory/lost-badge";
 
 interface TerritoryHeaderProps {
   territoryId: string;
@@ -54,6 +55,7 @@ interface TerritoryHeaderProps {
   lastModifiedDate: string | null;
   note?: string | null;
   territoryMapId?: string;
+  lost?: boolean;
 }
 
 const TerritoryHeader = ({
@@ -65,6 +67,7 @@ const TerritoryHeader = ({
   note,
   territoryId,
   territoryMapId,
+  lost = false,
 }: TerritoryHeaderProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -226,6 +229,7 @@ const TerritoryHeader = ({
         >
           {STATUS_TRANSLATIONS[status]}
         </Badge>
+        {lost && <LostBadge className="ml-2" />}
       </p>
 
       {/* Type */}
@@ -278,6 +282,7 @@ const TerritoryHeader = ({
           showDetails={false}
           status={status}
           territoryMapId={territoryMapId}
+          lost={lost}
         />
       </div>
     </div>
