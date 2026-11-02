@@ -12,6 +12,9 @@ import { DataTableFeatures } from "@/components/ui/data-table-features";
 import { Territory } from "@/models/territory";
 import { DataTableColumnHeader } from "@/components/territory/territory-data-header";
 import { ReminderStatusBadge } from "./reminder-status-badge";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import ActionButton from "@/components/shared/action-button";
+import { Eye } from "lucide-react";
 // import {ReminderDialog} from "@/components/late-territory/reminder-dialog";
 
 interface LateTerritoriesTableProps {
@@ -85,6 +88,20 @@ export function createLateTerritoriesColumns(
         <ReminderStatusBadge
           hasReminder={hasReminder(row.original.id, row.original.assignedTo)}
         />
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <TooltipProvider>
+          <ActionButton
+            icon={Eye}
+            tooltip="Voir les détails"
+            href={`/territoires/${row.original.id}`}
+            className="bg-gray-500 hover:bg-gray-600 text-white"
+          />
+        </TooltipProvider>
       ),
     },
   ];
