@@ -46,7 +46,7 @@ Backend (profil `local`, cookies sans HTTPS) :
 cd territoire-back
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
-Variables attendues : `JWT_SECRET_KEY` (clé base64), `WAHA_API_KEY_PLAIN_TEXT`, et en option `ACCESS_LINK_SECRET` (clé des liens personnels, sinon dérivée de `JWT_SECRET_KEY`).
+Variables attendues : `JWT_SECRET_KEY` (clé base64), `WAHA_API_KEY_PLAIN_TEXT`, et en option `ACCESS_LINK_SECRET` (clé des liens personnels, sinon dérivée de `JWT_SECRET_KEY`) et `INTEGRATIONS_API_KEY` (tuile Homepage, cf. [Intégrations](#intégrations-tuile-homepage)).
 
 Frontend (port 40000) :
 ```bash
@@ -95,6 +95,39 @@ Le back envoie chaque lundi à 8 h (heure de Paris) la liste des territoires en 
 3. Après le déploiement (`docker compose up -d territoire-back`), dans Paramètres > Autres paramètres : saisir les destinataires, « Enregistrer », puis « Envoyer maintenant » pour vérifier la réception.
 
 Tout autre serveur SMTP en STARTTLS sur le port 587 convient (Brevo, OVH…). L'horaire est réglé par `territoire.late-report.cron` dans `application.properties` (format cron Spring, `0 0 8 * * MON`).
+
+### Intégrations (tuile Homepage)
+`GET /api/integrations/resume` renvoie le nombre de territoires par statut, sans aucune donnée personnelle :
+```json
+{"late": 7, "assigned": 42, "available": 18, "pending": 3, "total": 70}
+```
+Il s'authentifie par une clé dédiée dans l'en-tête `X-API-Key`, qui n'ouvre aucun autre endpoint. Sans clé configurée, il répond 401.
+
+1. Générer une clé (32 caractères minimum) et l'ajouter dans l'environnement du VPS, à côté des autres secrets :
+   ```bash
+   INTEGRATIONS_API_KEY=$(openssl rand -hex 32)
+   ```
+2. Après le déploiement (`docker compose up -d territoire-back`), vérifier :
+   ```bash
+   curl -s -H "X-API-Key: $INTEGRATIONS_API_KEY" https://tms.cteillet.fr/api/integrations/resume
+   ```
+3. Côté [Homepage](https://gethomepage.dev), la clé va dans une variable `HOMEPAGE_VAR_TMS_KEY` et le widget `customapi` affiche les compteurs :
+   ```yaml
+   widget:
+     type: customapi
+     url: https://tms.cteillet.fr/api/integrations/resume
+     headers:
+       X-API-Key: "{{HOMEPAGE_VAR_TMS_KEY}}"
+     mappings:
+       - field: late
+         label: En retard
+       - field: assigned
+         label: Attribués
+       - field: available
+         label: Disponibles
+       - field: pending
+         label: En attente
+   ```
 
 ### Sauvegardes de la base
 Le service `db-backup` (`config/backup`) fait chaque nuit à 02:00 UTC un `pg_dump`, le chiffre avec [age](https://age-encryption.org) et l'envoie avec [rclone](https://rclone.org) dans le dossier `territoire-backups` d'un Google Drive. Le VPS n'a que la clé publique : il ne peut pas relire ses propres sauvegardes, et Google ne voit que des fichiers chiffrés. Dans ce dossier :

@@ -65,6 +65,8 @@ services:
       WAHA_API_KEY_PLAIN_TEXT: ${WAHA_API_KEY_PLAIN_TEXT}
       # Clé des liens personnels (/m/...). Facultative : sans elle, dérivée de JWT_SECRET_KEY (changer la clé JWT invaliderait alors les liens)
       ACCESS_LINK_SECRET: ${ACCESS_LINK_SECRET:-}
+      # Clé des intégrations externes (tuile Homepage, /api/integrations/**). Facultative : sans elle, désactivées
+      INTEGRATIONS_API_KEY: ${INTEGRATIONS_API_KEY:-}
       # Serveur SMTP du récapitulatif hebdomadaire des retards. Facultatif : sans MAIL_HOST, aucun e-mail n'est envoyé
       MAIL_HOST: ${MAIL_HOST:-}
       MAIL_PORT: ${MAIL_PORT:-587}

@@ -29,6 +29,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
 
 	/**
 	 * Origines autorisées pour les appels cross-origin (liste séparée par des virgules).
@@ -53,6 +54,8 @@ public class SecurityConfig {
 						// Sonde de santé publique (sans détails) ; le reste d'Actuator est réservé aux admins
 						.requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 						.requestMatchers("/actuator/**").hasRole("ADMIN")
+						// Intégrations externes (tuile Homepage) : clé d'API dédiée, sans compte (cf. ApiKeyAuthenticationFilter)
+						.requestMatchers(ApiKeyAuthenticationFilter.PATH_PREFIX + "**").hasRole(ApiKeyAuthenticationFilter.ROLE)
 						.requestMatchers("/api/**").authenticated()
 						.requestMatchers("/error").permitAll()
 						// Tout ce qui n'est pas explicitement prévu est refusé
@@ -61,7 +64,8 @@ public class SecurityConfig {
 				// Requête non authentifiée -> 401 (et non 403), pour que le front sache qu'il doit rafraîchir le jeton
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
 	}
