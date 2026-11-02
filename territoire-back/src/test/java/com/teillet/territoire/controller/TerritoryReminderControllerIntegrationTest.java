@@ -1,10 +1,15 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.dto.LateTerritoryDto;
+import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
+import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
+import com.teillet.territoire.model.TerritoryReminder;
+import com.teillet.territoire.repository.AssignmentRepository;
 import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.repository.PersonRepository;
 import com.teillet.territoire.repository.TerritoryReminderRepository;
@@ -23,11 +28,17 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -45,6 +56,9 @@ class TerritoryReminderControllerIntegrationTest {
 	private TerritoryRepository territoryRepository;
 
 	@Autowired
+	private AssignmentRepository assignmentRepository;
+
+	@Autowired
 	private PersonRepository personRepository;
 
 	@Autowired
@@ -54,13 +68,16 @@ class TerritoryReminderControllerIntegrationTest {
 	private IWahaClient wahaClient;
 
 	private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+	private final LocalDate today = LocalDate.now();
 	private Territory territory;
 	private Person person;
+	private Assignment running;
 
 	/** Base H2 partagée entre les classes de test : nettoyée avant et après chaque test. */
 	@AfterEach
 	void cleanUp() {
 		territoryReminderRepository.deleteAll();
+		assignmentRepository.deleteAll();
 		territoryRepository.deleteAll();
 		personRepository.deleteAll();
 		cityRepository.deleteAll();
@@ -89,6 +106,45 @@ class TerritoryReminderControllerIntegrationTest {
 				.lastName("Martin")
 				.phoneNumber("+33612345678")
 				.build());
+
+		// Attribution en cours, échéance dépassée
+		running = assignmentRepository.save(Assignment.builder()
+				.territory(territory)
+				.person(person)
+				.assignmentDate(today.minusDays(150))
+				.dueDate(today.minusDays(30))
+				.build());
+	}
+
+	private void reminder(LocalDate date) {
+		territoryReminderRepository.save(TerritoryReminder.builder()
+				.territories(List.of(territory))
+				.person(person)
+				.reminderDate(date)
+				.notes("Premier rappel")
+				.build());
+	}
+
+	private ResultActions sendWhatsAppReminder() throws Exception {
+		return mockMvc.perform(post("/api/territory-reminders/whatsapp")
+				.param("territoryIds", territory.getId().toString())
+				.param("personId", person.getId().toString())
+				.contentType(MediaType.TEXT_PLAIN)
+				.content("N'oubliez pas votre territoire en retard"));
+	}
+
+	private ResultActions checkReminder() throws Exception {
+		return mockMvc.perform(get("/api/territory-reminders/check")
+				.param("territoryId", territory.getId().toString())
+				.param("personId", person.getId().toString()));
+	}
+
+	private LocalDate lastReminderDateOfLateReport() {
+		LateTerritoryDto late = territoryRepository.findLate().stream()
+				.filter(dto -> dto.id().equals(territory.getId()))
+				.findFirst()
+				.orElseThrow();
+		return late.lastReminderDate();
 	}
 
 	@Test
@@ -107,25 +163,55 @@ class TerritoryReminderControllerIntegrationTest {
 	void testSendWhatsAppReminder() throws Exception {
 		doNothing().when(wahaClient).sendMessage(anyString(), anyString());
 
-		mockMvc.perform(post("/api/territory-reminders/whatsapp")
-						.param("territoryIds", territory.getId().toString())
-						.param("personId", person.getId().toString())
-						.contentType(MediaType.TEXT_PLAIN)
-						.content("N'oubliez pas votre territoire en retard"))
+		sendWhatsAppReminder()
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.messageSend").value("N'oubliez pas votre territoire en retard"));
 	}
 
 	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testSendWhatsAppReminder_RefusedWhenAlreadyRemindedDuringCurrentAssignment() throws Exception {
+		reminder(today.minusDays(10));
+
+		sendWhatsAppReminder().andExpect(status().isBadRequest());
+
+		verify(wahaClient, never()).sendMessage(anyString(), anyString());
+		assertThat(territoryReminderRepository.count()).isEqualTo(1);
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testSendWhatsAppReminder_AfterExtension_RemindersOfPreviousAssignmentAreIgnored() throws Exception {
+		// Relancée pendant l'attribution précédente, dont le jour de la prolongation (avant celle-ci)
+		reminder(today.minusDays(40));
+		reminder(today.minusDays(20));
+		running.setReturnDate(today.minusDays(20));
+		running.setReturnedVia(ReturnSource.PROLONGATION);
+		assignmentRepository.save(running);
+		// Nouvelle attribution, de nouveau en retard
+		assignmentRepository.save(Assignment.builder()
+				.territory(territory)
+				.person(person)
+				.assignmentDate(today.minusDays(20))
+				.dueDate(today.minusDays(1))
+				.build());
+
+		checkReminder().andExpect(status().isOk()).andExpect(content().string("false"));
+		assertThat(lastReminderDateOfLateReport()).isNull();
+
+		sendWhatsAppReminder().andExpect(status().isCreated());
+
+		checkReminder().andExpect(status().isOk()).andExpect(content().string("true"));
+		assertThat(lastReminderDateOfLateReport()).isEqualTo(today);
+		// Une seconde relance pendant la même attribution reste refusée
+		sendWhatsAppReminder().andExpect(status().isBadRequest());
+		verify(wahaClient, times(1)).sendMessage(anyString(), anyString());
+	}
+
+	@Test
 	@WithMockUser(roles = "UTILISATEUR")
 	void testGetAllAndByTerritoryAndPersonAndCheck() throws Exception {
-		// create a reminder directly in repository
-		territoryReminderRepository.save(com.teillet.territoire.model.TerritoryReminder.builder()
-				.territories(java.util.List.of(territory))
-				.person(person)
-				.reminderDate(LocalDate.now())
-				.notes("Premier rappel")
-				.build());
+		reminder(today);
 
 		mockMvc.perform(get("/api/territory-reminders"))
 				.andExpect(status().isOk())
@@ -139,9 +225,7 @@ class TerritoryReminderControllerIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].notes").value("Premier rappel"));
 
-		mockMvc.perform(get("/api/territory-reminders/check")
-						.param("territoryId", territory.getId().toString())
-						.param("personId", person.getId().toString()))
+		checkReminder()
 				.andExpect(status().isOk())
 				.andExpect(content().string("true"));
 	}

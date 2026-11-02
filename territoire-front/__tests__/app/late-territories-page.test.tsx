@@ -41,6 +41,9 @@ const geojson = {
   ],
 };
 
+// Rappel envoyé pendant l'attribution en cours (territoires attribués le 1er janvier)
+const remindedOn = "2026-02-01";
+
 const persons = [
   {
     id: "p1",
@@ -112,7 +115,14 @@ describe("Page des territoires en retard", () => {
   });
 
   it("déplie un groupe pour voir le détail de ses territoires", async () => {
-    setup([{ id: "r0", personId: "p1", territoryIds: ["t1"] }]);
+    setup([
+      {
+        id: "r0",
+        personId: "p1",
+        territoryIds: ["t1"],
+        reminderDate: remindedOn,
+      },
+    ]);
     renderWithStore(<LateTerritoriesPage />);
 
     const header = (await screen.findByText("JEAN Dupont")).closest(
@@ -134,7 +144,14 @@ describe("Page des territoires en retard", () => {
   });
 
   it("enregistre les rappels manuels des seuls territoires non rappelés", async () => {
-    setup([{ id: "r0", personId: "p1", territoryIds: ["t1"] }]);
+    setup([
+      {
+        id: "r0",
+        personId: "p1",
+        territoryIds: ["t1"],
+        reminderDate: remindedOn,
+      },
+    ]);
     renderWithStore(<LateTerritoriesPage />);
 
     const header = (await screen.findByText("JEAN Dupont")).closest(
@@ -227,11 +244,21 @@ describe("Page des territoires en retard", () => {
 
   it("désactive « Rappeler tout » quand tous les territoires ont déjà un rappel", async () => {
     setup([
-      { id: "r1", personId: "p1", territoryIds: ["t1"] },
+      {
+        id: "r1",
+        personId: "p1",
+        territoryIds: ["t1"],
+        reminderDate: remindedOn,
+      },
       // Ancien format : un seul territoire par rappel
-      { id: "r2", personId: "p1", territoryId: "t2" },
+      { id: "r2", personId: "p1", territoryId: "t2", reminderDate: remindedOn },
       // Personne inconnue : rapprochement par le nom
-      { id: "r3", personName: "personne inconnue", territoryIds: ["t3"] },
+      {
+        id: "r3",
+        personName: "personne inconnue",
+        territoryIds: ["t3"],
+        reminderDate: remindedOn,
+      },
     ]);
     renderWithStore(<LateTerritoriesPage />);
 
@@ -247,6 +274,53 @@ describe("Page des territoires en retard", () => {
     expect(
       within(unknown).getByRole("button", { name: "Rappeler tout" })
     ).toBeDisabled();
+  });
+
+  it("ignore les rappels des attributions précédentes, même du jour de la prolongation", async () => {
+    setup([
+      // Avant l'attribution en cours
+      {
+        id: "r1",
+        personId: "p1",
+        territoryIds: ["t1"],
+        reminderDate: "2025-12-15",
+      },
+      // Jour de la prolongation : le rappel concerne l'attribution close ce jour-là
+      {
+        id: "r2",
+        personId: "p1",
+        territoryIds: ["t1", "t2"],
+        reminderDate: "2026-01-01",
+      },
+    ]);
+    renderWithStore(<LateTerritoriesPage />);
+
+    const header = (await screen.findByText("JEAN Dupont")).closest(
+      "div.border"
+    )! as HTMLElement;
+    const remindAll = within(header).getByRole("button", {
+      name: "Rappeler tout",
+    });
+    expect(remindAll).toBeEnabled();
+    await userEvent.click(
+      within(header).getByRole("button", { name: "Déplier le groupe" })
+    );
+    expect(await within(header).findAllByText("Pas de rappel")).toHaveLength(2);
+    expect(within(header).queryByText("Rappel envoyé")).not.toBeInTheDocument();
+
+    await userEvent.click(remindAll);
+    await userEvent.click(await screen.findByText("Marquer rappels envoyés"));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "Rappels enregistrés pour ce groupe"
+      )
+    );
+    const posts = api.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(posts.map(([url]) => url)).toEqual([
+      "/api/territory-reminders?territoryIds=t1&personId=p1",
+      "/api/territory-reminders?territoryIds=t2&personId=p1",
+    ]);
   });
 
   describe("tri des groupes", () => {
@@ -291,7 +365,14 @@ describe("Page des territoires en retard", () => {
     });
 
     it("place en dernier les personnes déjà rappelées pour tout", async () => {
-      setup([{ id: "r1", personId: "p1", territoryIds: ["t1", "t2"] }]);
+      setup([
+        {
+          id: "r1",
+          personId: "p1",
+          territoryIds: ["t1", "t2"],
+          reminderDate: remindedOn,
+        },
+      ]);
       renderWithStore(<LateTerritoriesPage />);
       await screen.findByText("JEAN Dupont");
 

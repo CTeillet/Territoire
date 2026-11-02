@@ -46,10 +46,11 @@ public interface ITerritoryReminderService {
     List<TerritoryReminderDto> getAllReminders();
     
     /**
-     * Check if a reminder exists for a specific territory and person
+     * Check if the person has already been reminded for the territory during its current assignment
+     * (reminders from previous assignments, e.g. before an extension, are ignored)
      * @param territoryId the territory ID
      * @param personId the person ID
-     * @return true if a reminder exists
+     * @return true if a reminder exists for the current assignment
      */
     boolean hasReminder(UUID territoryId, UUID personId);
 }

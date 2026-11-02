@@ -83,13 +83,14 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
     List<AvailableTerritoryDto> findAvailableInCity(@Param("cityId") UUID cityId);
 
     /**
-     * Territoires en retard (données légères) avec la personne qui les a, l'échéance et la dernière relance faite depuis
-     * l'attribution. Les plus anciennes échéances d'abord.
+     * Territoires en retard (données légères) avec la personne qui les a, l'échéance et la dernière relance faite pendant
+     * l'attribution en cours, c'est-à-dire après son premier jour (un rappel de ce jour-là concerne l'attribution
+     * précédente, close par une prolongation par exemple). Les plus anciennes échéances d'abord.
      */
     @Query("""
             SELECT new com.teillet.territoire.dto.LateTerritoryDto(t.id, t.name, c.name, p.firstName, p.lastName, a.dueDate,
                 (SELECT MAX(r.reminderDate) FROM TerritoryReminder r JOIN r.territories rt
-                 WHERE rt = t AND r.person = p AND r.reminderDate >= a.assignmentDate))
+                 WHERE rt = t AND r.person = p AND r.reminderDate > a.assignmentDate))
             FROM Territory t JOIN t.city c
             LEFT JOIN t.assignments a ON a.returnDate IS NULL
             LEFT JOIN a.person p

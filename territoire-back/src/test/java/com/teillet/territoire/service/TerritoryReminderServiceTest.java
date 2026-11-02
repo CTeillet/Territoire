@@ -70,7 +70,7 @@ class TerritoryReminderServiceTest {
 	void testCreateReminder_Success() {
 		when(territoryService.getTerritory(territoryId)).thenReturn(territory);
 		when(personService.getPerson(personId)).thenReturn(person);
-		when(territoryReminderRepository.existsByTerritories_IdAndPerson_Id(territoryId, personId)).thenReturn(false);
+		when(territoryReminderRepository.existsDuringCurrentAssignment(territoryId, personId)).thenReturn(false);
 
 		TerritoryReminder saved = TerritoryReminder.builder()
 				.id(UUID.randomUUID())
@@ -92,7 +92,7 @@ class TerritoryReminderServiceTest {
 	void testCreateReminder_ThrowsWhenAllAlreadyReminded() {
 		when(territoryService.getTerritory(territoryId)).thenReturn(territory);
 		when(personService.getPerson(personId)).thenReturn(person);
-		when(territoryReminderRepository.existsByTerritories_IdAndPerson_Id(territoryId, personId)).thenReturn(true);
+		when(territoryReminderRepository.existsDuringCurrentAssignment(territoryId, personId)).thenReturn(true);
 
 		assertThrows(ResponseStatusException.class, () ->
 				territoryReminderService.createReminder(List.of(territoryId), personId, "Notes"));
@@ -103,7 +103,7 @@ class TerritoryReminderServiceTest {
 	void testSendWhatsAppReminder_Success() {
 		when(personService.getPerson(personId)).thenReturn(person);
 		when(territoryService.getTerritory(territoryId)).thenReturn(territory);
-		when(territoryReminderRepository.existsByTerritories_IdAndPerson_Id(territoryId, personId)).thenReturn(false);
+		when(territoryReminderRepository.existsDuringCurrentAssignment(territoryId, personId)).thenReturn(false);
 
 		TerritoryReminder saved = TerritoryReminder.builder()
 				.id(UUID.randomUUID())
@@ -173,7 +173,7 @@ class TerritoryReminderServiceTest {
 	void testSendWhatsAppReminder_AllAlreadyReminded_ThrowsException() {
 		when(personService.getPerson(personId)).thenReturn(person);
 		when(territoryService.getTerritory(territoryId)).thenReturn(territory);
-		when(territoryReminderRepository.existsByTerritories_IdAndPerson_Id(territoryId, personId)).thenReturn(true);
+		when(territoryReminderRepository.existsDuringCurrentAssignment(territoryId, personId)).thenReturn(true);
 
 		assertThrows(ResponseStatusException.class, () ->
 				territoryReminderService.sendWhatsAppReminder(List.of(territoryId), personId, "Message"));
@@ -228,7 +228,7 @@ class TerritoryReminderServiceTest {
 
 	@Test
 	void testHasReminder() {
-		when(territoryReminderRepository.existsByTerritories_IdAndPerson_Id(territoryId, personId)).thenReturn(true);
+		when(territoryReminderRepository.existsDuringCurrentAssignment(territoryId, personId)).thenReturn(true);
 		assertTrue(territoryReminderService.hasReminder(territoryId, personId));
 	}
 }

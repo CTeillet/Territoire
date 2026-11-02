@@ -48,7 +48,7 @@ export function LateTerritoriesTable({
 // Helper function to create columns with formatDate, hasReminder, and sendReminder functions
 export function createLateTerritoriesColumns(
   formatDate: (dateString: string | null) => string,
-  hasReminder: (territoryId: string, personId: string) => boolean
+  hasReminder: (territory: Territory, personId: string) => boolean
 ): ColumnDef<DataTableFeatures, Territory, unknown>[] {
   return [
     {
@@ -86,7 +86,7 @@ export function createLateTerritoriesColumns(
       header: "Statut du rappel",
       cell: ({ row }) => (
         <ReminderStatusBadge
-          hasReminder={hasReminder(row.original.id, row.original.assignedTo)}
+          hasReminder={hasReminder(row.original, row.original.assignedTo)}
         />
       ),
     },

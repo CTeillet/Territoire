@@ -42,9 +42,9 @@ public class TerritoryReminderService implements ITerritoryReminderService {
 
         Person person = personService.getPerson(personId);
 
-        // Si tous les territoires fournis ont déjà un rappel pour cette personne, on bloque
+        // Si tous les territoires fournis ont déjà un rappel pour cette personne depuis leur attribution, on bloque
         boolean allAlreadyReminded = territories.stream()
-                .allMatch(t -> territoryReminderRepository.existsByTerritories_IdAndPerson_Id(t.getId(), personId));
+                .allMatch(t -> hasReminder(t.getId(), personId));
         if (allAlreadyReminded) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tous les territoires sélectionnés ont déjà un rappel pour cette personne");
         }
@@ -93,9 +93,9 @@ public class TerritoryReminderService implements ITerritoryReminderService {
             }
         }
 
-        // Bloquer si tous les territoires de la requête ont déjà un rappel pour cette personne
+        // Bloquer si tous les territoires de la requête ont déjà un rappel pour cette personne depuis leur attribution
         boolean allAlreadyReminded = territories.stream()
-                .allMatch(t -> territoryReminderRepository.existsByTerritories_IdAndPerson_Id(t.getId(), personId));
+                .allMatch(t -> hasReminder(t.getId(), personId));
         if (allAlreadyReminded) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tous les territoires sélectionnés ont déjà un rappel pour cette personne");
         }
@@ -152,8 +152,9 @@ public class TerritoryReminderService implements ITerritoryReminderService {
                 .collect(Collectors.toList());
     }
 
+    /** Seuls comptent les rappels de l'attribution en cours : un territoire prolongé peut être relancé à nouveau. */
     @Override
     public boolean hasReminder(UUID territoryId, UUID personId) {
-        return territoryReminderRepository.existsByTerritories_IdAndPerson_Id(territoryId, personId);
+        return territoryReminderRepository.existsDuringCurrentAssignment(territoryId, personId);
     }
 }
