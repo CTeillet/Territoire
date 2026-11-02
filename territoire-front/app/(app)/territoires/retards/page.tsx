@@ -136,6 +136,22 @@ function findPerson(
   });
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Comme côté serveur, seuls comptent les rappels datés d'après le premier jour
+// de l'attribution en cours : un rappel de ce jour-là concerne l'attribution
+// précédente (close par une prolongation, par exemple).
+function isDuringCurrentAssignment(
+  reminderDate?: string | null,
+  assignedOn?: string | null
+): boolean {
+  // Sans attribution en cours (« N/A » ou vide), aucun rappel ne compte
+  if (!reminderDate || !assignedOn || !ISO_DATE.test(assignedOn)) {
+    return false;
+  }
+  return reminderDate > assignedOn;
+}
+
 export default function LateTerritoriesPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -200,8 +216,8 @@ export default function LateTerritoriesPage() {
     return format(new Date(dateString), "dd MMMM yyyy", { locale: fr });
   };
 
-  // Vérifie si un territoire a déjà un rappel pour la personne
-  const hasReminder = (territoryId: string, personKey: string) => {
+  // Vérifie si un territoire a déjà un rappel pour la personne pendant son attribution en cours
+  const hasReminder = (territory: Territory, personKey: string) => {
     const person = findPerson(persons, personKey);
     const personId = person?.id || personKey;
     const normKey = normalizeString(personKey);
@@ -215,10 +231,14 @@ export default function LateTerritoriesPage() {
 
       const matchesTerritory =
         (Array.isArray(reminder.territoryIds) &&
-          reminder.territoryIds.includes(territoryId)) ||
-        reminder.territoryId === territoryId;
+          reminder.territoryIds.includes(territory.id)) ||
+        reminder.territoryId === territory.id;
 
-      return matchesPerson && matchesTerritory;
+      return (
+        matchesPerson &&
+        matchesTerritory &&
+        isDuringCurrentAssignment(reminder.reminderDate, territory.assignedOn)
+      );
     });
   };
 
@@ -292,7 +312,7 @@ export default function LateTerritoriesPage() {
   };
 
   const isFullyReminded = (g: Group) =>
-    g.territories.every((t) => hasReminder(t.id, g.personId));
+    g.territories.every((t) => hasReminder(t, g.personId));
 
   const sortedGroups = sortGroups(groups, sortKey, isFullyReminded);
 
@@ -308,9 +328,7 @@ export default function LateTerritoriesPage() {
     if (!g) return;
 
     // Si tout est déjà rappelé, on bloque
-    const allReminded = g.territories.every((t) =>
-      hasReminder(t.id, g.personId)
-    );
+    const allReminded = g.territories.every((t) => hasReminder(t, g.personId));
     if (allReminded) {
       toast.info(
         "Tous les territoires de cette personne ont déjà été rappelés"
@@ -320,7 +338,7 @@ export default function LateTerritoriesPage() {
 
     // iterate only territories without reminder
     for (const t of g.territories) {
-      if (!hasReminder(t.id, g.personId)) {
+      if (!hasReminder(t, g.personId)) {
         const resultAction = await dispatch(
           createReminder({ territoryId: t.id, personId: g.personId })
         );
@@ -340,9 +358,7 @@ export default function LateTerritoriesPage() {
     const g = group(personId);
     if (!g) return;
     // Si tout est déjà rappelé, on bloque
-    const allReminded = g.territories.every((t) =>
-      hasReminder(t.id, g.personId)
-    );
+    const allReminded = g.territories.every((t) => hasReminder(t, g.personId));
     if (allReminded) {
       toast.info(
         "Tous les territoires de cette personne ont déjà été rappelés"
