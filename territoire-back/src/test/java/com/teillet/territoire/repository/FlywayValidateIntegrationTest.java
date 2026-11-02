@@ -1,8 +1,10 @@
 package com.teillet.territoire.repository;
 
+import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.Role;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
+import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.model.User;
@@ -25,7 +27,7 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Démarrage de l'application comme en production sur une copie du schéma de production : Flyway applique V2, puis
+ * Démarrage de l'application comme en production sur une copie du schéma de production : Flyway applique V2, V3..., puis
  * Hibernate valide que chaque entité correspond aux tables (spring.jpa.hibernate.ddl-auto=validate).
  * Le contexte ne démarre pas si une entité et le schéma divergent (nouvelle colonne sans migration, type différent...).
  * Ignoré sans Docker ; la CI en a un.
@@ -52,6 +54,7 @@ class FlywayValidateIntegrationTest {
 	@Autowired private Flyway flyway;
 	@Autowired private CityRepository cityRepository;
 	@Autowired private TerritoryRepository territoryRepository;
+	@Autowired private AssignmentRepository assignmentRepository;
 	@Autowired private UserRepository userRepository;
 
 	@Test
@@ -70,6 +73,14 @@ class FlywayValidateIntegrationTest {
 		territory.setType(TerritoryType.HOUSE);
 		territory.setLastModifiedDate(LocalDate.now());
 		territoryRepository.save(territory);
+		// V3 : valeur autorisée par la contrainte assignment_returned_via_check
+		assignmentRepository.save(Assignment.builder()
+				.territory(territory)
+				.assignmentDate(LocalDate.now().minusMonths(1))
+				.dueDate(LocalDate.now().plusMonths(3))
+				.returnDate(LocalDate.now())
+				.returnedVia(ReturnSource.PROLONGATION)
+				.build());
 		User user = new User();
 		user.setEmail("admin@example.com");
 		user.setUsername("admin");

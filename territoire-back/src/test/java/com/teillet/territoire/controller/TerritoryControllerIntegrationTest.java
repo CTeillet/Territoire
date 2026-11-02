@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.AddAddressNotToDoDto;
 import com.teillet.territoire.dto.AddTerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;
+import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
 import com.teillet.territoire.model.AddressNotToDo;
@@ -237,8 +238,43 @@ class TerritoryControllerIntegrationTest {
 
 	@Test
 	@WithMockUser(roles = "GESTIONNAIRE")
-	void testExtendTerritoryAndModifyDate() throws Exception {
-		Territory savedTerritory = territoryRepository.save(createTestTerritory("Territoire Prolong", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+	void testExtendTerritory_ClosesRunningAssignmentAndStartsANewOne() throws Exception {
+		LocalDate today = LocalDate.now();
+		Territory savedTerritory = territoryRepository.save(createTestTerritory("Territoire Prolong", TerritoryType.HOUSE, TerritoryStatus.LATE));
+		Person person = personRepository.save(Person.builder().firstName("Claire").lastName("Durand").build());
+		Assignment late = assignmentRepository.save(Assignment.builder()
+				.territory(savedTerritory)
+				.person(person)
+				.assignmentDate(today.minusMonths(5))
+				.dueDate(today.minusMonths(1))
+				.build());
+
+		mockMvc.perform(post("/api/territoires/{id}/prolongation", savedTerritory.getId())
+						.param("dueDate", today.plusMonths(6).toString()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.assignmentDate").value(today.toString()))
+				.andExpect(jsonPath("$.dueDate").value(today.plusMonths(6).toString()))
+				.andExpect(jsonPath("$.territory.status").value("ASSIGNED"));
+
+		Assignment closed = assignmentRepository.findById(late.getId()).orElseThrow();
+		assertEquals(today, closed.getReturnDate());
+		assertEquals(ReturnSource.PROLONGATION, closed.getReturnedVia());
+		Assignment running = assignmentRepository.findByReturnDateNullAndTerritory_Id(savedTerritory.getId()).orElseThrow();
+		assertEquals(person.getId(), running.getPerson().getId());
+		assertEquals(today, running.getAssignmentDate());
+		assertEquals(today.plusMonths(6), running.getDueDate());
+		assertEquals(TerritoryStatus.ASSIGNED, territoryRepository.findById(savedTerritory.getId()).orElseThrow().getStatus());
+
+		// Une prolongation n'est pas un parcours
+		mockMvc.perform(get("/api/territoires/{id}", savedTerritory.getId()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.lastVisitedOn").value("nouveau"));
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testExtendTerritory_AssignedTodayKeepsASingleAssignment() throws Exception {
+		Territory savedTerritory = territoryRepository.save(createTestTerritory("Territoire Prolong Jour", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
 		Person person = personRepository.save(Person.builder().firstName("Claire").lastName("Durand").build());
 
 		mockMvc.perform(post("/api/territoires/{id}/attribuer/{personId}", savedTerritory.getId(), person.getId()))
@@ -251,7 +287,26 @@ class TerritoryControllerIntegrationTest {
 		// Prolongation avec date explicite
 		mockMvc.perform(post("/api/territoires/{id}/prolongation", savedTerritory.getId())
 						.param("dueDate", LocalDate.now().plusMonths(6).toString()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.dueDate").value(LocalDate.now().plusMonths(6).toString()));
+
+		assertEquals(1, assignmentRepository.findAll().stream()
+				.filter(a -> a.getTerritory().getId().equals(savedTerritory.getId()))
+				.count());
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testExtendTerritory_RejectsDueDateNotAfterToday() throws Exception {
+		Territory savedTerritory = territoryRepository.save(createTestTerritory("Territoire Prolong Passé", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		Person person = personRepository.save(Person.builder().firstName("Claire").lastName("Durand").build());
+		mockMvc.perform(post("/api/territoires/{id}/attribuer/{personId}", savedTerritory.getId(), person.getId()))
 				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/api/territoires/{id}/prolongation", savedTerritory.getId())
+						.param("dueDate", LocalDate.now().toString()))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("La nouvelle échéance doit être postérieure à aujourd'hui"));
 	}
 
 	private static String datesJson(LocalDate assignmentDate, LocalDate dueDate, LocalDate returnDate) {

@@ -174,14 +174,45 @@ public class AssignmentService implements IAssignmentService {
 		return extendTerritory(territoryId, LocalDate.now().plusMonths(settingService.getDurationSettings().getAssignmentDurationMonths()));
 	}
 
+	/**
+	 * L'attribution en cours se termine aujourd'hui (retour {@link ReturnSource#PROLONGATION}) et une nouvelle commence
+	 * aujourd'hui pour la même personne, jusqu'à la nouvelle échéance. Un territoire en retard redevient attribué.
+	 * Une attribution du jour garde son identifiant : seule son échéance change.
+	 *
+	 * @return la nouvelle attribution en cours
+	 */
+	@Transactional
 	@Override
 	public AssignmentDto extendTerritory(UUID territoryId, LocalDate dueDate) {
-		Assignment assignment = findAssignmentRunning(territoryId);
+		LocalDate today = LocalDate.now();
+		if (!dueDate.isAfter(today)) {
+			throw new IllegalArgumentException("La nouvelle échéance doit être postérieure à aujourd'hui");
+		}
+		Assignment running = findAssignmentRunning(territoryId);
+		Territory territory = running.getTerritory();
 
-		// Instead of creating a new assignment, update the due date of the existing one
-		assignment.setDueDate(dueDate);
-		Assignment result = assignmentRepository.save(assignment);
+		Assignment result;
+		if (today.equals(running.getAssignmentDate())) {
+			// Pas d'attribution d'un jour dans l'historique
+			running.setDueDate(dueDate);
+			result = assignmentRepository.save(running);
+		} else {
+			running.setReturnDate(today);
+			running.setReturnedVia(ReturnSource.PROLONGATION);
+			assignmentRepository.save(running);
+			result = assignmentRepository.save(Assignment.builder()
+					.territory(territory)
+					.person(running.getPerson())
+					.assignmentDate(today)
+					.dueDate(dueDate)
+					.build());
+		}
 
+		// Statut fixé directement : territory.getAssignments() ne contient pas encore la nouvelle attribution
+		if (territory.getStatus() != TerritoryStatus.ASSIGNED) {
+			territoryService.updateTerritoryStatus(territory, TerritoryStatus.ASSIGNED);
+		}
+		log.info("Territoire {} prolongé jusqu'au {}", territory.getName(), dueDate);
 		return AssignmentMapper.toDto(result);
 	}
 

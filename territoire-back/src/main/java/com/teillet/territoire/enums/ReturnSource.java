@@ -7,5 +7,7 @@ public enum ReturnSource {
 	/** Retour enregistré par un responsable dans l'application. */
 	RESPONSABLE,
 	/** Retour fait par la personne elle-même depuis son lien personnel. */
-	LIEN
+	LIEN,
+	/** Attribution close par une prolongation : la personne garde le territoire dans une nouvelle attribution. */
+	PROLONGATION
 }

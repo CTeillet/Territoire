@@ -27,7 +27,10 @@ const TerritoryItem = ({ assignment }: TerritoryItemProps) => {
         {assignment.returnDate && (
           <span className="ml-2 pl-2 border-l border-gray-300">
             {" "}
-            Retourné le : {new Date(assignment.returnDate).toLocaleDateString()}
+            {assignment.returnedVia === "PROLONGATION"
+              ? "Prolongé le"
+              : "Retourné le"}{" "}
+            : {new Date(assignment.returnDate).toLocaleDateString()}
           </span>
         )}
       </div>

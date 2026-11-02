@@ -1,5 +1,6 @@
 package com.teillet.territoire.utils;
 
+import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Territory;
 
@@ -11,9 +12,11 @@ public class TerritoryUtils {
 	public static final String NOUVEAU = "nouveau";
 	public static final String NA = "N/A";
 
+	/** Date du dernier retour. Une prolongation n'en est pas un : la personne garde le territoire. */
 	public static String getLastVisitedOn(Territory territory) {
 		return territory.getAssignments()
 				.stream()
+				.filter(assignment -> assignment.getReturnedVia() != ReturnSource.PROLONGATION)
 				.map(Assignment::getReturnDate)
 				.filter(Objects::nonNull)
 				.max(LocalDate::compareTo)

@@ -644,6 +644,93 @@ describe("territory-slice : thunks et reducers", () => {
       );
     });
 
+    it("extendTerritory : clôt l'attribution en cours, ajoute la nouvelle et garde le dernier parcours", async () => {
+      const returned = assignment({
+        id: "as0",
+        assignmentDate: "2025-01-01",
+        returnDate: "2025-03-01",
+      });
+      const running = assignment({
+        id: "as1",
+        assignmentDate: "2026-06-01",
+        dueDate: "2026-10-01",
+      });
+      const late = territory({
+        status: "LATE",
+        assignments: [returned, running] as never,
+        lastVisitedOn: "2025-03-01",
+        assignedOn: "2026-06-01",
+        waitedFor: "2026-10-01",
+      });
+      const store = newStore({
+        territoriesGeojson: {
+          ...collection("LATE"),
+          features: [{ ...collection("LATE").features[0], properties: late }],
+        },
+        selectedTerritory: late,
+      });
+      authFetch.mockResolvedValueOnce(
+        ok(
+          assignment({
+            id: "as2",
+            assignmentDate: "2026-11-02",
+            dueDate: "2027-03-02",
+          })
+        )
+      );
+
+      await store.dispatch(
+        extendTerritory({ territoryId: "t1", dueDate: "2027-03-02" })
+      );
+
+      const { territoriesGeojson, selectedTerritory } =
+        store.getState().territories;
+      for (const t of [
+        territoriesGeojson!.features[0].properties,
+        selectedTerritory!,
+      ]) {
+        expect(t.status).toBe("ASSIGNED");
+        expect(t.assignedOn).toBe("2026-11-02");
+        expect(t.waitedFor).toBe("2027-03-02");
+        expect(t.lastVisitedOn).toBe("2025-03-01");
+        expect(
+          t.assignments.map((a) => [a.id, a.returnDate, a.returnedVia])
+        ).toEqual([
+          ["as0", "2025-03-01", undefined],
+          ["as1", "2026-11-02", "PROLONGATION"],
+          ["as2", null, undefined],
+        ]);
+      }
+    });
+
+    it("extendTerritory : une attribution du jour est remplacée", async () => {
+      const store = newStore({
+        territoriesGeojson: collection("ASSIGNED"),
+        selectedTerritory: territory({
+          status: "ASSIGNED",
+          assignments: [
+            assignment({ assignmentDate: "2026-11-02", dueDate: "2027-03-02" }),
+          ] as never,
+        }),
+      });
+      authFetch.mockResolvedValueOnce(
+        ok(assignment({ assignmentDate: "2026-11-02", dueDate: "2027-05-02" }))
+      );
+
+      await store.dispatch(
+        extendTerritory({ territoryId: "t1", dueDate: "2027-05-02" })
+      );
+
+      const selected = store.getState().territories.selectedTerritory!;
+      expect(selected.assignments).toHaveLength(1);
+      expect(selected.assignments[0]).toMatchObject({
+        id: "as1",
+        dueDate: "2027-05-02",
+        returnDate: null,
+      });
+      expect(selected.waitedFor).toBe("2027-05-02");
+    });
+
     it("updateAssignmentDates : envoie les dates et met à jour l'attribution en cours et le statut", async () => {
       const existing = assignment({ id: "as1", assignmentDate: "2026-01-01" });
       const withAssignments = territory({

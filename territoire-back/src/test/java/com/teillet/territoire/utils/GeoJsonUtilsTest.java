@@ -2,6 +2,7 @@ package com.teillet.territoire.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
 import com.teillet.territoire.model.Assignment;
@@ -92,6 +93,30 @@ class GeoJsonUtilsTest {
 		assertEquals(TerritoryUtils.NA, properties.path("waitedFor").asText());
 		assertEquals("BUILDING", properties.path("type").asText());
 		assertEquals(2, properties.path("assignments").size());
+	}
+
+	@Test
+	void convertToGeoJSON_territories_extendedAssignment_isNotALastVisit() throws Exception {
+		Territory territory = territory("Territoire Prolongé", TerritoryStatus.ASSIGNED, TerritoryType.HOUSE, square(2.35, 48.85));
+		Person person = Person.builder().id(UUID.randomUUID()).firstName("marie").lastName("martin").build();
+		territory.getAssignments().add(returnedAssignment(territory, person, LocalDate.of(2025, 10, 1)));
+		Assignment extended = returnedAssignment(territory, person, LocalDate.of(2026, 2, 15));
+		extended.setReturnedVia(ReturnSource.PROLONGATION);
+		territory.getAssignments().add(extended);
+		territory.getAssignments().add(Assignment.builder()
+				.id(UUID.randomUUID())
+				.person(person)
+				.territory(territory)
+				.assignmentDate(LocalDate.of(2026, 2, 15))
+				.dueDate(LocalDate.of(2026, 6, 15))
+				.build());
+
+		JsonNode properties = parse(GeoJsonUtils.convertToGeoJSON(List.of(territory)))
+				.path("features").get(0).path("properties");
+
+		assertEquals("2025-10-01", properties.path("lastVisitedOn").asText());
+		assertEquals("2026-02-15", properties.path("assignedOn").asText());
+		assertEquals("2026-06-15", properties.path("waitedFor").asText());
 	}
 
 	@Test
