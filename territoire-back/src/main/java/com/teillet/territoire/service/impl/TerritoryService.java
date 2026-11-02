@@ -213,6 +213,23 @@ public class TerritoryService implements ITerritoryService {
 	}
 
 	@Override
+	public TerritoryStatusSummaryDto getStatusSummary() {
+		Map<TerritoryStatus, Long> counts = new EnumMap<>(TerritoryStatus.class);
+		for (Object[] row : territoryRepository.countGroupedByStatus()) {
+			if (row[0] != null) {
+				counts.put((TerritoryStatus) row[0], (Long) row[1]);
+			}
+		}
+		return TerritoryStatusSummaryDto.builder()
+				.late(counts.getOrDefault(TerritoryStatus.LATE, 0L))
+				.assigned(counts.getOrDefault(TerritoryStatus.ASSIGNED, 0L))
+				.available(counts.getOrDefault(TerritoryStatus.AVAILABLE, 0L))
+				.pending(counts.getOrDefault(TerritoryStatus.PENDING, 0L))
+				.total(counts.values().stream().mapToLong(Long::longValue).sum())
+				.build();
+	}
+
+	@Override
 	public String getTerritoryCoverageGeoJson(LocalDate startDate, LocalDate endDate) throws IOException {
 		List<Territory> territories = territoryRepository.findAll();
 		Set<UUID> notAssignedTerritoryIds = new HashSet<>(territoryRepository.findTerritoryIdsNotAssignedBetween(startDate, endDate));

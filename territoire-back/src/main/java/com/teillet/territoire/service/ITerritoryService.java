@@ -50,6 +50,8 @@ public interface ITerritoryService {
 
     TerritoryPeriodStatisticsDto getPeriodStatistics(LocalDate startDate, LocalDate endDate);
 
+    TerritoryStatusSummaryDto getStatusSummary();
+
     List<SchoolYearPeriodDto> getAvailableSchoolYears();
 
     /**

@@ -60,6 +60,10 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
 
     List<Territory> findByStatus(com.teillet.territoire.enums.TerritoryStatus status);
 
+    /** Nombre de territoires par statut : lignes (statut, nombre), un statut sans territoire est absent. */
+    @Query("SELECT t.status, COUNT(t) FROM Territory t GROUP BY t.status")
+    List<Object[]> countGroupedByStatus();
+
     /** Territoires disponibles (données légères, sans cartes ni pâtés) avec la date de leur dernier retour. */
     @Query("""
             SELECT new com.teillet.territoire.dto.AvailableTerritoryDto(t.id, t.name, t.type, c.name,
