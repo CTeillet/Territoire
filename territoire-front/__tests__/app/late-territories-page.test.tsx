@@ -158,7 +158,7 @@ describe("Page des territoires en retard", () => {
       "div.border"
     )! as HTMLElement;
     await userEvent.click(
-      within(header).getByRole("button", { name: "Rappeler tout" })
+      within(header).getByRole("button", { name: "Rappeler" })
     );
     await userEvent.click(await screen.findByText("Marquer rappels envoyés"));
 
@@ -183,7 +183,7 @@ describe("Page des territoires en retard", () => {
       "div.border"
     )! as HTMLElement;
     await userEvent.click(
-      within(header).getByRole("button", { name: "Rappeler tout" })
+      within(header).getByRole("button", { name: "Rappeler" })
     );
     await userEvent.click(await screen.findByText("Marquer rappels envoyés"));
 
@@ -198,7 +198,7 @@ describe("Page des territoires en retard", () => {
       "div.border"
     )! as HTMLElement;
     await userEvent.click(
-      within(header).getByRole("button", { name: "Rappeler tout" })
+      within(header).getByRole("button", { name: "Rappeler" })
     );
     await screen.findByDisplayValue("Salut Jean");
     await userEvent.click(screen.getByText("Envoyer par WhatsApp"));
@@ -232,7 +232,7 @@ describe("Page des territoires en retard", () => {
       "div.border"
     )! as HTMLElement;
     await userEvent.click(
-      within(header).getByRole("button", { name: "Rappeler tout" })
+      within(header).getByRole("button", { name: "Rappeler" })
     );
     await screen.findByDisplayValue("Salut Jean");
     await userEvent.click(screen.getByText("Envoyer par WhatsApp"));
@@ -242,7 +242,60 @@ describe("Page des territoires en retard", () => {
     );
   });
 
-  it("désactive « Rappeler tout » quand tous les territoires ont déjà un rappel", async () => {
+  it("n'envoie le rappel WhatsApp que pour les territoires sélectionnés", async () => {
+    setup();
+    renderWithStore(<LateTerritoriesPage />);
+
+    const header = (await screen.findByText("JEAN Dupont")).closest(
+      "div.border"
+    )! as HTMLElement;
+    await userEvent.click(
+      within(header).getByRole("button", { name: "Rappeler" })
+    );
+    await screen.findByDisplayValue("Salut Jean");
+    await userEvent.click(screen.getByRole("checkbox", { name: /R-13/ }));
+    await userEvent.click(screen.getByText("Envoyer par WhatsApp"));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "Messages WhatsApp envoyés et rappels enregistrés"
+      )
+    );
+    const whatsapp = api.mock.calls.find(([url]) =>
+      url.startsWith("/api/territory-reminders/whatsapp")
+    )!;
+    expect(whatsapp[0]).toBe(
+      "/api/territory-reminders/whatsapp?territoryIds=t1&personId=p1"
+    );
+  });
+
+  it("n'enregistre les rappels manuels que pour les territoires sélectionnés", async () => {
+    setup();
+    renderWithStore(<LateTerritoriesPage />);
+
+    const header = (await screen.findByText("JEAN Dupont")).closest(
+      "div.border"
+    )! as HTMLElement;
+    await userEvent.click(
+      within(header).getByRole("button", { name: "Rappeler" })
+    );
+    await userEvent.click(
+      await screen.findByRole("checkbox", { name: /R-12/ })
+    );
+    await userEvent.click(screen.getByText("Marquer rappels envoyés"));
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "Rappels enregistrés pour ce groupe"
+      )
+    );
+    const posts = api.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(posts.map(([url]) => url)).toEqual([
+      "/api/territory-reminders?territoryIds=t2&personId=p1",
+    ]);
+  });
+
+  it("désactive « Rappeler » quand tous les territoires ont déjà un rappel", async () => {
     setup([
       {
         id: "r1",
@@ -266,13 +319,13 @@ describe("Page des territoires en retard", () => {
       "div.border"
     )! as HTMLElement;
     expect(
-      within(header).getByRole("button", { name: "Rappeler tout" })
+      within(header).getByRole("button", { name: "Rappeler" })
     ).toBeDisabled();
     const unknown = screen
       .getByText("Personne Inconnue")
       .closest("div.border")! as HTMLElement;
     expect(
-      within(unknown).getByRole("button", { name: "Rappeler tout" })
+      within(unknown).getByRole("button", { name: "Rappeler" })
     ).toBeDisabled();
   });
 
@@ -299,7 +352,7 @@ describe("Page des territoires en retard", () => {
       "div.border"
     )! as HTMLElement;
     const remindAll = within(header).getByRole("button", {
-      name: "Rappeler tout",
+      name: "Rappeler",
     });
     expect(remindAll).toBeEnabled();
     await userEvent.click(

@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useId, useRef, useState } from "react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
   Dialog,
   DialogClose,
@@ -12,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
 import { renderTemplate } from "@/lib/template";
@@ -30,6 +33,15 @@ async function fetchPersonLink(personId: string): Promise<string> {
   }
 }
 
+/** Message type rendu, ou null si le rendu échoue. */
+function renderMessage(template: string, context: unknown): string | null {
+  try {
+    return renderTemplate(template, context);
+  } catch {
+    return null;
+  }
+}
+
 export interface ReminderDialogData {
   person: {
     id: string;
@@ -42,6 +54,8 @@ export interface ReminderDialogData {
     name: string;
     assignedOn: string | null;
     waitedFor: string | null;
+    // Déjà rappelé pendant l'attribution en cours : non sélectionné à l'ouverture
+    reminded?: boolean;
   }>;
 
   // Champs supplémentaires éventuels pour le rendu du template
@@ -53,12 +67,17 @@ export interface ReminderDialogProps {
   title?: string;
   description?: string;
   canSendWhatsApp: boolean;
-  // Désactive le bouton d'ouverture "Rappeler tout" (préféré par le produit)
+  // Désactive le bouton d'ouverture "Rappeler" (préféré par le produit)
   triggerDisabled?: boolean;
   // Si vrai: toutes les attributions de la personne ont déjà un rappel → on désactive les actions
   disabledBecauseAllReminded?: boolean;
-  onManualReminders: () => Promise<void> | void;
-  onSendWhatsApp: (personId: string, message: string) => Promise<void> | void;
+  // Les actions ne portent que sur les territoires sélectionnés dans la boîte de dialogue
+  onManualReminders: (territoryIds: string[]) => Promise<void> | void;
+  onSendWhatsApp: (
+    personId: string,
+    message: string,
+    territoryIds: string[]
+  ) => Promise<void> | void;
   data: ReminderDialogData; // contexte pour le rendu du message (ex: group/person/territories)
 }
 
@@ -72,57 +91,72 @@ export function ReminderDialog({
   onSendWhatsApp,
   data,
 }: ReminderDialogProps) {
-  const [message, setMessage] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [template, setTemplate] = useState<string | null>(null);
+  const [link, setLink] = useState("");
+  // Message saisi par l'utilisateur ; null tant qu'il suit le message type
+  const [customMessage, setCustomMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [open, setOpen] = useState(false);
+  const idPrefix = useId();
+  // Ignore la réponse d'un chargement dépassé par une nouvelle ouverture
+  const loadCount = useRef(0);
 
-  // `data` est recréé à chaque rendu du parent : on le lit via une ref pour ne pas relancer le
-  // chargement (ni écraser le message en cours de saisie) à chaque rendu.
-  const dataRef = useRef(data);
-  useEffect(() => {
-    dataRef.current = data;
-  });
+  const loadTemplate = async (personId: string) => {
+    const current = ++loadCount.current;
+    setLoading(true);
+    try {
+      const res = await authFetch("/api/settings/late-reminder-message");
+      if (!res.ok) return;
+      const text = await res.text();
+      const personLink = await fetchPersonLink(personId);
+      if (current === loadCount.current) {
+        setTemplate(text);
+        setLink(personLink);
+      }
+    } catch {
+      // ignore but show a gentle toast so user knows
+      toast.error("Impossible de charger le message type");
+    } finally {
+      if (current === loadCount.current) setLoading(false);
+    }
+  };
 
-  // Charge le message type uniquement à l'ouverture de la boîte de dialogue
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    const load = async () => {
-      if (!canSendWhatsApp) {
-        setMessage("");
-        return;
-      }
-      setLoading(true);
-      try {
-        const res = await authFetch("/api/settings/late-reminder-message");
-        if (res.ok) {
-          const text = await res.text();
-          if (!cancelled) {
-            let result: string;
-            if (text === null || text === undefined) {
-              result = "";
-            } else {
-              result = renderTemplate(text, {
-                ...dataRef.current,
-                link: await fetchPersonLink(dataRef.current.person.id),
-              });
-            }
-            setMessage(result);
-          }
-        }
-      } catch {
-        // ignore but show a gentle toast so user knows
-        toast.error("Impossible de charger le message type");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, canSendWhatsApp]);
+  // À chaque ouverture : territoires sans rappel sélectionnés, message type rechargé
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) return;
+    setSelectedIds(
+      data.territories.filter((t) => !t.reminded).map((t) => t.id)
+    );
+    setTemplate(null);
+    setCustomMessage(null);
+    if (canSendWhatsApp) loadTemplate(data.person.id);
+  };
+
+  const toggleTerritory = (id: string, checked: boolean) =>
+    setSelectedIds((prev) =>
+      checked ? [...prev, id] : prev.filter((x) => x !== id)
+    );
+
+  const selectedTerritories = data.territories.filter((t) =>
+    selectedIds.includes(t.id)
+  );
+  const selectedTerritoryIds = selectedTerritories.map((t) => t.id);
+  // Un rappel doit concerner au moins un territoire pas encore rappelé
+  const hasTerritoryToRemind = selectedTerritories.some((t) => !t.reminded);
+
+  // Le message type ne mentionne que les territoires sélectionnés
+  const generatedMessage =
+    open && template !== null && customMessage === null
+      ? renderMessage(template, {
+          ...data,
+          territories: selectedTerritories,
+          link,
+        })
+      : "";
+  const message = customMessage ?? generatedMessage ?? "";
 
   const handleWhatsApp = async () => {
     if (!message.trim()) {
@@ -131,14 +165,14 @@ export function ReminderDialog({
     }
     setSending(true);
     try {
-      await onSendWhatsApp(data.person.id, message);
+      await onSendWhatsApp(data.person.id, message, selectedTerritoryIds);
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           className="px-3 py-2 font-medium inline-flex items-center gap-2"
@@ -165,6 +199,42 @@ export function ReminderDialog({
             action n&#39;est possible.
           </div>
         )}
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">
+            Territoires à rappeler
+          </legend>
+          <ul className="max-h-48 divide-y overflow-y-auto rounded-md border">
+            {data.territories.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 px-3 py-2">
+                <Checkbox
+                  id={`${idPrefix}-${t.id}`}
+                  checked={selectedIds.includes(t.id)}
+                  disabled={sending}
+                  onCheckedChange={(checked) =>
+                    toggleTerritory(t.id, checked === true)
+                  }
+                />
+                <label
+                  htmlFor={`${idPrefix}-${t.id}`}
+                  className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 text-sm"
+                >
+                  <span className="font-medium">{t.name}</span>
+                  <span className="text-muted-foreground">
+                    {t.reminded && "Déjà rappelé · "}
+                    {t.waitedFor
+                      ? `échéance ${format(new Date(t.waitedFor), "dd MMM yyyy", { locale: fr })}`
+                      : "sans échéance"}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          {!hasTerritoryToRemind && (
+            <p className="text-sm text-muted-foreground">
+              Sélectionnez au moins un territoire pas encore rappelé.
+            </p>
+          )}
+        </fieldset>
         {!canSendWhatsApp && (
           <div className="text-sm text-muted-foreground ">
             Aucun numéro de téléphone n&#39;est associé à cette personne.
@@ -173,7 +243,7 @@ export function ReminderDialog({
         )}
         <Textarea
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => setCustomMessage(e.target.value)}
           rows={8}
           placeholder={
             canSendWhatsApp
@@ -185,6 +255,24 @@ export function ReminderDialog({
           }
           className="min-h-32"
         />
+        {generatedMessage === null && (
+          <p className="text-sm text-destructive">
+            Le message type n&#39;a pas pu être généré.
+          </p>
+        )}
+        {customMessage !== null && template !== null && (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+            <span>Message modifié : il ne suit plus la sélection.</span>
+            <Button
+              variant="link"
+              className="h-auto p-0"
+              onClick={() => setCustomMessage(null)}
+              disabled={sending}
+            >
+              Régénérer le message
+            </Button>
+          </div>
+        )}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="secondary" disabled={sending}>
@@ -193,8 +281,10 @@ export function ReminderDialog({
           </DialogClose>
           <Button
             variant="outline"
-            onClick={onManualReminders}
-            disabled={sending || disabledBecauseAllReminded}
+            onClick={() => onManualReminders(selectedTerritoryIds)}
+            disabled={
+              sending || disabledBecauseAllReminded || !hasTerritoryToRemind
+            }
           >
             Marquer rappels envoyés
           </Button>
@@ -205,6 +295,7 @@ export function ReminderDialog({
               loading ||
               !canSendWhatsApp ||
               disabledBecauseAllReminded ||
+              !hasTerritoryToRemind ||
               message.trim().length === 0
             }
           >

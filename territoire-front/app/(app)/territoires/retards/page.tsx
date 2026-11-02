@@ -322,52 +322,57 @@ export default function LateTerritoriesPage() {
 
   const group = (pid: string | null) => groups.find((g) => g.personId === pid);
 
-  const handleGroupManualReminders = async (personId: string) => {
+  // Territoires du groupe choisis dans la boîte de dialogue
+  const selectedTerritories = (g: Group, territoryIds: string[]) =>
+    g.territories.filter((t) => territoryIds.includes(t.id));
+
+  const handleGroupManualReminders = async (
+    personId: string,
+    territoryIds: string[]
+  ) => {
     if (!personId) return;
     const g = group(personId);
     if (!g) return;
 
-    // Si tout est déjà rappelé, on bloque
-    const allReminded = g.territories.every((t) => hasReminder(t, g.personId));
-    if (allReminded) {
-      toast.info(
-        "Tous les territoires de cette personne ont déjà été rappelés"
-      );
+    // Seuls les territoires sélectionnés pas encore rappelés reçoivent un rappel
+    const toRemind = selectedTerritories(g, territoryIds).filter(
+      (t) => !hasReminder(t, g.personId)
+    );
+    if (toRemind.length === 0) {
+      toast.info("Les territoires sélectionnés ont déjà été rappelés");
       return;
     }
 
-    // iterate only territories without reminder
-    for (const t of g.territories) {
-      if (!hasReminder(t, g.personId)) {
-        const resultAction = await dispatch(
-          createReminder({ territoryId: t.id, personId: g.personId })
-        );
-        if (createReminder.rejected.match(resultAction)) {
-          const msg =
-            (resultAction.payload as string) || `Échec pour ${t.name}`;
-          toast.error(msg);
-        }
+    for (const t of toRemind) {
+      const resultAction = await dispatch(
+        createReminder({ territoryId: t.id, personId: g.personId })
+      );
+      if (createReminder.rejected.match(resultAction)) {
+        const msg = (resultAction.payload as string) || `Échec pour ${t.name}`;
+        toast.error(msg);
       }
     }
     toast.success("Rappels enregistrés pour ce groupe");
     dispatch(fetchReminders());
   };
 
-  const handleGroupWhatsApp = async (personId: string, msg: string) => {
+  const handleGroupWhatsApp = async (
+    personId: string,
+    msg: string,
+    territoryIds: string[]
+  ) => {
     if (!personId) return;
     const g = group(personId);
     if (!g) return;
-    // Si tout est déjà rappelé, on bloque
-    const allReminded = g.territories.every((t) => hasReminder(t, g.personId));
-    if (allReminded) {
-      toast.info(
-        "Tous les territoires de cette personne ont déjà été rappelés"
-      );
+    const selected = selectedTerritories(g, territoryIds);
+    // Si tout ce qui est sélectionné est déjà rappelé, on bloque (comme le serveur)
+    if (selected.every((t) => hasReminder(t, g.personId))) {
+      toast.info("Les territoires sélectionnés ont déjà été rappelés");
       return;
     }
     let failures = 0;
     try {
-      const url = `/api/territory-reminders/whatsapp?territoryIds=${g.territories.map((value) => value.id)}&personId=${g.personId}`;
+      const url = `/api/territory-reminders/whatsapp?territoryIds=${selected.map((value) => value.id)}&personId=${g.personId}`;
       const res = await authFetch(url, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=UTF-8" },
@@ -480,12 +485,12 @@ export default function LateTerritoriesPage() {
                       </TooltipProvider>
                     )}
                     <ReminderDialog
-                      title="Rappeler tout"
-                      description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
+                      title="Rappeler"
+                      description="Choisissez les territoires à rappeler, puis envoyez un message WhatsApp à cette personne ou enregistrez simplement les rappels."
                       canSendWhatsApp={!!g.phone}
                       triggerDisabled={isFullyReminded(g)}
-                      onManualReminders={() =>
-                        handleGroupManualReminders(g.personId)
+                      onManualReminders={(territoryIds) =>
+                        handleGroupManualReminders(g.personId, territoryIds)
                       }
                       onSendWhatsApp={handleGroupWhatsApp}
                       data={{
@@ -500,6 +505,7 @@ export default function LateTerritoriesPage() {
                           name: t.name,
                           assignedOn: t.assignedOn,
                           waitedFor: t.waitedFor,
+                          reminded: hasReminder(t, g.personId),
                         })),
                       }}
                     />
