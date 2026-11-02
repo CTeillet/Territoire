@@ -24,7 +24,87 @@ import { Person } from "@/models/person";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ActionButton from "@/components/shared/action-button";
-import { ChevronDown, Eye } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowUpDown, ChevronDown, Eye } from "lucide-react";
+
+// Territoires en retard d'une même personne
+type Group = {
+  personId: string;
+  personName: string;
+  firstName: string;
+  // Faux quand le nom ne correspond à aucune personne : pas de fiche à ouvrir
+  hasProfile: boolean;
+  phone?: string;
+  territories: Territory[];
+  oldest?: string;
+};
+
+type SortKey =
+  "name-asc" | "name-desc" | "oldest" | "newest" | "most" | "to-remind";
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "name-asc", label: "Nom (A → Z)" },
+  { value: "name-desc", label: "Nom (Z → A)" },
+  { value: "oldest", label: "Plus ancien retard d'abord" },
+  { value: "newest", label: "Plus récent retard d'abord" },
+  { value: "most", label: "Plus de territoires d'abord" },
+  { value: "to-remind", label: "À rappeler d'abord" },
+];
+
+const SORT_STORAGE_KEY = "lateTerritoriesSort";
+
+function readStoredSort(): SortKey {
+  try {
+    const stored = localStorage.getItem(SORT_STORAGE_KEY);
+    if (SORT_OPTIONS.some((o) => o.value === stored)) return stored as SortKey;
+  } catch {
+    // Stockage indisponible : tri par défaut
+  }
+  return "name-asc";
+}
+
+function compareNames(a: Group, b: Group): number {
+  return a.personName.localeCompare(b.personName, "fr", {
+    sensitivity: "base",
+  });
+}
+
+// Les groupes sans date d'échéance restent en dernier, quel que soit le sens
+function compareDates(a?: string, b?: string, direction: 1 | -1 = 1): number {
+  if (!a || !b) return a ? -1 : b ? 1 : 0;
+  return direction * (new Date(a).getTime() - new Date(b).getTime());
+}
+
+// À critère égal, les groupes sont départagés par le nom
+function sortGroups(
+  groups: Group[],
+  sortKey: SortKey,
+  isFullyReminded: (g: Group) => boolean
+): Group[] {
+  const compare = (a: Group, b: Group): number => {
+    switch (sortKey) {
+      case "name-desc":
+        return compareNames(b, a);
+      case "oldest":
+        return compareDates(a.oldest, b.oldest);
+      case "newest":
+        return compareDates(a.oldest, b.oldest, -1);
+      case "most":
+        return b.territories.length - a.territories.length;
+      case "to-remind":
+        return Number(isFullyReminded(a)) - Number(isFullyReminded(b));
+      default:
+        return 0;
+    }
+  };
+  return [...groups].sort((a, b) => compare(a, b) || compareNames(a, b));
+}
 
 // Normalisation pour comparer les chaînes sans casse ni accents
 function normalizeString(str?: string | null): string {
@@ -144,18 +224,6 @@ export default function LateTerritoriesPage() {
 
   const columns = createLateTerritoriesColumns(formatDate, hasReminder);
 
-  // Group late territories by person
-  type Group = {
-    personId: string;
-    personName: string;
-    firstName: string;
-    // Faux quand le nom ne correspond à aucune personne : pas de fiche à ouvrir
-    hasProfile: boolean;
-    phone?: string;
-    territories: Territory[];
-    oldest?: string;
-  };
-
   // "DAVID" -> "David", "JEAN-PIERRE" -> "Jean-Pierre"
   function capitalizeName(name: string): string {
     return name
@@ -209,10 +277,24 @@ export default function LateTerritoriesPage() {
       map.set(personId, next);
     }
 
-    return Array.from(map.values()).sort((a, b) =>
-      a.personName.localeCompare(b.personName, "fr", { sensitivity: "base" })
-    );
+    return Array.from(map.values());
   }, [territories, persons]);
+
+  // Tri choisi, gardé d'une visite à l'autre
+  const [sortKey, setSortKey] = useState<SortKey>(readStoredSort);
+  const handleSortChange = (value: string) => {
+    setSortKey(value as SortKey);
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, value);
+    } catch {
+      // Stockage indisponible : le tri vaut pour cette visite seulement
+    }
+  };
+
+  const isFullyReminded = (g: Group) =>
+    g.territories.every((t) => hasReminder(t.id, g.personId));
+
+  const sortedGroups = sortGroups(groups, sortKey, isFullyReminded);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (pid: string) =>
@@ -301,103 +383,127 @@ export default function LateTerritoriesPage() {
       ) : territories.length === 0 ? (
         <EmptyState />
       ) : (
-        // Accordion per person
-        <div className="space-y-3">
-          {groups.map((g) => (
-            <div
-              key={g.personId}
-              className="border rounded-lg bg-white shadow-sm"
+        <>
+          <div className="flex items-center justify-end gap-2 mb-4">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+            <label
+              htmlFor="late-sort-select"
+              className="text-sm font-medium whitespace-nowrap"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between p-3 cursor-pointer">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    toggleGroup(g.personId);
-                  }}
-                  aria-expanded={openGroups[g.personId]}
-                  aria-controls={`group-${g.personId}`}
-                  aria-label={
-                    openGroups[g.personId]
-                      ? "Replier le groupe"
-                      : "Déplier le groupe"
-                  }
-                >
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${
-                      openGroups[g.personId] ? "rotate-180" : ""
-                    }`}
-                  />
-                </Button>
-                <div className="flex items-center gap-4">
-                  <div className="font-medium">{g.personName}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {g.territories.length} territoire(s)
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Plus ancien retard:{" "}
-                    {g.oldest
-                      ? format(new Date(g.oldest), "dd MMM yyyy", {
-                          locale: fr,
-                        })
-                      : "N/A"}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {g.hasProfile && (
-                    <TooltipProvider>
-                      <ActionButton
-                        icon={Eye}
-                        tooltip="Voir la fiche de la personne"
-                        href={`/personnes/${g.personId}`}
-                        className="bg-gray-500 hover:bg-gray-600 text-white"
-                      />
-                    </TooltipProvider>
-                  )}
-                  <ReminderDialog
-                    title="Rappeler tout"
-                    description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
-                    canSendWhatsApp={!!g.phone}
-                    triggerDisabled={g.territories.every((t) =>
-                      hasReminder(t.id, g.personId)
-                    )}
-                    onManualReminders={() =>
-                      handleGroupManualReminders(g.personId)
-                    }
-                    onSendWhatsApp={handleGroupWhatsApp}
-                    data={{
-                      person: {
-                        id: g.personId,
-                        name: g.personName,
-                        firstName: g.firstName,
-                        phone: g.phone ?? null,
-                      },
-                      territories: g.territories.map((t) => ({
-                        id: t.id,
-                        name: t.name,
-                        assignedOn: t.assignedOn,
-                        waitedFor: t.waitedFor,
-                      })),
+              Trier par
+            </label>
+            <Select value={sortKey} onValueChange={handleSortChange}>
+              <SelectTrigger
+                id="late-sort-select"
+                className="w-[240px] bg-background"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Accordion per person */}
+          <div className="space-y-3">
+            {sortedGroups.map((g) => (
+              <div
+                key={g.personId}
+                className="border rounded-lg bg-white shadow-sm"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between p-3 cursor-pointer">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      toggleGroup(g.personId);
                     }}
-                  />
+                    aria-expanded={openGroups[g.personId]}
+                    aria-controls={`group-${g.personId}`}
+                    aria-label={
+                      openGroups[g.personId]
+                        ? "Replier le groupe"
+                        : "Déplier le groupe"
+                    }
+                  >
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${
+                        openGroups[g.personId] ? "rotate-180" : ""
+                      }`}
+                    />
+                  </Button>
+                  <div className="flex items-center gap-4">
+                    <div className="font-medium">{g.personName}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {g.territories.length} territoire(s)
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Plus ancien retard:{" "}
+                      {g.oldest
+                        ? format(new Date(g.oldest), "dd MMM yyyy", {
+                            locale: fr,
+                          })
+                        : "N/A"}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {g.hasProfile && (
+                      <TooltipProvider>
+                        <ActionButton
+                          icon={Eye}
+                          tooltip="Voir la fiche de la personne"
+                          href={`/personnes/${g.personId}`}
+                          className="bg-gray-500 hover:bg-gray-600 text-white"
+                        />
+                      </TooltipProvider>
+                    )}
+                    <ReminderDialog
+                      title="Rappeler tout"
+                      description="Vous pouvez envoyer un message WhatsApp à toutes les attributions de cette personne ou simplement enregistrer les rappels."
+                      canSendWhatsApp={!!g.phone}
+                      triggerDisabled={isFullyReminded(g)}
+                      onManualReminders={() =>
+                        handleGroupManualReminders(g.personId)
+                      }
+                      onSendWhatsApp={handleGroupWhatsApp}
+                      data={{
+                        person: {
+                          id: g.personId,
+                          name: g.personName,
+                          firstName: g.firstName,
+                          phone: g.phone ?? null,
+                        },
+                        territories: g.territories.map((t) => ({
+                          id: t.id,
+                          name: t.name,
+                          assignedOn: t.assignedOn,
+                          waitedFor: t.waitedFor,
+                        })),
+                      }}
+                    />
+                  </div>
                 </div>
+                {/* Panel */}
+                {openGroups[g.personId] && (
+                  <div className="p-3 border-t">
+                    {/* Reuse table for this person's territories */}
+                    <LateTerritoriesTable
+                      territories={g.territories}
+                      columns={columns}
+                      tableId={`late-${g.personId}`}
+                    />
+                  </div>
+                )}
               </div>
-              {/* Panel */}
-              {openGroups[g.personId] && (
-                <div className="p-3 border-t">
-                  {/* Reuse table for this person's territories */}
-                  <LateTerritoriesTable
-                    territories={g.territories}
-                    columns={columns}
-                    tableId={`late-${g.personId}`}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

@@ -249,6 +249,73 @@ describe("Page des territoires en retard", () => {
     ).toBeDisabled();
   });
 
+  describe("tri des groupes", () => {
+    // Jean Dupont : 2 territoires, plus ancien retard le 1er mars
+    // Personne Inconnue : 1 territoire, retard le 1er mai
+    const groupOrder = () =>
+      screen
+        .getAllByText(/^(JEAN Dupont|Personne Inconnue)$/)
+        .map((el) => el.textContent);
+
+    const chooseSort = async (label: string) => {
+      await userEvent.click(
+        screen.getByRole("combobox", { name: "Trier par" })
+      );
+      await userEvent.click(await screen.findByRole("option", { name: label }));
+    };
+
+    it("trie par nom par défaut", async () => {
+      setup();
+      renderWithStore(<LateTerritoriesPage />);
+
+      await screen.findByText("JEAN Dupont");
+      expect(
+        screen.getByRole("combobox", { name: "Trier par" })
+      ).toHaveTextContent("Nom (A → Z)");
+      expect(groupOrder()).toEqual(["JEAN Dupont", "Personne Inconnue"]);
+    });
+
+    it.each([
+      ["Nom (Z → A)", ["Personne Inconnue", "JEAN Dupont"]],
+      ["Plus récent retard d'abord", ["Personne Inconnue", "JEAN Dupont"]],
+      ["Plus ancien retard d'abord", ["JEAN Dupont", "Personne Inconnue"]],
+      ["Plus de territoires d'abord", ["JEAN Dupont", "Personne Inconnue"]],
+    ])("trie selon « %s »", async (label, expected) => {
+      setup();
+      renderWithStore(<LateTerritoriesPage />);
+      await screen.findByText("JEAN Dupont");
+
+      await chooseSort(label);
+
+      await waitFor(() => expect(groupOrder()).toEqual(expected));
+    });
+
+    it("place en dernier les personnes déjà rappelées pour tout", async () => {
+      setup([{ id: "r1", personId: "p1", territoryIds: ["t1", "t2"] }]);
+      renderWithStore(<LateTerritoriesPage />);
+      await screen.findByText("JEAN Dupont");
+
+      await chooseSort("À rappeler d'abord");
+
+      await waitFor(() =>
+        expect(groupOrder()).toEqual(["Personne Inconnue", "JEAN Dupont"])
+      );
+    });
+
+    it("retient le tri choisi pour la visite suivante", async () => {
+      setup();
+      const { unmount } = renderWithStore(<LateTerritoriesPage />);
+      await screen.findByText("JEAN Dupont");
+      await chooseSort("Nom (Z → A)");
+      unmount();
+
+      renderWithStore(<LateTerritoriesPage />);
+
+      await screen.findByText("JEAN Dupont");
+      expect(groupOrder()).toEqual(["Personne Inconnue", "JEAN Dupont"]);
+    });
+  });
+
   it("affiche l'état vide sans territoire en retard", async () => {
     setup();
     api.mockImplementation(async (url: string) =>
