@@ -31,7 +31,12 @@ import {
   stubSerial,
   unstubSerial,
 } from "../mocks/serial-port";
-import { captureDownloads, stubIPhone } from "../mocks/ios";
+import {
+  captureDownloads,
+  stubIPhone,
+  stubNativeApp,
+  unstubNativeApp,
+} from "../mocks/ios";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -657,6 +662,47 @@ describe("Historique des attributions", () => {
       });
     } finally {
       setNativeLabelPrintingEnabled(false);
+      act(() => {
+        toast.dismiss();
+      });
+    }
+  });
+
+  it("dans l'app iOS TMS, réimprime directement par l'app avec l'échéance actuelle", async () => {
+    // Choix de Safari resté dans le stockage : sans effet dans l'app
+    setNativeLabelPrintingEnabled(true);
+    const postMessage = stubNativeApp();
+    try {
+      renderWithStore(
+        <AssignmentsList
+          assignments={[
+            assignment({ dueDate: "2027-04-15" }),
+            assignment({ id: "as0", returnDate: "2026-08-01" }),
+          ]}
+        />
+      );
+      const buttons = await screen.findAllByRole("button", {
+        name: "Imprimer l'étiquette",
+      });
+      expect(buttons).toHaveLength(1);
+      expect(
+        screen.queryByRole("button", { name: "Imprimer avec TMS Impression" })
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(buttons[0]);
+
+      await waitFor(() =>
+        expect(postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: "print",
+            name: "Jean D.",
+            dueDate: "2027-04-15",
+          })
+        )
+      );
+    } finally {
+      setNativeLabelPrintingEnabled(false);
+      unstubNativeApp();
       act(() => {
         toast.dismiss();
       });

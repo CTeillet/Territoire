@@ -23,6 +23,7 @@ import {
   LBX_HELP,
   offerNativeAssignmentLabel,
 } from "@/components/shared/assignment-label-file";
+import { openNativePrinterSettings } from "@/lib/native-app";
 
 // Hauteur imprimable d'un ruban de 12 mm, et ses marges non imprimées (85 points de large en tout)
 const PREVIEW_HEIGHT = 64;
@@ -36,7 +37,8 @@ const SAMPLE_ASSIGNMENT = {
 
 /**
  * Imprimante d'étiquettes de cet appareil : choix de la P-touch appairée en Bluetooth, étiquette de test et
- * impression automatique à l'attribution. Sur iOS, choix entre TMS Impression et le fichier LBX.
+ * impression automatique à l'attribution. Dans l'app iOS TMS, l'app imprime elle-même ; dans Safari sur iOS, choix
+ * entre TMS Impression et le fichier LBX.
  */
 export function LabelPrinterSection({
   showTitle = true,
@@ -48,6 +50,7 @@ export function LabelPrinterSection({
     connected,
     autoPrint,
     ios,
+    app,
     native,
     lbx,
     refresh,
@@ -121,7 +124,7 @@ export function LabelPrinterSection({
       {showTitle && (
         <h2 className="text-lg font-semibold">Imprimante d&apos;étiquettes</h2>
       )}
-      {ios && (
+      {ios && !app && (
         <>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
@@ -186,6 +189,38 @@ export function LabelPrinterSection({
               Télécharger une étiquette de test
             </Button>
           </div>
+        </>
+      ) : app ? (
+        <>
+          <p className="text-sm text-muted-foreground">
+            L&apos;app TMS imprime l&apos;étiquette de chaque attribution sur la
+            PT-P710BT appairée en Bluetooth avec cet iPhone : prénom, initiale
+            du nom et date de retour prévue. TMS affiche le résultat de
+            l&apos;impression.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={onTestPrint} disabled={printing}>
+              <Printer className="h-4 w-4" />
+              {printing ? "Impression..." : "Imprimer une étiquette de test"}
+            </Button>
+            <Button variant="outline" onClick={openNativePrinterSettings}>
+              <Bluetooth className="h-4 w-4" />
+              Réglages de l&apos;imprimante
+            </Button>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={autoPrint}
+              onCheckedChange={(checked) => setAutoPrint(checked === true)}
+            />
+            Imprimer l&apos;étiquette à chaque attribution faite depuis cet
+            appareil
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Sinon, une carte propose « Imprimer » après chaque attribution. Les
+            réglages de l&apos;imprimante servent à l&apos;appairer, à vérifier
+            la connexion et à partager un diagnostic.
+          </p>
         </>
       ) : !native ? (
         <p className="text-sm text-muted-foreground">

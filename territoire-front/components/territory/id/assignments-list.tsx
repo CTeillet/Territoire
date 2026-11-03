@@ -67,7 +67,8 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                 <TooltipProvider>
                   <div className="flex gap-2">
                     {/* Étiquette perdue, ratée ou à refaire après une modification de l'échéance.
-                        Sur iPhone, lien vers TMS Impression ou fichier LBX selon le réglage local. */}
+                        Dans Safari sur iPhone, lien vers TMS Impression ou fichier LBX selon le réglage local ;
+                        dans l'app iOS TMS, impression directe. */}
                     {assignment.person &&
                       assignment.returnDate === null &&
                       canManageAssignments(role) &&

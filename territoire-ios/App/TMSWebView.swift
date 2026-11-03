@@ -3,13 +3,21 @@ import SwiftUI
 import UIKit
 import WebKit
 
+/// What the TMS page asks of the app: label links and printer bridge messages.
+@MainActor
+protocol TMSWebHost: AnyObject {
+    func receivePrintLink(_ url: URL)
+    /// Reply sent back to the page, as a JavaScript object.
+    func handle(_ command: PrinterBridgeCommand) async -> [String: Any]
+}
+
 /// The TMS site, signed in between launches. TMS pages stay here; other links open in their own app.
 @MainActor
-final class TMSWebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate {
+final class TMSWebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate,
+                         WKScriptMessageHandlerWithReply {
     @Published private(set) var hasLoaded = false
     @Published private(set) var failure: String?
-    /// tmsprint:// links touched in a TMS page.
-    let printLinks = PassthroughSubject<URL, Never>()
+    weak var host: TMSWebHost?
 
     let baseURL: URL
     let webView: WKWebView
@@ -31,8 +39,12 @@ final class TMSWebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUID
         configuration.websiteDataStore = .default()
         // The territory map opens with window.open after a network request, without a user gesture.
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
+        let contentController = WKUserContentController()
+        configuration.userContentController = contentController
         webView = WKWebView(frame: .zero, configuration: configuration)
         super.init()
+        // The page prints through window.webkit.messageHandlers.tmsPrinter; absent in Safari.
+        contentController.addScriptMessageHandler(self, contentWorld: .page, name: PrinterBridgeCommand.handlerName)
         // Files shared during a previous launch are no longer needed.
         try? FileManager.default.removeItem(at: Self.downloadsFolder)
         webView.navigationDelegate = self
@@ -66,7 +78,7 @@ final class TMSWebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUID
         case .tms, .generated:
             decisionHandler(.allow)
         case .printLink:
-            printLinks.send(url)
+            host?.receivePrintLink(url)
             decisionHandler(.cancel)
         case .external where navigationAction.targetFrame?.isMainFrame == false:
             // A frame embedded in a TMS page stays in the page; only whole pages leave the app.
@@ -143,7 +155,7 @@ final class TMSWebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUID
             // Same configuration as the opener: the new view can read the page's blob.
             return openPopup(configuration)
         case .printLink:
-            printLinks.send(url)
+            host?.receivePrintLink(url)
         case .external:
             UIApplication.shared.open(url)
         case .blocked:
@@ -199,6 +211,31 @@ final class TMSWebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUID
             completionHandler(alert?.textFields?.first?.text ?? "")
         })
         present(alert) { completionHandler(nil) }
+    }
+
+    // MARK: Printer bridge
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage,
+                               replyHandler: @escaping (Any?, String?) -> Void) {
+        let origin = message.frameInfo.securityOrigin
+        // The TMS page itself only: not an embedded frame, a popup or another site.
+        guard message.webView === webView, message.frameInfo.isMainFrame,
+              WebPolicy.isTrustedOrigin(scheme: origin.protocol, host: origin.host, port: origin.port, base: baseURL),
+              let host else {
+            replyHandler(nil, "Demande refusée : elle ne vient pas de TMS.")
+            return
+        }
+        let command: PrinterBridgeCommand
+        do {
+            command = try PrinterBridgeCommand(body: message.body)
+        } catch {
+            replyHandler(nil, error.localizedDescription)
+            return
+        }
+        Task {
+            let reply = await host.handle(command)
+            replyHandler(reply, nil)
+        }
     }
 
     // MARK: Downloads

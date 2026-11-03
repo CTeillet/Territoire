@@ -10,17 +10,20 @@ import {
   isNativeLabelPrintingEnabled,
   setNativeLabelPrintingEnabled,
 } from "@/lib/iphone-label-printer";
+import { isNativeApp } from "@/lib/native-app";
 
 export interface LabelPrinterState {
-  /** Le navigateur sait piloter l'imprimante (Web Serial). */
+  /** Cet appareil sait piloter l'imprimante (Web Serial ou app iOS TMS). */
   supported: boolean;
-  /** Une imprimante est choisie sur cet appareil. */
+  /** Une imprimante est choisie sur cet appareil ; dans l'app iOS TMS, l'app s'en charge. */
   connected: boolean;
   /** Étiquette imprimée à chaque attribution faite depuis cet appareil. */
   autoPrint: boolean;
   /** iPhone ou iPad. */
   ios: boolean;
-  /** Impression confiée à l'app iOS TMS Impression installée et signée. */
+  /** Site affiché dans l'app iOS TMS, qui imprime elle-même. */
+  app: boolean;
+  /** Safari sur iPhone : impression confiée à l'app iOS par un lien tmsprint. */
   native: boolean;
   /** iPhone ou iPad avec le parcours fichier LBX choisi. */
   lbx: boolean;
@@ -31,13 +34,15 @@ const UNKNOWN: LabelPrinterState = {
   connected: false,
   autoPrint: false,
   ios: false,
+  app: false,
   native: false,
   lbx: false,
 };
 
 async function readState(): Promise<LabelPrinterState> {
   const ios = isIOSDevice();
-  const native = ios && isNativeLabelPrintingEnabled();
+  const app = isNativeApp();
+  const native = ios && !app && isNativeLabelPrintingEnabled();
   let connected = false;
   try {
     connected = (await getLabelPrinter()) !== null;
@@ -45,12 +50,13 @@ async function readState(): Promise<LabelPrinterState> {
     // Web Serial refusé (politique de permissions) : comme sans imprimante
   }
   return {
-    supported: isLabelPrintingSupported(),
-    connected,
+    supported: app || isLabelPrintingSupported(),
+    connected: app || connected,
     autoPrint: isAutoPrintEnabled(),
     ios,
+    app,
     native,
-    lbx: ios && !native,
+    lbx: ios && !app && !native,
   };
 }
 
@@ -80,8 +86,8 @@ export function useLabelPrinter() {
     const native = setNativeLabelPrintingEnabled(enabled);
     setState((previous) => ({
       ...previous,
-      native: previous.ios && native,
-      lbx: previous.ios && !native,
+      native: previous.ios && !previous.app && native,
+      lbx: previous.ios && !previous.app && !native,
     }));
   }, []);
 

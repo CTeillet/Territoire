@@ -52,3 +52,27 @@ export function unstubShare() {
   delete (navigator as Partial<Navigator>).canShare;
   delete (navigator as Partial<Navigator>).share;
 }
+
+/** Message reçu par l'app iOS TMS par window.webkit.messageHandlers.tmsPrinter. */
+export type NativeAppMessage = { action: string } & Record<string, unknown>;
+
+/**
+ * Site affiché dans l'app iOS TMS : pont d'impression de l'app, avec sa réponse (étiquette imprimée par défaut).
+ * Navigateur d'iPhone compris, comme dans l'app.
+ */
+export function stubNativeApp(
+  reply: (message: NativeAppMessage) => unknown = () => ({ printed: true })
+) {
+  stubIPhone();
+  const postMessage = vi.fn(async (message: NativeAppMessage) =>
+    reply(message)
+  );
+  (window as unknown as { webkit?: unknown }).webkit = {
+    messageHandlers: { tmsPrinter: { postMessage } },
+  };
+  return postMessage;
+}
+
+export function unstubNativeApp() {
+  delete (window as unknown as { webkit?: unknown }).webkit;
+}

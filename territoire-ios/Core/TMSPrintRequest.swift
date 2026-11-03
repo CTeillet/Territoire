@@ -1,6 +1,6 @@
 import Foundation
 
-/// A link carries label text only: no printer commands, credentials or remote URL.
+/// A link or a page message carries label text only: no printer commands, credentials or remote URL.
 struct TMSPrintRequest: Equatable {
     let id: UUID
     let name: String
@@ -21,14 +21,19 @@ struct TMSPrintRequest: Equatable {
               Set(items.map(\.name)) == Set(["v", "id", "name", "dueDate"]),
               items.allSatisfy({ $0.value != nil }) else { throw TMSPrintRequestError.invalidLink }
         let values = Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value!) })
-        guard values["v"] == "1", let id = UUID(uuidString: values["id"]!),
-              let name = values["name"], !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        guard values["v"] == "1" else { throw TMSPrintRequestError.invalidLink }
+        try self.init(id: values["id"]!, name: values["name"]!, dueDate: values["dueDate"]!)
+    }
+
+    /// Same checks for a tmsprint link and for a message from the TMS page shown in the app.
+    init(id: String, name: String, dueDate: String) throws {
+        guard let uuid = UUID(uuidString: id), !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               name.unicodeScalars.count <= 128,
               name.rangeOfCharacter(from: .controlCharacters.union(.newlines)) == nil,
-              let dueDate = values["dueDate"], Self.isValidDate(dueDate) else {
-            throw TMSPrintRequestError.invalidLink
+              Self.isValidDate(dueDate) else {
+            throw TMSPrintRequestError.invalidLabel
         }
-        self.id = id
+        self.id = uuid
         self.name = name
         self.dueDate = dueDate
     }
@@ -48,7 +53,13 @@ struct TMSPrintRequest: Equatable {
 
 enum TMSPrintRequestError: LocalizedError {
     case invalidLink
-    var errorDescription: String? { "Lien d'impression TMS invalide ou version non prise en charge." }
+    case invalidLabel
+    var errorDescription: String? {
+        switch self {
+        case .invalidLink: return "Lien d'impression TMS invalide ou version non prise en charge."
+        case .invalidLabel: return "Nom ou date de l'étiquette invalide."
+        }
+    }
 }
 
 /// Persist before sending a job. Reopening a link must never repeat an uncertain print.

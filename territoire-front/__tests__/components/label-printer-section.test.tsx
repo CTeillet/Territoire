@@ -14,7 +14,12 @@ import {
   stubSerial,
   unstubSerial,
 } from "../mocks/serial-port";
-import { captureDownloads, stubIPhone } from "../mocks/ios";
+import {
+  captureDownloads,
+  stubIPhone,
+  stubNativeApp,
+  unstubNativeApp,
+} from "../mocks/ios";
 
 vi.mock("sonner", () => ({
   toast: { loading: vi.fn(), success: vi.fn(), error: vi.fn() },
@@ -30,6 +35,7 @@ beforeEach(() => {
 
 afterEach(() => {
   unstubSerial();
+  unstubNativeApp();
 });
 
 describe("LabelPrinterSection", () => {
@@ -115,6 +121,52 @@ describe("LabelPrinterSection", () => {
       screen.queryByRole("button", { name: "Essayer TMS Impression" })
     ).not.toBeInTheDocument();
     expect(screen.getByText(/P-touch Design&Print 2/)).toBeInTheDocument();
+  });
+
+  it("dans l'app iOS TMS, imprime un test par l'app, ouvre ses réglages et règle l'impression automatique", async () => {
+    const postMessage = stubNativeApp();
+    const print = vi
+      .spyOn(assignmentLabel, "printAssignmentLabel")
+      .mockResolvedValue();
+    render(<LabelPrinterSection />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Imprimer une étiquette de test",
+      })
+    );
+    expect(print).toHaveBeenCalledWith({
+      person: { id: null, firstName: "Jean", lastName: "Dupont" },
+      dueDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Réglages de l'imprimante" })
+    );
+    expect(postMessage).toHaveBeenCalledWith({ action: "openSettings" });
+
+    const autoPrint = screen.getByRole("checkbox", {
+      name: "Imprimer l'étiquette à chaque attribution faite depuis cet appareil",
+    });
+    expect(autoPrint).not.toBeChecked();
+    await userEvent.click(autoPrint);
+    expect(isAutoPrintEnabled()).toBe(true);
+
+    // Ni le lien vers TMS Impression, ni le fichier LBX, ni Web Serial
+    expect(
+      screen.queryByRole("checkbox", {
+        name: "Utiliser l'app TMS Impression sur cet iPhone",
+      })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Télécharger une étiquette de test",
+      })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Choisir l'imprimante" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/utilisez Chrome/)).not.toBeInTheDocument();
   });
 
   it("ne lit pas l'appareil au rendu serveur : l'hydratation sur iPhone se passe sans écart", async () => {
