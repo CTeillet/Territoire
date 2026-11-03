@@ -26,7 +26,6 @@ import {
 import {
   Feature,
   FeatureCollection,
-  Geometry,
   MultiPolygon,
   Polygon,
   Position,
@@ -41,25 +40,22 @@ import { authFetch } from "@/utils/auth-fetch";
 import MapUpdater from "@/components/territory/map-updater";
 import { useSidebar } from "@/components/ui/sidebar";
 import { City } from "@/models/city";
-import { TerritoryStatus } from "@/models/territory-status";
-import { getBadgeColorTerritory } from "@/components/territory/territory-map";
 
 interface GeomanCreateEvent extends LeafletEvent {
   layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
 }
 
 /**
- * Couleur du statut, comme sur la carte des territoires, avec un remplissage plus léger : le territoire affiché reste
- * au premier plan. Un gris uniforme ne se voyait pas : les territoires d'une ville se touchent, le voile couvrait toute
- * la carte et les bordures se confondaient avec les rues.
+ * Gris neutre, pour que seul le territoire affiché ressorte. Un gris clair à bordure fine ne se voyait pas : les
+ * territoires d'une ville se touchent, le voile couvrait toute la carte et les bordures se confondaient avec les rues.
+ * D'où une bordure foncée en pointillés, que les rues n'ont pas.
  */
-const otherTerritoryStyle = (
-  feature?: Feature<Geometry, { status: TerritoryStatus }>
-): PathOptions => {
-  const color = getBadgeColorTerritory(
-    feature?.properties.status as TerritoryStatus
-  );
-  return { color, fillColor: color, weight: 2, fillOpacity: 0.25 };
+const otherTerritoryStyle: PathOptions = {
+  color: "#4b5563",
+  weight: 2,
+  dashArray: "6 4",
+  fillColor: "#6b7280",
+  fillOpacity: 0.3,
 };
 
 /** Nom d'un autre territoire au survol (textContent : le nom est une saisie utilisateur, jamais interprétée en HTML). */
