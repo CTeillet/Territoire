@@ -9,13 +9,18 @@ import {
 import { TerritoryType } from "@/models/territory-type";
 import { TERRITORY_REQUESTS_CHANGED } from "@/lib/territory-request-api";
 import * as assignmentLabel from "@/lib/assignment-label";
-import { setNativeLabelPrintingEnabled } from "@/lib/iphone-label-printer";
 import { toast } from "sonner";
 import { jsonResponse, mockApi, renderWithRole } from "../test-utils";
-import { captureDownloads, stubIPhone } from "../mocks/ios";
+import {
+  captureDownloads,
+  stubIPhone,
+  stubNativeApp,
+  unstubNativeApp,
+} from "../mocks/ios";
 
 vi.mock("sonner", () => ({
   toast: {
+    loading: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
     custom: vi.fn(),
@@ -62,7 +67,7 @@ const available: AvailableTerritory[] = [
 
 describe("Page des demandes de territoire", () => {
   afterEach(() => {
-    setNativeLabelPrintingEnabled(false);
+    unstubNativeApp();
   });
   beforeEach(() => {
     vi.clearAllMocks();
@@ -214,9 +219,8 @@ describe("Page des demandes de territoire", () => {
     ]);
   });
 
-  it("sur iPhone, propose le lien natif avec la personne et la date renvoyées lors d'une attribution depuis une demande", async () => {
-    stubIPhone();
-    setNativeLabelPrintingEnabled(true);
+  it("dans l'app iOS TMS, imprime par l'app avec la personne et la date renvoyées lors d'une attribution depuis une demande", async () => {
+    const postMessage = stubNativeApp();
     mockApi({
       "GET /api/demandes-territoire/d1/territoires-disponibles": available,
       "GET /api/demandes-territoire": [request()],
@@ -238,11 +242,19 @@ describe("Page des demandes de territoire", () => {
     await waitFor(() => expect(toast.custom).toHaveBeenCalled());
     const [renderCard] = vi.mocked(toast.custom).mock.calls[0];
     render(renderCard("etiquette-a2"));
-    const url = new URL(
-      screen.getByRole("link", { name: "Imprimer" }).getAttribute("href")!
+    expect(
+      screen.getByText("Jean D. · À rendre le 16/05/2027")
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Imprimer" }));
+    await waitFor(() =>
+      expect(postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "print",
+          name: "Jean D.",
+          dueDate: "2027-05-16",
+        })
+      )
     );
-    expect(url.searchParams.get("name")).toBe("Jean D.");
-    expect(url.searchParams.get("dueDate")).toBe("2027-05-16");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

@@ -6,10 +6,6 @@ import {
   setAutoPrintEnabled,
 } from "@/lib/label-printer";
 import { isIOSDevice } from "@/lib/device";
-import {
-  isNativeLabelPrintingEnabled,
-  setNativeLabelPrintingEnabled,
-} from "@/lib/iphone-label-printer";
 import { isNativeApp } from "@/lib/native-app";
 
 export interface LabelPrinterState {
@@ -23,9 +19,7 @@ export interface LabelPrinterState {
   ios: boolean;
   /** Site affiché dans l'app iOS TMS, qui imprime elle-même. */
   app: boolean;
-  /** Safari sur iPhone : impression confiée à l'app iOS par un lien tmsprint. */
-  native: boolean;
-  /** iPhone ou iPad avec le parcours fichier LBX choisi. */
+  /** iPhone ou iPad hors de l'app TMS (Safari) : l'étiquette est un fichier LBX. */
   lbx: boolean;
 }
 
@@ -35,14 +29,12 @@ const UNKNOWN: LabelPrinterState = {
   autoPrint: false,
   ios: false,
   app: false,
-  native: false,
   lbx: false,
 };
 
 async function readState(): Promise<LabelPrinterState> {
   const ios = isIOSDevice();
   const app = isNativeApp();
-  const native = ios && !app && isNativeLabelPrintingEnabled();
   let connected = false;
   try {
     connected = (await getLabelPrinter()) !== null;
@@ -55,8 +47,7 @@ async function readState(): Promise<LabelPrinterState> {
     autoPrint: isAutoPrintEnabled(),
     ios,
     app,
-    native,
-    lbx: ios && !app && !native,
+    lbx: ios && !app,
   };
 }
 
@@ -82,14 +73,5 @@ export function useLabelPrinter() {
     setState((previous) => ({ ...previous, autoPrint: enabled }));
   }, []);
 
-  const setNativePrint = useCallback((enabled: boolean) => {
-    const native = setNativeLabelPrintingEnabled(enabled);
-    setState((previous) => ({
-      ...previous,
-      native: previous.ios && !previous.app && native,
-      lbx: previous.ios && !previous.app && !native,
-    }));
-  }, []);
-
-  return { ...state, refresh, setAutoPrint, setNativePrint };
+  return { ...state, refresh, setAutoPrint };
 }

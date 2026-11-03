@@ -4,6 +4,7 @@ import {
   assignmentLabelFile,
   assignmentLabelText,
   autoPrintAssignmentLabel,
+  nativeLabel,
   printAssignmentLabel,
   renderLabel,
 } from "@/lib/assignment-label";
@@ -190,6 +191,30 @@ describe("assignment-label", () => {
     await vi.waitFor(() =>
       expect(labelPrinter.printLabel).toHaveBeenCalledTimes(3)
     );
+  });
+
+  it("prépare pour l'app iOS le nom et le jour du backend, sans fuseau ni nom complet, avec ses limites", () => {
+    const id = "24f49820-801c-4f63-bbd9-526cab9e6743";
+    const accented = {
+      person: { id: "p1", firstName: "Élodie  &\tJean +", lastName: "Smith" },
+      dueDate: "2028-02-29T00:00:00+14:00",
+    };
+    expect(nativeLabel(accented, id)).toEqual({
+      id,
+      name: "Élodie & Jean + S.",
+      dueDate: "2028-02-29",
+    });
+    expect(nativeLabel(assignment)?.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(nativeLabel({ ...assignment, person: undefined }, id)).toBeNull();
+    expect(() =>
+      nativeLabel(
+        {
+          ...assignment,
+          person: { ...assignment.person, firstName: "a".repeat(129) },
+        },
+        id
+      )
+    ).toThrow("Le nom ou la date de l'étiquette est invalide.");
   });
 
   it("dans l'app iOS TMS, confie l'étiquette à l'app, sans Web Serial, et propose ses réglages en cas d'échec", async () => {

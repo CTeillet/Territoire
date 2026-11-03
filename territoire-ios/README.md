@@ -10,11 +10,10 @@ Les écrans de TMS viennent du site : un déploiement du front suffit à les met
 à jour, sans réinstaller l'app. L'app n'ajoute que ce qu'un navigateur ne sait pas
 faire sur iPhone, c'est-à-dire parler à l'imprimante en Bluetooth.
 
-**Validation matérielle du 3 novembre 2026 :** la version 1.0, installée depuis
-Windows avec Sideloadly, a imprimé l'étiquette de test sur la PT-P710BT. La liaison
-native et l'impression sont donc validées sur cet équipement. Le parcours avec le
-nom et la date de l'attribution (depuis la 1.1) et les versions 2.x doivent encore
-être essayés sur le téléphone.
+**Validation sur le matériel, 3 novembre 2026 :** la version 1.0, installée depuis
+Windows avec Sideloadly, a imprimé l'étiquette de test sur la PT-P710BT. Le même
+jour, la version 2.1 (TMS dans l'app, impression directe depuis TMS) a été
+installée et utilisée avec succès sur l'iPhone.
 
 L'impression utilise l'API publique Apple External Accessory et une adaptation du
 protocole raster de territoire-front/lib/ptouch.ts. Aucun SDK Brother privé,
@@ -46,10 +45,9 @@ Une campagne sans personne ne génère aucune étiquette. L'écran **Imprimante*
 imprimantes visibles, vérifier la connexion et partager un diagnostic ; le fermer
 pour revenir à TMS.
 
-Les liens `tmsprint` envoyés depuis Safari ou une PWA (option **Utiliser l'app TMS
-Impression sur cet iPhone**) ouvrent l'écran Imprimante, comme avec TMS Impression.
-Son option **Imprimer automatiquement les liens venus de Safari** évite d'y
-confirmer chaque étiquette.
+Dans Safari, ou TMS ajouté à l'écran d'accueil depuis Safari, l'étiquette reste un
+fichier LBX pour Brother Design&Print 2 : seule l'app imprime directement. Les liens
+`tmsprint` de TMS Impression 1.x ne sont plus pris en charge depuis la version 2.2.
 
 ## Ce que l'app fait du site
 
@@ -79,37 +77,20 @@ Dans l'app, le front détecte `window.webkit.messageHandlers.tmsPrinter`
 
 Une impression répond `{ printed: true }` une fois la fin d'impression confirmée par
 la P710BT, sinon `{ printed: false, message }` avec le message affiché par TMS
-(imprimante occupée, absente, erreur, ou résultat incertain à vérifier). Le nom et la
-date suivent les mêmes règles que le lien ci-dessous, et l'identifiant entre dans le
-même historique contre les doublons : chaque toucher de « Imprimer » ou « Réessayer »
-crée un nouveau travail, jamais relancé automatiquement.
+(imprimante occupée, absente, erreur, ou résultat incertain à vérifier).
+
+L'app vérifie le nom (128 caractères au plus, sans retour à la ligne ni caractère de
+contrôle) et la date (jour calendrier `AAAA-MM-JJ`, sans conversion de fuseau
+horaire), puis dessine l'étiquette elle-même : deux lignes, accents, nom en gras.
+Les 200 derniers identifiants de travaux sont mémorisés avant l'envoi : chaque
+toucher de « Imprimer » ou « Réessayer » crée un nouveau travail, et aucun travail
+envoyé n'est relancé automatiquement. Après un envoi partiel ou une fin non
+confirmée, vérifier la sortie de l'imprimante avant de réessayer. Plusieurs P710BT
+visibles demandent une sélection dans l'écran Imprimante.
 
 L'app n'accepte ces messages que de la page principale, à l'origine exacte de
 `TMSBaseURL` : ni d'un cadre intégré, ni d'une fenêtre ouverte par la page, ni d'un
 autre site. Le message ne contient aucune commande d'imprimante.
-
-## Contrat du lien web → iOS
-
-Format versionné, avec les valeurs encodées par `encodeURIComponent` :
-
-    tmsprint://print?v=1&id=<UUID>&name=Corentin%20T.&dueDate=2027-03-03
-
-La date est un jour calendrier `AAAA-MM-JJ`, sans conversion de fuseau horaire.
-Le rendu iOS est local, sur deux lignes, avec accents, nom en gras et date de retour.
-Le lien ne contient aucun jeton de connexion, nom complet, URL à télécharger ou
-commande d'imprimante. Le parseur refuse les versions inconnues, paramètres
-supplémentaires ou répétés, dates invalides, caractères de contrôle et textes trop longs.
-
-Un schéma d'URL personnalisé ne permet pas d'authentifier le site d'origine :
-l'impression automatique est donc désactivée à l'installation. L'option dans
-l'app explique qu'un lien `tmsprint` peut lancer une étiquette sans confirmation.
-
-Les 200 derniers identifiants de travaux envoyés sont mémorisés avant l'envoi.
-Rouvrir le même lien ne répète pas le travail, même après un redémarrage de l'app.
-Une erreur avant envoi permet de réessayer manuellement dans l'app ; après un
-envoi partiel ou une fin non confirmée, vérifier la sortie physique et redemander
-une nouvelle étiquette depuis TMS si nécessaire. Aucun travail envoyé n'est relancé
-automatiquement. Plusieurs P710BT visibles demandent une sélection manuelle.
 
 ## Obtenir le fichier d'installation sans Mac
 
@@ -161,8 +142,8 @@ permet. Le PC sert à l'installation/au renouvellement, pas à l'impression.
    pour la V1 LBX. Puis fermer Design&Print 2 et iPrint&Label pour libérer la liaison.
 2. Dans Réglages > Bluetooth, appairer la PT-P710BT avec l'iPhone.
 3. Ouvrir l'écran Imprimante : dans TMS, **Paramètres > Autres paramètres >
-   Imprimante d'étiquettes**, option de l'app cochée, toucher **Essayer TMS Impression**.
-   Accepter l'accès Bluetooth si demandé, puis **Actualiser**.
+   Imprimante d'étiquettes**, toucher **Réglages de l'imprimante**. Accepter l'accès
+   Bluetooth si demandé, puis **Actualiser**.
    Le bouton **Appairer…** présente aussi le sélecteur Apple.
 4. Sélectionner la P710BT et examiner le modèle et les protocoles affichés.
 5. Toucher **Ouvrir la connexion**, puis **Lire l'état — sans imprimer**.
@@ -238,10 +219,10 @@ Sur un Mac équipé de Xcode et XcodeGen :
 Le runner effectue ces mêmes vérifications et compile pour iphoneos, pas seulement
 pour le simulateur. Un simulateur ne permet pas de tester la connexion physique.
 
-Les tests Swift couvrent aussi le contrat des liens web, les messages du pont et
-l'origine acceptée, les entrées invalides et l'historique contre les doublons. Les
-tests frontend contrôlent le lien Unicode, la date du backend, l'impression par le
-pont simulé, les réglages iOS, la carte après attribution et le repli LBX.
+Les tests Swift couvrent aussi les messages du pont et l'origine acceptée, les noms
+et dates invalides et l'historique contre les doublons. Les tests frontend
+contrôlent la date du backend, l'impression par le pont simulé, les réglages dans
+l'app, la carte après attribution et le fichier LBX dans Safari.
 La compilation ne remplace ni l'essai matériel, ni celui du site dans l'app :
 connexion, carte et position, imports et exports de fichiers, liens d'itinéraire.
 

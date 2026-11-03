@@ -9,11 +9,10 @@ final class PrinterBridgeTests: XCTestCase {
         ["action": "print", "id": identifier, "name": name, "dueDate": dueDate]
     }
 
-    func testReadsAPrintRequestWithTheSameRulesAsALink() throws {
+    func testReadsAPrintRequest() throws {
         let command = try PrinterBridgeCommand(body: printMessage(name: "Élodie & Jean + S."))
-        let link = URL(string: "tmsprint://print?v=1&id=\(identifier)&name=%C3%89lodie%20%26%20Jean%20%2B%20S.&dueDate=2028-02-29")!
-        let fromLink = try TMSPrintRequest(url: link)
-        XCTAssertEqual(command, .print(fromLink))
+        let expected = try TMSPrintRequest(id: identifier, name: "Élodie & Jean + S.", dueDate: "2028-02-29")
+        XCTAssertEqual(command, .print(expected))
         guard case .print(let request) = command else { return XCTFail("Commande inattendue") }
         XCTAssertEqual(request.dateLine, "À rendre le 29/02/2028")
     }

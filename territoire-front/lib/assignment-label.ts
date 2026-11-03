@@ -137,7 +137,7 @@ export function assignmentLabelFile(
   };
 }
 
-/** Étiquette confiée à l'app iOS (lien tmsprint ou pont de l'app TMS), qui la dessine elle-même. */
+/** Étiquette confiée à l'app iOS TMS par son pont d'impression : l'app la dessine elle-même. */
 export interface NativeLabel {
   /** Identifiant du travail : l'app n'envoie jamais deux fois le même à l'imprimante. */
   id: string;

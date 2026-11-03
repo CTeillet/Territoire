@@ -6,8 +6,6 @@ enum WebDestination: Equatable {
     case tms
     /// Content made by a TMS page (blob, data, about:blank): shown or downloaded in place.
     case generated
-    /// Label link for the printer screen.
-    case printLink
     /// Other site or app (Safari, Plans, Waze, Téléphone, Mail…), handed over to iOS.
     case external
     /// Never opened (file, javascript, unknown apps, blobs of another site).
@@ -20,8 +18,6 @@ enum WebPolicy {
     static func destination(of url: URL, base: URL) -> WebDestination {
         guard let scheme = url.scheme?.lowercased() else { return .blocked }
         switch scheme {
-        case "tmsprint":
-            return .printLink
         case "about", "data":
             return .generated
         case "blob":

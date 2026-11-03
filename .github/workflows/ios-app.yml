@@ -69,12 +69,13 @@ jobs:
           à renouveler tous les 7 jours.
 
           Ouvrez **TMS** sur un véritable iPhone et connectez-vous, puis :
-          - Dans Paramètres > Autres paramètres > Imprimante d'étiquettes, cochez
-            l'app TMS Impression sur cet iPhone.
-          - Après une attribution, touchez **Imprimer** dans la carte TMS : l'écran
-            Imprimante s'ouvre par-dessus TMS.
+          - Après une attribution, touchez **Imprimer** dans la carte d'étiquette :
+            l'app imprime et TMS affiche le résultat.
+          - Dans Paramètres > Autres paramètres > Imprimante d'étiquettes : étiquette
+            de test, réglages de l'imprimante et impression automatique.
 
-          Pour tester le Bluetooth indépendamment d'une attribution :
+          Pour tester le Bluetooth indépendamment d'une attribution, ouvrez
+          **Réglages de l'imprimante** :
           1. Appairez la P710BT et fermez les autres apps Brother.
           2. Actualisez, sélectionnez l'imprimante et ouvrez la connexion.
           3. Touchez **Lire l'état**. Une réponse Brother valide la communication.

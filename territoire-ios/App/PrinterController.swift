@@ -40,7 +40,6 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     @Published private(set) var lastStatus: PrinterStatus?
     @Published private(set) var message = "Appairez la PT-P710BT dans les réglages Bluetooth, puis actualisez."
     @Published private(set) var logs: [String] = []
-    @Published private(set) var pendingRequest: TMSPrintRequest?
 
     // Only the protocol actually declared in the built/sideloaded app can be used.
     let declaredProtocols: [String]
@@ -58,7 +57,6 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     private var txBytes = 0
     private var rxBytes = 0
     private var requestHistory = PrintRequestHistory(ids: UserDefaults.standard.stringArray(forKey: "printedTMSRequests") ?? [])
-    private var automaticAttemptedRequestID: UUID?
 
     var selectedAccessory: AccessoryInfo? { accessories.first { $0.id == selectedID } }
     var hasSession: Bool { session != nil }
@@ -69,51 +67,9 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
         !isBusy && !isConnected && selectedAccessory?.isP710BT == true
             && availableProtocols.contains(selectedProtocol)
     }
-    var canPrintRequest: Bool {
-        !isBusy && pendingRequest.map { !requestHistory.contains($0.id) } == true
-    }
-
-    func receivePrintRequest(_ url: URL) {
-        guard !isBusy else {
-            log("Demande TMS refusée : une opération est déjà en cours.")
-            return
-        }
-        do {
-            let request = try TMSPrintRequest(url: url)
-            pendingRequest = request
-            printConfirmed = false
-            if requestHistory.contains(request.id) {
-                message = "Cette demande a déjà été envoyée. Pour une nouvelle étiquette, utilisez à nouveau le bouton Imprimer dans TMS."
-                return
-            }
-            printOutcomeUnknown = false
-            message = "Étiquette TMS reçue. Prête à imprimer."
-            log("Demande TMS reçue (texte non consigné dans le diagnostic).")
-            startAutomaticPrintIfReady()
-        } catch {
-            pendingRequest = nil
-            message = error.localizedDescription
-            log("Lien TMS invalide refusé.")
-        }
-    }
 
     func resume() {
         refreshAccessories()
-        startAutomaticPrintIfReady()
-    }
-
-    private func startAutomaticPrintIfReady() {
-        if UIApplication.shared.applicationState == .active,
-           UserDefaults.standard.bool(forKey: "autoPrintTMSLinks"), canPrintRequest,
-           let request = pendingRequest, automaticAttemptedRequestID != request.id {
-            automaticAttemptedRequestID = request.id
-            printRequestedLabel()
-        }
-    }
-
-    func printRequestedLabel() {
-        guard canPrintRequest, let request = pendingRequest else { return }
-        startPrinting(request)
     }
 
     /// Label asked for by the TMS page, which waits for the printer's answer to show it.
@@ -124,19 +80,10 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
         guard !requestHistory.contains(request.id) else {
             return .failed("Cette étiquette a déjà été envoyée à l'imprimante.")
         }
-        pendingRequest = request
-        // Never printed again on its own when the app comes back to the foreground.
-        automaticAttemptedRequestID = request.id
         printConfirmed = false
         printOutcomeUnknown = false
         log("Demande de la page TMS reçue (texte non consigné dans le diagnostic).")
-        await startPrinting(request)?.value
-        return printConfirmed ? .printed : .failed(message)
-    }
-
-    @discardableResult
-    private func startPrinting(_ request: TMSPrintRequest) -> Task<Void, Never>? {
-        run("Connexion pour l'étiquette TMS…") { [self] in
+        let task = run("Connexion pour l'étiquette TMS…") { [self] in
             if !isConnected {
                 refreshAccessories()
                 let deadline = ProcessInfo.processInfo.systemUptime + 5
@@ -153,6 +100,8 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
             }
             try await printLabel(request: request)
         }
+        await task?.value
+        return printConfirmed ? .printed : .failed(message)
     }
 
     override init() {

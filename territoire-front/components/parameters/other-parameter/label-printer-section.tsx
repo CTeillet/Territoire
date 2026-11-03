@@ -19,10 +19,7 @@ import {
   renderLabel,
 } from "@/lib/assignment-label";
 import { downloadFile } from "@/lib/file-share";
-import {
-  LBX_HELP,
-  offerNativeAssignmentLabel,
-} from "@/components/shared/assignment-label-file";
+import { LBX_HELP } from "@/components/shared/assignment-label-file";
 import { openNativePrinterSettings } from "@/lib/native-app";
 
 // Hauteur imprimable d'un ruban de 12 mm, et ses marges non imprimées (85 points de large en tout)
@@ -37,8 +34,8 @@ const SAMPLE_ASSIGNMENT = {
 
 /**
  * Imprimante d'étiquettes de cet appareil : choix de la P-touch appairée en Bluetooth, étiquette de test et
- * impression automatique à l'attribution. Dans l'app iOS TMS, l'app imprime elle-même ; dans Safari sur iOS, choix
- * entre TMS Impression et le fichier LBX.
+ * impression automatique à l'attribution. Dans l'app iOS TMS, l'app imprime elle-même ; dans Safari sur iOS, fichier
+ * LBX pour l'application Brother.
  */
 export function LabelPrinterSection({
   showTitle = true,
@@ -51,11 +48,9 @@ export function LabelPrinterSection({
     autoPrint,
     ios,
     app,
-    native,
     lbx,
     refresh,
     setAutoPrint,
-    setNativePrint,
   } = useLabelPrinter();
   const [printing, setPrinting] = useState(false);
   const previewRef = useRef<HTMLCanvasElement>(null);
@@ -124,52 +119,6 @@ export function LabelPrinterSection({
       {showTitle && (
         <h2 className="text-lg font-semibold">Imprimante d&apos;étiquettes</h2>
       )}
-      {ios && !app && (
-        <>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={native}
-              onCheckedChange={(checked) => setNativePrint(checked === true)}
-            />
-            Utiliser l&apos;app TMS Impression sur cet iPhone
-          </label>
-          {native && (
-            <>
-              <p className="text-sm text-muted-foreground">
-                Installez TMS Impression 1.1 ou une version ultérieure et
-                appairez la PT-P710BT dans les réglages Bluetooth. Après chaque
-                attribution, touchez « Imprimer » : l&apos;app reçoit le nom et
-                la date de retour, puis imprime. Activez « Imprimer
-                automatiquement les demandes TMS » dans l&apos;app pour éviter
-                une confirmation supplémentaire.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() =>
-                    offerNativeAssignmentLabel({
-                      ...SAMPLE_ASSIGNMENT,
-                      id: "test-ios",
-                    })
-                  }
-                >
-                  <Printer />
-                  Essayer TMS Impression
-                </Button>
-                <Button variant="outline" onClick={onTestDownload}>
-                  <Download />
-                  Télécharger une étiquette de test
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                iOS peut demander de confirmer l&apos;ouverture de l&apos;app.
-                Revenez ensuite dans TMS avec le retour d&apos;iOS ou le
-                sélecteur d&apos;apps. Le fichier LBX reste disponible si
-                l&apos;app est absente ou si sa signature a expiré.
-              </p>
-            </>
-          )}
-        </>
-      )}
       {lbx ? (
         <>
           <p className="text-sm text-muted-foreground">
@@ -189,6 +138,10 @@ export function LabelPrinterSection({
               Télécharger une étiquette de test
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Avec l&apos;app TMS pour iPhone, l&apos;étiquette s&apos;imprime
+            directement depuis TMS, sans fichier.
+          </p>
         </>
       ) : app ? (
         <>
@@ -222,14 +175,14 @@ export function LabelPrinterSection({
             la connexion et à partager un diagnostic.
           </p>
         </>
-      ) : !native ? (
+      ) : (
         <p className="text-sm text-muted-foreground">
           Une Brother P-touch Cube reliée en Bluetooth imprime une étiquette à
           chaque attribution : prénom, initiale du nom et date de retour prévue.
           Le réglage est propre à chaque appareil (ordinateur, téléphone
           Android).
         </p>
-      ) : null}
+      )}
 
       {!ios && !supported && (
         <p className="text-sm text-orange-700">

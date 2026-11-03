@@ -16,10 +16,6 @@ import {
   printAssignmentLabel,
 } from "@/lib/assignment-label";
 import { isAutoPrintEnabled } from "@/lib/label-printer";
-import {
-  isNativeLabelPrintingEnabled,
-  nativeAssignmentLabelURL,
-} from "@/lib/iphone-label-printer";
 import { isNativeApp } from "@/lib/native-app";
 
 /** Mode d'emploi du fichier LBX sur iPhone : l'application Brother imprime, TMS ne fait que préparer le fichier. */
@@ -131,57 +127,6 @@ export function offerAssignmentLabelFile(assignment: LabelAssignment): void {
   );
 }
 
-/** Un vrai lien touché par l'utilisateur : pas de lancement après un appel réseau asynchrone. */
-export function offerNativeAssignmentLabel(assignment: LabelAssignment): void {
-  try {
-    const text = assignmentLabelText(assignment);
-    if (!text) return;
-    const url = nativeAssignmentLabelURL(assignment);
-    if (!url) return;
-    toast.custom(
-      (id) => (
-        <LabelCard
-          title="Étiquette prête à imprimer"
-          text={text}
-          onClose={() => toast.dismiss(id)}
-        >
-          <p className="mt-2 text-xs text-muted-foreground">
-            Ouvre TMS Impression sur cet iPhone. L&apos;app indique le résultat
-            de l&apos;impression.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" asChild>
-              <a href={url}>
-                <Printer />
-                Imprimer
-              </a>
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => offerAssignmentLabelFile(assignment)}
-            >
-              <Download />
-              Utiliser le fichier LBX
-            </Button>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Si l&apos;app ne s&apos;ouvre pas, vérifiez son installation et sa
-            signature, ou utilisez le fichier LBX.
-          </p>
-        </LabelCard>
-      ),
-      { id: `etiquette-${assignment.id}`, duration: Infinity }
-    );
-  } catch (error) {
-    console.error("❌ Lien d'impression non généré :", error);
-    toast.error(
-      "L'ouverture de TMS Impression a échoué. L'étiquette est proposée en fichier LBX."
-    );
-    offerAssignmentLabelFile(assignment);
-  }
-}
-
 /** Dans l'app iOS TMS, sans impression automatique : l'étiquette part au toucher de « Imprimer ». */
 function offerAppAssignmentLabel(assignment: LabelAssignment): void {
   const text = assignmentLabelText(assignment);
@@ -213,9 +158,9 @@ function offerAppAssignmentLabel(assignment: LabelAssignment): void {
 
 /**
  * Après une attribution réussie. Dans l'app iOS TMS, l'étiquette s'imprime si l'impression automatique est
- * activée, sinon une carte la propose. Dans Safari sur iOS, lien vers l'app native si elle est choisie, sinon le
- * LBX. Ailleurs, l'étiquette s'imprime si l'appareil est réglé pour (Web Serial). Ne rejette jamais : un problème
- * d'étiquette ne remet pas en cause l'attribution enregistrée.
+ * activée, sinon une carte la propose. Dans Safari sur iOS, le fichier LBX. Ailleurs, l'étiquette s'imprime si
+ * l'appareil est réglé pour (Web Serial). Ne rejette jamais : un problème d'étiquette ne remet pas en cause
+ * l'attribution enregistrée.
  */
 export async function labelAfterAssignment(
   assignment: LabelAssignment | null | undefined
@@ -227,8 +172,7 @@ export async function labelAfterAssignment(
     return;
   }
   if (isIOSDevice()) {
-    if (isNativeLabelPrintingEnabled()) offerNativeAssignmentLabel(assignment);
-    else offerAssignmentLabelFile(assignment);
+    offerAssignmentLabelFile(assignment);
     return;
   }
   try {

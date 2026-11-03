@@ -25,11 +25,10 @@ final class WebPolicyTests: XCTestCase {
         XCTAssertEqual(destination("mailto:contact@example.com"), .external)
     }
 
-    func testKeepsGeneratedContentAndPrintLinks() {
+    func testKeepsGeneratedContent() {
         XCTAssertEqual(destination("blob:https://tms.cteillet.fr/5f0c8f2e-8f47-4a39-9a43-2a3f6e1f0c1d"), .generated)
         XCTAssertEqual(destination("about:blank"), .generated)
         XCTAssertEqual(destination("data:text/plain,etiquette"), .generated)
-        XCTAssertEqual(destination("tmsprint://print?v=1"), .printLink)
     }
 
     func testBlocksEverythingElse() {
@@ -37,6 +36,8 @@ final class WebPolicyTests: XCTestCase {
         XCTAssertEqual(destination("javascript:alert(1)"), .blocked)
         XCTAssertEqual(destination("file:///etc/hosts"), .blocked)
         XCTAssertEqual(destination("autre-app://ouvrir"), .blocked)
+        // The former TMS Impression links: the page now prints through the bridge
+        XCTAssertEqual(destination("tmsprint://print?v=1"), .blocked)
     }
 
     func testTrustsOnlyTheTMSOriginForThePrinterBridge() {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// A link or a page message carries label text only: no printer commands, credentials or remote URL.
+/// A message from the TMS page carries label text only: no printer commands, credentials or remote URL.
 struct TMSPrintRequest: Equatable {
     let id: UUID
     let name: String
@@ -11,21 +11,6 @@ struct TMSPrintRequest: Equatable {
         return "À rendre le \(parts[2])/\(parts[1])/\(parts[0])"
     }
 
-    init(url: URL) throws {
-        guard url.absoluteString.utf8.count <= 2048,
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              components.scheme == "tmsprint", components.host == "print",
-              components.path.isEmpty, components.user == nil, components.password == nil,
-              components.port == nil, components.fragment == nil,
-              let items = components.queryItems, items.count == 4,
-              Set(items.map(\.name)) == Set(["v", "id", "name", "dueDate"]),
-              items.allSatisfy({ $0.value != nil }) else { throw TMSPrintRequestError.invalidLink }
-        let values = Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value!) })
-        guard values["v"] == "1" else { throw TMSPrintRequestError.invalidLink }
-        try self.init(id: values["id"]!, name: values["name"]!, dueDate: values["dueDate"]!)
-    }
-
-    /// Same checks for a tmsprint link and for a message from the TMS page shown in the app.
     init(id: String, name: String, dueDate: String) throws {
         guard let uuid = UUID(uuidString: id), !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               name.unicodeScalars.count <= 128,
@@ -52,17 +37,11 @@ struct TMSPrintRequest: Equatable {
 }
 
 enum TMSPrintRequestError: LocalizedError {
-    case invalidLink
     case invalidLabel
-    var errorDescription: String? {
-        switch self {
-        case .invalidLink: return "Lien d'impression TMS invalide ou version non prise en charge."
-        case .invalidLabel: return "Nom ou date de l'étiquette invalide."
-        }
-    }
+    var errorDescription: String? { "Nom ou date de l'étiquette invalide." }
 }
 
-/// Persist before sending a job. Reopening a link must never repeat an uncertain print.
+/// Persist before sending a job. The same job must never be sent twice, even after a restart.
 struct PrintRequestHistory {
     private(set) var ids: [String]
     init(ids: [String] = []) { self.ids = Array(ids.suffix(200)) }

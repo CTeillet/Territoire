@@ -3,10 +3,9 @@ import SwiftUI
 import UIKit
 import WebKit
 
-/// What the TMS page asks of the app: label links and printer bridge messages.
+/// What the TMS page asks of the app through the printer bridge.
 @MainActor
 protocol TMSWebHost: AnyObject {
-    func receivePrintLink(_ url: URL)
     /// Reply sent back to the page, as a JavaScript object.
     func handle(_ command: PrinterBridgeCommand) async -> [String: Any]
 }
@@ -77,9 +76,6 @@ final class TMSWebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUID
             decisionHandler(.cancel)
         case .tms, .generated:
             decisionHandler(.allow)
-        case .printLink:
-            host?.receivePrintLink(url)
-            decisionHandler(.cancel)
         case .external where navigationAction.targetFrame?.isMainFrame == false:
             // A frame embedded in a TMS page stays in the page; only whole pages leave the app.
             decisionHandler(.allow)
@@ -154,8 +150,6 @@ final class TMSWebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUID
         case .generated:
             // Same configuration as the opener: the new view can read the page's blob.
             return openPopup(configuration)
-        case .printLink:
-            host?.receivePrintLink(url)
         case .external:
             UIApplication.shared.open(url)
         case .blocked:
