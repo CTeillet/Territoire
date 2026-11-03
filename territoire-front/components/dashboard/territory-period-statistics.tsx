@@ -63,7 +63,7 @@ export function TerritoryPeriodStatistics({
 
   return (
     <Card className="shadow-md border-0">
-      <CardHeader>
+      <CardHeader className="px-4 md:px-6">
         <CardTitle>Statistiques détaillées</CardTitle>
         <CardDescription>
           {periodLabel
@@ -71,7 +71,7 @@ export function TerritoryPeriodStatistics({
             : "Répartition des territoires parcourus et non parcourus"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 md:px-6">
         {loading ? (
           <p>Chargement des statistiques...</p>
         ) : error ? (
@@ -80,7 +80,8 @@ export function TerritoryPeriodStatistics({
           <p className="text-muted-foreground">Aucune statistique disponible</p>
         ) : (
           <Tabs defaultValue="charts" className="w-full">
-            <TabsList className="mb-6">
+            {/* Téléphone : onglets resserrés pour tenir dans la carte */}
+            <TabsList className="mb-6 *:max-sm:px-1.5 *:max-sm:text-xs">
               <TabsTrigger value="charts">Graphiques</TabsTrigger>
               <TabsTrigger value="details">Détails par type</TabsTrigger>
               <TabsTrigger value="cities">Détails par ville</TabsTrigger>
