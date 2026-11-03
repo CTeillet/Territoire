@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { toast } from "sonner";
 import {
+  assignmentLabelFile,
   assignmentLabelText,
   autoPrintAssignmentLabel,
   printAssignmentLabel,
   renderLabel,
 } from "@/lib/assignment-label";
 import * as labelPrinter from "@/lib/label-printer";
+import { lbxTexts, readZip } from "../mocks/lbx-archive";
 
 vi.mock("sonner", () => ({
   toast: { loading: vi.fn(() => "toast-1"), success: vi.fn(), error: vi.fn() },
@@ -80,6 +82,54 @@ describe("assignment-label", () => {
       assignmentLabelText({ person: undefined, dueDate: "2027-03-03" })
     ).toBeNull();
     expect(assignmentLabelText(undefined)).toBeNull();
+  });
+
+  it("recopie l'échéance du backend, sans décalage de fuseau horaire", () => {
+    const timeZone = process.env.TZ;
+    try {
+      for (const zone of ["Pacific/Kiritimati", "America/Los_Angeles"]) {
+        process.env.TZ = zone;
+        expect(assignmentLabelText(assignment)?.dueDate).toBe(
+          "À rendre le 03/03/2027"
+        );
+        expect(
+          assignmentLabelText({
+            ...assignment,
+            dueDate: "2027-01-01T00:00:00Z",
+          })?.dueDate
+        ).toBe("À rendre le 01/01/2027");
+      }
+    } finally {
+      if (timeZone === undefined) delete process.env.TZ;
+      else process.env.TZ = timeZone;
+    }
+  });
+
+  it("prépare le fichier LBX de l'étiquette, nommé d'après la personne et l'échéance", async () => {
+    const label = assignmentLabelFile({
+      person: { id: "p1", firstName: "Zoé", lastName: "ñúñez" },
+      // Échéance modifiée après l'attribution : celle du backend, telle quelle
+      dueDate: "2027-05-17",
+    })!;
+
+    expect(label.text).toEqual({
+      name: "Zoé Ñ.",
+      dueDate: "À rendre le 17/05/2027",
+    });
+    expect(label.file.name).toBe("etiquette-zoe-n-2027-05-17.lbx");
+    expect(label.file.type).toBe("application/octet-stream");
+    const { files } = readZip(new Uint8Array(await label.file.arrayBuffer()));
+    expect(lbxTexts(files["label.xml"]).map(({ data }) => data)).toEqual([
+      "Zoé Ñ.",
+      "À rendre le 17/05/2027",
+    ]);
+  });
+
+  it("ne prépare pas de fichier pour une attribution sans personne (campagne)", () => {
+    expect(
+      assignmentLabelFile({ person: undefined, dueDate: "2027-03-03" })
+    ).toBeNull();
+    expect(assignmentLabelFile(null)).toBeNull();
   });
 
   it("dessine le nom au-dessus de la date, centrés, avec 2 mm de marge à chaque bout", () => {

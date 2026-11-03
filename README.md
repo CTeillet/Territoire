@@ -12,7 +12,7 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 - Espace « mes territoires » : chaque personne reçoit un lien personnel (`/m/<jeton>`) pour consulter ses territoires en cours (carte, adresses à ne pas visiter) et les rendre elle-même. Envoi par WhatsApp, automatique à l'attribution si activé ; gestion (renvoi, régénération, révocation, expiration) dans Paramètres > Accès numériques et sur la fiche de chaque personne. Coexiste avec les cartes papier.
 - Campagnes, statistiques, historique quotidien des statuts.
 - Impression des cartes de territoires (Territoire > Impression des cartes) : on choisit les territoires (recherche, ville) et leurs cartes s'impriment par 4 sur des feuilles A4 en paysage, à découper en quarts. Les marges blanches des cartes numérisées sont retirées.
-- Étiquettes d'attribution : une Brother P-touch Cube (PT-P300BT, PT-P710BT) reliée en Bluetooth imprime à chaque attribution une étiquette « Prénom N. / À rendre le JJ/MM/AAAA », à coller sur la carte. Elle se règle par appareil, cf. [Imprimante d'étiquettes](#imprimante-détiquettes-brother-p-touch) ; la fiche d'un territoire permet de réimprimer l'étiquette de l'attribution en cours.
+- Étiquettes d'attribution : une Brother P-touch Cube (PT-P300BT, PT-P710BT) reliée en Bluetooth imprime à chaque attribution une étiquette « Prénom N. / À rendre le JJ/MM/AAAA », à coller sur la carte. Elle se règle par appareil, cf. [Imprimante d'étiquettes](#imprimante-détiquettes-brother-p-touch) ; la fiche d'un territoire permet de réimprimer l'étiquette de l'attribution en cours. Sur iPhone et iPad, l'étiquette est un fichier `.lbx` à ouvrir dans l'application Brother P-touch Design&Print 2.
 - Territoires perdus : un territoire dont la carte papier a disparu se signale « perdu » depuis ses actions (liste ou fiche), quel que soit son statut. La page d'impression les propose à la réimpression ; une fois les cartes imprimées, on les retire des perdus (ADMIN, SUPERVISEUR, GESTIONNAIRE).
 - Export / import Excel, export PNG de la carte de tous les territoires, adresses à ne pas visiter.
 - Rôles et droits d'accès :
@@ -132,7 +132,7 @@ Il s'authentifie par une clé dédiée dans l'en-tête `X-API-Key`, qui n'ouvre 
    ```
 
 ### Imprimante d'étiquettes (Brother P-touch)
-Le navigateur pilote directement l'imprimante en Bluetooth (API Web Serial) : rien à installer, ni sur le VPS ni sur l'appareil. C'est l'appareil qui fait l'attribution qui imprime. Il faut Chrome ou Edge sur ordinateur, ou Chrome sur Android ; les iPhone et iPad ne le permettent pas.
+Le navigateur pilote directement l'imprimante en Bluetooth (API Web Serial) : rien à installer, ni sur le VPS ni sur l'appareil. C'est l'appareil qui fait l'attribution qui imprime. Il faut Chrome ou Edge sur ordinateur, ou Chrome sur Android. Les iPhone et iPad n'ont pas Web Serial : TMS y prépare un fichier d'étiquette que l'application Brother imprime (voir plus bas).
 
 **Mise en place (sur chaque appareil)**
 1. Appairer la P-touch dans les réglages Bluetooth de l'appareil (sous Windows : Paramètres > Bluetooth et appareils > Ajouter un appareil).
@@ -140,6 +140,19 @@ Le navigateur pilote directement l'imprimante en Bluetooth (API Web Serial) : ri
 3. « Imprimer une étiquette de test ». La case « Imprimer l'étiquette à chaque attribution faite depuis cet appareil » est cochée d'office ; la décocher pour n'imprimer qu'à la demande (fiche du territoire).
 
 L'étiquette s'adapte à la largeur du ruban en place (testée pour 12 mm). Le PT-P710BT coupe l'étiquette ; sur le PT-P300BT, on la coupe avec le levier. Si l'imprimante est éteinte ou hors de portée, l'attribution est quand même enregistrée et un message propose de réessayer.
+
+**Sur iPhone et iPad (fichier LBX)**
+
+Après chaque attribution (classique ou depuis une demande), TMS génère dans le navigateur un fichier `.lbx` (format de P-touch Editor) et affiche une carte « Étiquette prête », qui reste à l'écran jusqu'à ce qu'on la ferme. Le bouton « Télécharger » enregistre le fichier dans Fichiers > Téléchargements ; « Partager », s'il apparaît, ouvre directement les options de partage. On ouvre le fichier, on choisit Design&Print 2 dans les options de partage, puis on touche « Imprimer » dans l'application : c'est elle qui imprime, TMS ne fait que préparer le fichier. La fiche du territoire (bouton « Télécharger l'étiquette ») redonne le fichier de l'attribution en cours, avec son échéance actuelle. Ni le choix d'une imprimante ni l'impression automatique ne s'appliquent sur iPhone.
+
+Le fichier est prévu pour un PT-P710BT et un ruban de 12 mm : deux objets texte (prénom et initiale en gras, échéance dessous), centrés, en Arial ; longueur adaptée au texte, nom écrit plus petit au-delà de 70 mm. Sa structure reprend un fichier enregistré par P-touch Editor (cf. `territoire-front/lib/lbx.ts`). Les tests automatisés vérifient l'archive, le XML et les textes, mais seule l'application Brother confirme la compatibilité : à revalider sur l'iPhone après toute modification de `lib/lbx.ts`.
+
+Validation sur iPhone (Safari, puis TMS installé sur l'écran d'accueil) :
+1. Installer P-touch Design&Print 2 depuis l'App Store, y appairer le PT-P710BT et vérifier qu'un ruban de 12 mm est en place.
+2. Dans TMS, Paramètres > Autres paramètres > Imprimante d'étiquettes : « Télécharger une étiquette de test », puis ouvrir le fichier (Fichiers > Téléchargements) et choisir Design&Print 2. Vérifier l'aperçu : deux lignes centrées, accents corrects, rien de coupé ; puis « Imprimer ».
+3. Attribuer un territoire : la carte « Étiquette prête » doit apparaître et rester après la fermeture du dialogue. Tester « Télécharger », puis « Partager » s'il est proposé (annuler le partage ne doit rien casser).
+4. Même chose depuis une demande de territoire, puis depuis la fiche du territoire après avoir modifié l'échéance (la nouvelle date doit figurer sur l'étiquette).
+5. Essayer un prénom long ou accentué (fiche d'une personne de test) pour vérifier la réduction du texte.
 
 ### Sauvegardes de la base
 Le service `db-backup` (`config/backup`) fait chaque nuit à 02:00 UTC un `pg_dump`, le chiffre avec [age](https://age-encryption.org) et l'envoie avec [rclone](https://rclone.org) dans le dossier `territoire-backups` d'un Google Drive. Le VPS n'a que la clé publique : il ne peut pas relire ses propres sauvegardes, et Google ne voit que des fichiers chiffrés. Dans ce dossier :

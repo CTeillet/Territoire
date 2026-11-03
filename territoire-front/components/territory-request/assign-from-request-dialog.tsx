@@ -21,7 +21,7 @@ import {
   assignTerritoryToPerson,
   fetchAvailableTerritories,
 } from "@/lib/territory-request-api";
-import { autoPrintAssignmentLabel } from "@/lib/assignment-label";
+import { labelAfterAssignment } from "@/components/shared/assignment-label-file";
 
 const formatDay = (value: string) =>
   new Date(`${value}T00:00:00`).toLocaleDateString("fr-FR", {
@@ -82,7 +82,7 @@ export default function AssignFromRequestDialog({
       toast.success(
         `${territory?.name ?? "Territoire"} attribué à ${request.personName}`
       );
-      void autoPrintAssignmentLabel(assignment);
+      void labelAfterAssignment(assignment);
       onOpenChange(false);
       onAssigned();
     } catch (e) {

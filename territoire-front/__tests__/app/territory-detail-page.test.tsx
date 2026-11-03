@@ -8,6 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast, Toaster } from "sonner";
 import TerritoryPage from "@/app/(app)/territoires/[id]/page";
 import TerritoryHeader from "@/components/territory/id/territory-header";
 import AddressNotToDoList from "@/components/territory/id/address-not-to-do-list";
@@ -29,6 +30,7 @@ import {
   stubSerial,
   unstubSerial,
 } from "../mocks/serial-port";
+import { captureDownloads, stubIPhone } from "../mocks/ios";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -560,6 +562,62 @@ describe("Historique des attributions", () => {
       ).toHaveLength(1);
     } finally {
       unstubSerial();
+    }
+  });
+
+  it("sur iPhone, propose le fichier LBX de l'attribution en cours, sans imprimante, avec son échéance actuelle", async () => {
+    stubIPhone();
+    const downloads = captureDownloads();
+    const returned = assignment({ id: "as0", returnDate: "2026-08-01" });
+    // Échéance modifiée depuis l'attribution
+    const running = assignment({ dueDate: "2027-04-15" });
+    const campaign = assignment({
+      id: "as2",
+      person: undefined,
+      campaign: { name: "Automne" } as never,
+    });
+    render(<Toaster />);
+
+    // Rôle sans gestion des attributions : pas de bouton
+    const { unmount } = renderWithStore(
+      <AssignmentsList assignments={[returned, running, campaign]} />,
+      "UTILISATEUR"
+    );
+    await act(async () => {});
+    expect(
+      screen.queryByRole("button", { name: "Télécharger l'étiquette" })
+    ).not.toBeInTheDocument();
+    unmount();
+
+    try {
+      renderWithStore(
+        <AssignmentsList assignments={[returned, running, campaign]} />
+      );
+      // Une seule attribution en cours avec une personne
+      const [download] = await screen.findAllByRole("button", {
+        name: "Télécharger l'étiquette",
+      });
+      expect(
+        screen.getAllByRole("button", { name: "Télécharger l'étiquette" })
+      ).toHaveLength(1);
+      expect(
+        screen.queryByRole("button", { name: "Imprimer l'étiquette" })
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(download);
+      expect(
+        await screen.findByText("Jean D. · À rendre le 15/04/2027")
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Télécharger" })
+      );
+      expect(downloads.map(({ name }) => name)).toEqual([
+        "etiquette-jean-d-2027-04-15.lbx",
+      ]);
+    } finally {
+      act(() => {
+        toast.dismiss();
+      });
     }
   });
 

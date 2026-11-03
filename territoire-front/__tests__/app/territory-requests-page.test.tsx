@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TerritoryRequestsPage from "@/app/(app)/demandes/page";
 import {
@@ -11,8 +11,16 @@ import { TERRITORY_REQUESTS_CHANGED } from "@/lib/territory-request-api";
 import * as assignmentLabel from "@/lib/assignment-label";
 import { toast } from "sonner";
 import { jsonResponse, mockApi, renderWithRole } from "../test-utils";
+import { captureDownloads, stubIPhone } from "../mocks/ios";
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    custom: vi.fn(),
+    dismiss: vi.fn(),
+  },
+}));
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
@@ -155,6 +163,51 @@ describe("Page des demandes de territoire", () => {
       method: "POST",
     });
     window.removeEventListener(TERRITORY_REQUESTS_CHANGED, changed);
+  });
+
+  it("sur iPhone, propose l'étiquette en fichier LBX, téléchargeable après la fermeture du dialogue", async () => {
+    stubIPhone();
+    const downloads = captureDownloads();
+    const autoPrint = vi.spyOn(assignmentLabel, "autoPrintAssignmentLabel");
+    mockApi({
+      "GET /api/demandes-territoire/d1/territoires-disponibles": available,
+      "GET /api/demandes-territoire": [request()],
+      "POST /api/territoires/t2/attribuer/p1": {
+        id: "a2",
+        person: { id: "p1", firstName: "Jean", lastName: "Dupont" },
+        dueDate: "2027-02-12",
+      },
+    });
+
+    renderWithRole(<TerritoryRequestsPage />, "ADMIN");
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Attribuer" })
+    );
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Attribuer" })
+    );
+
+    expect(toast.success).toHaveBeenCalledWith("R-2 attribué à Jean Dupont");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    );
+    // Carte qui reste affichée jusqu'à sa fermeture, une par attribution
+    expect(toast.custom).toHaveBeenCalledWith(expect.any(Function), {
+      id: "etiquette-a2",
+      duration: Infinity,
+    });
+    expect(autoPrint).not.toHaveBeenCalled();
+
+    const [renderCard] = vi.mocked(toast.custom).mock.calls[0];
+    render(renderCard("etiquette-a2"));
+    expect(
+      screen.getByText("Jean D. · À rendre le 12/02/2027")
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Télécharger" }));
+    expect(downloads.map(({ name }) => name)).toEqual([
+      "etiquette-jean-d-2027-02-12.lbx",
+    ]);
   });
 
   it("propose tous les territoires quand la personne n'a pas de préférence", async () => {

@@ -5,6 +5,7 @@ import {
   isLabelPrintingSupported,
   setAutoPrintEnabled,
 } from "@/lib/label-printer";
+import { isIOSDevice } from "@/lib/device";
 
 export interface LabelPrinterState {
   /** Le navigateur sait piloter l'imprimante (Web Serial). */
@@ -13,12 +14,15 @@ export interface LabelPrinterState {
   connected: boolean;
   /** Étiquette imprimée à chaque attribution faite depuis cet appareil. */
   autoPrint: boolean;
+  /** iPhone ou iPad : l'étiquette est un fichier LBX, imprimé par l'application Brother Design&Print 2. */
+  lbx: boolean;
 }
 
 const UNKNOWN: LabelPrinterState = {
   supported: false,
   connected: false,
   autoPrint: false,
+  lbx: false,
 };
 
 async function readState(): Promise<LabelPrinterState> {
@@ -32,6 +36,7 @@ async function readState(): Promise<LabelPrinterState> {
     supported: isLabelPrintingSupported(),
     connected,
     autoPrint: isAutoPrintEnabled(),
+    lbx: isIOSDevice(),
   };
 }
 
