@@ -187,10 +187,12 @@ describe("Carte des territoires", () => {
     act(() => vi.advanceTimersByTime(150));
 
     expect(popup.update).toHaveBeenCalled();
-    expect(
-      await screen.findByRole("link", { name: "Voir les détails" })
-    ).toHaveAttribute("href", "/territoires/t1");
+    const menu = await screen.findByRole("button", { name: "Plus d'actions" });
     vi.useRealTimers();
+    await userEvent.click(menu);
+    expect(
+      await screen.findByRole("menuitem", { name: "Voir les détails" })
+    ).toHaveAttribute("href", "/territoires/t1");
   });
 
   it("agrandit et réduit la carte", async () => {

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import React from "react";
 import { DataTableColumnHeader } from "@/components/territory/territory-data-header";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
+import { TerritoryNameLink } from "@/components/territory/territory-name-link";
 import { getBadgeColor } from "@/components/utils";
 
 // Column translations
@@ -45,6 +46,9 @@ export const nonVisitedTerritoryColumns: ColumnDef<
         />
       );
     },
+    cell: ({ row }) => (
+      <TerritoryNameLink id={row.original.id} name={row.original.name} />
+    ),
     enableColumnFilter: true,
   },
   {

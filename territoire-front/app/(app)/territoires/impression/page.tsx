@@ -14,6 +14,7 @@ import {
 } from "@/components/territory/print/territory-print-sheets";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsClient } from "@/hooks/use-is-client";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { usePrintableMaps } from "@/hooks/use-printable-maps";
 import { cn } from "@/lib/utils";
 import { canManageAssignments } from "@/models/role";
@@ -56,6 +57,7 @@ export default function TerritoryPrintPage() {
   const { isAuthenticated } = useAuth();
   const dispatch = useAppDispatch();
   const isClient = useIsClient();
+  const isMobile = useIsMobile();
   const territoriesGeojson = useAppSelector(
     (state) => state.territories.territoriesGeojson
   );
@@ -106,6 +108,15 @@ export default function TerritoryPrintPage() {
         (!query || t.name.toLocaleLowerCase("fr").includes(query))
     );
   }, [territories, city, search]);
+
+  // Une rubrique par ville : le nom de la ville n'est plus répété sur chaque territoire
+  const visibleByCity = useMemo(() => {
+    const groups = new Map<string, PrintableTerritory[]>();
+    for (const t of visible) {
+      groups.set(t.city, [...(groups.get(t.city) ?? []), t]);
+    }
+    return [...groups];
+  }, [visible]);
 
   // Territoires dont la carte papier a disparu : proposés à la réimpression
   const lostTerritories = useMemo(
@@ -186,6 +197,44 @@ export default function TerritoryPrintPage() {
   };
 
   if (!isClient) return null;
+
+  // Sur téléphone, la barre reste en bas de l'écran : pas besoin de faire défiler la liste pour imprimer
+  const printBar = (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-4",
+        isMobile &&
+          "sticky bottom-0 z-20 -mx-4 flex-nowrap gap-3 border-t bg-white px-4 py-3"
+      )}
+    >
+      <div className="text-sm text-muted-foreground">
+        <p>
+          {plural(
+            cards.length,
+            "territoire sélectionné",
+            "territoires sélectionnés"
+          )}{" "}
+          · {plural(sheetCount, "feuille A4", "feuilles A4")}
+        </p>
+        {errorCount > 0 && (
+          <p className="text-red-600">
+            {errorCount > 1
+              ? `${errorCount} cartes n'ont pas pu être chargées.`
+              : "1 carte n'a pas pu être chargée."}
+          </p>
+        )}
+      </div>
+      <Button
+        onClick={() => window.print()}
+        disabled={cards.length === 0 || loadingCount > 0}
+      >
+        <Printer className="h-4 w-4" />
+        {loadingCount > 0
+          ? `Chargement des cartes (${cards.length - loadingCount}/${cards.length})`
+          : "Imprimer"}
+      </Button>
+    </div>
+  );
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -268,80 +317,84 @@ export default function TerritoryPrintPage() {
               Chargement des territoires...
             </p>
           ) : (
-            <ul className="max-h-[60vh] overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
-              {visible.map((t) => (
-                <li key={t.id}>
-                  <label
-                    className={cn(
-                      "flex items-center gap-3 rounded px-2 py-1.5",
-                      t.hasMap
-                        ? "cursor-pointer hover:bg-gray-100"
-                        : "text-gray-400"
-                    )}
-                  >
-                    <Checkbox
-                      aria-label={`${t.name}, ${t.city}`}
-                      checked={selected.has(t.id)}
-                      disabled={!t.hasMap}
-                      onCheckedChange={(checked) =>
-                        toggle(t.id, checked === true)
-                      }
-                    />
-                    <span className="font-medium">{t.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {t.city}
-                    </span>
-                    <span className="ml-auto flex items-center gap-2">
-                      {t.lost && (
-                        <span className="rounded bg-orange-100 px-1.5 text-xs font-medium text-orange-700">
-                          perdu
-                        </span>
-                      )}
-                      {!t.hasMap && (
-                        <span className="text-xs italic">sans carte</span>
-                      )}
-                    </span>
-                  </label>
-                </li>
+            <div className="max-h-[45vh] overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
+              {visibleByCity.map(([cityLabel, cityTerritories]) => (
+                <section key={cityLabel} aria-label={cityLabel || "Sans ville"}>
+                  <h3 className="sticky top-0 z-[1] bg-white py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {cityLabel || "Sans ville"} · {cityTerritories.length}
+                  </h3>
+                  {/* Noms courts : une grille de pastilles au lieu d'une ligne par territoire */}
+                  <ul className="mb-2 grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5">
+                    {cityTerritories.map((t) => (
+                      <li key={t.id}>
+                        <label
+                          title={
+                            t.hasMap
+                              ? t.name
+                              : `${t.name} : pas de carte à imprimer`
+                          }
+                          className={cn(
+                            "flex h-10 items-center gap-2 rounded-md border px-2 text-sm",
+                            t.hasMap
+                              ? "cursor-pointer hover:bg-gray-50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-gray-100"
+                              : "border-dashed text-gray-400",
+                            t.lost && "border-orange-400"
+                          )}
+                        >
+                          <Checkbox
+                            aria-label={`${t.name}, ${t.city}`}
+                            checked={selected.has(t.id)}
+                            disabled={!t.hasMap}
+                            onCheckedChange={(checked) =>
+                              toggle(t.id, checked === true)
+                            }
+                          />
+                          <span className="min-w-0 truncate font-medium">
+                            {t.name}
+                          </span>
+                          {t.lost && (
+                            <span
+                              aria-hidden="true"
+                              className="ml-auto size-2 shrink-0 rounded-full bg-orange-500"
+                            />
+                          )}
+                          {t.lost && <span className="sr-only">perdu</span>}
+                          {!t.hasMap && (
+                            <span className="sr-only">sans carte</span>
+                          )}
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
               {visible.length === 0 && (
-                <li className="px-2 py-1.5 text-sm text-muted-foreground">
+                <p className="px-2 py-1.5 text-sm text-muted-foreground">
                   Aucun territoire.
-                </li>
-              )}
-            </ul>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="text-sm text-muted-foreground">
-              <p>
-                {plural(
-                  cards.length,
-                  "territoire sélectionné",
-                  "territoires sélectionnés"
-                )}{" "}
-                · {plural(sheetCount, "feuille A4", "feuilles A4")}
-              </p>
-              {errorCount > 0 && (
-                <p className="text-red-600">
-                  {errorCount > 1
-                    ? `${errorCount} cartes n'ont pas pu être chargées.`
-                    : "1 carte n'a pas pu être chargée."}
                 </p>
               )}
             </div>
-            <Button
-              onClick={() => window.print()}
-              disabled={cards.length === 0 || loadingCount > 0}
-            >
-              <Printer className="h-4 w-4" />
-              {loadingCount > 0
-                ? `Chargement des cartes (${cards.length - loadingCount}/${cards.length})`
-                : "Imprimer"}
-            </Button>
-          </div>
+          )}
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="size-2 rounded-full bg-orange-500"
+              />
+              Perdu
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="h-3 w-4 rounded-sm border border-dashed border-gray-400"
+              />
+              Sans carte
+            </span>
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {!isMobile && printBar}
 
           {selectedLost.length > 0 && canManageAssignments(user?.role) && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-orange-300 bg-orange-50 p-3 text-sm">
@@ -378,6 +431,8 @@ export default function TerritoryPrintPage() {
           )}
         </div>
       </div>
+
+      {isMobile && printBar}
 
       {cards.length > 0 &&
         createPortal(

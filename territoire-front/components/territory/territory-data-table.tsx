@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import {
   dataTableFeatures,
@@ -29,7 +29,13 @@ import {
 import * as XLSX from "xlsx";
 import { Territory } from "@/models/territory";
 import { Button } from "@/components/ui/button";
-import { FileDown, FilterX } from "lucide-react";
+import {
+  ChevronDown,
+  FileDown,
+  FilterX,
+  SlidersHorizontal,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { COLUMNS_ID_TRANSLATIONS } from "@/components/territory/territory-data-columns";
 import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
@@ -288,8 +294,9 @@ const columnLabel = (column: Column<DataTableFeatures, Territory, unknown>) =>
 
 /**
  * Téléphone : une fiche par ligne au lieu d'un tableau de plusieurs écrans de large. Les en-têtes triables
- * (tri et filtre) sont regroupés au-dessus des fiches ; la première colonne sert de titre, les actions
- * passent en bas de la fiche et les valeurs vides sont omises.
+ * (tri et filtre) sont regroupés au-dessus des fiches, repliés derrière un bouton qui résume le tri et les
+ * filtres actifs ; la première colonne sert de titre, les actions passent en bas de la fiche et les valeurs
+ * vides sont omises.
  */
 function MobileRows({
   table,
@@ -305,17 +312,60 @@ function MobileRows({
         typeof header.column.columnDef.header === "function"
     );
   const rows = table.getRowModel().rows;
+  const optionsId = useId();
+  const [showOptions, setShowOptions] = useState(false);
+
+  const [sort] = table.state.sorting;
+  const sortedColumn = sort
+    ? headers.find((header) => header.column.id === sort.id)?.column
+    : undefined;
+  const filterCount = table.state.columnFilters.length;
+  const summary = [
+    sort &&
+      sortedColumn &&
+      `${columnLabel(sortedColumn)} ${sort.desc ? "↓" : "↑"}`,
+    filterCount > 0 &&
+      (filterCount > 1 ? `${filterCount} filtres` : "1 filtre"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="space-y-3">
-      {/* Une seule ligne qui défile horizontalement : les fiches restent visibles sous les en-têtes */}
-      <div className="flex items-center gap-4 overflow-x-auto rounded-lg bg-gray-100 px-4 py-1 text-gray-700">
-        <span className="shrink-0 text-sm font-medium">Trier / filtrer :</span>
-        {headers.map((header) => (
-          <div key={header.id} className="shrink-0">
-            {flexRender(header.column.columnDef.header, header.getContext())}
+      <div className="rounded-lg bg-gray-100 text-gray-700">
+        <button
+          type="button"
+          aria-expanded={showOptions}
+          aria-controls={optionsId}
+          onClick={() => setShowOptions((open) => !open)}
+          className="flex min-h-11 w-full items-center gap-2 rounded-lg px-4 text-left text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <SlidersHorizontal aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <span className="shrink-0 font-medium">Trier et filtrer</span>
+          {summary && (
+            <span className="min-w-0 truncate text-gray-500">{summary}</span>
+          )}
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              "ml-auto h-4 w-4 shrink-0 transition-transform",
+              showOptions && "rotate-180"
+            )}
+          />
+        </button>
+        {/* Pastilles qui passent à la ligne : rien ne se cache hors de l'écran */}
+        {showOptions && (
+          <div id={optionsId} className="flex flex-wrap gap-2 px-3 pb-3">
+            {headers.map((header) => (
+              <div key={header.id} className="rounded-md border bg-white pl-3">
+                {flexRender(
+                  header.column.columnDef.header,
+                  header.getContext()
+                )}
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       {rows.length ? (

@@ -54,6 +54,10 @@ const persons = [
   },
 ];
 
+// Tout l'en-tête du groupe, nom compris, sert à le déplier
+const groupToggle = (header: HTMLElement, personName: string) =>
+  within(header).getByRole("button", { name: new RegExp(`^${personName}`) });
+
 describe("Page des territoires en retard", () => {
   let api: ReturnType<typeof mockApi>;
 
@@ -87,10 +91,10 @@ describe("Page des territoires en retard", () => {
     renderWithStore(<LateTerritoriesPage />);
 
     expect(await screen.findByText("JEAN Dupont")).toBeInTheDocument();
-    expect(screen.getByText("2 territoire(s)")).toBeInTheDocument();
+    expect(screen.getByText(/^2 territoires ·/)).toBeInTheDocument();
     // Personne absente de la liste : groupe sous son nom
     expect(screen.getByText("Personne Inconnue")).toBeInTheDocument();
-    expect(screen.getByText("1 territoire(s)")).toBeInTheDocument();
+    expect(screen.getByText(/^1 territoire ·/)).toBeInTheDocument();
     // Plus ancien retard du groupe de Jean : 1er mars
     expect(screen.getByText(/01 mars 2026/)).toBeInTheDocument();
     expect(screen.queryByText("R-15")).not.toBeInTheDocument();
@@ -103,6 +107,7 @@ describe("Page des territoires en retard", () => {
     const header = (await screen.findByText("JEAN Dupont")).closest(
       "div.border"
     )! as HTMLElement;
+    await userEvent.click(groupToggle(header, "JEAN Dupont"));
     expect(
       within(header).getByRole("link", {
         name: "Voir la fiche de la personne",
@@ -112,7 +117,16 @@ describe("Page des territoires en retard", () => {
     const unknown = screen
       .getByText("Personne Inconnue")
       .closest("div.border")! as HTMLElement;
-    expect(within(unknown).queryByRole("link")).not.toBeInTheDocument();
+    await userEvent.click(groupToggle(unknown, "Personne Inconnue"));
+    expect(within(unknown).getByRole("link", { name: "R-14" })).toHaveAttribute(
+      "href",
+      "/territoires/t3"
+    );
+    expect(
+      within(unknown).queryByRole("link", {
+        name: "Voir la fiche de la personne",
+      })
+    ).not.toBeInTheDocument();
   });
 
   it("déplie un groupe pour voir le détail de ses territoires", async () => {
@@ -129,18 +143,21 @@ describe("Page des territoires en retard", () => {
     const header = (await screen.findByText("JEAN Dupont")).closest(
       "div.border"
     )! as HTMLElement;
-    await userEvent.click(
-      within(header).getByRole("button", { name: "Déplier le groupe" })
-    );
+    const toggle = groupToggle(header, "JEAN Dupont");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(toggle);
 
-    expect(await within(header).findByText("R-12")).toBeInTheDocument();
-    expect(within(header).getByText("R-13")).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    // Du plus ancien retard au plus récent
+    expect(
+      within(header)
+        .getAllByRole("link", { name: /^R-1/ })
+        .map((link) => link.textContent)
+    ).toEqual(["R-13", "R-12"]);
     expect(within(header).getByText("Rappel envoyé")).toBeInTheDocument();
     expect(within(header).getByText("Pas de rappel")).toBeInTheDocument();
 
-    await userEvent.click(
-      within(header).getByRole("button", { name: "Replier le groupe" })
-    );
+    await userEvent.click(toggle);
     expect(within(header).queryByText("R-12")).not.toBeInTheDocument();
   });
 
@@ -322,6 +339,10 @@ describe("Page des territoires en retard", () => {
     expect(
       within(header).getByRole("button", { name: "Rappeler" })
     ).toBeDisabled();
+    // Sur téléphone, pas d'infobulle : l'état est écrit dans l'en-tête
+    expect(
+      within(header).getByText("Tout est déjà rappelé")
+    ).toBeInTheDocument();
     const unknown = screen
       .getByText("Personne Inconnue")
       .closest("div.border")! as HTMLElement;
@@ -356,9 +377,7 @@ describe("Page des territoires en retard", () => {
       name: "Rappeler",
     });
     expect(remindAll).toBeEnabled();
-    await userEvent.click(
-      within(header).getByRole("button", { name: "Déplier le groupe" })
-    );
+    await userEvent.click(groupToggle(header, "JEAN Dupont"));
     expect(await within(header).findAllByText("Pas de rappel")).toHaveLength(2);
     expect(within(header).queryByText("Rappel envoyé")).not.toBeInTheDocument();
 
@@ -406,17 +425,15 @@ describe("Page des territoires en retard", () => {
 
     const openJeanGroup = async () => {
       const header = await jeanGroup();
-      await userEvent.click(
-        within(header).getByRole("button", { name: "Déplier le groupe" })
-      );
+      await userEvent.click(groupToggle(header, "JEAN Dupont"));
       await within(header).findByText("R-12");
       return header;
     };
 
     const extendButton = (header: HTMLElement, territoryName: string) =>
-      within(
-        within(header).getByText(territoryName).closest("tr")! as HTMLElement
-      ).getByRole("button", { name: "Prolongation du territoire" });
+      within(header).getByRole("button", {
+        name: `Prolonger le territoire ${territoryName}`,
+      });
 
     const confirmExtension = async (title: string) => {
       const dialog = await screen.findByRole("dialog");
@@ -499,11 +516,9 @@ describe("Page des territoires en retard", () => {
         "Territoire R-13 non prolongé : Aucune attribution en cours"
       );
       await waitFor(() =>
-        expect(within(header).getByText("1 territoire(s)")).toBeInTheDocument()
+        expect(within(header).getByText(/^1 territoire ·/)).toBeInTheDocument()
       );
-      await userEvent.click(
-        within(header).getByRole("button", { name: "Déplier le groupe" })
-      );
+      await userEvent.click(groupToggle(header, "JEAN Dupont"));
       expect(await within(header).findByText("R-13")).toBeInTheDocument();
       expect(within(header).queryByText("R-12")).not.toBeInTheDocument();
     });
@@ -514,11 +529,12 @@ describe("Page des territoires en retard", () => {
       const header = await openJeanGroup();
 
       expect(
-        within(header).getAllByRole("link", { name: "Voir les détails" })
-      ).toHaveLength(2);
+        within(header).getByRole("link", { name: "R-12" })
+      ).toHaveAttribute("href", "/territoires/t1");
+      expect(within(header).getByRole("link", { name: "R-13" })).toBeVisible();
       expect(
         within(header).queryByRole("button", {
-          name: "Prolongation du territoire",
+          name: /^Prolonger le territoire/,
         })
       ).not.toBeInTheDocument();
       expect(

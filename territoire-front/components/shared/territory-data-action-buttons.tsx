@@ -1,22 +1,31 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Ban,
-  Download,
+  CalendarPlus,
+  Ellipsis,
   Eye,
-  IterationCcw,
-  Upload,
   FileCheck,
   FileImage,
-  FileUp,
   FileX,
+  ImageUp,
+  Undo2,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import AssignTerritoryDialog from "@/components/territory/assign-territory-dialog";
 import ReturnConfirmationDialog from "@/components/territory/return-confirmation-dialog";
-import ActionButton from "@/components/shared/action-button";
 import { TerritoryStatus } from "@/models/territory-status";
 import { useSelector } from "react-redux";
 import { createPerson, fetchPersons } from "@/store/slices/person-slice";
@@ -41,6 +50,7 @@ interface TerritoryDataActionButtonsProps {
   status: TerritoryStatus;
   territoryMapId?: string;
   lost?: boolean;
+  className?: string;
 }
 
 export function TerritoryDataActionButtons({
@@ -49,6 +59,7 @@ export function TerritoryDataActionButtons({
   territoryMapId,
   lost = false,
   showDetails = true,
+  className,
 }: TerritoryDataActionButtonsProps) {
   const dispatch = useAppDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -66,9 +77,10 @@ export function TerritoryDataActionButtons({
   // Référence pour l'input de fichier caché
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const showAssign = status === "AVAILABLE";
-  const showReturn = status === "ASSIGNED" || status === "LATE";
-  const showCancel = status === "ASSIGNED" || status === "LATE";
+  const canManage = canManageAssignments(user?.role);
+  const canUploadMap = user?.role === "ADMIN" || user?.role === "SUPERVISEUR";
+  const showAssign = canManage && status === "AVAILABLE";
+  const showReturn = canManage && (status === "ASSIGNED" || status === "LATE");
 
   useEffect(() => {
     if (persons.length === 0 && !isFetchingPersons) {
@@ -236,143 +248,155 @@ export function TerritoryDataActionButtons({
     }
   };
 
-  return (
-    <TooltipProvider>
-      <div
-        className={`flex flex-wrap gap-2 ${territoryId ? "justify-center" : ""}`}
+  // Le menu regroupe le reste par usage : consulter, gérer, puis l'action destructive à part
+  const viewItems = [
+    showDetails && (
+      <DropdownMenuItem key="details" asChild>
+        <Link href={`/territoires/${territoryId}`}>
+          <Eye />
+          Voir les détails
+        </Link>
+      </DropdownMenuItem>
+    ),
+    territoryMapId && (
+      <DropdownMenuItem key="map" onSelect={handleViewMap}>
+        <FileImage />
+        Voir la carte
+      </DropdownMenuItem>
+    ),
+  ].filter(Boolean);
+
+  const manageItems = [
+    showReturn && (
+      <DropdownMenuItem
+        key="extend"
+        onSelect={() => setIsExtendDialogOpen(true)}
       >
-        {showDetails && (
-          <ActionButton
-            icon={Eye}
-            tooltip="Voir les détails"
-            href={`/territoires/${territoryId}`}
-            className="bg-gray-500 hover:bg-gray-600 text-white"
-          />
-        )}
+        <CalendarPlus />
+        Prolonger
+      </DropdownMenuItem>
+    ),
+    canManage && (
+      <DropdownMenuItem key="lost" onSelect={handleToggleLost}>
+        {lost ? <FileCheck /> : <FileX />}
+        {lost ? "Retirer des territoires perdus" : "Signaler comme perdu"}
+      </DropdownMenuItem>
+    ),
+    canUploadMap && (
+      <DropdownMenuItem key="upload" onSelect={handleUploadClick}>
+        <ImageUp />
+        {territoryMapId ? "Remplacer la carte" : "Importer une carte"}
+      </DropdownMenuItem>
+    ),
+  ].filter(Boolean);
 
-        {showReturn &&
-          (user?.role === "ADMIN" ||
-            user?.role === "SUPERVISEUR" ||
-            user?.role === "GESTIONNAIRE") && (
-            <ActionButton
-              icon={Download}
-              tooltip="Retour du territoire dans le stock"
-              onClick={() => setIsReturnDialogOpen(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
-            />
-          )}
+  const dangerItems = [
+    showReturn && (
+      <DropdownMenuItem
+        key="cancel"
+        variant="destructive"
+        onSelect={() => setIsCancelDialogOpen(true)}
+      >
+        <Ban />
+        Annuler l&apos;assignation
+      </DropdownMenuItem>
+    ),
+  ].filter(Boolean);
 
-        {showAssign &&
-          (user?.role === "ADMIN" ||
-            user?.role === "SUPERVISEUR" ||
-            user?.role === "GESTIONNAIRE") && (
-            <ActionButton
-              icon={Upload}
-              tooltip="Assignation du territoire"
-              onClick={() => setIsDialogOpen(true)}
-              className="bg-green-500 hover:bg-green-600 text-white"
-            />
-          )}
+  const menuGroups = [viewItems, manageItems, dangerItems].filter(
+    (items) => items.length > 0
+  );
 
-        {showReturn &&
-          (user?.role === "ADMIN" ||
-            user?.role === "SUPERVISEUR" ||
-            user?.role === "GESTIONNAIRE") && (
-            <ActionButton
-              icon={IterationCcw}
-              tooltip={"Prolongation du territoire"}
-              onClick={() => setIsExtendDialogOpen(true)}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white"
-            />
-          )}
+  // Sur téléphone, cibles de 44 px et action principale sur toute la largeur
+  return (
+    <div className={cn("flex items-center justify-center gap-2", className)}>
+      {showAssign && (
+        <Button
+          className="h-11 max-md:flex-1 md:h-8"
+          onClick={() => setIsDialogOpen(true)}
+        >
+          <UserPlus />
+          Assigner
+        </Button>
+      )}
 
-        {showCancel &&
-          (user?.role === "ADMIN" ||
-            user?.role === "SUPERVISEUR" ||
-            user?.role === "GESTIONNAIRE") && (
-            <ActionButton
-              icon={Ban}
-              tooltip={"Annuler l'assignation"}
-              onClick={() => setIsCancelDialogOpen(true)}
-              className="bg-red-500 hover:bg-red-600 text-white"
-            />
-          )}
+      {showReturn && (
+        <Button
+          className="h-11 max-md:flex-1 md:h-8"
+          onClick={() => setIsReturnDialogOpen(true)}
+        >
+          <Undo2 />
+          Retour en stock
+        </Button>
+      )}
 
-        {canManageAssignments(user?.role) && (
-          <ActionButton
-            icon={lost ? FileCheck : FileX}
-            tooltip={
-              lost ? "Retirer des territoires perdus" : "Signaler comme perdu"
-            }
-            onClick={handleToggleLost}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          />
-        )}
+      {menuGroups.length > 0 && (
+        // Non modal : les fenêtres de confirmation s'ouvrent depuis le menu sans bloquer la page
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className="size-11 md:size-8"
+              aria-label="Plus d'actions"
+            >
+              <Ellipsis />
+            </Button>
+          </DropdownMenuTrigger>
+          {/* Au-dessus des popups Leaflet (z-index 700) quand le menu s'ouvre depuis la carte */}
+          <DropdownMenuContent align="end" className="z-[1100] min-w-52">
+            {menuGroups.map((items, index) => (
+              <React.Fragment key={index}>
+                {index > 0 && <DropdownMenuSeparator />}
+                {items}
+              </React.Fragment>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
-        {/* Bouton pour télécharger une carte de territoire */}
-        {(user?.role === "ADMIN" || user?.role === "SUPERVISEUR") && (
-          <ActionButton
-            icon={FileUp}
-            tooltip={"Télécharger une carte de territoire"}
-            onClick={handleUploadClick}
-            className="bg-purple-500 hover:bg-purple-600 text-white"
-          />
-        )}
+      {/* Input file caché pour l'upload de la carte */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        style={{ display: "none" }}
+      />
 
-        {/* Bouton pour voir la carte du territoire (visible seulement si une carte existe) */}
-        {territoryMapId && (
-          <ActionButton
-            icon={FileImage}
-            tooltip={"Voir la carte du territoire"}
-            onClick={handleViewMap}
-            className="bg-teal-500 hover:bg-teal-600 text-white"
-          />
-        )}
-
-        {/* Input file caché pour l'upload de la carte */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          accept="image/*"
-          style={{ display: "none" }}
+      {/* 🔹 Affichage conditionnel de la liste des personnes */}
+      {loading ? (
+        <p>Chargement des personnes...</p>
+      ) : error ? (
+        <p className="text-red-500">Erreur : {error}</p>
+      ) : (
+        <AssignTerritoryDialog
+          isOpen={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          people={persons} // ✅ Utilisation des données Redux
+          onAssign={handleAssign}
         />
+      )}
 
-        {/* 🔹 Affichage conditionnel de la liste des personnes */}
-        {loading ? (
-          <p>Chargement des personnes...</p>
-        ) : error ? (
-          <p className="text-red-500">Erreur : {error}</p>
-        ) : (
-          <AssignTerritoryDialog
-            isOpen={isDialogOpen}
-            onOpenChange={setIsDialogOpen}
-            people={persons} // ✅ Utilisation des données Redux
-            onAssign={handleAssign}
-          />
-        )}
+      {/* Fenêtre de dialogue de confirmation de retour */}
+      <ReturnConfirmationDialog
+        isOpen={isReturnDialogOpen}
+        onClose={() => setIsReturnDialogOpen(false)}
+        onConfirm={handleReturn}
+      />
 
-        {/* Fenêtre de dialogue de confirmation de retour */}
-        <ReturnConfirmationDialog
-          isOpen={isReturnDialogOpen}
-          onClose={() => setIsReturnDialogOpen(false)}
-          onConfirm={handleReturn}
-        />
+      {/* Fenêtre de dialogue de confirmation de prolongation */}
+      <ExtendConfirmationDialog
+        isOpen={isExtendDialogOpen}
+        onClose={() => setIsExtendDialogOpen(false)}
+        onConfirm={handleExtension}
+      />
 
-        {/* Fenêtre de dialogue de confirmation de prolongation */}
-        <ExtendConfirmationDialog
-          isOpen={isExtendDialogOpen}
-          onClose={() => setIsExtendDialogOpen(false)}
-          onConfirm={handleExtension}
-        />
-
-        {/* Fenêtre de dialogue de confirmation d'annulation d'assignation */}
-        <CancelAssignmentDialog
-          isOpen={isCancelDialogOpen}
-          onClose={() => setIsCancelDialogOpen(false)}
-          onConfirm={handleCancelAssignment}
-        />
-      </div>
-    </TooltipProvider>
+      {/* Fenêtre de dialogue de confirmation d'annulation d'assignation */}
+      <CancelAssignmentDialog
+        isOpen={isCancelDialogOpen}
+        onClose={() => setIsCancelDialogOpen(false)}
+        onConfirm={handleCancelAssignment}
+      />
+    </div>
   );
 }

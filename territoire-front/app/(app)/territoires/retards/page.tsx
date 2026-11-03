@@ -13,13 +13,12 @@ import {
   fetchTerritories,
 } from "@/store/slices/territory-slice";
 import { createReminder, fetchReminders } from "@/store/slices/reminder-slice";
+import Link from "next/link";
 import { PageHeader } from "@/components/late-territory/page-header";
 import { LoadingState } from "@/components/late-territory/loading-state";
 import { EmptyState } from "@/components/late-territory/empty-state";
-import {
-  createLateTerritoriesColumns,
-  LateTerritoriesTable,
-} from "@/components/late-territory/late-territories-table";
+import { ReminderStatusBadge } from "@/components/late-territory/reminder-status-badge";
+import { TerritoryNameLink } from "@/components/territory/territory-name-link";
 import { fetchPersons } from "@/store/slices/person-slice";
 import { authFetch } from "@/utils/auth-fetch";
 import { ReminderDialog } from "@/components/late-territory/reminder-dialog";
@@ -28,8 +27,6 @@ import { Person } from "@/models/person";
 import { Assignment } from "@/models/assignment";
 import { canManageAssignments } from "@/models/role";
 import { Button } from "@/components/ui/button";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import ActionButton from "@/components/shared/action-button";
 import {
   Select,
   SelectContent,
@@ -37,7 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowUpDown, ChevronDown, Eye } from "lucide-react";
+import {
+  ArrowUpDown,
+  CalendarPlus,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 
 // Territoires en retard d'une même personne
 type Group = {
@@ -140,6 +142,10 @@ function findPerson(
     const lastFirst = normalizeString(`${p.lastName} ${p.firstName}`);
     return firstLast === normKey || lastFirst === normKey;
   });
+}
+
+function territoryCount(count: number): string {
+  return count === 1 ? "1 territoire" : `${count} territoires`;
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -293,12 +299,6 @@ export default function LateTerritoriesPage() {
         : `Territoires ${extendedNames.join(", ")} prolongés jusqu'au ${formatDate(newDueDate)}`
     );
   };
-
-  const columns = createLateTerritoriesColumns(
-    formatDate,
-    hasReminder,
-    canExtend ? (t) => askExtension([t]) : undefined
-  );
 
   // "DAVID" -> "David", "JEAN-PIERRE" -> "Jean-Pierre"
   function capitalizeName(name: string): string {
@@ -492,66 +492,54 @@ export default function LateTerritoriesPage() {
                 key={g.personId}
                 className="border rounded-lg bg-white shadow-sm"
               >
-                {/* Header */}
-                {/* Téléphone : les boutons passent sous le nom plutôt que de sortir de l'écran */}
-                <div className="flex flex-wrap items-center justify-between gap-2 p-3 cursor-pointer">
-                  <Button
+                {/* Tout l'en-tête déplie le groupe ; sur téléphone, les actions passent dessous en pleine largeur */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      toggleGroup(g.personId);
-                    }}
-                    aria-expanded={openGroups[g.personId]}
+                    onClick={() => toggleGroup(g.personId)}
+                    aria-expanded={!!openGroups[g.personId]}
                     aria-controls={`group-${g.personId}`}
-                    aria-label={
-                      openGroups[g.personId]
-                        ? "Replier le groupe"
-                        : "Déplier le groupe"
-                    }
+                    className="flex min-w-48 flex-1 items-center gap-3 rounded-md p-1 text-left outline-none hover:bg-gray-50 focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
+                      aria-hidden="true"
+                      className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
                         openGroups[g.personId] ? "rotate-180" : ""
                       }`}
                     />
-                  </Button>
-                  <div className="flex min-w-48 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
-                    <div className="font-medium">{g.personName}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {g.territories.length} territoire(s)
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Plus ancien retard:{" "}
-                      {g.oldest
-                        ? format(new Date(g.oldest), "dd MMM yyyy", {
-                            locale: fr,
-                          })
-                        : "N/A"}
-                    </div>
-                  </div>
-                  <div className="ml-auto flex items-center gap-2">
-                    {g.hasProfile && (
-                      <TooltipProvider>
-                        <ActionButton
-                          icon={Eye}
-                          tooltip="Voir la fiche de la personne"
-                          href={`/personnes/${g.personId}`}
-                          className="bg-gray-500 hover:bg-gray-600 text-white"
-                        />
-                      </TooltipProvider>
-                    )}
+                    <span className="min-w-0">
+                      <span className="block font-medium">{g.personName}</span>
+                      <span className="block text-sm text-muted-foreground">
+                        {territoryCount(g.territories.length)} · plus ancien
+                        retard le{" "}
+                        {g.oldest
+                          ? format(new Date(g.oldest), "dd MMM yyyy", {
+                              locale: fr,
+                            })
+                          : "N/A"}
+                      </span>
+                      {isFullyReminded(g) && (
+                        <span className="block text-sm text-green-700">
+                          Tout est déjà rappelé
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                  <div className="flex w-full gap-2 md:w-auto">
                     {canExtend && (
                       <Button
                         type="button"
-                        className="px-3 py-2 font-medium bg-yellow-500 hover:bg-yellow-600 text-white"
+                        variant="outline"
+                        className="h-11 flex-1 md:h-9 md:flex-none"
                         onClick={() => askExtension(g.territories)}
                       >
+                        <CalendarPlus />
                         Prolonger
                       </Button>
                     )}
                     <ReminderDialog
                       title="Rappeler"
+                      triggerClassName="h-11 flex-1 md:h-9 md:flex-none"
                       description="Choisissez les territoires à rappeler, puis envoyez un message WhatsApp à cette personne ou enregistrez simplement les rappels."
                       canSendWhatsApp={!!g.phone}
                       triggerDisabled={isFullyReminded(g)}
@@ -577,15 +565,48 @@ export default function LateTerritoriesPage() {
                     />
                   </div>
                 </div>
-                {/* Panel */}
+                {/* Liste simple : la personne est déjà dans l'en-tête, du plus ancien retard au plus récent */}
                 {openGroups[g.personId] && (
-                  <div className="p-3 border-t">
-                    {/* Reuse table for this person's territories */}
-                    <LateTerritoriesTable
-                      territories={g.territories}
-                      columns={columns}
-                      tableId={`late-${g.personId}`}
-                    />
+                  <div id={`group-${g.personId}`} className="border-t px-3">
+                    <ul className="divide-y">
+                      {[...g.territories]
+                        .sort((a, b) => compareDates(a.waitedFor, b.waitedFor))
+                        .map((t) => (
+                          <li
+                            key={t.id}
+                            className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2"
+                          >
+                            <TerritoryNameLink id={t.id} name={t.name} />
+                            <span className="text-sm text-muted-foreground">
+                              À rendre le {formatDate(t.waitedFor)}
+                            </span>
+                            <ReminderStatusBadge
+                              hasReminder={hasReminder(t, t.assignedTo)}
+                            />
+                            {canExtend && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="ml-auto h-11 md:h-8"
+                                aria-label={`Prolonger le territoire ${t.name}`}
+                                onClick={() => askExtension([t])}
+                              >
+                                <CalendarPlus />
+                                Prolonger
+                              </Button>
+                            )}
+                          </li>
+                        ))}
+                    </ul>
+                    {g.hasProfile && (
+                      <Link
+                        href={`/personnes/${g.personId}`}
+                        className="flex items-center gap-1 border-t py-3 text-sm font-medium text-blue-700 underline-offset-4 hover:underline"
+                      >
+                        Voir la fiche de la personne
+                        <ChevronRight aria-hidden="true" className="h-4 w-4" />
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
