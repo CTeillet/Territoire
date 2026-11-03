@@ -45,7 +45,7 @@ private struct DiagnosticView: View {
                         Button("Actualiser") { model.refreshAccessories() }
                     }.disabled(model.isBusy || model.isConnected)
                     Picker("Accessoire", selection: Binding(get: { model.selectedID }, set: { model.selectAccessory($0) })) {
-                        Text("Aucun").tag(nil as UInt?)
+                        Text("Aucun").tag(nil as Int?)
                         ForEach(model.accessories) { item in
                             Text(item.name).tag(Optional(item.id))
                         }
@@ -76,7 +76,7 @@ private struct DiagnosticView: View {
                     Button("Lire l'état — sans imprimer") { model.readStatus() }
                         .disabled(!model.isConnected || model.isBusy)
                     Button("Fermer la connexion", role: .destructive) { model.disconnect() }
-                        .disabled(!model.isConnected && !model.isBusy)
+                        .disabled(!model.hasSession && !model.isBusy)
                     if model.isBusy { ProgressView().frame(maxWidth: .infinity) }
                     Text(model.message).textSelection(.enabled)
                     if let status = model.lastStatus {

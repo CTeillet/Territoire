@@ -9,7 +9,7 @@ private struct DiagnosticFailure: LocalizedError {
 }
 
 struct AccessoryInfo: Identifiable {
-    let id: UInt
+    let id: Int
     let name: String
     let model: String
     let firmware: String
@@ -23,7 +23,7 @@ struct AccessoryInfo: Identifiable {
 @MainActor
 final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     @Published private(set) var accessories: [AccessoryInfo] = []
-    @Published private(set) var selectedID: UInt?
+    @Published private(set) var selectedID: Int?
     @Published var selectedProtocol = ""
     @Published private(set) var isConnected = false
     @Published private(set) var isBusy = false
@@ -37,7 +37,7 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     // Only the protocol actually declared in the built/sideloaded app can be used.
     let declaredProtocols: [String]
     private var session: EASession?
-    private var accessoryObjects: [UInt: EAAccessory] = [:]
+    private var accessoryObjects: [Int: EAAccessory] = [:]
     private var observers: [NSObjectProtocol] = []
     private var framer = StatusFramer()
     private var sequence = 0
@@ -51,6 +51,7 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     private var rxBytes = 0
 
     var selectedAccessory: AccessoryInfo? { accessories.first { $0.id == selectedID } }
+    var hasSession: Bool { session != nil }
     var availableProtocols: [String] {
         selectedAccessory?.protocols.filter { declaredProtocols.contains($0) } ?? []
     }
@@ -69,7 +70,7 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.log("Notification : \(eventName)")
-                    if let activeID = self.session?.accessory.connectionID,
+                    if let activeID = self.session?.accessory?.connectionID,
                        !EAAccessoryManager.shared().connectedAccessories.contains(where: { $0.connectionID == activeID }) {
                         self.disconnect(reason: "L'accessoire a été déconnecté par iOS.")
                     }
@@ -107,7 +108,7 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
         }
     }
 
-    func selectAccessory(_ id: UInt?) {
+    func selectAccessory(_ id: Int?) {
         guard !isBusy && !isConnected else { return }
         selectedID = id
         updateProtocol()
