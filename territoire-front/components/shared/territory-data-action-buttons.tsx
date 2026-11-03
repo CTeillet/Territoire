@@ -33,6 +33,7 @@ import ExtendConfirmationDialog from "@/components/territory/extend-confirmation
 import CancelAssignmentDialog from "@/components/territory/cancel-assignment-dialog";
 import { authFetch } from "@/utils/auth-fetch";
 import { canManageAssignments } from "@/models/role";
+import { autoPrintAssignmentLabel } from "@/lib/assignment-label";
 
 interface TerritoryDataActionButtonsProps {
   territoryId: string;
@@ -96,9 +97,10 @@ export function TerritoryDataActionButtons({
       }
 
       if (personId) {
-        await dispatch(
+        const assignment = await dispatch(
           assignTerritory({ territoryId: territoryId, personId })
         ).unwrap();
+        void autoPrintAssignmentLabel(assignment);
       }
     } catch (error) {
       console.error("❌ Erreur lors de l'assignation :", error);

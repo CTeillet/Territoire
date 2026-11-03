@@ -9,7 +9,9 @@ import { WhatsAppTestSection } from "@/components/parameters/other-parameter/wha
 import { LateReportSection } from "@/components/parameters/other-parameter/late-report-section";
 import { DurationsSection } from "@/components/parameters/other-parameter/durations-section";
 import { ContactsPhoneSection } from "@/components/parameters/other-parameter/contacts-phone-section";
+import { LabelPrinterSection } from "@/components/parameters/other-parameter/label-printer-section";
 import { useAppSelector } from "@/store/store";
+import { canManageAssignments } from "@/models/role";
 
 export default function OtherParameter() {
   const role = useAppSelector((state) => state.auth.user?.role);
@@ -24,6 +26,15 @@ export default function OtherParameter() {
         <section className="border rounded-2xl shadow-sm bg-white p-4">
           <h2 className="text-xl font-bold mb-4">Durées</h2>
           <DurationsSection showTitle={false} />
+        </section>
+      )}
+
+      {canManageAssignments(role) && (
+        <section className="border rounded-2xl shadow-sm bg-white p-4">
+          <h2 className="text-xl font-bold mb-4">
+            Imprimante d&apos;étiquettes
+          </h2>
+          <LabelPrinterSection showTitle={false} />
         </section>
       )}
 

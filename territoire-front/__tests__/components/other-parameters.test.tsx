@@ -36,6 +36,8 @@ beforeEach(() => {
   vi.restoreAllMocks();
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
+  // Pas de canvas dans jsdom : l'aperçu de l'étiquette n'est pas dessiné
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   Object.values(toast).forEach((fn) => vi.mocked(fn).mockClear());
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 9, 11, 12));
@@ -802,6 +804,7 @@ describe("OtherParameter", () => {
     for (const title of [
       "Paramètres généraux",
       "Durées",
+      "Imprimante d'étiquettes",
       "Données Excel",
       "Numéros de téléphone",
       "Vérifications",
@@ -837,10 +840,22 @@ describe("OtherParameter", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("réserve l'imprimante d'étiquettes à ceux qui attribuent les territoires", () => {
+    mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
+    renderWithRole(<OtherParameter />, "UTILISATEUR");
+
+    expect(
+      screen.queryByRole("heading", { name: "Imprimante d'étiquettes" })
+    ).not.toBeInTheDocument();
+  });
+
   it("réserve le récapitulatif des retards aux administrateurs et superviseurs", () => {
     mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
     renderWithRole(<OtherParameter />, "GESTIONNAIRE");
 
+    expect(
+      screen.getByRole("heading", { name: "Imprimante d'étiquettes" })
+    ).toBeInTheDocument();
     for (const title of [
       "Récapitulatif des retards par e-mail",
       "Durées",

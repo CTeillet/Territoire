@@ -11,6 +11,7 @@ import { TerritoryDataActionButtons } from "@/components/shared/territory-data-a
 import AssignTerritoryDialog from "@/components/territory/assign-territory-dialog";
 import ExtendConfirmationDialog from "@/components/territory/extend-confirmation-dialog";
 import { addMonths, addWeeks, format } from "date-fns";
+import * as assignmentLabel from "@/lib/assignment-label";
 import { jsonResponse, mockApi, renderWithStore } from "../test-utils";
 
 const persons = [
@@ -75,6 +76,9 @@ describe("Boutons d'action d'un territoire", () => {
 
   it("attribue le territoire à une personne existante", async () => {
     setup();
+    const autoPrint = vi
+      .spyOn(assignmentLabel, "autoPrintAssignmentLabel")
+      .mockResolvedValue();
     renderWithStore(
       <TerritoryDataActionButtons territoryId="t1" status="AVAILABLE" />
     );
@@ -91,6 +95,8 @@ describe("Boutons d'action d'un territoire", () => {
         expect.objectContaining({ method: "POST" })
       )
     );
+    // Étiquette imprimée si l'appareil est réglé pour
+    await waitFor(() => expect(autoPrint).toHaveBeenCalledWith(assignment));
   });
 
   it("crée une nouvelle personne puis lui attribue le territoire", async () => {
