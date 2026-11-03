@@ -1,11 +1,13 @@
 import React from "react";
 import { vi } from "vitest";
 
-/** Couche Leaflet factice : enregistre le popup et les gestionnaires d'événements. */
+/** Couche Leaflet factice : enregistre le popup, l'infobulle et les gestionnaires d'événements. */
 export type FakeLayer = {
   popup?: HTMLElement | string;
+  tooltip?: HTMLElement | string;
   handlers: Record<string, (event: unknown) => void>;
   bindPopup: (content: HTMLElement | string) => void;
+  bindTooltip: (content: HTMLElement | string) => void;
   on: (event: string, handler: (event: unknown) => void) => void;
   remove: () => void;
 };
@@ -17,6 +19,9 @@ export function fakeLayer(): FakeLayer {
     handlers: {},
     bindPopup: (content) => {
       layer.popup = content;
+    },
+    bindTooltip: (content) => {
+      layer.tooltip = content;
     },
     on: (event, handler) => {
       layer.handlers[event] = handler;

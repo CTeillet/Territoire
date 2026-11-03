@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TerritoryMap, {
   getBadgeColorTerritory,
@@ -63,6 +63,9 @@ vi.mock("react-leaflet", async () => {
       return <div data-testid="edit-map">{children}</div>;
     },
     TileLayer: () => null,
+    Pane: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
     LayerGroup: ({ children }: { children: React.ReactNode }) => (
       <div>{children}</div>
     ),
@@ -212,14 +215,75 @@ describe("Carte d'édition d'un territoire", () => {
       city: TEST_CITY,
       geojson: JSON.stringify({ type: "FeatureCollection", features }),
     }) as Territory;
+  const allTerritories = (
+    ...territories: { id: string; name: string }[]
+  ): TerritoryCollection => ({
+    type: "FeatureCollection",
+    features: territories.map((properties, i) => ({
+      type: "Feature",
+      geometry: polygon(0.02 * i) as never,
+      properties: properties as Territory,
+    })),
+  });
+  const otherTerritoriesOverlay = () =>
+    document.querySelector<HTMLElement>('[data-overlay="Autres territoires"]')!;
 
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
+    // Routes non simulées (404) : pas d'autres territoires, seuls le contour et les pâtés sont dessinés
+    mockApi({});
     fakeMap.handlers = {};
     fakeMap.fitBounds.mockClear();
     layers.length = 0;
+  });
+
+  it("affiche les autres territoires déjà chargés, avec leur nom au survol", async () => {
+    const api = mockApi({});
+    renderWithStore(
+      <TerritoryIdMap territory={territory([hull])} city={TEST_CITY} />,
+      "ADMIN",
+      {
+        territories: {
+          territoriesGeojson: allTerritories(
+            { id: "t1", name: "R-12" },
+            { id: "t2", name: "<b>R-13</b>" }
+          ),
+        },
+      }
+    );
+
+    // Le territoire affiché n'est pas redessiné parmi les autres
+    expect(
+      within(otherTerritoriesOverlay()).getByTestId("geojson")
+    ).toHaveTextContent("1");
+    const tooltip = layers.at(-1)!.tooltip as HTMLElement;
+    expect(tooltip.textContent).toBe("<b>R-13</b>");
+    expect(tooltip.querySelector("b")).toBeNull();
+    expect(api).not.toHaveBeenCalledWith("/api/territoires/geojson");
+  });
+
+  it("charge les autres territoires s'ils ne le sont pas encore", async () => {
+    const api = mockApi({
+      "GET /api/territoires/geojson": allTerritories(
+        { id: "t2", name: "R-13" },
+        { id: "t3", name: "R-14" }
+      ),
+    });
+    renderWithStore(
+      <TerritoryIdMap territory={territory([hull])} city={TEST_CITY} />
+    );
+
+    expect(within(otherTerritoriesOverlay()).queryByTestId("geojson")).toBe(
+      null
+    );
+    await waitFor(() =>
+      expect(
+        within(otherTerritoriesOverlay()).getByTestId("geojson")
+      ).toHaveTextContent("2")
+    );
+    expect(api).toHaveBeenCalledWith("/api/territoires/geojson");
   });
 
   it("affiche le contour et les pâtés, et cadre la carte sur le contour", async () => {
