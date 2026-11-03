@@ -120,6 +120,25 @@ export function stubSerial(
   return serial;
 }
 
+/**
+ * navigator.serial de Chrome sur Android : la fenêtre de choix renvoie `chosen`, mais getPorts() ne le renvoie
+ * pas (`listed` vide) ou renvoie d'autres objets pour le même appareil.
+ */
+export function stubAndroidSerial(
+  chosen: FakePrinterPort,
+  listed: FakePrinterPort[] = []
+) {
+  const serial = {
+    getPorts: vi.fn(async () => listed.filter((port) => !port.forgotten)),
+    requestPort: vi.fn(async () => chosen),
+  };
+  Object.defineProperty(navigator, "serial", {
+    value: serial,
+    configurable: true,
+  });
+  return serial;
+}
+
 export function unstubSerial() {
   delete (navigator as Navigator & { serial?: unknown }).serial;
 }

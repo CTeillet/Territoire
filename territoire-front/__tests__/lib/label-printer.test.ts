@@ -14,10 +14,13 @@ import { Bitmap } from "@/lib/ptouch";
 import {
   FakePrinterPort,
   statusBytes,
+  stubAndroidSerial,
   stubSerial,
   unstubSerial,
 } from "../mocks/serial-port";
 
+const SAMSUNG_INTERNET =
+  "Mozilla/5.0 (Linux; Android 15; SM-X716B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/29.0 Chrome/136.0.0.0 Safari/537.36";
 const UNREACHABLE =
   "Imprimante d'étiquettes injoignable : vérifiez qu'elle est allumée et à portée Bluetooth.";
 
@@ -48,6 +51,21 @@ describe("label-printer", () => {
     );
   });
 
+  it("n'est pas disponible dans Samsung Internet, qui annonce Web Serial sans fenêtre de choix", async () => {
+    const userAgent = vi
+      .spyOn(navigator, "userAgent", "get")
+      .mockReturnValue(SAMSUNG_INTERNET);
+    const serial = stubSerial([new FakePrinterPort()]);
+    try {
+      expect(isLabelPrintingSupported()).toBe(false);
+      expect(await getLabelPrinter()).toBeNull();
+      await expect(connectLabelPrinter()).rejects.toThrow(UNSUPPORTED_MESSAGE);
+      expect(serial.requestPort).not.toHaveBeenCalled();
+    } finally {
+      userAgent.mockRestore();
+    }
+  });
+
   it("garde l'imprimante choisie, oublie les autres et active l'impression automatique", async () => {
     const previous = new FakePrinterPort();
     const chosen = new FakePrinterPort();
@@ -66,6 +84,34 @@ describe("label-printer", () => {
     expect(chosen.forgotten).toBe(true);
     expect(await getLabelPrinter()).toBeNull();
     expect(isAutoPrintEnabled()).toBe(false);
+  });
+
+  it("sur Chrome pour Android, garde l'imprimante choisie même absente de getPorts(), et imprime dessus", async () => {
+    const chosen = new FakePrinterPort();
+    stubAndroidSerial(chosen);
+
+    await connectLabelPrinter();
+
+    expect(await getLabelPrinter()).toBe(chosen);
+    await printLabel(render);
+    expect(chosen.jobs).toBe(1);
+    expect(isAutoPrintEnabled()).toBe(true);
+  });
+
+  it("n'oublie pas l'imprimante choisie que getPorts() renvoie sous un autre objet", async () => {
+    const chosen = new FakePrinterPort();
+    const sameDevice = new FakePrinterPort();
+    stubAndroidSerial(chosen, [sameDevice]);
+
+    await connectLabelPrinter();
+    expect(sameDevice.forgotten).toBe(false);
+    expect(chosen.forgotten).toBe(false);
+    expect(await getLabelPrinter()).toBe(chosen);
+
+    await forgetLabelPrinter();
+    expect(chosen.forgotten).toBe(true);
+    expect(sameDevice.forgotten).toBe(true);
+    expect(await getLabelPrinter()).toBeNull();
   });
 
   it("distingue une fenêtre de choix fermée d'un navigateur qui ne l'ouvre pas", async () => {
