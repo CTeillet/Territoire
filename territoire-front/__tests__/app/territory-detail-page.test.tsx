@@ -17,12 +17,18 @@ import { Territory } from "@/models/territory";
 import { Assignment } from "@/models/assignment";
 import { TerritoryType } from "@/models/territory-type";
 import { fetchTerritories } from "@/store/slices/territory-slice";
+import * as assignmentLabel from "@/lib/assignment-label";
 import {
   jsonResponse,
   mockApi,
   renderWithStore,
   TEST_CITY,
 } from "../test-utils";
+import {
+  FakePrinterPort,
+  stubSerial,
+  unstubSerial,
+} from "../mocks/serial-port";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -522,6 +528,39 @@ describe("Historique des attributions", () => {
         name: "Voir les détails de la personne",
       })[0]
     ).toHaveAttribute("href", "/personnes/p2");
+  });
+
+  it("réimprime l'étiquette de l'attribution en cours sur un appareil relié à une imprimante", async () => {
+    const print = vi
+      .spyOn(assignmentLabel, "printAssignmentLabel")
+      .mockResolvedValue();
+    const returned = assignment({ id: "as0", returnDate: "2026-08-01" });
+    const running = assignment();
+
+    // Sans imprimante sur l'appareil : pas de bouton
+    const { unmount } = renderWithStore(
+      <AssignmentsList assignments={[returned, running]} />
+    );
+    await act(async () => {});
+    expect(
+      screen.queryByRole("button", { name: "Imprimer l'étiquette" })
+    ).not.toBeInTheDocument();
+    unmount();
+
+    stubSerial([new FakePrinterPort()]);
+    try {
+      renderWithStore(<AssignmentsList assignments={[returned, running]} />);
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Imprimer l'étiquette" })
+      );
+      expect(print).toHaveBeenCalledWith(running);
+      // Une seule attribution en cours
+      expect(
+        screen.getAllByRole("button", { name: "Imprimer l'étiquette" })
+      ).toHaveLength(1);
+    } finally {
+      unstubSerial();
+    }
   });
 
   it("signale une attribution close par une prolongation", () => {

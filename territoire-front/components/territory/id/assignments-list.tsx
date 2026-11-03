@@ -2,16 +2,19 @@
 
 import { Assignment } from "@/models/assignment";
 import ActionButton from "@/components/shared/action-button";
-import { CalendarCog, Eye } from "lucide-react";
+import { CalendarCog, Eye, Printer } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import { canManageAssignments } from "@/models/role";
 import EditAssignmentDatesDialog from "@/components/territory/id/edit-assignment-dates-dialog";
+import { useLabelPrinter } from "@/hooks/use-label-printer";
+import { printAssignmentLabel } from "@/lib/assignment-label";
 
 const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
   const role = useSelector((state: RootState) => state.auth.user?.role);
+  const labelPrinter = useLabelPrinter();
   const [editedAssignment, setEditedAssignment] = useState<Assignment | null>(
     null
   );
@@ -59,6 +62,18 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                 </div>
                 <TooltipProvider>
                   <div className="flex gap-2">
+                    {/* Étiquette perdue, ratée ou à refaire après une modification de l'échéance */}
+                    {assignment.person &&
+                      assignment.returnDate === null &&
+                      canManageAssignments(role) &&
+                      labelPrinter.connected && (
+                        <ActionButton
+                          icon={Printer}
+                          tooltip="Imprimer l'étiquette"
+                          onClick={() => void printAssignmentLabel(assignment)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        />
+                      )}
                     {/* Les dates d'une campagne suivent celles de la campagne */}
                     {assignment.person && canManageAssignments(role) && (
                       <ActionButton

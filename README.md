@@ -12,6 +12,7 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 - Espace « mes territoires » : chaque personne reçoit un lien personnel (`/m/<jeton>`) pour consulter ses territoires en cours (carte, adresses à ne pas visiter) et les rendre elle-même. Envoi par WhatsApp, automatique à l'attribution si activé ; gestion (renvoi, régénération, révocation, expiration) dans Paramètres > Accès numériques et sur la fiche de chaque personne. Coexiste avec les cartes papier.
 - Campagnes, statistiques, historique quotidien des statuts.
 - Impression des cartes de territoires (Territoire > Impression des cartes) : on choisit les territoires (recherche, ville) et leurs cartes s'impriment par 4 sur des feuilles A4 en paysage, à découper en quarts. Les marges blanches des cartes numérisées sont retirées.
+- Étiquettes d'attribution : une Brother P-touch Cube (PT-P300BT, PT-P710BT) reliée en Bluetooth imprime à chaque attribution une étiquette « Prénom N. / À rendre le JJ/MM/AAAA », à coller sur la carte. Elle se règle par appareil, cf. [Imprimante d'étiquettes](#imprimante-détiquettes-brother-p-touch) ; la fiche d'un territoire permet de réimprimer l'étiquette de l'attribution en cours.
 - Territoires perdus : un territoire dont la carte papier a disparu se signale « perdu » depuis ses actions (liste ou fiche), quel que soit son statut. La page d'impression les propose à la réimpression ; une fois les cartes imprimées, on les retire des perdus (ADMIN, SUPERVISEUR, GESTIONNAIRE).
 - Export / import Excel, export PNG de la carte de tous les territoires, adresses à ne pas visiter.
 - Rôles et droits d'accès :
@@ -129,6 +130,16 @@ Il s'authentifie par une clé dédiée dans l'en-tête `X-API-Key`, qui n'ouvre 
        - field: pending
          label: En attente
    ```
+
+### Imprimante d'étiquettes (Brother P-touch)
+Le navigateur pilote directement l'imprimante en Bluetooth (API Web Serial) : rien à installer, ni sur le VPS ni sur l'appareil. C'est l'appareil qui fait l'attribution qui imprime. Il faut Chrome ou Edge sur ordinateur, ou Chrome sur Android ; les iPhone et iPad ne le permettent pas.
+
+**Mise en place (sur chaque appareil)**
+1. Appairer la P-touch dans les réglages Bluetooth de l'appareil (sous Windows : Paramètres > Bluetooth et appareils > Ajouter un appareil).
+2. Dans TMS, Paramètres > Autres paramètres > Imprimante d'étiquettes : « Choisir l'imprimante », puis la sélectionner dans la fenêtre du navigateur.
+3. « Imprimer une étiquette de test ». La case « Imprimer l'étiquette à chaque attribution faite depuis cet appareil » est cochée d'office ; la décocher pour n'imprimer qu'à la demande (fiche du territoire).
+
+L'étiquette s'adapte à la largeur du ruban en place (testée pour 12 mm). Le PT-P710BT coupe l'étiquette ; sur le PT-P300BT, on la coupe avec le levier. Si l'imprimante est éteinte ou hors de portée, l'attribution est quand même enregistrée et un message propose de réessayer.
 
 ### Sauvegardes de la base
 Le service `db-backup` (`config/backup`) fait chaque nuit à 02:00 UTC un `pg_dump`, le chiffre avec [age](https://age-encryption.org) et l'envoie avec [rclone](https://rclone.org) dans le dossier `territoire-backups` d'un Google Drive. Le VPS n'a que la clé publique : il ne peut pas relire ses propres sauvegardes, et Google ne voit que des fichiers chiffrés. Dans ce dossier :

@@ -8,6 +8,7 @@ import {
 } from "@/models/territory-request";
 import { TerritoryType } from "@/models/territory-type";
 import { TERRITORY_REQUESTS_CHANGED } from "@/lib/territory-request-api";
+import * as assignmentLabel from "@/lib/assignment-label";
 import { toast } from "sonner";
 import { jsonResponse, mockApi, renderWithRole } from "../test-utils";
 
@@ -109,6 +110,9 @@ describe("Page des demandes de territoire", () => {
     });
     const changed = vi.fn();
     window.addEventListener(TERRITORY_REQUESTS_CHANGED, changed);
+    const autoPrint = vi
+      .spyOn(assignmentLabel, "autoPrintAssignmentLabel")
+      .mockResolvedValue();
 
     renderWithRole(<TerritoryRequestsPage />, "ADMIN");
     await userEvent.click(
@@ -141,6 +145,7 @@ describe("Page des demandes de territoire", () => {
 
     expect(assign).toHaveBeenCalled();
     expect(toast.success).toHaveBeenCalledWith("R-1 attribué à Jean Dupont");
+    expect(autoPrint).toHaveBeenCalledWith({ id: "a1" });
     expect(
       await screen.findByText("Aucune demande en attente")
     ).toBeInTheDocument();
