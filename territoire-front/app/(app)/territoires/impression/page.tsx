@@ -188,9 +188,11 @@ export default function TerritoryPrintPage() {
   if (!isClient) return null;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 md:p-6">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold">Impression des cartes</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">
+          Impression des cartes
+        </h1>
         <p className="text-muted-foreground">
           Les cartes des territoires sélectionnés sont imprimées par 4 sur des
           feuilles A4 en paysage, à découper le long des pointillés.
@@ -238,7 +240,7 @@ export default function TerritoryPrintPage() {
             aria-label="Ville"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="h-9 w-full rounded-md border bg-white px-2 text-sm"
+            className="h-9 w-full rounded-md border bg-white px-2 text-base md:text-sm"
           >
             <option value="">Toutes les villes</option>
             {cities.map((name) => (

@@ -114,11 +114,11 @@ const TerritoryHeader = ({
   };
 
   return (
-    <div className="mb-4 p-6 max-w-4xl mx-auto bg-gray-100 rounded-lg shadow-lg">
+    <div className="mb-4 p-4 md:p-6 max-w-4xl mx-auto bg-gray-100 rounded-lg shadow-lg">
       {/* Nom et édition */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center">
-          <CheckCircleIcon className="mr-2 text-blue-500" />
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <div className="flex min-w-0 items-center">
+          <CheckCircleIcon className="mr-2 shrink-0 text-blue-500" />
           {isEditing ? (
             <Input
               value={tempName}
@@ -126,13 +126,15 @@ const TerritoryHeader = ({
               className="w-full"
             />
           ) : (
-            <h1 className="text-3xl font-bold text-gray-900">{name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 break-words">
+              {name}
+            </h1>
           )}
         </div>
 
         {/* Boutons d'édition et validation */}
         {user?.role === "ADMIN" || user?.role === "SUPERVISEUR" ? (
-          <div className="flex items-center space-x-2">
+          <div className="flex shrink-0 items-center space-x-2">
             {isEditing ? (
               <>
                 <button
@@ -276,7 +278,7 @@ const TerritoryHeader = ({
       </div>
 
       {/* Actions */}
-      <div className="mt-6 flex space-x-2 justify-start">
+      <div className="mt-6 flex justify-start">
         <TerritoryDataActionButtons
           territoryId={territoryId}
           showDetails={false}

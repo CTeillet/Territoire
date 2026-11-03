@@ -449,7 +449,7 @@ export default function LateTerritoriesPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-6">
+    <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
       <PageHeader
         title="Territoires en retard"
         description="Gérez les territoires en retard et envoyez des rappels"
@@ -472,7 +472,7 @@ export default function LateTerritoriesPage() {
             <Select value={sortKey} onValueChange={handleSortChange}>
               <SelectTrigger
                 id="late-sort-select"
-                className="w-[240px] bg-background"
+                className="w-full max-w-[240px] bg-background"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -493,7 +493,8 @@ export default function LateTerritoriesPage() {
                 className="border rounded-lg bg-white shadow-sm"
               >
                 {/* Header */}
-                <div className="flex items-center justify-between p-3 cursor-pointer">
+                {/* Téléphone : les boutons passent sous le nom plutôt que de sortir de l'écran */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-3 cursor-pointer">
                   <Button
                     type="button"
                     variant="ghost"
@@ -515,7 +516,7 @@ export default function LateTerritoriesPage() {
                       }`}
                     />
                   </Button>
-                  <div className="flex items-center gap-4">
+                  <div className="flex min-w-48 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
                     <div className="font-medium">{g.personName}</div>
                     <div className="text-sm text-muted-foreground">
                       {g.territories.length} territoire(s)
@@ -529,7 +530,7 @@ export default function LateTerritoriesPage() {
                         : "N/A"}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-2">
                     {g.hasProfile && (
                       <TooltipProvider>
                         <ActionButton

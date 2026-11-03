@@ -15,6 +15,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { buildTerritoryPopup } from "@/components/territory/territory-popup";
+import { MAP_HEIGHT_CLASSES } from "@/components/shared/map-height";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
@@ -44,19 +45,11 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({ geoJsonData }) => {
     setIsExpanded(!isExpanded);
   };
 
-  const mapHeight = useMemo(() => {
-    if (isExpanded) {
-      return "1200px";
-    } else {
-      return "700px";
-    }
-  }, [isExpanded]);
-
   return (
     <div className="relative">
+      {/* Téléphone : hauteur relative à l'écran, pour garder de quoi faire défiler la page à côté de la carte */}
       <div
-        className="transition-all duration-500"
-        style={{ height: mapHeight, width: "100%" }}
+        className={`w-full transition-all duration-500 ${MAP_HEIGHT_CLASSES[isExpanded ? "expanded" : "normal"]}`}
       >
         <MapContainer
           center={center}

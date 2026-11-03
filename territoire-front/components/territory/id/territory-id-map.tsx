@@ -292,8 +292,8 @@ const TerritoryMap = ({
       whenReady={(event: LeafletEvent) => handleMapCreated(event.target as Map)}
       ref={mapRef}
       bounds={bounds}
-      style={{ height: "800px", width: "75%", zIndex: 0 }}
-      className="mt-6 border border-gray-300 rounded-lg overflow-hidden shadow-sm mx-auto"
+      style={{ zIndex: 0 }}
+      className="mt-6 h-[60svh] w-full border border-gray-300 rounded-lg overflow-hidden shadow-sm mx-auto md:h-[800px] md:w-3/4"
     >
       <MapUpdater isSidebarOpen={sidebar.state === "expanded"} />{" "}
       {/* Ajout pour gérer la sidebar */}

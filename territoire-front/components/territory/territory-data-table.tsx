@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  Column,
   ColumnDef,
   ColumnFiltersState,
   ColumnVisibilityState,
   flexRender,
   PaginationState,
+  ReactTable,
   SortingState,
   useTable,
 } from "@tanstack/react-table";
@@ -31,6 +33,7 @@ import { FileDown, FilterX } from "lucide-react";
 import { COLUMNS_ID_TRANSLATIONS } from "@/components/territory/territory-data-columns";
 import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DataTableProps {
   columns: ColumnDef<DataTableFeatures, Territory, unknown>[];
@@ -39,6 +42,7 @@ interface DataTableProps {
 }
 
 export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
+  const isMobile = useIsMobile();
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({
       id: false,
@@ -202,66 +206,169 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
           <span>Exporter</span>
         </Button>
       </div>
-      <div className="overflow-x-auto">
-        <Table className="w-full border-collapse">
-          {/* En-tête de la table */}
-          <TableHeader className="bg-gray-100 border-b-2 border-gray-300">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className="px-4 py-3 text-center text-gray-700 font-semibold uppercase tracking-wider"
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-
-          {/* Corps de la table */}
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="odd:bg-gray-50 hover:bg-gray-100 transition"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="px-4 py-3 text-center text-gray-700 border-b"
+      {isMobile ? (
+        <MobileRows table={table} />
+      ) : (
+        <div className="overflow-x-auto">
+          <Table className="w-full border-collapse">
+            {/* En-tête de la table */}
+            <TableHeader className="bg-gray-100 border-b-2 border-gray-300">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className="px-4 py-3 text-center text-gray-700 font-semibold uppercase tracking-wider"
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-gray-500"
-                >
-                  Aucun résultat.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableHeader>
+
+            {/* Corps de la table */}
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className="odd:bg-gray-50 hover:bg-gray-100 transition"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className="px-4 py-3 text-center text-gray-700 border-b"
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center text-gray-500"
+                  >
+                    Aucun résultat.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Pagination en bas */}
       <DataTablePagination table={table} />
+    </div>
+  );
+}
+
+// « N/A » : valeur absente telle que l'envoie le back (ex. territoire non assigné)
+const isEmptyValue = (value: unknown) =>
+  value === null || value === undefined || value === "" || value === "N/A";
+
+/** Libellé d'une colonne dans une fiche : son en-tête s'il est un simple texte, sinon sa traduction. */
+const columnLabel = (column: Column<DataTableFeatures, Territory, unknown>) =>
+  typeof column.columnDef.header === "string"
+    ? column.columnDef.header
+    : (COLUMNS_ID_TRANSLATIONS[
+        column.id as keyof typeof COLUMNS_ID_TRANSLATIONS
+      ] ?? column.id);
+
+/**
+ * Téléphone : une fiche par ligne au lieu d'un tableau de plusieurs écrans de large. Les en-têtes triables
+ * (tri et filtre) sont regroupés au-dessus des fiches ; la première colonne sert de titre, les actions
+ * passent en bas de la fiche et les valeurs vides sont omises.
+ */
+function MobileRows({
+  table,
+}: {
+  table: ReactTable<DataTableFeatures, Territory>;
+}) {
+  const headers = table
+    .getHeaderGroups()
+    .flatMap((headerGroup) => headerGroup.headers)
+    .filter(
+      (header) =>
+        !header.isPlaceholder &&
+        typeof header.column.columnDef.header === "function"
+    );
+  const rows = table.getRowModel().rows;
+
+  return (
+    <div className="space-y-3">
+      {/* Une seule ligne qui défile horizontalement : les fiches restent visibles sous les en-têtes */}
+      <div className="flex items-center gap-4 overflow-x-auto rounded-lg bg-gray-100 px-4 py-1 text-gray-700">
+        <span className="shrink-0 text-sm font-medium">Trier / filtrer :</span>
+        {headers.map((header) => (
+          <div key={header.id} className="shrink-0">
+            {flexRender(header.column.columnDef.header, header.getContext())}
+          </div>
+        ))}
+      </div>
+
+      {rows.length ? (
+        rows.map((row) => {
+          const cells = row.getVisibleCells();
+          const actions = cells.find((cell) => cell.column.id === "actions");
+          const [title, ...details] = cells.filter(
+            (cell) => cell.column.id !== "actions"
+          );
+          return (
+            <div
+              key={row.id}
+              className="rounded-lg border bg-white p-3 text-gray-700 shadow-sm"
+            >
+              {title && (
+                <h3 className="mb-2 font-semibold text-gray-900">
+                  {flexRender(title.column.columnDef.cell, title.getContext())}
+                </h3>
+              )}
+              <dl className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-center gap-x-3 gap-y-1.5 text-sm">
+                {details
+                  .filter(
+                    (cell) =>
+                      !cell.column.accessorFn || !isEmptyValue(cell.getValue())
+                  )
+                  .map((cell) => (
+                    <React.Fragment key={cell.id}>
+                      <dt className="text-gray-500">
+                        {columnLabel(cell.column)}
+                      </dt>
+                      <dd className="min-w-0 justify-self-start break-words">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </dd>
+                    </React.Fragment>
+                  ))}
+              </dl>
+              {actions && (
+                <div className="mt-3 border-t pt-3">
+                  {flexRender(
+                    actions.column.columnDef.cell,
+                    actions.getContext()
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })
+      ) : (
+        <p className="py-8 text-center text-gray-500">Aucun résultat.</p>
+      )}
     </div>
   );
 }

@@ -18,7 +18,7 @@ const CityManager: React.FC = () => {
   }, [dispatch]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="py-4 space-y-6 md:p-6">
       {/* Titre */}
       <h2 className="text-2xl font-semibold">Gestion des villes</h2>
 

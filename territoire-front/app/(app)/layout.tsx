@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
@@ -11,8 +12,19 @@ export default function AppLayout({
   return (
     <SidebarProvider id={"sidebar"}>
       <AppSidebar />
-      <main className={"bg-gray-200 w-screen"}>
-        <SidebarTrigger className={"fixed top-0 left-0 z-50"} />
+      <main className={"bg-gray-200 min-w-0 flex-1"}>
+        {/* Téléphone : barre collée en haut, le bouton du menu ne recouvre plus le contenu au défilement.
+            Ordinateur : la barre s'efface (contents) et seul le bouton reste, fixé dans le coin. */}
+        <header className="sticky top-0 z-40 flex h-12 items-center gap-2 border-b border-gray-300 bg-gray-200/95 px-2 backdrop-blur md:contents">
+          <SidebarTrigger className="size-9 md:fixed md:top-0 md:left-0 md:z-50 md:size-7" />
+          <Image
+            src="/images/logo-complet.svg"
+            alt="TMS"
+            width={100}
+            height={100}
+            className="h-7 w-auto md:hidden"
+          />
+        </header>
         {children}
       </main>
     </SidebarProvider>

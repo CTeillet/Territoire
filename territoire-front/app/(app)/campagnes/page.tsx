@@ -50,11 +50,13 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-6">
-      <div className="flex justify-between items-center mb-10">
+    <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:justify-between sm:items-center md:mb-10">
         <div>
-          <h1 className="text-4xl font-bold mb-3">Gestion des campagnes</h1>
-          <p className="text-gray-500 text-lg">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">
+            Gestion des campagnes
+          </h1>
+          <p className="text-gray-500 md:text-lg">
             Gérez les campagnes d&apos;invitation et les assignations de
             territoires
           </p>

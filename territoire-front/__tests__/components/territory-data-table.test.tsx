@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DataTable } from "@/components/territory/territory-data-table";
@@ -169,5 +169,66 @@ describe("DataTable des territoires", () => {
     expect(
       screen.queryByRole("button", { name: "Réinitialiser les filtres" })
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("DataTable des territoires sur téléphone", () => {
+  const desktopWidth = window.innerWidth;
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.innerWidth = 375;
+  });
+
+  afterEach(() => {
+    window.innerWidth = desktopWidth;
+  });
+
+  it("affiche une fiche par territoire, titrée par son nom, sans les valeurs vides", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[
+          { ...territory("R-1"), assignedTo: "Jean Dupont", assignedOn: "N/A" },
+        ]}
+        tableId="test"
+      />
+    );
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "R-1" })).toBeInTheDocument();
+    // « N/A » et les valeurs vides (date d'attribution, échéance) sont omis
+    expect(screen.getAllByRole("term").map((term) => term.textContent)).toEqual(
+      [
+        "Ville",
+        "Statut",
+        "Type",
+        "Parcouru pour la dernière fois le",
+        "Assigné à",
+      ]
+    );
+    expect(screen.getByText("Jean Dupont")).toBeInTheDocument();
+  });
+
+  it("garde le tri, les filtres et la pagination du tableau", () => {
+    localStorage.setItem(
+      "tableSorting-test",
+      JSON.stringify([{ id: "name", desc: true }])
+    );
+    localStorage.setItem(
+      "tableFilters-test",
+      JSON.stringify([{ id: "name", value: "r-1" }])
+    );
+    render(<DataTable columns={columns} data={data} tableId="test" />);
+
+    expect(
+      screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)
+    ).toEqual(["R-12", "R-11", "R-10", "R-1"]);
+    // Les en-têtes triables restent accessibles au-dessus des fiches
+    expect(
+      screen.getByRole("button", { name: "Territoire" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Page 1 sur 1")).toBeInTheDocument();
   });
 });

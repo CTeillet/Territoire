@@ -59,7 +59,7 @@ const TerritoryPage = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {/* Bouton pour revenir à la liste des territoires */}
       <Link href="/territoires">
         <Button variant="outline" className="flex items-center gap-2 mb-5">

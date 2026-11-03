@@ -40,8 +40,8 @@ const PersonsPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Liste des Personnes</h1>
+    <div className="p-4 md:p-6 space-y-6">
+      <h1 className="text-2xl md:text-3xl font-bold">Liste des Personnes</h1>
       {loading ? (
         <p className="text-center text-lg">Chargement...</p>
       ) : (

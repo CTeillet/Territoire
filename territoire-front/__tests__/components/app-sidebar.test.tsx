@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { act, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Role } from "@/models/role";
 import { notifyTerritoryRequestsChanged } from "@/lib/territory-request-api";
 import { jsonResponse, mockApi, renderWithRole } from "../test-utils";
@@ -80,6 +81,27 @@ describe("AppSidebar", () => {
     await vi.waitFor(() => expect(api).toHaveBeenCalled());
     expect(screen.getByText("Demandes")).toBeInTheDocument();
     expect(screen.queryByLabelText(/en attente/)).not.toBeInTheDocument();
+  });
+
+  it("sur téléphone, referme le menu une fois la page choisie", async () => {
+    const desktopWidth = window.innerWidth;
+    window.innerWidth = 375;
+    mockApi({ "GET /api/demandes-territoire/en-attente/nombre": 0 });
+    renderWithRole(
+      <SidebarProvider>
+        <SidebarTrigger />
+        <AppSidebar />
+      </SidebarProvider>,
+      "ADMIN"
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Toggle Sidebar" })
+    );
+    await userEvent.click(await screen.findByText("Personnes"));
+
+    expect(screen.queryByText("Personnes")).not.toBeInTheDocument();
+    window.innerWidth = desktopWidth;
   });
 
   it("masque les demandes aux simples utilisateurs", () => {

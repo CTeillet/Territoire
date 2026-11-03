@@ -143,7 +143,7 @@ const AddressNotToDoList = () => {
   };
 
   return (
-    <div className="mt-6 border border-gray-200 bg-white p-6 rounded-lg shadow-sm">
+    <div className="mt-6 border border-gray-200 bg-white p-4 md:p-6 rounded-lg shadow-sm">
       <h2 className="text-lg font-semibold mb-2">
         🚫 Adresses à ne pas visiter
       </h2>
@@ -152,10 +152,10 @@ const AddressNotToDoList = () => {
         {selectedTerritory?.addressesNotToDo?.map((address, index) => (
           <li
             key={address.id}
-            className="p-2 border-b flex justify-between items-center"
+            className="p-2 border-b flex justify-between items-center gap-2"
           >
             {editingIndex === index ? (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <input
                   type="text"
                   name="number"
@@ -194,11 +194,11 @@ const AddressNotToDoList = () => {
               </div>
             ) : (
               <>
-                <span>
+                <span className="min-w-0 break-words">
                   {address.number}, {address.street} - {address.zipCode}{" "}
                   {address.city}
                 </span>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                   <button
                     aria-label="Modifier l'adresse"
                     onClick={() => handleEdit(index)}

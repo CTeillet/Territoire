@@ -17,7 +17,7 @@ export default function OtherParameter() {
   const role = useAppSelector((state) => state.auth.user?.role);
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="py-4 space-y-8 md:p-6">
       <section className="border rounded-2xl shadow-sm bg-white p-4">
         <PublishersCountSection />
       </section>

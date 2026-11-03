@@ -90,7 +90,7 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
               <select
                 value={filterValue as string}
                 onChange={(e) => handleFilterChange(e.target.value)}
-                className="p-1 text-sm border rounded-md w-full"
+                className="p-1 text-base md:text-sm border rounded-md w-full"
                 onPointerDown={(e) => e.stopPropagation()} // Empêche la fermeture du menu
                 onKeyDown={(e) => e.stopPropagation()} // Empêche le typeahead du menu
               >
@@ -105,7 +105,7 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
               <select
                 value={filterValue as string}
                 onChange={(e) => handleFilterChange(e.target.value)}
-                className="p-1 text-sm border rounded-md w-full"
+                className="p-1 text-base md:text-sm border rounded-md w-full"
                 onPointerDown={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
               >
@@ -118,7 +118,7 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
               <select
                 value={filterValue as string}
                 onChange={(e) => handleFilterChange(e.target.value)}
-                className="p-1 text-sm border rounded-md w-full"
+                className="p-1 text-base md:text-sm border rounded-md w-full"
                 onPointerDown={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
               >
@@ -136,7 +136,7 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
                 value={filterValue as string}
                 onChange={(e) => handleFilterChange(e.target.value)}
                 placeholder={`Filtrer ${title}`}
-                className="p-1 text-sm border rounded-md w-full"
+                className="p-1 text-base md:text-sm border rounded-md w-full"
                 onPointerDown={(e) => e.stopPropagation()} // Empêche la fermeture du menu
                 onKeyDown={(e) => e.stopPropagation()} // Empêche le typeahead du menu
               />

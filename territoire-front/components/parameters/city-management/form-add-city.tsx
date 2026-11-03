@@ -72,12 +72,12 @@ const FormAddCity: React.FC = () => {
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="w-full sm:w-auto">
                     <FormLabel>Nom</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Nom de la ville"
-                        className="w-64"
+                        className="w-full sm:w-64"
                         {...field}
                       />
                     </FormControl>
@@ -90,12 +90,12 @@ const FormAddCity: React.FC = () => {
                 control={form.control}
                 name="zipCode"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="w-full sm:w-auto">
                     <FormLabel>Code postal</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Code postal"
-                        className="w-64"
+                        className="w-full sm:w-64"
                         {...field}
                       />
                     </FormControl>

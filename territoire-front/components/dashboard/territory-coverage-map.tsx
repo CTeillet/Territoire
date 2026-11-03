@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2, Loader2 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import MapUpdater from "@/components/territory/map-updater";
+import { MAP_HEIGHT_CLASSES } from "@/components/shared/map-height";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchTerritoryCoverageMap } from "@/store/slices/territory-slice";
 import type { Feature, Geometry } from "geojson";
@@ -95,8 +96,7 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({
           </div>
         )}
         <div
-          className="transition-all duration-500"
-          style={{ height: isExpanded ? "1200px" : "700px", width: "100%" }}
+          className={`w-full transition-all duration-500 ${MAP_HEIGHT_CLASSES[isExpanded ? "expanded" : "normal"]}`}
         >
           <MapContainer
             center={center}
