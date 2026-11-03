@@ -25,6 +25,8 @@ interface ExtendConfirmationDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (dueDate?: string) => void;
+  // Précise le ou les territoires concernés quand la page en liste plusieurs
+  title?: string;
 }
 
 type ExtensionOption = "default" | "1month" | "1week" | "custom";
@@ -33,6 +35,7 @@ const ExtendConfirmationDialog: React.FC<ExtendConfirmationDialogProps> = ({
   isOpen,
   onClose,
   onConfirm,
+  title = "Prolongation du territoire",
 }) => {
   // Option par défaut : la durée d'attribution réglée dans les paramètres
   const { assignmentDurationMonths } = useDurationSettings();
@@ -69,7 +72,7 @@ const ExtendConfirmationDialog: React.FC<ExtendConfirmationDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Prolongation du territoire</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <p>Choisissez la durée de prolongation :</p>

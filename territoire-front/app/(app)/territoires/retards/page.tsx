@@ -8,7 +8,10 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { fetchTerritories } from "@/store/slices/territory-slice";
+import {
+  extendTerritory,
+  fetchTerritories,
+} from "@/store/slices/territory-slice";
 import { createReminder, fetchReminders } from "@/store/slices/reminder-slice";
 import { PageHeader } from "@/components/late-territory/page-header";
 import { LoadingState } from "@/components/late-territory/loading-state";
@@ -20,7 +23,10 @@ import {
 import { fetchPersons } from "@/store/slices/person-slice";
 import { authFetch } from "@/utils/auth-fetch";
 import { ReminderDialog } from "@/components/late-territory/reminder-dialog";
+import ExtendConfirmationDialog from "@/components/territory/extend-confirmation-dialog";
 import { Person } from "@/models/person";
+import { Assignment } from "@/models/assignment";
+import { canManageAssignments } from "@/models/role";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ActionButton from "@/components/shared/action-button";
@@ -165,6 +171,7 @@ export default function LateTerritoriesPage() {
   const reminders = useAppSelector((state) => state.reminders.reminders);
   const remindersLoading = useAppSelector((state) => state.reminders.loading);
   const persons = useAppSelector((state) => state.persons.persons);
+  const user = useAppSelector((state) => state.auth.user);
 
   // Filter late territories from the store using useMemo
   const territories = useMemo(() => {
@@ -242,7 +249,56 @@ export default function LateTerritoriesPage() {
     });
   };
 
-  const columns = createLateTerritoriesColumns(formatDate, hasReminder);
+  const canExtend = canManageAssignments(user?.role);
+
+  // Territoires dont on choisit la durée de prolongation (une ligne ou tout un groupe)
+  const [extendTarget, setExtendTarget] = useState<{
+    title: string;
+    territories: Territory[];
+  } | null>(null);
+
+  const askExtension = (territories: Territory[]) =>
+    setExtendTarget({
+      title:
+        territories.length === 1
+          ? `Prolongation du territoire ${territories[0].name}`
+          : `Prolongation des territoires ${territories.map((t) => t.name).join(", ")}`,
+      territories,
+    });
+
+  // Prolongé, un territoire redevient attribué : le store le retire de la liste des retards
+  const handleExtend = async (dueDate?: string) => {
+    const target = extendTarget;
+    // Fenêtre fermée avant les appels : un second clic enverrait la prolongation deux fois
+    setExtendTarget(null);
+    if (!target) return;
+
+    const extendedNames: string[] = [];
+    let newDueDate: string | null = null;
+    for (const t of target.territories) {
+      try {
+        const extended: Assignment = await dispatch(
+          extendTerritory({ territoryId: t.id, dueDate })
+        ).unwrap();
+        extendedNames.push(t.name);
+        newDueDate = extended.dueDate;
+      } catch (error) {
+        toast.error(`Territoire ${t.name} non prolongé : ${String(error)}`);
+      }
+    }
+    if (extendedNames.length === 0) return;
+    toast.success(
+      extendedNames.length === 1
+        ? `Territoire ${extendedNames[0]} prolongé jusqu'au ${formatDate(newDueDate)}`
+        : `Territoires ${extendedNames.join(", ")} prolongés jusqu'au ${formatDate(newDueDate)}`
+    );
+  };
+
+  const columns = createLateTerritoriesColumns(
+    formatDate,
+    hasReminder,
+    canExtend ? (t) => askExtension([t]) : undefined
+  );
 
   // "DAVID" -> "David", "JEAN-PIERRE" -> "Jean-Pierre"
   function capitalizeName(name: string): string {
@@ -484,6 +540,15 @@ export default function LateTerritoriesPage() {
                         />
                       </TooltipProvider>
                     )}
+                    {canExtend && (
+                      <Button
+                        type="button"
+                        className="px-3 py-2 font-medium bg-yellow-500 hover:bg-yellow-600 text-white"
+                        onClick={() => askExtension(g.territories)}
+                      >
+                        Prolonger
+                      </Button>
+                    )}
                     <ReminderDialog
                       title="Rappeler"
                       description="Choisissez les territoires à rappeler, puis envoyez un message WhatsApp à cette personne ou enregistrez simplement les rappels."
@@ -525,6 +590,12 @@ export default function LateTerritoriesPage() {
               </div>
             ))}
           </div>
+          <ExtendConfirmationDialog
+            isOpen={extendTarget !== null}
+            onClose={() => setExtendTarget(null)}
+            onConfirm={handleExtend}
+            title={extendTarget?.title}
+          />
         </>
       )}
     </div>
