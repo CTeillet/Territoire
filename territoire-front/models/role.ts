@@ -20,6 +20,10 @@ export const canManageCampaigns = (role?: Role | null): boolean =>
 export const canManageAssignments = (role?: Role | null): boolean =>
   role === "ADMIN" || role === "SUPERVISEUR" || role === "GESTIONNAIRE";
 
+/** Création, modification et suppression de personnes (cf. PersonController). */
+export const canManagePersons = (role?: Role | null): boolean =>
+  role === "ADMIN" || role === "SUPERVISEUR";
+
 /** Mise à jour des territoires restants d'une campagne. */
 export const canEditCampaignProgress = (role?: Role | null): boolean =>
   canManageCampaigns(role) || role === "GESTIONNAIRE";

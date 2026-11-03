@@ -7,8 +7,9 @@ import { toast } from "sonner";
 import { jsonResponse, mockApi, renderWithStore } from "../test-utils";
 
 const push = vi.fn();
+const replace = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace }),
   useParams: () => ({ id: "p1" }),
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -131,6 +132,16 @@ describe("Liste des personnes", () => {
       )
     );
     expect(screen.getByText("Anne Martin")).toBeInTheDocument();
+  });
+
+  it("ne propose la suppression qu'aux administrateurs et superviseurs", async () => {
+    setup();
+    renderWithStore(<PersonsPage />, "GESTIONNAIRE");
+
+    expect(await screen.findByText("Anne Martin")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Supprimer Anne Martin" })
+    ).not.toBeInTheDocument();
   });
 
   it("crée une personne", async () => {
@@ -276,6 +287,7 @@ describe("Fiche d'une personne", () => {
       },
       "PUT /api/personnes/p1": (init?: RequestInit) =>
         JSON.parse(String(init?.body)),
+      "DELETE /api/personnes/p1": null,
       ...extra,
     });
   };
@@ -283,7 +295,10 @@ describe("Fiche d'une personne", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.mocked(toast.success).mockClear();
+    vi.mocked(toast.error).mockClear();
     push.mockClear();
+    replace.mockClear();
   });
 
   it("affiche les informations, les territoires (en cours d'abord) et l'accès numérique", async () => {
@@ -341,6 +356,72 @@ describe("Fiche d'une personne", () => {
     await userEvent.click(screen.getByRole("button", { name: "Annuler" }));
 
     expect(screen.getByText("Détails de Jean Dupont")).toBeInTheDocument();
+  });
+
+  it("supprime la personne après confirmation et revient à la liste", async () => {
+    setup();
+    renderWithStore(<PersonDetail />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Supprimer Jean Dupont" })
+    );
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", {
+        name: "Supprimer",
+      })
+    );
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/personnes"));
+    expect(toast.success).toHaveBeenCalledWith(
+      "La personne a bien été supprimée."
+    );
+    expect(
+      api.mock.calls.some(
+        ([url, init]) =>
+          init?.method === "DELETE" && String(url).endsWith("/personnes/p1")
+      )
+    ).toBe(true);
+    expect(screen.getByText("Redirection en cours...")).toBeInTheDocument();
+    expect(screen.queryByText("Personne introuvable")).not.toBeInTheDocument();
+  });
+
+  it("garde la fiche et affiche le motif si la suppression est refusée", async () => {
+    setup({
+      "DELETE /api/personnes/p1": jsonResponse(
+        { error: "Impossible : historique d'attributions" },
+        409
+      ),
+    });
+    renderWithStore(<PersonDetail />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Supprimer Jean Dupont" })
+    );
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", {
+        name: "Supprimer",
+      })
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Impossible : historique d'attributions"
+      )
+    );
+    expect(screen.getByText("Détails de Jean Dupont")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("masque la suppression pour un simple utilisateur", async () => {
+    setup();
+    renderWithStore(<PersonDetail />, "UTILISATEUR");
+
+    expect(
+      await screen.findByText("Détails de Jean Dupont")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Supprimer Jean Dupont" })
+    ).not.toBeInTheDocument();
   });
 
   it("indique une personne introuvable, sans territoire, ou une erreur", async () => {

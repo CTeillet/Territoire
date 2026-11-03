@@ -214,9 +214,10 @@ const personSlice = createSlice({
           (person) => person.id !== action.payload
         );
       })
-      .addCase(deletePerson.rejected, (state, action) => {
+      // Le motif est affiché par l'appelant (toast) : le mettre dans `error`
+      // remplacerait toute la fiche de la personne par ce message
+      .addCase(deletePerson.rejected, (state) => {
         state.deleting = false;
-        state.error = action.payload as string;
       })
 
       // 🔹 Mise à jour d'une personne

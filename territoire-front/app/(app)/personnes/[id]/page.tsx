@@ -11,6 +11,7 @@ import PersonDetails from "@/components/person/person-details";
 import PersonActions from "@/components/person/person-actions";
 import PersonAccessCard from "@/components/person/person-access-card";
 import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 const PersonDetail = () => {
   const { id } = useParams();
@@ -28,6 +29,8 @@ const PersonDetail = () => {
 
   // État pour l'édition et le formulaire
   const [editing, setEditing] = useState<boolean>(false);
+  // Personne supprimée : elle a quitté le store, on attend la redirection vers la liste
+  const [deleted, setDeleted] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -70,7 +73,9 @@ const PersonDetail = () => {
   if (loading) return <p className="text-center text-lg">Chargement...</p>;
   if (error) return <p className="text-center text-lg text-red-500">{error}</p>;
   if (!person)
-    return (
+    return deleted ? (
+      <p>Redirection en cours...</p>
+    ) : (
       <p className="text-center text-lg text-red-500">Personne introuvable</p>
     );
 
@@ -90,6 +95,12 @@ const PersonDetail = () => {
         setEditing(false);
       });
     }
+  };
+
+  const handleDeleted = () => {
+    setDeleted(true);
+    toast.success("La personne a bien été supprimée.");
+    router.replace("/personnes");
   };
 
   return (
@@ -113,10 +124,12 @@ const PersonDetail = () => {
       )}
 
       <PersonActions
+        person={person}
         editing={editing}
         onEdit={() => setEditing(true)}
         onSave={handleSave}
         onCancel={() => setEditing(false)}
+        onDeleted={handleDeleted}
       />
 
       {!editing && person.id && <PersonAccessCard personId={person.id} />}
