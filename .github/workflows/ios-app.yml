@@ -1,10 +1,10 @@
-name: iOS - Diagnostic P710BT
+name: iOS - App TMS
 
 on:
   push:
     paths:
-      - "ios-printer-diagnostic/**"
-      - ".github/workflows/ios-printer-diagnostic.yml"
+      - "territoire-ios/**"
+      - ".github/workflows/ios-app.yml"
   workflow_dispatch:
     inputs:
       extra_protocols:
@@ -17,17 +17,17 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-p710bt-${{ github.ref }}
+  group: ios-tms-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    name: Tests du protocole et IPA iPhone non signé
+    name: Tests Swift et IPA iPhone non signé
     runs-on: macos-15
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: ios-printer-diagnostic
+        working-directory: territoire-ios
         shell: bash
     env:
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -36,7 +36,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Tester le décodage et les commandes raster
+      - name: Tester le protocole de l'imprimante et la navigation
         run: swift test
 
       - name: Préparer XcodeGen
@@ -52,8 +52,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: p710bt-diagnostic-ios-unsigned
-          path: ios-printer-diagnostic/build/output/
+          name: tms-ios-unsigned
+          path: territoire-ios/build/output/
           if-no-files-found: warn
           retention-days: 14
 
@@ -61,25 +61,24 @@ jobs:
         if: success()
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
-          ## TMS Impression — PT-P710BT
-          Téléchargez l'artefact **p710bt-diagnostic-ios-unsigned**, puis décompressez-le.
-          Le fichier **TMSPrinterDiagnostic-unsigned.ipa** doit être signé et installé
-          depuis Windows avec Sideloadly ou AltStore Classic et votre propre compte Apple.
-          Avec un compte gratuit, la signature est à renouveler tous les 7 jours.
+          ## TMS pour iPhone
+          Téléchargez l'artefact **tms-ios-unsigned**, puis décompressez-le.
+          Le fichier **TMS-unsigned.ipa** doit être signé et installé depuis Windows
+          avec Sideloadly ou AltStore Classic et votre propre compte Apple. Il remplace
+          TMS Impression (même identifiant). Avec un compte gratuit, la signature est
+          à renouveler tous les 7 jours.
 
-          Ouvrez **TMS Impression** sur un véritable iPhone, puis :
-          - Pour imprimer depuis TMS : déployez aussi les changements web de cette
-            branche, puis choisissez TMS Impression dans les paramètres d'étiquettes.
-          - Activez l'impression automatique des demandes TMS dans l'app si souhaité.
-          - Après une attribution, touchez **Imprimer** dans la carte TMS.
+          Ouvrez **TMS** sur un véritable iPhone et connectez-vous, puis :
+          - Dans Paramètres > Autres paramètres > Imprimante d'étiquettes, cochez
+            l'app TMS Impression sur cet iPhone.
+          - Après une attribution, touchez **Imprimer** dans la carte TMS : l'écran
+            Imprimante s'ouvre par-dessus TMS.
 
-          Pour tester le Bluetooth indépendamment de TMS :
+          Pour tester le Bluetooth indépendamment d'une attribution :
           1. Appairez la P710BT et fermez les autres apps Brother.
           2. Actualisez, sélectionnez l'imprimante et ouvrez la connexion.
           3. Touchez **Lire l'état**. Une réponse Brother valide la communication.
           4. Lancez éventuellement une impression test, puis partagez le diagnostic.
 
-          Le build valide le code, pas le Bluetooth physique. Une liste vide ou
-          une session refusée ne permet pas à elle seule de conclure à une
-          incompatibilité : le protocole et l'autorisation MFi restent à vérifier.
+          Le build valide le code, pas le Bluetooth physique ni le parcours dans TMS.
           SUMMARY

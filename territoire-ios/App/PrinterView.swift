@@ -1,24 +1,9 @@
 import SwiftUI
 
-@main
-struct TMSPrinterDiagnosticApp: App {
-    @StateObject private var model = PrinterController()
-    @Environment(\.scenePhase) private var scenePhase
-
-    var body: some Scene {
-        WindowGroup {
-            DiagnosticView(model: model)
-                .onOpenURL { model.receivePrintRequest($0) }
-                .onChange(of: scenePhase) { phase in
-                    if phase == .active { model.resume() }
-                    if phase == .background { model.suspend() }
-                }
-        }
-    }
-}
-
-private struct DiagnosticView: View {
+/// Label printer screen, over TMS: pending label, connection, test label and diagnostics.
+struct PrinterView: View {
     @ObservedObject var model: PrinterController
+    @Environment(\.dismiss) private var dismiss
     @State private var confirmPrint = false
     @State private var confirmInitialize = false
     @AppStorage("autoPrintTMSLinks") private var autoPrintTMSLinks = false
@@ -41,15 +26,15 @@ private struct DiagnosticView: View {
                         Text(request.dateLine)
                         Button("Imprimer cette étiquette") { model.printRequestedLabel() }
                             .disabled(!model.canPrintRequest)
-                        Text("Après impression, revenez dans TMS avec le bouton de retour d'iOS ou le sélecteur d'apps.")
+                        Text("Après impression, fermez cette fenêtre pour revenir à TMS.")
                             .font(.caption).foregroundStyle(.secondary)
                     } else {
-                        Text("Depuis TMS sur cet iPhone, choisissez TMS Impression dans les paramètres d'étiquettes, puis touchez Imprimer après une attribution.")
+                        Text("Dans TMS, Paramètres > Autres paramètres > Imprimante d'étiquettes, cochez « Utiliser l'app TMS Impression sur cet iPhone », puis touchez Imprimer après une attribution.")
                             .font(.callout)
                     }
                     Toggle("Imprimer automatiquement les demandes TMS", isOn: $autoPrintTMSLinks)
                         .disabled(model.isBusy)
-                    Text("Une fois activé, l'ouverture d'un lien tmsprint lance une étiquette sans confirmation dans cette app. Sinon, vous pouvez vérifier le nom et la date avant d'imprimer.")
+                    Text("Une fois activé, toucher Imprimer dans TMS lance l'étiquette sans confirmation dans cette fenêtre. Sinon, vous pouvez vérifier le nom et la date avant d'imprimer.")
                         .font(.caption).foregroundStyle(.secondary)
                     if model.isBusy { ProgressView() }
                     Text(model.message).textSelection(.enabled)
@@ -139,7 +124,13 @@ private struct DiagnosticView: View {
                     Text("L'installation de l'app, l'ouverture d'une session MFi et une réponse réelle de l'imprimante sont trois vérifications distinctes.")
                 }
             }
-            .navigationTitle("TMS Impression")
+            .navigationTitle("Imprimante")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fermer") { dismiss() }
+                }
+            }
             .confirmationDialog("Imprimer une étiquette de test ?", isPresented: $confirmPrint, titleVisibility: .visible) {
                 Button("Imprimer une étiquette") { model.printTestLabel() }
                 Button("Annuler", role: .cancel) {}

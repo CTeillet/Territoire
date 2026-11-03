@@ -19,8 +19,8 @@ xcodegen --version
 xcodegen generate --spec project.yml
 
 if ! xcodebuild \
-  -project TMSPrinterDiagnostic.xcodeproj \
-  -scheme TMSPrinterDiagnostic \
+  -project TMS.xcodeproj \
+  -scheme TMS \
   -configuration Release \
   -sdk iphoneos \
   -destination 'generic/platform=iOS' \
@@ -33,18 +33,26 @@ if ! xcodebuild \
   exit 1
 fi
 
-BUILT_APP="$DERIVED/Build/Products/Release-iphoneos/TMSPrinterDiagnostic.app"
-test -x "$BUILT_APP/TMSPrinterDiagnostic"
+# A WebKit delegate method whose signature drifts from the SDK compiles but is never called.
+if grep -q "nearly matches" "$OUTPUT/build.log"; then
+  grep "nearly matches" "$OUTPUT/build.log"
+  exit 1
+fi
+
+BUILT_APP="$DERIVED/Build/Products/Release-iphoneos/TMS.app"
+test -x "$BUILT_APP/TMS"
+# The home screen icon is compiled from App/Assets.xcassets.
+test -f "$BUILT_APP/Assets.car"
 /usr/bin/plutil -lint "$BUILT_APP/Info.plist"
 mkdir -p "$STAGING/Payload"
-/usr/bin/ditto "$BUILT_APP" "$STAGING/Payload/TMSPrinterDiagnostic.app"
-IPA="$OUTPUT/TMSPrinterDiagnostic-unsigned.ipa"
+/usr/bin/ditto "$BUILT_APP" "$STAGING/Payload/TMS.app"
+IPA="$OUTPUT/TMS-unsigned.ipa"
 rm -f "$IPA"
 /usr/bin/ditto -c -k --keepParent "$STAGING/Payload" "$IPA"
 /usr/bin/unzip -tq "$IPA"
 (
   cd "$OUTPUT"
-  /usr/bin/shasum -a 256 TMSPrinterDiagnostic-unsigned.ipa > SHA256SUMS.txt
+  /usr/bin/shasum -a 256 TMS-unsigned.ipa > SHA256SUMS.txt
 )
 cp README.md "$OUTPUT/README.md"
 echo "IPA non signé prêt : $IPA"
