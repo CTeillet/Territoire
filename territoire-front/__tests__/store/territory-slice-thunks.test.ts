@@ -598,6 +598,129 @@ describe("territory-slice : thunks et reducers", () => {
       );
     });
 
+    // Fiche ouverte directement par son adresse : la liste des territoires n'est pas chargée
+    describe("fiche d'un territoire sans la liste chargée", () => {
+      const previous = assignment({
+        id: "as0",
+        assignmentDate: "2025-01-01",
+        dueDate: "2025-05-01",
+        returnDate: "2025-03-01",
+        returnedVia: "RESPONSABLE",
+      });
+      const running = assignment({ id: "as1" });
+      const assigned = () =>
+        territory({
+          status: "ASSIGNED",
+          assignments: [previous, running] as never,
+          lastVisitedOn: "2025-03-01",
+          assignedTo: "Jean Dupont",
+          assignedOn: "2026-10-01",
+          waitedFor: "2027-02-01",
+        });
+
+      it("returnTerritory : passe en attente et clôt l'attribution en gardant l'historique", async () => {
+        const store = newStore({ selectedTerritory: assigned() });
+        authFetch.mockResolvedValueOnce(
+          ok(
+            assignment({
+              id: "as1",
+              territory: { territoryId: "t1", status: "PENDING" },
+              returnDate: "2026-11-03",
+              returnedVia: "RESPONSABLE",
+            })
+          )
+        );
+
+        await store.dispatch(returnTerritory("t1"));
+
+        const selected = store.getState().territories.selectedTerritory!;
+        expect(selected.status).toBe("PENDING");
+        expect(selected.lastVisitedOn).toBe("2026-11-03");
+        expect(selected.assignedTo).toBe("");
+        expect(selected.waitedFor).toBe("");
+        expect(selected.assignments.map((a) => [a.id, a.returnDate])).toEqual([
+          ["as0", "2025-03-01"],
+          ["as1", "2026-11-03"],
+        ]);
+      });
+
+      it("cancelAssignment : retire l'attribution annulée sans toucher au dernier parcours", async () => {
+        const store = newStore({ selectedTerritory: assigned() });
+        authFetch.mockResolvedValueOnce(ok(running));
+
+        await store.dispatch(cancelAssignment("t1"));
+
+        const selected = store.getState().territories.selectedTerritory!;
+        expect(selected.status).toBe("AVAILABLE");
+        expect(selected.lastVisitedOn).toBe("2025-03-01");
+        expect(selected.assignedTo).toBe("");
+        expect(selected.assignments.map((a) => a.id)).toEqual(["as0"]);
+      });
+
+      it("assignTerritory et extendTerritory : mettent à jour le territoire affiché", async () => {
+        const store = newStore({
+          selectedTerritory: territory({ assignments: [previous] as never }),
+        });
+        authFetch.mockResolvedValueOnce(ok(running));
+        await store.dispatch(
+          assignTerritory({ territoryId: "t1", personId: "p1" })
+        );
+        let selected = store.getState().territories.selectedTerritory!;
+        expect(selected.status).toBe("ASSIGNED");
+        expect(selected.assignedTo).toBe("Jean Dupont");
+        expect(selected.assignments.map((a) => a.id)).toEqual(["as0", "as1"]);
+
+        authFetch.mockResolvedValueOnce(
+          ok(
+            assignment({
+              id: "as2",
+              assignmentDate: "2026-11-03",
+              dueDate: "2027-03-03",
+            })
+          )
+        );
+        await store.dispatch(
+          extendTerritory({ territoryId: "t1", dueDate: "2027-03-03" })
+        );
+        selected = store.getState().territories.selectedTerritory!;
+        expect(selected.waitedFor).toBe("2027-03-03");
+        expect(selected.assignments.map((a) => a.id)).toEqual([
+          "as0",
+          "as1",
+          "as2",
+        ]);
+      });
+    });
+
+    it("returnTerritory : garde l'historique du territoire dans la liste", async () => {
+      const previous = assignment({ id: "as0", returnDate: "2025-03-01" });
+      const withHistory = territory({
+        status: "ASSIGNED",
+        assignments: [previous, assignment()] as never,
+      });
+      const store = newStore({
+        territoriesGeojson: {
+          ...collection("ASSIGNED"),
+          features: [
+            { ...collection("ASSIGNED").features[0], properties: withHistory },
+          ],
+        },
+      });
+      authFetch.mockResolvedValueOnce(
+        ok(assignment({ returnDate: "2026-11-03" }))
+      );
+
+      await store.dispatch(returnTerritory("t1"));
+
+      const props =
+        store.getState().territories.territoriesGeojson!.features[0].properties;
+      expect(props.status).toBe("PENDING");
+      expect(props.assignments.map((a) => [a.id, a.returnDate])).toEqual([
+        ["as0", "2025-03-01"],
+        ["as1", "2026-11-03"],
+      ]);
+    });
+
     it("returnTerritory, cancelAssignment, extendTerritory : ignorent un territoire absent du store", async () => {
       const store = newStore({ territoriesGeojson: collection("ASSIGNED") });
       for (const thunk of [
