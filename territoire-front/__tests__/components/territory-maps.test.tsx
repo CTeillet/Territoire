@@ -72,13 +72,23 @@ vi.mock("react-leaflet", async () => {
     LayersControl,
     GeoJSON: ({
       data,
+      style,
       onEachFeature,
     }: {
       data: { features: unknown[] };
+      style?: unknown;
       onEachFeature?: (f: unknown, l: unknown) => void;
     }) => {
       data.features.forEach((feature) => onEachFeature?.(feature, fakeLayer()));
-      return <div data-testid="geojson">{data.features.length}</div>;
+      const styles =
+        typeof style === "function"
+          ? data.features.map((f) => (style as (f: unknown) => unknown)(f))
+          : style;
+      return (
+        <div data-testid="geojson" data-styles={JSON.stringify(styles ?? null)}>
+          {data.features.length}
+        </div>
+      );
     },
   };
 });
@@ -216,7 +226,7 @@ describe("Carte d'édition d'un territoire", () => {
       geojson: JSON.stringify({ type: "FeatureCollection", features }),
     }) as Territory;
   const allTerritories = (
-    ...territories: { id: string; name: string }[]
+    ...territories: { id: string; name: string; status?: string }[]
   ): TerritoryCollection => ({
     type: "FeatureCollection",
     features: territories.map((properties, i) => ({
@@ -284,6 +294,31 @@ describe("Carte d'édition d'un territoire", () => {
       ).toHaveTextContent("2")
     );
     expect(api).toHaveBeenCalledWith("/api/territoires/geojson");
+  });
+
+  it("colore les autres territoires selon leur statut, comme la carte des territoires", () => {
+    renderWithStore(
+      <TerritoryIdMap territory={territory([hull])} city={TEST_CITY} />,
+      "ADMIN",
+      {
+        territories: {
+          territoriesGeojson: allTerritories(
+            { id: "t2", name: "R-13", status: "AVAILABLE" },
+            { id: "t3", name: "R-14", status: "LATE" }
+          ),
+        },
+      }
+    );
+
+    const styles = JSON.parse(
+      within(otherTerritoriesOverlay())
+        .getByTestId("geojson")
+        .getAttribute("data-styles")!
+    );
+    expect(styles).toEqual([
+      { color: "#9333ea", fillColor: "#9333ea", weight: 2, fillOpacity: 0.25 },
+      { color: "#ec4899", fillColor: "#ec4899", weight: 2, fillOpacity: 0.25 },
+    ]);
   });
 
   it("affiche le contour et les pâtés, et cadre la carte sur le contour", async () => {
