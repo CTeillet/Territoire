@@ -39,6 +39,15 @@ final class WebPolicyTests: XCTestCase {
         XCTAssertEqual(destination("autre-app://ouvrir"), .blocked)
     }
 
+    func testTrustsOnlyTheTMSOriginForThePrinterBridge() {
+        XCTAssertTrue(WebPolicy.isTrustedOrigin(scheme: "https", host: "tms.cteillet.fr", port: 0, base: base))
+        XCTAssertTrue(WebPolicy.isTrustedOrigin(scheme: "https", host: "TMS.cteillet.fr", port: 443, base: base))
+        XCTAssertFalse(WebPolicy.isTrustedOrigin(scheme: "http", host: "tms.cteillet.fr", port: 0, base: base))
+        XCTAssertFalse(WebPolicy.isTrustedOrigin(scheme: "https", host: "tms.cteillet.fr", port: 8443, base: base))
+        XCTAssertFalse(WebPolicy.isTrustedOrigin(scheme: "https", host: "example.com", port: 0, base: base))
+        XCTAssertFalse(WebPolicy.isTrustedOrigin(scheme: "", host: "", port: 0, base: base))
+    }
+
     func testDownloadNamesStayInTheirFolder() {
         XCTAssertEqual(WebPolicy.downloadFileName("Statistiques_Campagne_2026-11-03.xlsx"), "Statistiques_Campagne_2026-11-03.xlsx")
         XCTAssertEqual(WebPolicy.downloadFileName("../../etiquette.lbx"), "etiquette.lbx")

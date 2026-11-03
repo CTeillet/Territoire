@@ -41,6 +41,15 @@ enum WebPolicy {
         return effectivePort(url) == effectivePort(base)
     }
 
+    /// Origin of a frame as WebKit reports it, where port 0 is the default port of the scheme.
+    static func isTrustedOrigin(scheme: String, host: String, port: Int, base: URL) -> Bool {
+        guard let baseScheme = base.scheme?.lowercased(), ["http", "https"].contains(baseScheme),
+              scheme.lowercased() == baseScheme,
+              let baseHost = base.host?.lowercased(), host.lowercased() == baseHost else { return false }
+        let defaultPort = baseScheme == "https" ? 443 : 80
+        return (port == 0 ? defaultPort : port) == (base.port ?? defaultPort)
+    }
+
     private static func effectivePort(_ url: URL) -> Int? {
         url.port ?? (url.scheme?.lowercased() == "https" ? 443 : 80)
     }

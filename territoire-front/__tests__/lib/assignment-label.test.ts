@@ -9,6 +9,7 @@ import {
 } from "@/lib/assignment-label";
 import * as labelPrinter from "@/lib/label-printer";
 import { lbxTexts, readZip } from "../mocks/lbx-archive";
+import { stubNativeApp, unstubNativeApp } from "../mocks/ios";
 
 vi.mock("sonner", () => ({
   toast: { loading: vi.fn(() => "toast-1"), success: vi.fn(), error: vi.fn() },
@@ -64,6 +65,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  unstubNativeApp();
 });
 
 describe("assignment-label", () => {
@@ -187,6 +189,60 @@ describe("assignment-label", () => {
     action.onClick();
     await vi.waitFor(() =>
       expect(labelPrinter.printLabel).toHaveBeenCalledTimes(3)
+    );
+  });
+
+  it("dans l'app iOS TMS, confie l'étiquette à l'app, sans Web Serial, et propose ses réglages en cas d'échec", async () => {
+    const postMessage = stubNativeApp();
+
+    await printAssignmentLabel(assignment);
+
+    expect(postMessage).toHaveBeenCalledWith({
+      action: "print",
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      name: "Corentin T.",
+      dueDate: "2027-03-03",
+    });
+    expect(labelPrinter.printLabel).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith(
+      "Étiquette de Corentin T. imprimée",
+      { id: "toast-1" }
+    );
+
+    postMessage.mockResolvedValueOnce({
+      printed: false,
+      message: "Allumez et appairez une PT-P710BT.",
+    });
+    await printAssignmentLabel(assignment);
+    expect(toast.error).toHaveBeenCalledWith(
+      "Allumez et appairez une PT-P710BT.",
+      expect.objectContaining({ id: "toast-1" })
+    );
+    const { action, cancel } = vi.mocked(toast.error).mock.calls[0][1] as {
+      action: { label: string; onClick: () => void };
+      cancel: { label: string; onClick: () => void };
+    };
+    expect(action.label).toBe("Réessayer");
+    expect(cancel.label).toBe("Imprimante");
+    cancel.onClick();
+    expect(postMessage).toHaveBeenLastCalledWith({ action: "openSettings" });
+
+    // Chaque impression est un nouveau travail pour l'app
+    action.onClick();
+    await vi.waitFor(() => expect(postMessage).toHaveBeenCalledTimes(4));
+    const ids = postMessage.mock.calls
+      .map(([message]) => message.id)
+      .filter(Boolean);
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it("hors de l'app, ne propose pas les réglages de l'app après un échec", async () => {
+    vi.mocked(labelPrinter.printLabel).mockRejectedValueOnce(
+      new Error("Impression impossible : capot ouvert.")
+    );
+    await printAssignmentLabel(assignment);
+    expect(vi.mocked(toast.error).mock.calls[0][1]).not.toHaveProperty(
+      "cancel"
     );
   });
 

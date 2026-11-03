@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { Download, Printer, Share, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,17 +12,56 @@ import {
   assignmentLabelText,
   autoPrintAssignmentLabel,
   LabelFile,
+  LabelText,
+  printAssignmentLabel,
 } from "@/lib/assignment-label";
+import { isAutoPrintEnabled } from "@/lib/label-printer";
 import {
   isNativeLabelPrintingEnabled,
   nativeAssignmentLabelURL,
 } from "@/lib/iphone-label-printer";
+import { isNativeApp } from "@/lib/native-app";
 
 /** Mode d'emploi du fichier LBX sur iPhone : l'application Brother imprime, TMS ne fait que préparer le fichier. */
 export const LBX_HELP =
   "Ouvrez le fichier téléchargé (au besoin depuis l'app Fichiers, dossier Téléchargements), choisissez Design&Print 2 dans les options de partage, puis touchez « Imprimer ».";
 
 type LabelAssignment = Pick<Assignment, "id" | "person" | "dueDate">;
+
+/** Carte d'une étiquette, affichée jusqu'à sa fermeture : à qui et pour quand, puis ce que propose le parcours. */
+function LabelCard({
+  title,
+  text,
+  onClose,
+  children,
+}: {
+  title: string;
+  text: LabelText;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="w-full rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="text-sm">
+            {text.name} · {text.dueDate}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClose}
+          aria-label="Fermer"
+        >
+          <X />
+        </Button>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 /** Étiquette prête : téléchargement du fichier, partage si le navigateur l'accepte, et mode d'emploi. */
 export function LabelFileCard({
@@ -46,23 +85,7 @@ export function LabelFileCard({
   };
 
   return (
-    <div className="w-full rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-semibold">Étiquette prête</p>
-          <p className="text-sm">
-            {label.text.name} · {label.text.dueDate}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          aria-label="Fermer"
-        >
-          <X />
-        </Button>
-      </div>
+    <LabelCard title="Étiquette prête" text={label.text} onClose={onClose}>
       <p className="mt-2 text-xs text-muted-foreground">
         {LBX_HELP}
         {shareable && " « Partager » ouvre directement les options de partage."}
@@ -79,7 +102,7 @@ export function LabelFileCard({
           </Button>
         )}
       </div>
-    </div>
+    </LabelCard>
   );
 }
 
@@ -117,25 +140,11 @@ export function offerNativeAssignmentLabel(assignment: LabelAssignment): void {
     if (!url) return;
     toast.custom(
       (id) => (
-        <div className="w-full rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="text-sm font-semibold">
-                Étiquette prête à imprimer
-              </p>
-              <p className="text-sm">
-                {text.name} · {text.dueDate}
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => toast.dismiss(id)}
-              aria-label="Fermer"
-            >
-              <X />
-            </Button>
-          </div>
+        <LabelCard
+          title="Étiquette prête à imprimer"
+          text={text}
+          onClose={() => toast.dismiss(id)}
+        >
           <p className="mt-2 text-xs text-muted-foreground">
             Ouvre TMS Impression sur cet iPhone. L&apos;app indique le résultat
             de l&apos;impression.
@@ -160,7 +169,7 @@ export function offerNativeAssignmentLabel(assignment: LabelAssignment): void {
             Si l&apos;app ne s&apos;ouvre pas, vérifiez son installation et sa
             signature, ou utilisez le fichier LBX.
           </p>
-        </div>
+        </LabelCard>
       ),
       { id: `etiquette-${assignment.id}`, duration: Infinity }
     );
@@ -173,15 +182,50 @@ export function offerNativeAssignmentLabel(assignment: LabelAssignment): void {
   }
 }
 
+/** Dans l'app iOS TMS, sans impression automatique : l'étiquette part au toucher de « Imprimer ». */
+function offerAppAssignmentLabel(assignment: LabelAssignment): void {
+  const text = assignmentLabelText(assignment);
+  if (!text) return;
+  toast.custom(
+    (id) => (
+      <LabelCard
+        title="Étiquette prête à imprimer"
+        text={text}
+        onClose={() => toast.dismiss(id)}
+      >
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            onClick={() => {
+              toast.dismiss(id);
+              void printAssignmentLabel(assignment);
+            }}
+          >
+            <Printer />
+            Imprimer
+          </Button>
+        </div>
+      </LabelCard>
+    ),
+    { id: `etiquette-${assignment.id}`, duration: Infinity }
+  );
+}
+
 /**
- * Après une attribution réussie : sur iOS, propose un lien vers l'app native si elle est choisie, sinon le LBX.
- * Ailleurs, l'étiquette s'imprime si l'appareil est réglé pour (Web Serial). Ne rejette jamais :
- * un problème d'étiquette ne remet pas en cause l'attribution enregistrée.
+ * Après une attribution réussie. Dans l'app iOS TMS, l'étiquette s'imprime si l'impression automatique est
+ * activée, sinon une carte la propose. Dans Safari sur iOS, lien vers l'app native si elle est choisie, sinon le
+ * LBX. Ailleurs, l'étiquette s'imprime si l'appareil est réglé pour (Web Serial). Ne rejette jamais : un problème
+ * d'étiquette ne remet pas en cause l'attribution enregistrée.
  */
 export async function labelAfterAssignment(
   assignment: LabelAssignment | null | undefined
 ): Promise<void> {
   if (!assignment) return;
+  if (isNativeApp()) {
+    if (isAutoPrintEnabled()) await printAssignmentLabel(assignment);
+    else offerAppAssignmentLabel(assignment);
+    return;
+  }
   if (isIOSDevice()) {
     if (isNativeLabelPrintingEnabled()) offerNativeAssignmentLabel(assignment);
     else offerAssignmentLabelFile(assignment);

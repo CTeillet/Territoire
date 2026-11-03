@@ -8,6 +8,13 @@ private struct DiagnosticFailure: LocalizedError {
     var errorDescription: String? { message }
 }
 
+enum PrintOutcome {
+    /// The printer reported the end of printing.
+    case printed
+    /// Message shown in the app, which also says when a label may already have been printed.
+    case failed(String)
+}
+
 struct AccessoryInfo: Identifiable {
     let id: Int
     let name: String
@@ -106,6 +113,29 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
 
     func printRequestedLabel() {
         guard canPrintRequest, let request = pendingRequest else { return }
+        startPrinting(request)
+    }
+
+    /// Label asked for by the TMS page, which waits for the printer's answer to show it.
+    func printFromPage(_ request: TMSPrintRequest) async -> PrintOutcome {
+        guard !isBusy else {
+            return .failed("L'imprimante est déjà occupée : réessayez dans un instant.")
+        }
+        guard !requestHistory.contains(request.id) else {
+            return .failed("Cette étiquette a déjà été envoyée à l'imprimante.")
+        }
+        pendingRequest = request
+        // Never printed again on its own when the app comes back to the foreground.
+        automaticAttemptedRequestID = request.id
+        printConfirmed = false
+        printOutcomeUnknown = false
+        log("Demande de la page TMS reçue (texte non consigné dans le diagnostic).")
+        await startPrinting(request)?.value
+        return printConfirmed ? .printed : .failed(message)
+    }
+
+    @discardableResult
+    private func startPrinting(_ request: TMSPrintRequest) -> Task<Void, Never>? {
         run("Connexion pour l'étiquette TMS…") { [self] in
             if !isConnected {
                 refreshAccessories()
@@ -327,14 +357,16 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
         }
     }
 
-    private func run(_ label: String, operation: @escaping @MainActor () async throws -> Void) {
-        guard !isBusy else { return }
+    /// The returned task ends with the operation, whether it succeeds, fails or is cancelled by a disconnection.
+    @discardableResult
+    private func run(_ label: String, operation: @escaping @MainActor () async throws -> Void) -> Task<Void, Never>? {
+        guard !isBusy else { return nil }
         isBusy = true
         UIApplication.shared.isIdleTimerDisabled = true
         message = label
         let id = UUID()
         operationID = id
-        operationTask = Task { @MainActor [weak self] in
+        let task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
                 try await operation()
@@ -356,6 +388,8 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
                 operationTask = nil
             }
         }
+        operationTask = task
+        return task
     }
 
     private func requireTarget() throws {

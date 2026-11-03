@@ -13,7 +13,7 @@ faire sur iPhone, c'est-à-dire parler à l'imprimante en Bluetooth.
 **Validation matérielle du 3 novembre 2026 :** la version 1.0, installée depuis
 Windows avec Sideloadly, a imprimé l'étiquette de test sur la PT-P710BT. La liaison
 native et l'impression sont donc validées sur cet équipement. Le parcours avec le
-nom et la date de l'attribution (depuis la 1.1) et la version 2.0 doivent encore
+nom et la date de l'attribution (depuis la 1.1) et les versions 2.x doivent encore
 être essayés sur le téléphone.
 
 L'impression utilise l'API publique Apple External Accessory et une adaptation du
@@ -29,24 +29,27 @@ signer et renouveler l'installation.
 2. Ouvrir **TMS** et se connecter avec son compte TMS. La session reste ouverte
    d'un lancement à l'autre, comme dans Safari ; elle est propre à l'app (se
    connecter dans Safari ne connecte pas l'app).
-3. Dans **Paramètres > Autres paramètres > Imprimante d'étiquettes**, cocher
-   **Utiliser l'app TMS Impression sur cet iPhone**. Ce réglage est propre à l'app.
-4. Après une attribution, toucher **Imprimer** dans la carte d'étiquette : l'écran
-   **Imprimante** s'ouvre par-dessus TMS, avec le prénom, l'initiale du nom et la
-   date de retour. Il se connecte et imprime sur le ruban TZe détecté. Le fermer
-   pour revenir à TMS.
-5. Dans l'écran Imprimante, **Imprimer automatiquement les demandes TMS** évite de
-   confirmer chaque étiquette. Par défaut, un bouton permet de vérifier le nom et la
-   date avant d'imprimer.
+3. Après une attribution, classique ou depuis une demande, une carte **Étiquette
+   prête à imprimer** propose **Imprimer**. L'app se connecte à la PT-P710BT et
+   imprime le prénom, l'initiale du nom et la date de retour sur le ruban TZe
+   détecté. TMS affiche le résultat : étiquette imprimée, ou ce qui l'empêche avec
+   **Réessayer** et **Imprimante**.
+4. Dans **Paramètres > Autres paramètres > Imprimante d'étiquettes** : étiquette de
+   test, **Réglages de l'imprimante** et **Imprimer l'étiquette à chaque attribution
+   faite depuis cet appareil**, qui imprime sans passer par la carte. Ce réglage est
+   propre à l'app.
+5. La fiche du territoire réimprime l'étiquette de l'attribution en cours, avec son
+   échéance actuelle.
 
-Le parcours couvre les attributions classiques, celles depuis une demande et la
-réimpression depuis l'historique du territoire. Une campagne sans personne ne
-génère aucune étiquette. Les paramètres proposent aussi un test avec un nom et une
-date. Le résultat de l'impression est affiché dans l'écran Imprimante : TMS ne le
-connaît pas encore (prévu dans une prochaine version, avec l'impression directe).
+Une campagne sans personne ne génère aucune étiquette. L'écran **Imprimante**
+(Réglages de l'imprimante) sert à appairer la P710BT, choisir entre plusieurs
+imprimantes visibles, vérifier la connexion et partager un diagnostic ; le fermer
+pour revenir à TMS.
 
-Les liens `tmsprint` envoyés depuis Safari ou une PWA ouvrent aussi l'écran
-Imprimante, comme avec TMS Impression.
+Les liens `tmsprint` envoyés depuis Safari ou une PWA (option **Utiliser l'app TMS
+Impression sur cet iPhone**) ouvrent l'écran Imprimante, comme avec TMS Impression.
+Son option **Imprimer automatiquement les liens venus de Safari** évite d'y
+confirmer chaque étiquette.
 
 ## Ce que l'app fait du site
 
@@ -65,6 +68,25 @@ Imprimante, comme avec TMS Impression.
 
 Le service worker du site n'est pas actif dans l'app (il faudrait déclarer les
 domaines de l'app à iOS) : il ne servait qu'au cache du logo et du manifeste.
+
+## Pont entre la page TMS et l'app
+
+Dans l'app, le front détecte `window.webkit.messageHandlers.tmsPrinter`
+(territoire-front/lib/native-app.ts) ; ce pont n'existe pas dans Safari. Messages :
+
+    { action: "print", id: "<UUID>", name: "Corentin T.", dueDate: "2027-03-03" }
+    { action: "openSettings" }
+
+Une impression répond `{ printed: true }` une fois la fin d'impression confirmée par
+la P710BT, sinon `{ printed: false, message }` avec le message affiché par TMS
+(imprimante occupée, absente, erreur, ou résultat incertain à vérifier). Le nom et la
+date suivent les mêmes règles que le lien ci-dessous, et l'identifiant entre dans le
+même historique contre les doublons : chaque toucher de « Imprimer » ou « Réessayer »
+crée un nouveau travail, jamais relancé automatiquement.
+
+L'app n'accepte ces messages que de la page principale, à l'origine exacte de
+`TMSBaseURL` : ni d'un cadre intégré, ni d'une fenêtre ouverte par la page, ni d'un
+autre site. Le message ne contient aucune commande d'imprimante.
 
 ## Contrat du lien web → iOS
 
@@ -216,9 +238,10 @@ Sur un Mac équipé de Xcode et XcodeGen :
 Le runner effectue ces mêmes vérifications et compile pour iphoneos, pas seulement
 pour le simulateur. Un simulateur ne permet pas de tester la connexion physique.
 
-Les tests Swift couvrent aussi le contrat des liens web, les entrées invalides et
-l'historique contre les doublons. Les tests frontend contrôlent le lien Unicode,
-la date du backend, les réglages iOS, la carte après attribution et le repli LBX.
+Les tests Swift couvrent aussi le contrat des liens web, les messages du pont et
+l'origine acceptée, les entrées invalides et l'historique contre les doublons. Les
+tests frontend contrôlent le lien Unicode, la date du backend, l'impression par le
+pont simulé, les réglages iOS, la carte après attribution et le repli LBX.
 La compilation ne remplace ni l'essai matériel, ni celui du site dans l'app :
 connexion, carte et position, imports et exports de fichiers, liens d'itinéraire.
 

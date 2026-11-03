@@ -29,12 +29,12 @@ struct PrinterView: View {
                         Text("Après impression, fermez cette fenêtre pour revenir à TMS.")
                             .font(.caption).foregroundStyle(.secondary)
                     } else {
-                        Text("Dans TMS, Paramètres > Autres paramètres > Imprimante d'étiquettes, cochez « Utiliser l'app TMS Impression sur cet iPhone », puis touchez Imprimer après une attribution.")
+                        Text("TMS imprime l'étiquette après une attribution ou depuis la fiche du territoire, et affiche le résultat. L'impression automatique se règle dans Paramètres > Autres paramètres > Imprimante d'étiquettes.")
                             .font(.callout)
                     }
-                    Toggle("Imprimer automatiquement les demandes TMS", isOn: $autoPrintTMSLinks)
+                    Toggle("Imprimer automatiquement les liens venus de Safari", isOn: $autoPrintTMSLinks)
                         .disabled(model.isBusy)
-                    Text("Une fois activé, toucher Imprimer dans TMS lance l'étiquette sans confirmation dans cette fenêtre. Sinon, vous pouvez vérifier le nom et la date avant d'imprimer.")
+                    Text("Pour les liens d'impression ouverts depuis Safari ou une app web de l'écran d'accueil : une fois activé, un lien lance l'étiquette sans confirmation. Sinon, vous pouvez vérifier le nom et la date avant d'imprimer.")
                         .font(.caption).foregroundStyle(.secondary)
                     if model.isBusy { ProgressView() }
                     Text(model.message).textSelection(.enabled)

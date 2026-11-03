@@ -9,6 +9,11 @@ import {
 } from "@/lib/label-printer";
 import { buildLabelLbx } from "@/lib/lbx";
 import { safeFileName } from "@/lib/file-share";
+import {
+  isNativeApp,
+  nativePrintLabel,
+  openNativePrinterSettings,
+} from "@/lib/native-app";
 
 /** Étiquette d'une attribution, collée sur la carte du territoire : à qui il est confié et pour quand. */
 export interface LabelText {
@@ -132,15 +137,48 @@ export function assignmentLabelFile(
   };
 }
 
-/** Imprime l'étiquette d'une attribution, avec un message de suivi (et « Réessayer » en cas d'échec). */
+/** Étiquette confiée à l'app iOS (lien tmsprint ou pont de l'app TMS), qui la dessine elle-même. */
+export interface NativeLabel {
+  /** Identifiant du travail : l'app n'envoie jamais deux fois le même à l'imprimante. */
+  id: string;
+  name: string;
+  /** AAAA-MM-JJ */
+  dueDate: string;
+}
+
+/** Mêmes contrôles que l'app iOS ; null pour une attribution sans personne (campagne). */
+export function nativeLabel(
+  assignment: Pick<Assignment, "person" | "dueDate">,
+  id: string = crypto.randomUUID()
+): NativeLabel | null {
+  const text = assignmentLabelText(assignment);
+  if (!text) return null;
+  const name = text.name.replace(/\s+/gu, " ").trim();
+  const dueDate = assignment.dueDate.slice(0, 10);
+  if (
+    !name ||
+    Array.from(name).length > 128 ||
+    !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(dueDate)
+  ) {
+    throw new Error("Le nom ou la date de l'étiquette est invalide.");
+  }
+  return { id, name, dueDate };
+}
+
+/**
+ * Imprime l'étiquette d'une attribution, avec un message de suivi (et « Réessayer » en cas d'échec) : par l'app
+ * iOS TMS quand le site y est affiché, sinon par Web Serial.
+ */
 export async function printAssignmentLabel(
   assignment: Pick<Assignment, "person" | "dueDate">
 ): Promise<void> {
   const text = assignmentLabelText(assignment);
   if (!text) return;
+  const app = isNativeApp();
   const id = toast.loading(`Impression de l'étiquette de ${text.name}…`);
   try {
-    await printLabel((height) => renderLabel(text, height));
+    if (app) await nativePrintLabel(nativeLabel(assignment)!);
+    else await printLabel((height) => renderLabel(text, height));
     toast.success(`Étiquette de ${text.name} imprimée`, { id });
   } catch (error) {
     toast.error((error as Error).message, {
@@ -149,6 +187,15 @@ export async function printAssignmentLabel(
         label: "Réessayer",
         onClick: () => void printAssignmentLabel(assignment),
       },
+      // Imprimante éteinte, non appairée ou plusieurs P710BT : l'écran de l'app permet de s'en occuper
+      ...(app
+        ? {
+            cancel: {
+              label: "Imprimante",
+              onClick: openNativePrinterSettings,
+            },
+          }
+        : {}),
     });
   }
 }

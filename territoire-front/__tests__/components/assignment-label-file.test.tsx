@@ -13,7 +13,9 @@ import { lbxTexts, readZip } from "../mocks/lbx-archive";
 import {
   captureDownloads,
   stubIPhone,
+  stubNativeApp,
   stubShare,
+  unstubNativeApp,
   unstubShare,
 } from "../mocks/ios";
 import {
@@ -43,6 +45,7 @@ afterEach(() => {
   });
   unstubShare();
   unstubSerial();
+  unstubNativeApp();
 });
 
 describe("Étiquette en fichier LBX", () => {
@@ -144,6 +147,63 @@ describe("Étiquette en fichier LBX", () => {
 });
 
 describe("Étiquette après une attribution", () => {
+  it("dans l'app iOS TMS avec l'impression automatique, imprime aussitôt par l'app, sans lien ni fichier", async () => {
+    const postMessage = stubNativeApp();
+    setNativeLabelPrintingEnabled(true);
+    setAutoPrintEnabled(true);
+
+    await act(() => labelAfterAssignment(assignment));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "print", name: "Corentin T." })
+    );
+    expect(
+      await screen.findByText("Étiquette de Corentin T. imprimée")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Imprimer" })).toBeNull();
+    expect(card()).not.toBeInTheDocument();
+  });
+
+  it("dans l'app iOS TMS sans impression automatique, propose « Imprimer » dans une carte", async () => {
+    const postMessage = stubNativeApp(() => ({
+      printed: false,
+      message: "Le ruban est absent.",
+    }));
+
+    await act(() => labelAfterAssignment(assignment));
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Étiquette prête à imprimer")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Corentin T. · À rendre le 03/03/2027")
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Imprimer" }));
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "print", dueDate: "2027-03-03" })
+    );
+    expect(await screen.findByText("Le ruban est absent.")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Étiquette prête à imprimer")
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it("dans l'app iOS TMS, ne propose rien pour une campagne", async () => {
+    const postMessage = stubNativeApp();
+    setAutoPrintEnabled(true);
+
+    await act(() => labelAfterAssignment({ ...assignment, person: undefined }));
+    setAutoPrintEnabled(false);
+    await act(() => labelAfterAssignment({ ...assignment, person: undefined }));
+
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(screen.queryByText("Étiquette prête à imprimer")).toBeNull();
+  });
+
   it("sur iPhone avec TMS Impression choisi, propose un lien stable et un repli LBX sans lancer l'app tout seul", async () => {
     stubIPhone();
     setNativeLabelPrintingEnabled(true);
