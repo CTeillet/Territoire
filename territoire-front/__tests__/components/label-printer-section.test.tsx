@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { LabelPrinterSection } from "@/components/parameters/other-parameter/label-printer-section";
 import * as assignmentLabel from "@/lib/assignment-label";
 import { isAutoPrintEnabled } from "@/lib/label-printer";
+import { isNativeLabelPrintingEnabled } from "@/lib/iphone-label-printer";
 import {
   FakePrinterPort,
   stubSerial,
@@ -67,10 +68,37 @@ describe("LabelPrinterSection", () => {
     expect(
       screen.queryByRole("button", { name: "Choisir l'imprimante" })
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Utiliser l'app TMS Impression sur cet iPhone",
+      })
+    ).not.toBeChecked();
     expect(
       screen.getByRole("img", { name: "Aperçu de l'étiquette" })
     ).toBeInTheDocument();
+  });
+
+  it("sur iPhone, active TMS Impression sur cet appareil et permet de revenir au LBX", async () => {
+    stubIPhone();
+    render(<LabelPrinterSection />);
+    const choice = await screen.findByRole("checkbox", {
+      name: "Utiliser l'app TMS Impression sur cet iPhone",
+    });
+    await userEvent.click(choice);
+    expect(isNativeLabelPrintingEnabled()).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Essayer TMS Impression" })
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Télécharger une étiquette de test" })
+    ).toBeVisible();
+    expect(screen.queryByText(/utilisez Chrome/)).not.toBeInTheDocument();
+    await userEvent.click(choice);
+    expect(isNativeLabelPrintingEnabled()).toBe(false);
+    expect(
+      screen.queryByRole("button", { name: "Essayer TMS Impression" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/P-touch Design&Print 2/)).toBeInTheDocument();
   });
 
   it("ne lit pas l'appareil au rendu serveur : l'hydratation sur iPhone se passe sans écart", async () => {

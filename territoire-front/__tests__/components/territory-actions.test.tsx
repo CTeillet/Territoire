@@ -14,6 +14,7 @@ import AssignTerritoryDialog from "@/components/territory/assign-territory-dialo
 import ExtendConfirmationDialog from "@/components/territory/extend-confirmation-dialog";
 import { addMonths, addWeeks, format } from "date-fns";
 import * as assignmentLabel from "@/lib/assignment-label";
+import { setNativeLabelPrintingEnabled } from "@/lib/iphone-label-printer";
 import { jsonResponse, mockApi, renderWithStore } from "../test-utils";
 import { captureDownloads, stubIPhone } from "../mocks/ios";
 
@@ -122,9 +123,23 @@ describe("Boutons d'action d'un territoire", () => {
     });
 
     afterEach(() => {
+      setNativeLabelPrintingEnabled(false);
       act(() => {
         toast.dismiss();
       });
+    });
+
+    it("propose l'impression native après l'attribution réussie, avec la date du backend", async () => {
+      setup({ "POST /api/territoires/t1/attribuer": assigned });
+      setNativeLabelPrintingEnabled(true);
+      await assignToAnne();
+      const link = await screen.findByRole("link", { name: "Imprimer" });
+      const url = new URL(link.getAttribute("href")!);
+      expect(url.searchParams.get("name")).toBe("Anne M.");
+      expect(url.searchParams.get("dueDate")).toBe(assigned.dueDate);
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+      );
     });
 
     it("propose l'étiquette en fichier LBX, téléchargeable après la fermeture du dialogue", async () => {

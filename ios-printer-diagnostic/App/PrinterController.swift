@@ -33,6 +33,7 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     @Published private(set) var lastStatus: PrinterStatus?
     @Published private(set) var message = "Appairez la PT-P710BT dans les réglages Bluetooth, puis actualisez."
     @Published private(set) var logs: [String] = []
+    @Published private(set) var pendingRequest: TMSPrintRequest?
 
     // Only the protocol actually declared in the built/sideloaded app can be used.
     let declaredProtocols: [String]
@@ -49,6 +50,8 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     private var printWriteStarted = false
     private var txBytes = 0
     private var rxBytes = 0
+    private var requestHistory = PrintRequestHistory(ids: UserDefaults.standard.stringArray(forKey: "printedTMSRequests") ?? [])
+    private var automaticAttemptedRequestID: UUID?
 
     var selectedAccessory: AccessoryInfo? { accessories.first { $0.id == selectedID } }
     var hasSession: Bool { session != nil }
@@ -58,6 +61,68 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     var canConnect: Bool {
         !isBusy && !isConnected && selectedAccessory?.isP710BT == true
             && availableProtocols.contains(selectedProtocol)
+    }
+    var canPrintRequest: Bool {
+        !isBusy && pendingRequest.map { !requestHistory.contains($0.id) } == true
+    }
+
+    func receivePrintRequest(_ url: URL) {
+        guard !isBusy else {
+            log("Demande TMS refusée : une opération est déjà en cours.")
+            return
+        }
+        do {
+            let request = try TMSPrintRequest(url: url)
+            pendingRequest = request
+            printConfirmed = false
+            if requestHistory.contains(request.id) {
+                message = "Cette demande a déjà été envoyée. Pour une nouvelle étiquette, utilisez à nouveau le bouton Imprimer dans TMS."
+                return
+            }
+            printOutcomeUnknown = false
+            message = "Étiquette TMS reçue. Prête à imprimer."
+            log("Demande TMS reçue (texte non consigné dans le diagnostic).")
+            startAutomaticPrintIfReady()
+        } catch {
+            pendingRequest = nil
+            message = error.localizedDescription
+            log("Lien TMS invalide refusé.")
+        }
+    }
+
+    func resume() {
+        refreshAccessories()
+        startAutomaticPrintIfReady()
+    }
+
+    private func startAutomaticPrintIfReady() {
+        if UIApplication.shared.applicationState == .active,
+           UserDefaults.standard.bool(forKey: "autoPrintTMSLinks"), canPrintRequest,
+           let request = pendingRequest, automaticAttemptedRequestID != request.id {
+            automaticAttemptedRequestID = request.id
+            printRequestedLabel()
+        }
+    }
+
+    func printRequestedLabel() {
+        guard canPrintRequest, let request = pendingRequest else { return }
+        run("Connexion pour l'étiquette TMS…") { [self] in
+            if !isConnected {
+                refreshAccessories()
+                let deadline = ProcessInfo.processInfo.systemUptime + 5
+                while !accessories.contains(where: \.isP710BT), ProcessInfo.processInfo.systemUptime < deadline {
+                    try await Task.sleep(nanoseconds: 250_000_000)
+                    refreshAccessories()
+                }
+                guard accessories.filter(\.isP710BT).count == 1 else {
+                    throw DiagnosticFailure(message: "Allumez et appairez une PT-P710BT. Si plusieurs sont visibles, choisissez-en une et ouvrez sa connexion avant d'imprimer.")
+                }
+                selectedID = accessories.first(where: \.isP710BT)?.id
+                updateProtocol()
+                try await openConnection()
+            }
+            try await printLabel(request: request)
+        }
     }
 
     override init() {
@@ -135,38 +200,42 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
 
     func connect() {
         run("Ouverture de la connexion…") { [self] in
-            guard let id = selectedID, let accessory = accessoryObjects[id],
-                  selectedAccessory?.isP710BT == true else {
-                throw DiagnosticFailure(message: "Sélectionnez une PT-P710BT identifiée par son nom ou son modèle.")
-            }
-            let protocolName = selectedProtocol
-            guard declaredProtocols.contains(protocolName), accessory.protocolStrings.contains(protocolName) else {
-                throw DiagnosticFailure(message: "Aucun protocole commun entre l'accessoire et cette app. Cela ne prouve pas une incompatibilité matérielle.")
-            }
-            closeTransport()
-            guard let opened = EASession(accessory: accessory, forProtocol: protocolName),
-                  let input = opened.inputStream, let output = opened.outputStream else {
-                throw DiagnosticFailure(message: "iOS refuse l'ouverture de la session MFi. Vérifiez le protocole, les autres apps et les conditions d'accès Brother.")
-            }
-            session = opened
-            let expectedEpoch = epoch
-            for stream in [input as Stream, output as Stream] {
-                stream.delegate = self
-                stream.schedule(in: .main, forMode: .common)
-                stream.open()
-            }
-            let deadline = ProcessInfo.processInfo.systemUptime + 8
-            while !streamIsOpen(input) || !streamIsOpen(output) {
-                try checkTransport(expectedEpoch)
-                guard ProcessInfo.processInfo.systemUptime < deadline else {
-                    throw DiagnosticFailure(message: "La session existe, mais les flux ne se sont pas ouverts en 8 secondes.")
-                }
-                try await Task.sleep(nanoseconds: 20_000_000)
-            }
-            isConnected = true
-            message = "Session ouverte. Touchez « Lire l'état » pour vérifier une réponse réelle de l'imprimante."
-            log("Session et deux flux ouverts avec \(protocolName). Aucune réponse imprimante encore requise.")
+            try await openConnection()
         }
+    }
+
+    private func openConnection() async throws {
+        guard let id = selectedID, let accessory = accessoryObjects[id],
+              selectedAccessory?.isP710BT == true else {
+            throw DiagnosticFailure(message: "Sélectionnez une PT-P710BT identifiée par son nom ou son modèle.")
+        }
+        let protocolName = selectedProtocol
+        guard declaredProtocols.contains(protocolName), accessory.protocolStrings.contains(protocolName) else {
+            throw DiagnosticFailure(message: "Aucun protocole commun entre l'accessoire et cette app. Cela ne prouve pas une incompatibilité matérielle.")
+        }
+        closeTransport()
+        guard let opened = EASession(accessory: accessory, forProtocol: protocolName),
+              let input = opened.inputStream, let output = opened.outputStream else {
+            throw DiagnosticFailure(message: "iOS refuse l'ouverture de la session MFi. Vérifiez le protocole, les autres apps et les conditions d'accès Brother.")
+        }
+        session = opened
+        let expectedEpoch = epoch
+        for stream in [input as Stream, output as Stream] {
+            stream.delegate = self
+            stream.schedule(in: .main, forMode: .common)
+            stream.open()
+        }
+        let deadline = ProcessInfo.processInfo.systemUptime + 8
+        while !streamIsOpen(input) || !streamIsOpen(output) {
+            try checkTransport(expectedEpoch)
+            guard ProcessInfo.processInfo.systemUptime < deadline else {
+                throw DiagnosticFailure(message: "La session existe, mais les flux ne se sont pas ouverts en 8 secondes.")
+            }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        isConnected = true
+        message = "Session ouverte. Touchez « Lire l'état » pour vérifier une réponse réelle de l'imprimante."
+        log("Session et deux flux ouverts avec \(protocolName). Aucune réponse imprimante encore requise.")
     }
 
     func readStatus(initialize: Bool = false) {
@@ -184,43 +253,57 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
 
     func printTestLabel() {
         run("Vérification avant impression…") { [self] in
-            let expectedEpoch = epoch
-            try requireTarget()
-            let status = try await fetchStatus(epoch: expectedEpoch)
-            guard status.model != 0x72 else {
-                throw DiagnosticFailure(message: "L'appareil répond comme une PT-P300BT. Ce test est réservé à la PT-P710BT.")
-            }
-            let job = try PTouch.testJob(status: status)
-            readAvailableBytes()
-            let watermark = sequence
-            printConfirmed = false
-            printOutcomeUnknown = false
-            printWriteStarted = true
-            message = "Envoi d'une étiquette TMS TEST (environ 40 mm)…"
-            try await send(job, epoch: expectedEpoch)
-            message = "Données envoyées. Attente de la confirmation d'impression…"
-            let deadline = ProcessInfo.processInfo.systemUptime + 30
-            var seen = watermark
-            while ProcessInfo.processInfo.systemUptime < deadline {
-                try checkTransport(expectedEpoch)
-                for event in statuses where event.sequence > seen {
-                    seen = event.sequence
-                    let reply = event.status
-                    if reply.errors != 0 || reply.statusType == 2 || reply.statusType == 4 {
-                        throw DiagnosticFailure(message: "L'imprimante signale une erreur après l'envoi : \(reply.summary). Vérifiez physiquement la sortie.")
-                    }
-                    if reply.statusType == 1 {
-                        printConfirmed = true
-                        printWriteStarted = false
-                        message = "Fin d'impression confirmée par l'imprimante. Vérifiez aussi l'étiquette produite."
-                        log("PRINTING_COMPLETED reçu pour cet essai.")
-                        return
-                    }
-                }
-                try await Task.sleep(nanoseconds: 20_000_000)
-            }
-            throw DiagnosticFailure(message: "Aucune confirmation de fin en 30 secondes. Une étiquette a peut-être été imprimée : vérifiez avant un nouvel essai.")
+            try await printLabel(request: nil)
         }
+    }
+
+    private func printLabel(request: TMSPrintRequest?) async throws {
+        let expectedEpoch = epoch
+        try requireTarget()
+        let status = try await fetchStatus(epoch: expectedEpoch)
+        guard status.model != 0x72 else {
+            throw DiagnosticFailure(message: "L'appareil répond comme une PT-P300BT. Ce test est réservé à la PT-P710BT.")
+        }
+        guard let height = status.printableHeight else { throw PrinterProtocolError.unsupportedMedia }
+        let bitmap = try request.map { try AssignmentLabelRenderer.bitmap(for: $0, height: height) }
+            ?? PTouch.testBitmap(height: height)
+        let job = try PTouch.printJob(bitmap: bitmap, status: status)
+        readAvailableBytes()
+        let watermark = sequence
+        printConfirmed = false
+        printOutcomeUnknown = false
+        if let request {
+            guard !requestHistory.contains(request.id) else {
+                throw DiagnosticFailure(message: "Cette demande a déjà été envoyée à l'imprimante.")
+            }
+            requestHistory.record(request.id)
+            UserDefaults.standard.set(requestHistory.ids, forKey: "printedTMSRequests")
+        }
+        printWriteStarted = true
+        message = request == nil ? "Envoi d'une étiquette TMS TEST (environ 40 mm)…" : "Envoi de l'étiquette TMS…"
+        try await send(job, epoch: expectedEpoch)
+        message = "Données envoyées. Attente de la confirmation d'impression…"
+        let deadline = ProcessInfo.processInfo.systemUptime + 30
+        var seen = watermark
+        while ProcessInfo.processInfo.systemUptime < deadline {
+            try checkTransport(expectedEpoch)
+            for event in statuses where event.sequence > seen {
+                seen = event.sequence
+                let reply = event.status
+                if reply.errors != 0 || reply.statusType == 2 || reply.statusType == 4 {
+                    throw DiagnosticFailure(message: "L'imprimante signale une erreur après l'envoi : \(reply.summary). Vérifiez physiquement la sortie.")
+                }
+                if reply.statusType == 1 {
+                    printConfirmed = true
+                    printWriteStarted = false
+                    message = "Fin d'impression confirmée par l'imprimante. Vérifiez aussi l'étiquette produite."
+                    log("PRINTING_COMPLETED reçu pour cet essai.")
+                    return
+                }
+            }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        throw DiagnosticFailure(message: "Aucune confirmation de fin en 30 secondes. Une étiquette a peut-être été imprimée : vérifiez avant un nouvel essai.")
     }
 
     func disconnect(reason: String = "Connexion fermée.") {
@@ -228,6 +311,7 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
         operationTask = nil
         operationID = nil
         isBusy = false
+        UIApplication.shared.isIdleTimerDisabled = false
         if printWriteStarted {
             printOutcomeUnknown = true
             printWriteStarted = false
@@ -246,6 +330,7 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
     private func run(_ label: String, operation: @escaping @MainActor () async throws -> Void) {
         guard !isBusy else { return }
         isBusy = true
+        UIApplication.shared.isIdleTimerDisabled = true
         message = label
         let id = UUID()
         operationID = id
@@ -266,6 +351,7 @@ final class PrinterController: NSObject, ObservableObject, StreamDelegate {
             }
             if operationID == id {
                 isBusy = false
+                UIApplication.shared.isIdleTimerDisabled = false
                 operationID = nil
                 operationTask = nil
             }

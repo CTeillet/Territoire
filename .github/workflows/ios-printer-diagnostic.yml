@@ -61,13 +61,19 @@ jobs:
         if: success()
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
-          ## Diagnostic PT-P710BT
+          ## TMS Impression — PT-P710BT
           Téléchargez l'artefact **p710bt-diagnostic-ios-unsigned**, puis décompressez-le.
           Le fichier **TMSPrinterDiagnostic-unsigned.ipa** doit être signé et installé
           depuis Windows avec Sideloadly ou AltStore Classic et votre propre compte Apple.
           Avec un compte gratuit, la signature est à renouveler tous les 7 jours.
 
-          Ouvrez **Test P710BT** sur un véritable iPhone, puis :
+          Ouvrez **TMS Impression** sur un véritable iPhone, puis :
+          - Pour imprimer depuis TMS : déployez aussi les changements web de cette
+            branche, puis choisissez TMS Impression dans les paramètres d'étiquettes.
+          - Activez l'impression automatique des demandes TMS dans l'app si souhaité.
+          - Après une attribution, touchez **Imprimer** dans la carte TMS.
+
+          Pour tester le Bluetooth indépendamment de TMS :
           1. Appairez la P710BT et fermez les autres apps Brother.
           2. Actualisez, sélectionnez l'imprimante et ouvrez la connexion.
           3. Touchez **Lire l'état**. Une réponse Brother valide la communication.

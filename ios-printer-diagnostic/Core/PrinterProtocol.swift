@@ -95,8 +95,8 @@ enum PrinterProtocolError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notReady: return "L'imprimante n'est pas prête. Relisez son état."
-        case .unsupportedMedia: return "Le test nécessite un ruban TZe reconnu, de 4 à 24 mm."
-        case .invalidBitmap: return "Dimensions de l'image de test incorrectes."
+        case .unsupportedMedia: return "L'impression nécessite un ruban TZe reconnu, de 4 à 24 mm."
+        case .invalidBitmap: return "Dimensions de l'étiquette incorrectes."
         }
     }
 }
@@ -180,13 +180,19 @@ enum PTouch {
     }
 
     static func testJob(status: PrinterStatus) throws -> Data {
+        guard let height = status.printableHeight else { throw PrinterProtocolError.unsupportedMedia }
+        return try printJob(bitmap: testBitmap(height: height), status: status)
+    }
+
+    static func printJob(bitmap: PrinterBitmap, status: PrinterStatus) throws -> Data {
         guard status.errors == 0, status.phaseType == 0, status.phase == 0, status.statusType == 0 else {
             throw PrinterProtocolError.notReady
         }
         guard status.mediaType == 1, let height = status.printableHeight else {
             throw PrinterProtocolError.unsupportedMedia
         }
-        let lines = try rasterLines(testBitmap(height: height))
+        guard bitmap.height == height else { throw PrinterProtocolError.invalidBitmap }
+        let lines = try rasterLines(bitmap)
         let count = UInt32(lines.count)
         var result = Array(initialize)
         result += [0x1b, 0x69, 0x7a, 0xc4, status.mediaType, status.tapeWidth, status.tapeLength]

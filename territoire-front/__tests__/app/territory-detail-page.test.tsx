@@ -19,6 +19,7 @@ import { Assignment } from "@/models/assignment";
 import { TerritoryType } from "@/models/territory-type";
 import { fetchTerritories } from "@/store/slices/territory-slice";
 import * as assignmentLabel from "@/lib/assignment-label";
+import { setNativeLabelPrintingEnabled } from "@/lib/iphone-label-printer";
 import {
   jsonResponse,
   mockApi,
@@ -615,6 +616,47 @@ describe("Historique des attributions", () => {
         "etiquette-jean-d-2027-04-15.lbx",
       ]);
     } finally {
+      act(() => {
+        toast.dismiss();
+      });
+    }
+  });
+
+  it("sur iPhone avec l'app native choisie, permet de réimprimer avec l'échéance actuelle", async () => {
+    stubIPhone();
+    setNativeLabelPrintingEnabled(true);
+    render(<Toaster />);
+    try {
+      renderWithStore(
+        <AssignmentsList
+          assignments={[
+            assignment({ dueDate: "2027-04-15" }),
+            assignment({ id: "as0", returnDate: "2026-08-01" }),
+          ]}
+        />
+      );
+      const buttons = await screen.findAllByRole("button", {
+        name: "Imprimer avec TMS Impression",
+      });
+      expect(buttons).toHaveLength(1);
+      await userEvent.click(buttons[0]);
+      const first = new URL(
+        (await screen.findByRole("link", { name: "Imprimer" })).getAttribute(
+          "href"
+        )!
+      );
+      expect(first.searchParams.get("dueDate")).toBe("2027-04-15");
+      await userEvent.click(buttons[0]);
+      await waitFor(() => {
+        const second = new URL(
+          screen.getByRole("link", { name: "Imprimer" }).getAttribute("href")!
+        );
+        expect(second.searchParams.get("id")).not.toBe(
+          first.searchParams.get("id")
+        );
+      });
+    } finally {
+      setNativeLabelPrintingEnabled(false);
       act(() => {
         toast.dismiss();
       });

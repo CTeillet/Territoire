@@ -8,6 +8,7 @@ import {
 } from "@/components/shared/assignment-label-file";
 import * as assignmentLabel from "@/lib/assignment-label";
 import { setAutoPrintEnabled } from "@/lib/label-printer";
+import { setNativeLabelPrintingEnabled } from "@/lib/iphone-label-printer";
 import { lbxTexts, readZip } from "../mocks/lbx-archive";
 import {
   captureDownloads,
@@ -143,6 +144,25 @@ describe("Étiquette en fichier LBX", () => {
 });
 
 describe("Étiquette après une attribution", () => {
+  it("sur iPhone avec TMS Impression choisi, propose un lien stable et un repli LBX sans lancer l'app tout seul", async () => {
+    stubIPhone();
+    setNativeLabelPrintingEnabled(true);
+    const autoPrint = vi.spyOn(assignmentLabel, "autoPrintAssignmentLabel");
+    await act(() => labelAfterAssignment(assignment));
+    const link = await screen.findByRole("link", { name: "Imprimer" });
+    const url = new URL(link.getAttribute("href")!);
+    expect(url.protocol).toBe("tmsprint:");
+    expect(url.searchParams.get("name")).toBe("Corentin T.");
+    expect(url.searchParams.get("dueDate")).toBe("2027-03-03");
+    expect(autoPrint).not.toHaveBeenCalled();
+    expect(link.getAttribute("href")).toBe(url.href);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Utiliser le fichier LBX" })
+    );
+    expect(await screen.findByText("Étiquette prête")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Télécharger" })).toBeVisible();
+  });
+
   it("sur iPhone, prépare le fichier sans Web Serial ni impression automatique", async () => {
     stubIPhone();
     const autoPrint = vi.spyOn(assignmentLabel, "autoPrintAssignmentLabel");

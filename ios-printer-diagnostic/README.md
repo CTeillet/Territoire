@@ -1,13 +1,70 @@
-# Diagnostic iPhone — Brother PT-P710BT
+# TMS Impression — iPhone et Brother PT-P710BT
 
-Petit prototype natif, autonome, pour tester la communication entre un véritable
-iPhone et une PT-P710BT avant d'intégrer l'impression à TMS.
+App native autonome qui reçoit une étiquette depuis TMS, se connecte à la
+PT-P710BT et l'imprime. Les outils de diagnostic restent disponibles.
+
+**Validation matérielle du 3 novembre 2026 :** l'utilisateur a installé la
+version 1.0 depuis Windows avec Sideloadly et confirme avoir imprimé l'étiquette
+de test sur sa PT-P710BT. La liaison native et l'impression sont donc validées
+sur cet équipement. Le parcours TMS avec texte variable ajouté en 1.1 doit
+encore être essayé sur le téléphone après installation et déploiement du web.
 
 Il utilise l'API publique Apple External Accessory et une adaptation du protocole
 raster déjà présent dans territoire-front/lib/ptouch.ts. Aucun SDK Brother privé,
 serveur d'impression, compte TMS ou abonnement Apple payant n'est requis pour
 construire le fichier non signé. L'installation et l'accès matériel sont ensuite
-deux validations distinctes.
+deux validations distinctes. À l'utilisation, seuls l'iPhone et l'imprimante
+sont nécessaires ; le PC sert à signer et renouveler l'installation.
+
+## Utiliser la version 1.1 depuis TMS
+
+1. Télécharger le nouvel IPA de cette branche et le réinstaller avec Sideloadly,
+   avec le même compte Apple. Son nom sur l'écran d'accueil devient
+   **TMS Impression** ; le bundle identifier reste identique à celui du diagnostic.
+2. Dans l'app, activer **Imprimer automatiquement les demandes TMS** si souhaité.
+   Par défaut, un bouton permet de vérifier le nom et la date avant d'imprimer.
+3. Avec la version web de cette branche déployée, ouvrir TMS sur l'iPhone,
+   **Paramètres > Autres paramètres > Imprimante d'étiquettes**, puis cocher
+   **Utiliser l'app TMS Impression sur cet iPhone**. Ce choix est local au navigateur.
+4. Après une attribution réussie, toucher **Imprimer** dans la carte d'étiquette.
+   iOS peut demander de confirmer l'ouverture de l'app. Celle-ci reçoit le prénom,
+   l'initiale du nom et la date de retour renvoyée par le backend, ouvre la connexion
+   et imprime sur le ruban TZe détecté. Garder l'app au premier plan jusqu'à la fin.
+5. Revenir dans TMS avec le retour d'iOS ou le sélecteur d'apps.
+
+Le parcours couvre les attributions classiques, celles depuis une demande et la
+réimpression depuis l'historique du territoire. Une campagne sans personne ne
+génère aucune étiquette. Les paramètres proposent aussi un test avec un nom et
+une date, et le téléchargement LBX reste disponible.
+
+Le bouton est un lien réellement touché par l'utilisateur : le navigateur ne
+tente pas d'ouvrir une app depuis le retour d'une requête d'attribution asynchrone.
+TMS ne peut ni détecter l'installation ou l'expiration de la signature de l'app,
+ni annoncer une impression réussie : le résultat est affiché dans l'app native.
+Le choix LBX reste actif par défaut tant que l'app native n'a pas été choisie.
+
+## Contrat du lien web → iOS
+
+Format versionné, avec les valeurs encodées par `encodeURIComponent` :
+
+    tmsprint://print?v=1&id=<UUID>&name=Corentin%20T.&dueDate=2027-03-03
+
+La date est un jour calendrier `AAAA-MM-JJ`, sans conversion de fuseau horaire.
+Le rendu iOS est local, sur deux lignes, avec accents, nom en gras et date de retour.
+Le lien ne contient aucun jeton de connexion, nom complet, URL à télécharger ou
+commande d'imprimante. Le parseur refuse les versions inconnues, paramètres
+supplémentaires ou répétés, dates invalides, caractères de contrôle et textes trop longs.
+
+Un schéma d'URL personnalisé ne permet pas d'authentifier le site d'origine :
+l'impression automatique est donc désactivée à l'installation. L'option dans
+l'app explique qu'un lien `tmsprint` peut lancer une étiquette sans confirmation.
+
+Les 200 derniers identifiants de travaux envoyés sont mémorisés avant l'envoi.
+Rouvrir le même lien ne répète pas le travail, même après un redémarrage de l'app.
+Une erreur avant envoi permet de réessayer manuellement dans l'app ; après un
+envoi partiel ou une fin non confirmée, vérifier la sortie physique et redemander
+une nouvelle étiquette depuis TMS si nécessaire. Aucun travail envoyé n'est relancé
+automatiquement. Plusieurs P710BT visibles demandent une sélection manuelle.
 
 ## Obtenir le fichier d'installation sans Mac
 
@@ -39,7 +96,7 @@ ton appareil avec ton propre compte Apple.
    de l'appareil si iOS le demande.
 5. Activer le Mode développeur dans Réglages > Confidentialité et sécurité, puis
    redémarrer si demandé (iOS 16 et suivants).
-6. Ouvrir **Test P710BT**.
+6. Ouvrir **TMS Impression**.
 
 [AltStore Classic pour Windows](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows)
 est une autre possibilité de signature/installation.
@@ -93,9 +150,10 @@ ni identifiant TMS, ni numéro de série de l'imprimante.
 
 ## Protocole MFi : ce que ce prototype vérifie
 
-La déclaration initiale est **com.brother.ptcbp**, le protocole documenté dans le
-guide iOS général de Brother. Elle n'a pas encore été confirmée sur cet exemplaire
-de PT-P710BT. Une déclaration dans Info.plist ne crée pas d'autorisation MFi.
+La déclaration est **com.brother.ptcbp**, le protocole documenté dans le
+guide iOS général de Brother. L'impression physique a été confirmée avec le build
+1.0 qui déclarait ce protocole. Une déclaration dans Info.plist ne crée pas,
+à elle seule, d'autorisation MFi.
 
 L'app tente uniquement les protocoles à la fois annoncés par l'accessoire et
 déclarés dans son propre Info.plist. Elle enregistre ces deux listes dans le
@@ -127,9 +185,11 @@ Sur un Mac équipé de Xcode et XcodeGen :
 Le runner effectue ces mêmes vérifications et compile pour iphoneos, pas seulement
 pour le simulateur. Un simulateur ne permet pas de tester la connexion physique.
 
-La validation matérielle doit être faite sur l'iPhone et la PT-P710BT. Tant que le
-rapport et l'étiquette n'ont pas été observés, l'impression native reste une piste
-à confirmer ; le prototype ne modifie pas le parcours TMS/LBX.
+Les tests Swift couvrent aussi le contrat des liens web, les entrées invalides et
+l'historique contre les doublons. Les tests frontend contrôlent le lien Unicode,
+la date du backend, les réglages iOS, la carte après attribution et le repli LBX.
+La compilation ne remplace pas l'essai matériel du parcours depuis Safari et
+depuis une PWA ajoutée à l'écran d'accueil.
 
 ## Références
 

@@ -8,7 +8,9 @@ struct TMSPrinterDiagnosticApp: App {
     var body: some Scene {
         WindowGroup {
             DiagnosticView(model: model)
+                .onOpenURL { model.receivePrintRequest($0) }
                 .onChange(of: scenePhase) { phase in
+                    if phase == .active { model.resume() }
                     if phase == .background { model.suspend() }
                 }
         }
@@ -19,18 +21,42 @@ private struct DiagnosticView: View {
     @ObservedObject var model: PrinterController
     @State private var confirmPrint = false
     @State private var confirmInitialize = false
+    @AppStorage("autoPrintTMSLinks") private var autoPrintTMSLinks = false
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Test local entre cet iPhone et la Brother PT-P710BT.")
-                    Text("Commencez par l'appairage Bluetooth et fermez Design&Print 2 et iPrint&Label. La lecture d'état ne consomme pas de ruban.")
+                    Text("Imprimez les étiquettes reçues depuis TMS sur votre Brother PT-P710BT.")
+                    Text("Appairez l'imprimante dans les réglages Bluetooth et fermez les autres apps Brother. Gardez cette app au premier plan jusqu'à la fin de l'impression.")
                         .font(.callout).foregroundStyle(.secondary)
                     #if targetEnvironment(simulator)
                     Text("Simulateur : l'accès Bluetooth MFi ne peut être testé que sur un véritable iPhone.")
                         .foregroundStyle(.orange)
                     #endif
+                }
+                Section("Étiquette TMS") {
+                    if let request = model.pendingRequest {
+                        Text(request.name).font(.title3.bold())
+                        Text(request.dateLine)
+                        Button("Imprimer cette étiquette") { model.printRequestedLabel() }
+                            .disabled(!model.canPrintRequest)
+                        Text("Après impression, revenez dans TMS avec le bouton de retour d'iOS ou le sélecteur d'apps.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text("Depuis TMS sur cet iPhone, choisissez TMS Impression dans les paramètres d'étiquettes, puis touchez Imprimer après une attribution.")
+                            .font(.callout)
+                    }
+                    Toggle("Imprimer automatiquement les demandes TMS", isOn: $autoPrintTMSLinks)
+                        .disabled(model.isBusy)
+                    Text("Une fois activé, l'ouverture d'un lien tmsprint lance une étiquette sans confirmation dans cette app. Sinon, vous pouvez vérifier le nom et la date avant d'imprimer.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if model.isBusy { ProgressView() }
+                    Text(model.message).textSelection(.enabled)
+                    if model.printOutcomeUnknown {
+                        Text("Vérifiez la sortie de l'imprimante avant de redemander une étiquette dans TMS. Cette demande ne sera pas renvoyée automatiquement.")
+                            .font(.callout).foregroundStyle(.orange)
+                    }
                 }
                 Section("Progression") {
                     milestone("P710BT visible pour cette app", reached: model.accessories.contains { $0.isP710BT })
@@ -113,7 +139,7 @@ private struct DiagnosticView: View {
                     Text("L'installation de l'app, l'ouverture d'une session MFi et une réponse réelle de l'imprimante sont trois vérifications distinctes.")
                 }
             }
-            .navigationTitle("Test P710BT")
+            .navigationTitle("TMS Impression")
             .confirmationDialog("Imprimer une étiquette de test ?", isPresented: $confirmPrint, titleVisibility: .visible) {
                 Button("Imprimer une étiquette") { model.printTestLabel() }
                 Button("Annuler", role: .cancel) {}

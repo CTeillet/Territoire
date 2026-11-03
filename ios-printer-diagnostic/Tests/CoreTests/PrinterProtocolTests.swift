@@ -48,6 +48,16 @@ final class PrinterProtocolTests: XCTestCase {
         XCTAssertThrowsError(try PTouch.rasterLines(.init(width: 1, height: 129, ink: .init(repeating: 1, count: 129))))
     }
 
+    func testCustomLabelMustFitTheActualTapeHeight() throws {
+        let status = PrinterStatus(packet: frame())!
+        let bitmap = PrinterBitmap(width: 3, height: 64, ink: .init(repeating: 1, count: 3 * 64))
+        let job = Array(try PTouch.printJob(bitmap: bitmap, status: status))
+        let info = PTouch.initialize.count
+        XCTAssertEqual(Array(job[(info + 7)..<(info + 11)]), [3, 0, 0, 0])
+        XCTAssertEqual(job.last, 0x1a)
+        XCTAssertThrowsError(try PTouch.printJob(bitmap: bitmap, status: PrinterStatus(packet: frame(width: 6))!))
+    }
+
     // Independent TIFF PackBits decoder, used to verify the complete printed payload.
     private func unpack(_ data: [UInt8]) throws -> [UInt8] {
         var decoded: [UInt8] = []

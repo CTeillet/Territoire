@@ -6,6 +6,10 @@ import {
   setAutoPrintEnabled,
 } from "@/lib/label-printer";
 import { isIOSDevice } from "@/lib/device";
+import {
+  isNativeLabelPrintingEnabled,
+  setNativeLabelPrintingEnabled,
+} from "@/lib/iphone-label-printer";
 
 export interface LabelPrinterState {
   /** Le navigateur sait piloter l'imprimante (Web Serial). */
@@ -14,7 +18,11 @@ export interface LabelPrinterState {
   connected: boolean;
   /** Étiquette imprimée à chaque attribution faite depuis cet appareil. */
   autoPrint: boolean;
-  /** iPhone ou iPad : l'étiquette est un fichier LBX, imprimé par l'application Brother Design&Print 2. */
+  /** iPhone ou iPad. */
+  ios: boolean;
+  /** Impression confiée à l'app iOS TMS Impression installée et signée. */
+  native: boolean;
+  /** iPhone ou iPad avec le parcours fichier LBX choisi. */
   lbx: boolean;
 }
 
@@ -22,10 +30,14 @@ const UNKNOWN: LabelPrinterState = {
   supported: false,
   connected: false,
   autoPrint: false,
+  ios: false,
+  native: false,
   lbx: false,
 };
 
 async function readState(): Promise<LabelPrinterState> {
+  const ios = isIOSDevice();
+  const native = ios && isNativeLabelPrintingEnabled();
   let connected = false;
   try {
     connected = (await getLabelPrinter()) !== null;
@@ -36,7 +48,9 @@ async function readState(): Promise<LabelPrinterState> {
     supported: isLabelPrintingSupported(),
     connected,
     autoPrint: isAutoPrintEnabled(),
-    lbx: isIOSDevice(),
+    ios,
+    native,
+    lbx: ios && !native,
   };
 }
 
@@ -62,5 +76,14 @@ export function useLabelPrinter() {
     setState((previous) => ({ ...previous, autoPrint: enabled }));
   }, []);
 
-  return { ...state, refresh, setAutoPrint };
+  const setNativePrint = useCallback((enabled: boolean) => {
+    const native = setNativeLabelPrintingEnabled(enabled);
+    setState((previous) => ({
+      ...previous,
+      native: previous.ios && native,
+      lbx: previous.ios && !native,
+    }));
+  }, []);
+
+  return { ...state, refresh, setAutoPrint, setNativePrint };
 }

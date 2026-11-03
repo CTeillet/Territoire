@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Share, X } from "lucide-react";
+import { Download, Printer, Share, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Assignment } from "@/models/assignment";
@@ -9,9 +9,14 @@ import { isIOSDevice } from "@/lib/device";
 import { canShareFile, downloadFile, shareFile } from "@/lib/file-share";
 import {
   assignmentLabelFile,
+  assignmentLabelText,
   autoPrintAssignmentLabel,
   LabelFile,
 } from "@/lib/assignment-label";
+import {
+  isNativeLabelPrintingEnabled,
+  nativeAssignmentLabelURL,
+} from "@/lib/iphone-label-printer";
 
 /** Mode d'emploi du fichier LBX sur iPhone : l'application Brother imprime, TMS ne fait que préparer le fichier. */
 export const LBX_HELP =
@@ -103,9 +108,74 @@ export function offerAssignmentLabelFile(assignment: LabelAssignment): void {
   );
 }
 
+/** Un vrai lien touché par l'utilisateur : pas de lancement après un appel réseau asynchrone. */
+export function offerNativeAssignmentLabel(assignment: LabelAssignment): void {
+  try {
+    const text = assignmentLabelText(assignment);
+    if (!text) return;
+    const url = nativeAssignmentLabelURL(assignment);
+    if (!url) return;
+    toast.custom(
+      (id) => (
+        <div className="w-full rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold">
+                Étiquette prête à imprimer
+              </p>
+              <p className="text-sm">
+                {text.name} · {text.dueDate}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => toast.dismiss(id)}
+              aria-label="Fermer"
+            >
+              <X />
+            </Button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Ouvre TMS Impression sur cet iPhone. L&apos;app indique le résultat
+            de l&apos;impression.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" asChild>
+              <a href={url}>
+                <Printer />
+                Imprimer
+              </a>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => offerAssignmentLabelFile(assignment)}
+            >
+              <Download />
+              Utiliser le fichier LBX
+            </Button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Si l&apos;app ne s&apos;ouvre pas, vérifiez son installation et sa
+            signature, ou utilisez le fichier LBX.
+          </p>
+        </div>
+      ),
+      { id: `etiquette-${assignment.id}`, duration: Infinity }
+    );
+  } catch (error) {
+    console.error("❌ Lien d'impression non généré :", error);
+    toast.error(
+      "L'ouverture de TMS Impression a échoué. L'étiquette est proposée en fichier LBX."
+    );
+    offerAssignmentLabelFile(assignment);
+  }
+}
+
 /**
- * Après une attribution réussie, avec l'attribution renvoyée par le backend : sur iPhone et iPad, le fichier LBX
- * est proposé ; ailleurs, l'étiquette s'imprime si l'appareil est réglé pour (Web Serial). Ne rejette jamais :
+ * Après une attribution réussie : sur iOS, propose un lien vers l'app native si elle est choisie, sinon le LBX.
+ * Ailleurs, l'étiquette s'imprime si l'appareil est réglé pour (Web Serial). Ne rejette jamais :
  * un problème d'étiquette ne remet pas en cause l'attribution enregistrée.
  */
 export async function labelAfterAssignment(
@@ -113,7 +183,8 @@ export async function labelAfterAssignment(
 ): Promise<void> {
   if (!assignment) return;
   if (isIOSDevice()) {
-    offerAssignmentLabelFile(assignment);
+    if (isNativeLabelPrintingEnabled()) offerNativeAssignmentLabel(assignment);
+    else offerAssignmentLabelFile(assignment);
     return;
   }
   try {
