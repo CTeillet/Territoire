@@ -103,7 +103,8 @@ describe("person slice", () => {
         payload: "Erreur suppression",
       });
       expect(rejected.deleting).toBe(false);
-      expect(rejected.error).toBe("Erreur suppression");
+      // Motif affiché en toast par l'appelant, pas en erreur de page
+      expect(rejected.error).toBeNull();
     });
 
     it("should handle updatePerson lifecycle", () => {
