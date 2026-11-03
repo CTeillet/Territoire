@@ -49,7 +49,7 @@ const CHOOSER_MIN_MS = 500;
 const AUTO_PRINT_KEY = "labelPrinter.autoPrint";
 
 export const UNSUPPORTED_MESSAGE =
-  "Ce navigateur ne peut pas piloter l'imprimante d'étiquettes : utilisez Chrome ou Edge sur ordinateur, ou Chrome sur Android.";
+  "Ce navigateur ne peut pas piloter l'imprimante d'étiquettes : utilisez Chrome ou Edge sur ordinateur, ou Chrome sur Android (pas Samsung Internet).";
 export const NO_CHOOSER_MESSAGE =
   "Ce navigateur n'a pas ouvert la fenêtre de choix de l'imprimante : utilisez Chrome (sur une tablette Samsung, pas Samsung Internet), vérifiez que le Bluetooth est activé et la P-touch appairée, et autorisez Chrome à accéder aux appareils à proximité.";
 const NO_PRINTER_MESSAGE =
@@ -59,6 +59,8 @@ const UNREACHABLE_MESSAGE =
 
 function serial(): SerialLike | null {
   if (typeof navigator === "undefined") return null;
+  // Samsung Internet expose Web Serial mais n'affiche pas la fenêtre de choix : l'imprimante resterait inaccessible
+  if (/SamsungBrowser/.test(navigator.userAgent)) return null;
   const api = (navigator as Navigator & { serial?: SerialLike }).serial;
   // Firefox expose navigator.serial sans requestPort()
   return api && typeof api.requestPort === "function" ? api : null;
@@ -66,10 +68,15 @@ function serial(): SerialLike | null {
 
 export const isLabelPrintingSupported = (): boolean => serial() !== null;
 
+// Imprimante choisie depuis l'ouverture de la page : Chrome sur Android ne la renvoie pas dans getPorts(), ou
+// sous un autre objet. Liée au navigator.serial qui l'a donnée.
+let chosen: { api: SerialLike; port: SerialPortLike } | null = null;
+
 /** Imprimante choisie sur cet appareil, null si aucune. */
 export async function getLabelPrinter(): Promise<SerialPortLike | null> {
   const api = serial();
   if (!api) return null;
+  if (chosen?.api === api) return chosen.port;
   const ports = await api.getPorts();
   return ports[0] ?? null;
 }
@@ -99,9 +106,15 @@ export async function connectLabelPrinter(): Promise<SerialPortLike> {
     }
     throw error;
   }
-  for (const other of await api.getPorts()) {
-    if (other !== port) await other.forget?.();
+  // Sans retrouver l'imprimante choisie dans la liste (Chrome sur Android), on ne sait pas lesquelles sont les
+  // autres : oublier un autre objet pourrait retirer l'autorisation de celle qu'on vient de choisir
+  const ports = await api.getPorts();
+  if (ports.includes(port)) {
+    for (const other of ports) {
+      if (other !== port) await other.forget?.();
+    }
   }
+  chosen = { api, port };
   setAutoPrintEnabled(true);
   return port;
 }
@@ -110,8 +123,12 @@ export async function connectLabelPrinter(): Promise<SerialPortLike> {
 export async function forgetLabelPrinter(): Promise<void> {
   const api = serial();
   if (api) {
-    for (const port of await api.getPorts()) await port.forget?.();
+    const ports = await api.getPorts();
+    const remembered =
+      chosen?.api === api && !ports.includes(chosen.port) ? [chosen.port] : [];
+    for (const port of [...ports, ...remembered]) await port.forget?.();
   }
+  chosen = null;
   setAutoPrintEnabled(false);
 }
 

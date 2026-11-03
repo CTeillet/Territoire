@@ -10,6 +10,7 @@ import { isAutoPrintEnabled, NO_CHOOSER_MESSAGE } from "@/lib/label-printer";
 import { isNativeLabelPrintingEnabled } from "@/lib/iphone-label-printer";
 import {
   FakePrinterPort,
+  stubAndroidSerial,
   stubSerial,
   unstubSerial,
 } from "../mocks/serial-port";
@@ -40,6 +41,21 @@ describe("LabelPrinterSection", () => {
     ).toHaveTextContent(
       "Sur iPhone et iPad, l'étiquette se télécharge en fichier pour l'application Brother Design&Print 2."
     );
+    expect(
+      screen.queryByRole("button", { name: "Choisir l'imprimante" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("dans Samsung Internet, dit d'emblée d'utiliser Chrome, même si Web Serial est annoncé", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (Linux; Android 15; SM-X716B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/29.0 Chrome/136.0.0.0 Safari/537.36"
+    );
+    stubSerial([]);
+    render(<LabelPrinterSection />);
+
+    expect(
+      await screen.findByText(/utilisez Chrome ou Edge sur ordinateur/)
+    ).toHaveTextContent("ou Chrome sur Android (pas Samsung Internet).");
     expect(
       screen.queryByRole("button", { name: "Choisir l'imprimante" })
     ).not.toBeInTheDocument();
@@ -170,6 +186,29 @@ describe("LabelPrinterSection", () => {
       await screen.findByRole("button", { name: "Choisir l'imprimante" })
     ).toBeInTheDocument();
     expect(autoPrint()).toBeDisabled();
+  });
+
+  it("sur Chrome pour Android, propose l'étiquette de test une fois l'imprimante choisie", async () => {
+    // getPorts() ne renvoie pas l'imprimante choisie
+    const port = new FakePrinterPort();
+    stubAndroidSerial(port);
+    const print = vi
+      .spyOn(assignmentLabel, "printAssignmentLabel")
+      .mockResolvedValue();
+    render(<LabelPrinterSection />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Choisir l'imprimante" })
+    );
+
+    expect(
+      await screen.findByText("Une imprimante est choisie sur cet appareil.")
+    ).toBeInTheDocument();
+    expect(port.forgotten).toBe(false);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Imprimer une étiquette de test" })
+    );
+    expect(print).toHaveBeenCalled();
   });
 
   it("reste silencieux quand la fenêtre de choix est fermée sans sélection", async () => {
