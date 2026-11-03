@@ -56,8 +56,9 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+    // Téléphone : la hauteur de l'écran moins la barre du menu (3rem), sans défilement
+    <div className="flex min-h-[calc(100svh-3rem)] items-center justify-center bg-gray-100 px-4 md:min-h-screen">
+      <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-96">
         <h2 className="text-2xl font-bold mb-6 text-center">Connexion</h2>
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}

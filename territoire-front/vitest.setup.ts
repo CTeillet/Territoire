@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
 // API navigateur absentes de jsdom mais utilisées par Radix (Select…), Sonner (glisser une notification pour
-// la fermer) et Recharts (ResponsiveContainer)
+// la fermer), Recharts (ResponsiveContainer) et useIsMobile (matchMedia : affichage ordinateur par défaut)
 if (!Element.prototype.hasPointerCapture) {
   Element.prototype.hasPointerCapture = () => false;
 }
@@ -20,4 +20,17 @@ if (!globalThis.ResizeObserver) {
     unobserve() {}
     disconnect() {}
   };
+}
+if (!window.matchMedia) {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
 }

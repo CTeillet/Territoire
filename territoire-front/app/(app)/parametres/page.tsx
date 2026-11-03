@@ -14,9 +14,10 @@ const ParametersPage = () => {
   const role = useAppSelector((state) => state.auth.user?.role);
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList>
+        {/* Téléphone : les onglets ne tiennent pas sur la largeur, ils défilent */}
+        <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="cities">Villes</TabsTrigger>
           <TabsTrigger value="users">Gestion des utilisateurs</TabsTrigger>
           {canSendAccess(role) && (

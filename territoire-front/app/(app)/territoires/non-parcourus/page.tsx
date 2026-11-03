@@ -99,7 +99,7 @@ export default function NonVisitedTerritoriesPage() {
   const referenceYear = currentMonth < 9 ? currentYear - 1 : currentYear;
 
   return (
-    <div className="container mx-auto py-8 px-6">
+    <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
       <PageHeader
         title="Territoires non parcourus"
         description={`Liste des territoires non parcourus depuis le 1er septembre ${referenceYear}`}
@@ -112,7 +112,7 @@ export default function NonVisitedTerritoriesPage() {
       ) : nonVisitedTerritories.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="w-full bg-white p-6 rounded-lg shadow-md">
+        <div className="w-full bg-white p-4 md:p-6 rounded-lg shadow-md">
           <DataTable
             data={nonVisitedTerritories}
             columns={columns}

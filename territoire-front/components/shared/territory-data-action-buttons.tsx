@@ -238,7 +238,9 @@ export function TerritoryDataActionButtons({
 
   return (
     <TooltipProvider>
-      <div className={`flex space-x-2 ${territoryId ? "justify-center" : ""}`}>
+      <div
+        className={`flex flex-wrap gap-2 ${territoryId ? "justify-center" : ""}`}
+      >
         {showDetails && (
           <ActionButton
             icon={Eye}

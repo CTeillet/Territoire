@@ -105,10 +105,12 @@ export default function TerritoryRequestsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold">Demandes de territoire</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">
+            Demandes de territoire
+          </h1>
           <p className="text-muted-foreground">
             Faites par les personnes depuis leur lien personnel. Attribuer un
             territoire à la personne clôture sa demande.

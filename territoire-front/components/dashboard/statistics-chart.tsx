@@ -15,6 +15,7 @@ import {
   PieChart,
   Pie,
   Legend,
+  ResponsiveContainer,
   Tooltip,
 } from "recharts";
 import {
@@ -206,16 +207,8 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
             {statisticsLoading ? (
               <p>Chargement des statistiques...</p>
             ) : (
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <PieChart width={400} height={400}>
+              <ResponsiveContainer width="100%" height={400}>
+                <PieChart>
                   <Pie
                     data={pieChartData.map((entry, index) => ({
                       ...entry,
@@ -224,8 +217,8 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
                     cx="50%"
                     cy="50%"
                     labelLine={true}
-                    innerRadius={60}
-                    outerRadius={120}
+                    innerRadius="45%"
+                    outerRadius="70%"
                     fill="#8884d8"
                     dataKey="value"
                     paddingAngle={2}
@@ -249,7 +242,7 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
                     wrapperStyle={{ paddingTop: "20px" }}
                   />
                 </PieChart>
-              </div>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>

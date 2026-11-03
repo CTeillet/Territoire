@@ -34,7 +34,7 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
   });
 
   return (
-    <div className="mt-6 border border-gray-200 bg-white p-6 rounded-lg shadow-sm">
+    <div className="mt-6 border border-gray-200 bg-white p-4 md:p-6 rounded-lg shadow-sm">
       <h2 className="text-lg font-semibold mb-2">📋 Historique</h2>
       {sortedAssignments.length === 0 ? (
         <p className="text-gray-500">Pas d&#39;historique pour ce territoire</p>

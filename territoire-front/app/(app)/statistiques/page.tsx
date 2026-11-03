@@ -76,10 +76,10 @@ const StatistiquesPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
             <BarChart3 className="h-8 w-8 text-primary" />
             Statistiques des Territoires
           </h1>
@@ -106,7 +106,7 @@ const StatistiquesPage = () => {
           >
             <SelectTrigger
               id="period-select"
-              className="w-[200px] bg-background"
+              className="w-full max-w-[200px] bg-background"
             >
               <SelectValue placeholder="Sélectionner une période" />
             </SelectTrigger>

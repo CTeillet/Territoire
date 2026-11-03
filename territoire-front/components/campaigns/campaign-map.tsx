@@ -173,10 +173,7 @@ const CampaignMap: React.FC<CampaignMapProps> = ({
             </div>
           </div>
         )}
-        <div
-          className="transition-all duration-500"
-          style={{ height: "780px", width: "100%" }}
-        >
+        <div className="h-[60svh] w-full transition-all duration-500 md:h-[780px]">
           <MapContainer
             center={center}
             zoom={15}

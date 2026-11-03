@@ -240,7 +240,7 @@ export default function CampaignDetailPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-6">
+    <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
       <Button
         variant="ghost"
         className="mb-8 text-base hover:bg-gray-100"
@@ -250,10 +250,12 @@ export default function CampaignDetailPage() {
         Retour aux campagnes
       </Button>
 
-      <div className="flex justify-between items-start mb-10">
+      <div className="flex flex-col gap-4 mb-6 md:flex-row md:justify-between md:items-start md:mb-10">
         <div>
-          <h1 className="text-4xl font-bold mb-2">{campaign.name}</h1>
-          <div className="flex items-center space-x-6 mb-3">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            {campaign.name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 mb-3">
             <div className="flex items-center">
               <Calendar className="h-5 w-5 mr-2 text-gray-500" />
               <span className="text-base">
@@ -275,7 +277,7 @@ export default function CampaignDetailPage() {
         </div>
 
         {!campaign.closed && canManage && (
-          <div className="flex space-x-4">
+          <div className="flex flex-wrap gap-4">
             <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
               <DialogTrigger asChild>
                 <Button
@@ -415,9 +417,9 @@ export default function CampaignDetailPage() {
                     .map(([cityName, territories]) => (
                       <div
                         key={cityName}
-                        className="border rounded-lg p-6 shadow-sm"
+                        className="border rounded-lg p-4 md:p-6 shadow-sm"
                       >
-                        <div className="flex justify-between items-center mb-5 pb-2 border-b">
+                        <div className="flex flex-wrap gap-2 justify-between items-center mb-5 pb-2 border-b">
                           <h3 className="text-xl font-semibold">{cityName}</h3>
                           {!campaign.closed && canEdit && (
                             <Button

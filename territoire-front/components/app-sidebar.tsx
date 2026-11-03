@@ -24,6 +24,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -109,6 +110,8 @@ export function AppSidebar() {
   const isClient = useIsClient();
   const canSeeRequests = isClient && canSendAccess(user?.role);
   const pendingRequests = usePendingRequestCount(canSeeRequests, pathname);
+  // Sur téléphone, le menu recouvre la page : il se referme une fois la page choisie
+  const { setOpenMobile } = useSidebar();
 
   // Check if any territory page is active
   const isTerritoryActive = pathname.startsWith("/territoires");
@@ -136,6 +139,7 @@ export function AppSidebar() {
       <SidebarMenuButton asChild>
         <Link
           href={item.url}
+          onClick={() => setOpenMobile(false)}
           className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200
                         ${isItemActive(item.url) ? "bg-gray-400 text-primary font-bold shadow-sm" : "hover:bg-gray-200"}`}
         >

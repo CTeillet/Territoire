@@ -12,6 +12,7 @@ import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/store/store";
 import { fetchTerritoryDistributionByCity } from "@/store/slices/territory-slice";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TerritoryDistribution {
   cityName: string;
@@ -50,6 +51,7 @@ export const TerritoryDistributionChart: React.FC<
   TerritoryDistributionChartProps
 > = ({ startDate, endDate, periodLabel }) => {
   const dispatch = useAppDispatch();
+  const isMobile = useIsMobile();
   const { territoryDistributionByCity, statisticsLoading, error } = useSelector(
     (state: RootState) => state.territories
   );
@@ -104,12 +106,15 @@ export const TerritoryDistributionChart: React.FC<
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                outerRadius={150}
+                outerRadius={isMobile ? "60%" : 150}
                 fill="#8884d8"
                 dataKey="territoryCount"
                 nameKey="cityName"
+                // Téléphone : pas la place pour le nom de la ville autour du graphique, la légende le donne
                 label={({ name, percent }) =>
-                  `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                  isMobile
+                    ? `${((percent ?? 0) * 100).toFixed(0)}%`
+                    : `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
                 }
               />
               <Tooltip content={<CustomTooltip />} />
