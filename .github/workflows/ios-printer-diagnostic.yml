@@ -1,0 +1,79 @@
+name: iOS - Diagnostic P710BT
+
+on:
+  push:
+    paths:
+      - "ios-printer-diagnostic/**"
+      - ".github/workflows/ios-printer-diagnostic.yml"
+  workflow_dispatch:
+    inputs:
+      extra_protocols:
+        description: "Protocoles supplémentaires confirmés par Brother, séparés par des virgules (facultatif)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-p710bt-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Tests du protocole et IPA iPhone non signé
+    runs-on: macos-15
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ios-printer-diagnostic
+        shell: bash
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      DIAGNOSTIC_EXTRA_PROTOCOLS: ${{ inputs.extra_protocols || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Tester le décodage et les commandes raster
+        run: swift test
+
+      - name: Préparer XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null; then
+            brew install xcodegen
+          fi
+
+      - name: Compiler pour un véritable iPhone et créer l'IPA
+        run: bash scripts/build-ipa.sh
+
+      - name: Rendre l'IPA et les journaux disponibles
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: p710bt-diagnostic-ios-unsigned
+          path: ios-printer-diagnostic/build/output/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Mode d'emploi
+        if: success()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+          ## Diagnostic PT-P710BT
+          Téléchargez l'artefact **p710bt-diagnostic-ios-unsigned**, puis décompressez-le.
+          Le fichier **TMSPrinterDiagnostic-unsigned.ipa** doit être signé et installé
+          depuis Windows avec Sideloadly ou AltStore Classic et votre propre compte Apple.
+          Avec un compte gratuit, la signature est à renouveler tous les 7 jours.
+
+          Ouvrez **Test P710BT** sur un véritable iPhone, puis :
+          1. Appairez la P710BT et fermez les autres apps Brother.
+          2. Actualisez, sélectionnez l'imprimante et ouvrez la connexion.
+          3. Touchez **Lire l'état**. Une réponse Brother valide la communication.
+          4. Lancez éventuellement une impression test, puis partagez le diagnostic.
+
+          Le build valide le code, pas le Bluetooth physique. Une liste vide ou
+          une session refusée ne permet pas à elle seule de conclure à une
+          incompatibilité : le protocole et l'autorisation MFi restent à vérifier.
+          SUMMARY
