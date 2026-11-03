@@ -59,6 +59,33 @@ describe("Page des campagnes", () => {
     expect(push).toHaveBeenCalledWith("/campagnes/c2");
   });
 
+  it("affiche une fiche par campagne sur téléphone", async () => {
+    const desktopWidth = window.innerWidth;
+    window.innerWidth = 375;
+    try {
+      mockApi({
+        "GET /api/campagnes": [
+          campaign(),
+          campaign({ id: "c2", name: "Campagne de printemps", closed: true }),
+        ],
+      });
+      renderWithStore(<CampaignsPage />);
+
+      const card = await screen.findByRole("button", {
+        name: /Campagne de printemps/,
+      });
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+      expect(card).toHaveTextContent("Terminée");
+      expect(card).toHaveTextContent("01 septembre 2026 → 31 octobre 2026");
+      expect(card).toHaveTextContent("3 territoires (2 utilisés)");
+
+      await userEvent.click(card);
+      expect(push).toHaveBeenCalledWith("/campagnes/c2");
+    } finally {
+      window.innerWidth = desktopWidth;
+    }
+  });
+
   it("propose de créer une première campagne quand il n'y en a aucune", async () => {
     mockApi({ "GET /api/campagnes": [] });
     renderWithStore(<CampaignsPage />);
