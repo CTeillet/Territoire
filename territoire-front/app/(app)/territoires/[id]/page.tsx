@@ -29,7 +29,7 @@ const TerritoryPage = () => {
   const router = useRouter();
 
   // Toujours exécuter les hooks avant toute condition
-  const { selectedTerritory, loading } = useSelector(
+  const { selectedTerritory } = useSelector(
     (state: RootState) => state.territories
   );
 
@@ -52,8 +52,9 @@ const TerritoryPage = () => {
     return <p>Redirection en cours...</p>;
   }
 
-  // Affichage du chargement si le territoire est en train de se récupérer
-  if (loading || !selectedTerritory) {
+  // Affichage du chargement si le territoire est en train de se récupérer (fetchTerritoryById le vide). Pas
+  // l'indicateur `loading` : partagé avec le chargement de tous les territoires par la carte, il masquerait la fiche
+  if (!selectedTerritory) {
     return <p>Chargement du territoire...</p>;
   }
 

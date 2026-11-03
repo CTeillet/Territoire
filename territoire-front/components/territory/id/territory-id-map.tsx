@@ -6,6 +6,7 @@ import {
   LayerGroup,
   LayersControl,
   MapContainer,
+  Pane,
   TileLayer,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -16,7 +17,11 @@ import {
   LeafletEvent,
   Map,
 } from "leaflet";
-import { PolygonProperties, Territory } from "@/models/territory";
+import {
+  PolygonProperties,
+  Territory,
+  TerritoryFeature,
+} from "@/models/territory";
 import {
   Feature,
   FeatureCollection,
@@ -25,8 +30,11 @@ import {
   Position,
 } from "geojson";
 import { GeomanControl } from "@/components/territory/id/geoman-controls";
-import { fetchTerritoryById } from "@/store/slices/territory-slice";
-import { useAppDispatch } from "@/store/store";
+import {
+  fetchTerritories,
+  fetchTerritoryById,
+} from "@/store/slices/territory-slice";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 import { authFetch } from "@/utils/auth-fetch";
 import MapUpdater from "@/components/territory/map-updater";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -35,6 +43,13 @@ import { City } from "@/models/city";
 interface GeomanCreateEvent extends LeafletEvent {
   layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
 }
+
+/** Nom d'un autre territoire au survol (textContent : le nom est une saisie utilisateur, jamais interprétée en HTML). */
+const onEachOtherTerritory = (feature: TerritoryFeature, layer: Layer) => {
+  const label = document.createElement("span");
+  label.textContent = feature.properties.name;
+  layer.bindTooltip(label, { sticky: true });
+};
 
 const TerritoryMap = ({
   territory,
@@ -88,6 +103,28 @@ const TerritoryMap = ({
   });
 
   const [geoJsonKey, setGeoJsonKey] = useState(0);
+
+  // Tous les territoires, pour situer celui-ci parmi les autres : ceux de la liste s'ils sont déjà chargés
+  const allTerritories = useAppSelector(
+    (state) => state.territories.territoriesGeojson
+  );
+
+  useEffect(() => {
+    if (!allTerritories) {
+      dispatch(fetchTerritories());
+    }
+  }, [dispatch, allTerritories]);
+
+  const otherTerritories = useMemo(
+    () =>
+      allTerritories && {
+        ...allTerritories,
+        features: allTerritories.features.filter(
+          (feature) => feature.properties.id !== territory.id
+        ),
+      },
+    [allTerritories, territory.id]
+  );
 
   const concaveHullFeature = useMemo(
     () =>
@@ -269,6 +306,22 @@ const TerritoryMap = ({
               onEachFeature={onEachBlock}
             />
           </LayerGroup>
+        </LayersControl.Overlay>
+
+        <LayersControl.Overlay name="Autres territoires" checked>
+          {/* Volet sous celui des couches (z-index 400) : les autres territoires restent sous le territoire et ses
+              pâtés, même réaffichés depuis le contrôle des couches */}
+          <Pane name="autres-territoires" style={{ zIndex: 350 }}>
+            <LayerGroup>
+              {otherTerritories && (
+                <GeoJSON
+                  data={otherTerritories}
+                  style={{ color: "#6b7280", weight: 1, fillOpacity: 0.15 }}
+                  onEachFeature={onEachOtherTerritory}
+                />
+              )}
+            </LayerGroup>
+          </Pane>
         </LayersControl.Overlay>
       </LayersControl>
       <GeomanControl position="topleft" oneBlock />

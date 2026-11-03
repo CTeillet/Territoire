@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -15,6 +16,7 @@ import TerritoryMapViewer from "@/components/territory/id/territory-map-viewer";
 import { Territory } from "@/models/territory";
 import { Assignment } from "@/models/assignment";
 import { TerritoryType } from "@/models/territory-type";
+import { fetchTerritories } from "@/store/slices/territory-slice";
 import {
   jsonResponse,
   mockApi,
@@ -130,6 +132,26 @@ describe("Page d'un territoire", () => {
         "Aucune carte n'a été téléchargée pour ce territoire."
       )
     ).toBeInTheDocument();
+  });
+
+  it("reste affichée pendant le chargement de tous les territoires (carte)", async () => {
+    mockApi({
+      "GET /api/territoires/t1": territory(),
+      "GET /api/territoires/geojson": () => new Promise(() => {}),
+      "GET /api/villes": [TEST_CITY],
+      "GET /api/personnes": [],
+    });
+    const { store } = renderWithStore(<TerritoryPage />);
+    expect(
+      await screen.findByRole("heading", { name: "R-12" })
+    ).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(fetchTerritories());
+    });
+
+    expect(store.getState().territories.loading).toBe(true);
+    expect(screen.getByRole("heading", { name: "R-12" })).toBeInTheDocument();
   });
 
   it("affiche le chargement puis redirige sans utilisateur connecté", async () => {
