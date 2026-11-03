@@ -83,7 +83,7 @@ export function LateReminderMessage({
         </h2>
       )}
       <p className="text-sm text-muted-foreground">
-        Saisissez votre message puis sauvegardez pour réutilisation.
+        Proposé à chaque relance d&apos;un territoire en retard.
       </p>
       <Textarea
         value={message}

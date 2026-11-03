@@ -80,8 +80,9 @@ const CreateUserDialog = ({ onCreate }: CreateUserDialogProps) => {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button aria-label="Ajouter un utilisateur">
+        <Button className="max-md:h-11 max-md:w-full">
           <Plus />
+          Ajouter un utilisateur
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

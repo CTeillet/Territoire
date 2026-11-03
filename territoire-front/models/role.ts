@@ -24,6 +24,13 @@ export const canManageAssignments = (role?: Role | null): boolean =>
 export const canManagePersons = (role?: Role | null): boolean =>
   role === "ADMIN" || role === "SUPERVISEUR";
 
+/**
+ * Réglages de l'assemblée, récapitulatif des retards et vérifications manuelles
+ * (cf. SettingController, LateTerritoryReportController, AssignmentController).
+ */
+export const canManageSettings = (role?: Role | null): boolean =>
+  role === "ADMIN" || role === "SUPERVISEUR";
+
 /** Mise à jour des territoires restants d'une campagne. */
 export const canEditCampaignProgress = (role?: Role | null): boolean =>
   canManageCampaigns(role) || role === "GESTIONNAIRE";

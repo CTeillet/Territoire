@@ -62,7 +62,7 @@ const ResetPasswordDialog = ({
       <AlertDialogTrigger asChild>
         <Button
           variant="outline"
-          className="p-2"
+          className="p-2 max-md:size-11"
           aria-label={`Réinitialiser le mot de passe de ${username}`}
         >
           <KeyRound size={18} />

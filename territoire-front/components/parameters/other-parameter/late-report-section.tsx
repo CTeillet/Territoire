@@ -104,9 +104,7 @@ export function LateReportSection({
         </h2>
       )}
       <p className="text-sm text-muted-foreground">
-        Chaque lundi à 8 h, la liste des territoires en retard (personne,
-        échéance, dernière relance) est envoyée à ces adresses. Laisser vide
-        pour ne rien envoyer.
+        Envoyé chaque lundi à 8 h à ces adresses ; vide, rien n&apos;est envoyé.
       </p>
       {!loading && !mailConfigured && (
         <p role="alert" className="text-sm text-amber-700">

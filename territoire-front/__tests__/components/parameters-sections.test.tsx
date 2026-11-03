@@ -16,9 +16,16 @@ vi.mock("@/components/parameters/user-management/user-management", () => ({
 vi.mock("@/components/parameters/city-management/city-management", () => ({
   default: () => <div>villes</div>,
 }));
-vi.mock("@/components/parameters/other-parameter/other-parameter", () => ({
-  default: () => <div>autres</div>,
+vi.mock("@/components/parameters/other-parameter/settings-tab", () => ({
+  default: () => <div>réglages</div>,
 }));
+vi.mock("@/components/parameters/other-parameter/data-tab", () => ({
+  default: () => <div>données</div>,
+}));
+vi.mock(
+  "@/components/parameters/other-parameter/label-printer-section",
+  () => ({ LabelPrinterSection: () => <div>imprimante</div> })
+);
 vi.mock("@/components/parameters/access/access-management", () => ({
   default: () => <div>accès</div>,
 }));
@@ -98,5 +105,50 @@ describe("Page Paramètres", () => {
     expect(
       screen.queryByRole("tab", { name: "Accès numériques" })
     ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      "ADMIN",
+      [
+        "Villes",
+        "Utilisateurs",
+        "Accès numériques",
+        "Réglages",
+        "Imprimante",
+        "Données",
+      ],
+    ],
+    [
+      "GESTIONNAIRE",
+      ["Villes", "Utilisateurs", "Accès numériques", "Imprimante", "Données"],
+    ],
+    ["UTILISATEUR", ["Villes", "Utilisateurs", "Données"]],
+  ] as const)("propose à %s les onglets utiles à son rôle", (role, tabs) => {
+    renderWithRole(<ParametersPage />, role);
+
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(
+      tabs
+    );
+  });
+
+  it("change de section depuis la liste déroulante du téléphone", async () => {
+    renderWithRole(<ParametersPage />, "UTILISATEUR");
+
+    const section = screen.getByRole("combobox", { name: "Section" });
+    expect(section).toHaveTextContent("Villes");
+    await userEvent.click(section);
+    expect(
+      screen.queryByRole("option", { name: "Accès numériques" })
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Données" })
+    );
+
+    expect(screen.getByText("données")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Données" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
   });
 });

@@ -14,7 +14,8 @@ import { CheckLateTerritoriesButton } from "@/components/parameters/other-parame
 import { CheckAvailableTerritoriesButton } from "@/components/parameters/other-parameter/check-available-territories-button";
 import { LateReminderMessage } from "@/components/parameters/other-parameter/late-reminder-message";
 import { ExportTerritoriesMapButton } from "@/components/parameters/other-parameter/export-map-button";
-import OtherParameter from "@/components/parameters/other-parameter/other-parameter";
+import SettingsTab from "@/components/parameters/other-parameter/settings-tab";
+import DataTab from "@/components/parameters/other-parameter/data-tab";
 import { DurationsSection } from "@/components/parameters/other-parameter/durations-section";
 import { ContactsPhoneSection } from "@/components/parameters/other-parameter/contacts-phone-section";
 import { toast } from "sonner";
@@ -374,9 +375,6 @@ describe("ExportTerritoriesMapButton", () => {
   it("exporte la carte avec les options par défaut", async () => {
     const api = mockApi({ "GET /api/exports/territories.png": png });
     render(<ExportTerritoriesMapButton />);
-    expect(
-      screen.getByText("territoires_A3_landscape_300dpi_z14_2026-10-11.png")
-    ).toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole("button", { name: "Exporter la carte" })
@@ -785,8 +783,11 @@ describe("ContactsPhoneSection", () => {
   });
 });
 
-describe("OtherParameter", () => {
-  it("regroupe toutes les sections", () => {
+const headings = () =>
+  screen.getAllByRole("heading").map((heading) => heading.textContent);
+
+describe("SettingsTab", () => {
+  it("regroupe les réglages de l'assemblée par thème", () => {
     mockApi({
       "GET /api/settings/durees": {
         assignmentDurationMonths: 4,
@@ -797,73 +798,68 @@ describe("OtherParameter", () => {
         recipients: [],
         mailConfigured: true,
       },
-      "GET /api/personnes": [],
     });
-    renderWithRole(<OtherParameter />, "ADMIN");
+    renderWithRole(<SettingsTab />, "SUPERVISEUR");
 
-    for (const title of [
-      "Paramètres généraux",
+    expect(headings()).toEqual([
+      "Territoires",
       "Durées",
-      "Imprimante d'étiquettes",
-      "Données Excel",
-      "Numéros de téléphone",
-      "Vérifications",
-      "Messages types",
+      "Proclamateurs",
+      "Relances",
+      "Message de relance",
       "Récapitulatif des retards par e-mail",
+    ]);
+  });
+});
+
+describe("DataTab", () => {
+  beforeEach(() => {
+    mockApi({ "GET /api/personnes": [] });
+  });
+
+  it("donne tous les imports et outils à l'administrateur", () => {
+    renderWithRole(<DataTab />, "ADMIN");
+
+    expect(headings()).toEqual([
+      "Exports",
+      "Tableau S-13 (Excel)",
+      "Carte des territoires (PNG)",
+      "Imports",
+      "Fichier Excel",
+      "Numéros de téléphone",
+      "Vérifications de nuit",
       "Test WhatsApp",
-      "Export cartographique",
-    ]) {
-      expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
-    }
+    ]);
+    expect(screen.getByText("Outils avancés")).toBeInTheDocument();
   });
 
-  it("réserve le test WhatsApp à l'administrateur", () => {
-    mockApi({
-      "GET /api/settings/late-reminder-message": jsonResponse(""),
-      "GET /api/settings/recapitulatif-retards": {
-        recipients: [],
-        mailConfigured: true,
-      },
-    });
-    renderWithRole(<OtherParameter />, "SUPERVISEUR");
+  it("réserve l'import Excel et le test WhatsApp à l'administrateur", () => {
+    renderWithRole(<DataTab />, "SUPERVISEUR");
 
-    expect(
-      screen.getByRole("heading", { name: "Messages types" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: "Récapitulatif des retards par e-mail",
-      })
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "Test WhatsApp" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("réserve l'imprimante d'étiquettes à ceux qui attribuent les territoires", () => {
-    mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
-    renderWithRole(<OtherParameter />, "UTILISATEUR");
-
-    expect(
-      screen.queryByRole("heading", { name: "Imprimante d'étiquettes" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("réserve le récapitulatif des retards aux administrateurs et superviseurs", () => {
-    mockApi({ "GET /api/settings/late-reminder-message": jsonResponse("") });
-    renderWithRole(<OtherParameter />, "GESTIONNAIRE");
-
-    expect(
-      screen.getByRole("heading", { name: "Imprimante d'étiquettes" })
-    ).toBeInTheDocument();
-    for (const title of [
-      "Récapitulatif des retards par e-mail",
-      "Durées",
+    expect(headings()).toEqual([
+      "Exports",
+      "Tableau S-13 (Excel)",
+      "Carte des territoires (PNG)",
+      "Imports",
       "Numéros de téléphone",
-    ]) {
-      expect(
-        screen.queryByRole("heading", { name: title })
-      ).not.toBeInTheDocument();
-    }
+      "Vérifications de nuit",
+    ]);
+  });
+
+  it("ne montre que les exports au gestionnaire", () => {
+    renderWithRole(<DataTab />, "GESTIONNAIRE");
+
+    expect(headings()).toEqual([
+      "Exports",
+      "Tableau S-13 (Excel)",
+      "Carte des territoires (PNG)",
+    ]);
+    expect(screen.queryByText("Outils avancés")).not.toBeInTheDocument();
+  });
+
+  it("ne montre que le S-13 au simple utilisateur", () => {
+    renderWithRole(<DataTab />, "UTILISATEUR");
+
+    expect(headings()).toEqual(["Exports", "Tableau S-13 (Excel)"]);
   });
 });

@@ -142,10 +142,9 @@ export function ContactsPhoneSection({
         <h2 className="text-lg font-semibold">Numéros de téléphone</h2>
       )}
       <p className="text-sm text-muted-foreground">
-        Complète les numéros des personnes déjà enregistrées à partir des
-        contacts du téléphone, en les reconnaissant par leur nom. Aucune
-        personne n&#39;est créée. Sur iPhone : app Contacts, Listes, appui long
-        sur une liste, Exporter, puis Enregistrer dans Fichiers.
+        Complète les numéros des personnes enregistrées depuis les contacts du
+        téléphone (.vcf), d&apos;après leur nom. Sur iPhone : Contacts, Listes,
+        appui long sur une liste, Exporter.
       </p>
       <Input
         type="file"
