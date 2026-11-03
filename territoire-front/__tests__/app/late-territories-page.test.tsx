@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { addMonths, format } from "date-fns";
 import LateTerritoriesPage from "@/app/(app)/territoires/retards/page";
 import { toast } from "sonner";
 import { mockApi, renderWithStore, jsonResponse } from "../test-utils";
@@ -374,6 +375,156 @@ describe("Page des territoires en retard", () => {
       "/api/territory-reminders?territoryIds=t1&personId=p1",
       "/api/territory-reminders?territoryIds=t2&personId=p1",
     ]);
+  });
+
+  describe("prolongation", () => {
+    // Réponse du serveur : nouvelle attribution, le territoire est de nouveau attribué
+    const extension = (territoryId: string) => ({
+      id: `as-${territoryId}`,
+      territory: { territoryId, status: "ASSIGNED" },
+      assignmentDate: "2026-11-03",
+      dueDate: "2027-03-03",
+      returnDate: null,
+    });
+
+    // Durée par défaut : celle des paramètres (4 mois sans réglage)
+    const extensionUrl = (territoryId: string) =>
+      `/api/territoires/${territoryId}/prolongation?dueDate=${format(
+        addMonths(new Date(), 4),
+        "yyyy-MM-dd"
+      )}`;
+
+    const extensionCalls = () =>
+      api.mock.calls
+        .map(([url]) => url)
+        .filter((url) => url.includes("/prolongation"));
+
+    const jeanGroup = async () =>
+      (await screen.findByText("JEAN Dupont")).closest(
+        "div.border"
+      )! as HTMLElement;
+
+    const openJeanGroup = async () => {
+      const header = await jeanGroup();
+      await userEvent.click(
+        within(header).getByRole("button", { name: "Déplier le groupe" })
+      );
+      await within(header).findByText("R-12");
+      return header;
+    };
+
+    const extendButton = (header: HTMLElement, territoryName: string) =>
+      within(
+        within(header).getByText(territoryName).closest("tr")! as HTMLElement
+      ).getByRole("button", { name: "Prolongation du territoire" });
+
+    const confirmExtension = async (title: string) => {
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText(title)).toBeInTheDocument();
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Confirmer" })
+      );
+    };
+
+    it("prolonge un territoire sans quitter la page, qui le retire des retards", async () => {
+      setup([], { "POST /api/territoires/t1/prolongation": extension("t1") });
+      renderWithStore(<LateTerritoriesPage />);
+      const header = await openJeanGroup();
+
+      await userEvent.click(extendButton(header, "R-12"));
+      await confirmExtension("Prolongation du territoire R-12");
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          "Territoire R-12 prolongé jusqu'au 03 mars 2027"
+        )
+      );
+      expect(extensionCalls()).toEqual([extensionUrl("t1")]);
+      await waitFor(() =>
+        expect(within(header).queryByText("R-12")).not.toBeInTheDocument()
+      );
+      expect(within(header).getByText("R-13")).toBeInTheDocument();
+    });
+
+    it("prolonge tous les territoires d'une personne, dont le groupe disparaît", async () => {
+      setup([], {
+        "POST /api/territoires/t1/prolongation": extension("t1"),
+        "POST /api/territoires/t2/prolongation": extension("t2"),
+      });
+      renderWithStore(<LateTerritoriesPage />);
+      const header = await jeanGroup();
+
+      await userEvent.click(
+        within(header).getByRole("button", { name: "Prolonger" })
+      );
+      await confirmExtension("Prolongation des territoires R-12, R-13");
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          "Territoires R-12, R-13 prolongés jusqu'au 03 mars 2027"
+        )
+      );
+      expect(extensionCalls()).toEqual([
+        extensionUrl("t1"),
+        extensionUrl("t2"),
+      ]);
+      await waitFor(() =>
+        expect(screen.queryByText("JEAN Dupont")).not.toBeInTheDocument()
+      );
+      expect(screen.getByText("Personne Inconnue")).toBeInTheDocument();
+    });
+
+    it("signale les territoires non prolongés et les garde en retard", async () => {
+      setup([], {
+        "POST /api/territoires/t1/prolongation": extension("t1"),
+        "POST /api/territoires/t2/prolongation": jsonResponse(
+          "Aucune attribution en cours",
+          409
+        ),
+      });
+      renderWithStore(<LateTerritoriesPage />);
+      const header = await jeanGroup();
+
+      await userEvent.click(
+        within(header).getByRole("button", { name: "Prolonger" })
+      );
+      await confirmExtension("Prolongation des territoires R-12, R-13");
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          "Territoire R-12 prolongé jusqu'au 03 mars 2027"
+        )
+      );
+      expect(toast.error).toHaveBeenCalledWith(
+        "Territoire R-13 non prolongé : Aucune attribution en cours"
+      );
+      await waitFor(() =>
+        expect(within(header).getByText("1 territoire(s)")).toBeInTheDocument()
+      );
+      await userEvent.click(
+        within(header).getByRole("button", { name: "Déplier le groupe" })
+      );
+      expect(await within(header).findByText("R-13")).toBeInTheDocument();
+      expect(within(header).queryByText("R-12")).not.toBeInTheDocument();
+    });
+
+    it("n'est pas proposée sans droit sur les attributions", async () => {
+      setup();
+      renderWithStore(<LateTerritoriesPage />, "UTILISATEUR");
+      const header = await openJeanGroup();
+
+      expect(
+        within(header).getAllByRole("link", { name: "Voir les détails" })
+      ).toHaveLength(2);
+      expect(
+        within(header).queryByRole("button", {
+          name: "Prolongation du territoire",
+        })
+      ).not.toBeInTheDocument();
+      expect(
+        within(header).queryByRole("button", { name: "Prolonger" })
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe("tri des groupes", () => {

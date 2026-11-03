@@ -14,7 +14,7 @@ import { DataTableColumnHeader } from "@/components/territory/territory-data-hea
 import { ReminderStatusBadge } from "./reminder-status-badge";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ActionButton from "@/components/shared/action-button";
-import { Eye } from "lucide-react";
+import { Eye, IterationCcw } from "lucide-react";
 // import {ReminderDialog} from "@/components/late-territory/reminder-dialog";
 
 interface LateTerritoriesTableProps {
@@ -46,9 +46,11 @@ export function LateTerritoriesTable({
 }
 
 // Helper function to create columns with formatDate, hasReminder, and sendReminder functions
+// Sans onExtend (utilisateur sans droit d'attribution), pas de bouton de prolongation
 export function createLateTerritoriesColumns(
   formatDate: (dateString: string | null) => string,
-  hasReminder: (territory: Territory, personId: string) => boolean
+  hasReminder: (territory: Territory, personId: string) => boolean,
+  onExtend?: (territory: Territory) => void
 ): ColumnDef<DataTableFeatures, Territory, unknown>[] {
   return [
     {
@@ -95,12 +97,22 @@ export function createLateTerritoriesColumns(
       header: "Actions",
       cell: ({ row }) => (
         <TooltipProvider>
-          <ActionButton
-            icon={Eye}
-            tooltip="Voir les détails"
-            href={`/territoires/${row.original.id}`}
-            className="bg-gray-500 hover:bg-gray-600 text-white"
-          />
+          <div className="flex justify-center space-x-2">
+            <ActionButton
+              icon={Eye}
+              tooltip="Voir les détails"
+              href={`/territoires/${row.original.id}`}
+              className="bg-gray-500 hover:bg-gray-600 text-white"
+            />
+            {onExtend && (
+              <ActionButton
+                icon={IterationCcw}
+                tooltip="Prolongation du territoire"
+                onClick={() => onExtend(row.original)}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+              />
+            )}
+          </div>
         </TooltipProvider>
       ),
     },
