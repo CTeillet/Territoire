@@ -84,9 +84,10 @@ export function LabelPrinterSection({
       await connectLabelPrinter();
       toast.success("Imprimante d'étiquettes choisie pour cet appareil");
     } catch (error) {
-      // NotFoundError : fenêtre de choix fermée sans sélection
+      // NotFoundError : fenêtre de choix fermée sans sélection. Les autres messages disent quoi vérifier :
+      // le temps de les lire
       if ((error as Error).name !== "NotFoundError") {
-        toast.error((error as Error).message);
+        toast.error((error as Error).message, { duration: 10_000 });
       }
     }
     await refresh();
