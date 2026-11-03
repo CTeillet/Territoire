@@ -1,49 +1,25 @@
 import SwiftUI
 
-/// Label printer screen, over TMS: pending label, connection, test label and diagnostics.
+/// Label printer screen, over TMS: pairing, connection, test label and diagnostics.
 struct PrinterView: View {
     @ObservedObject var model: PrinterController
     @Environment(\.dismiss) private var dismiss
     @State private var confirmPrint = false
     @State private var confirmInitialize = false
-    @AppStorage("autoPrintTMSLinks") private var autoPrintTMSLinks = false
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Imprimez les étiquettes reçues depuis TMS sur votre Brother PT-P710BT.")
-                    Text("Appairez l'imprimante dans les réglages Bluetooth et fermez les autres apps Brother. Gardez cette app au premier plan jusqu'à la fin de l'impression.")
+                    Text("TMS imprime les étiquettes d'attribution sur votre Brother PT-P710BT, après une attribution ou depuis la fiche du territoire, et affiche le résultat.")
+                    Text("Appairez l'imprimante dans les réglages Bluetooth et fermez les autres apps Brother. Gardez TMS au premier plan jusqu'à la fin de l'impression.")
                         .font(.callout).foregroundStyle(.secondary)
                     #if targetEnvironment(simulator)
                     Text("Simulateur : l'accès Bluetooth MFi ne peut être testé que sur un véritable iPhone.")
                         .foregroundStyle(.orange)
                     #endif
                 }
-                Section("Étiquette TMS") {
-                    if let request = model.pendingRequest {
-                        Text(request.name).font(.title3.bold())
-                        Text(request.dateLine)
-                        Button("Imprimer cette étiquette") { model.printRequestedLabel() }
-                            .disabled(!model.canPrintRequest)
-                        Text("Après impression, fermez cette fenêtre pour revenir à TMS.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        Text("TMS imprime l'étiquette après une attribution ou depuis la fiche du territoire, et affiche le résultat. L'impression automatique se règle dans Paramètres > Autres paramètres > Imprimante d'étiquettes.")
-                            .font(.callout)
-                    }
-                    Toggle("Imprimer automatiquement les liens venus de Safari", isOn: $autoPrintTMSLinks)
-                        .disabled(model.isBusy)
-                    Text("Pour les liens d'impression ouverts depuis Safari ou une app web de l'écran d'accueil : une fois activé, un lien lance l'étiquette sans confirmation. Sinon, vous pouvez vérifier le nom et la date avant d'imprimer.")
-                        .font(.caption).foregroundStyle(.secondary)
-                    if model.isBusy { ProgressView() }
-                    Text(model.message).textSelection(.enabled)
-                    if model.printOutcomeUnknown {
-                        Text("Vérifiez la sortie de l'imprimante avant de redemander une étiquette dans TMS. Cette demande ne sera pas renvoyée automatiquement.")
-                            .font(.callout).foregroundStyle(.orange)
-                    }
-                }
-                Section("Progression") {
+                Section("État") {
                     milestone("P710BT visible pour cette app", reached: model.accessories.contains { $0.isP710BT })
                     milestone("Session ouverte", reached: model.isConnected)
                     milestone("Réponse Brother reçue sur cette session", reached: model.communicationConfirmed)
@@ -82,7 +58,7 @@ struct PrinterView: View {
                             .foregroundStyle(.orange)
                     }
                 }
-                Section("Connexion et état") {
+                Section("Connexion") {
                     Button("Ouvrir la connexion") { model.connect() }.disabled(!model.canConnect)
                     Button("Lire l'état — sans imprimer") { model.readStatus() }
                         .disabled(!model.isConnected || model.isBusy)
@@ -90,6 +66,10 @@ struct PrinterView: View {
                         .disabled(!model.hasSession && !model.isBusy)
                     if model.isBusy { ProgressView().frame(maxWidth: .infinity) }
                     Text(model.message).textSelection(.enabled)
+                    if model.printOutcomeUnknown {
+                        Text("Une étiquette a peut-être déjà été imprimée : vérifiez la sortie de l'imprimante avant de réessayer, ici ou dans TMS. Rien n'est renvoyé automatiquement.")
+                            .font(.callout).foregroundStyle(.orange)
+                    }
                     if let status = model.lastStatus {
                         Text("Dernier état reçu : \(status.summary)").font(.caption).textSelection(.enabled)
                     }
@@ -99,10 +79,6 @@ struct PrinterView: View {
                         .font(.caption)
                     Button("Imprimer une étiquette de test…") { confirmPrint = true }
                         .disabled(!model.isConnected || !model.communicationConfirmed || model.isBusy)
-                    if model.printOutcomeUnknown {
-                        Text("Une étiquette a peut-être déjà été imprimée. Vérifiez physiquement la sortie avant de réessayer.")
-                            .font(.callout).foregroundStyle(.orange)
-                    }
                 }
                 Section {
                     DisclosureGroup("Diagnostic avancé") {

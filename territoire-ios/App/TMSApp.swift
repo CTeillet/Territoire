@@ -10,8 +10,6 @@ struct TMSApp: App {
         WindowGroup {
             TMSRootView(web: model.web) { model.showsPrinter = true }
                 .sheet(isPresented: $model.showsPrinter) { PrinterView(model: model.printer) }
-                // From Safari or a home screen web app, as with TMS Impression.
-                .onOpenURL { model.receivePrintLink($0) }
                 .onChange(of: scenePhase) { phase in
                     if phase == .active { model.printer.resume() }
                     if phase == .background { model.printer.suspend() }
@@ -22,7 +20,7 @@ struct TMSApp: App {
     }
 }
 
-/// Links the TMS page to the printer: label links, prints asked for by the page and the printer screen.
+/// Links the TMS page to the printer: prints asked for by the page and the printer screen.
 @MainActor
 final class TMSAppModel: ObservableObject, TMSWebHost {
     let web: TMSWebModel
@@ -33,11 +31,6 @@ final class TMSAppModel: ObservableObject, TMSWebHost {
         web = TMSWebModel()
         printer = PrinterController()
         web.host = self
-    }
-
-    func receivePrintLink(_ url: URL) {
-        printer.receivePrintRequest(url)
-        showsPrinter = true
     }
 
     func handle(_ command: PrinterBridgeCommand) async -> [String: Any] {

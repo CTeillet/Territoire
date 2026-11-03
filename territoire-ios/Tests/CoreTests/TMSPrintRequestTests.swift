@@ -5,38 +5,26 @@ import XCTest
 final class TMSPrintRequestTests: XCTestCase {
     private let identifier = "24f49820-801c-4f63-bbd9-526cab9e6743"
 
-    private func link(name: String = "Élodie D.", date: String = "2028-02-29") -> URL {
-        var components = URLComponents(string: "tmsprint://print")!
-        components.queryItems = [URLQueryItem(name: "v", value: "1"), URLQueryItem(name: "id", value: identifier),
-                                URLQueryItem(name: "name", value: name), URLQueryItem(name: "dueDate", value: date)]
-        return components.url!
+    private func request(id: String? = nil, name: String = "Élodie D.", date: String = "2028-02-29") throws -> TMSPrintRequest {
+        try TMSPrintRequest(id: id ?? identifier, name: name, dueDate: date)
     }
 
-    func testDecodesUnicodeAndPreservesCalendarDate() throws {
-        let request = try TMSPrintRequest(url: link(name: "Élodie & Jean + S."))
-        XCTAssertEqual(request.name, "Élodie & Jean + S.")
-        XCTAssertEqual(request.dateLine, "À rendre le 29/02/2028")
-        // Exact format emitted by JavaScript encodeURIComponent, including spaces and accents.
-        let web = URL(string: "tmsprint://print?v=1&id=\(identifier)&name=%C3%89lodie%20%26%20Jean%20%2B%20S.&dueDate=2028-02-29")!
-        XCTAssertEqual(try TMSPrintRequest(url: web), request)
+    func testKeepsUnicodeAndTheCalendarDate() throws {
+        let label = try request(name: "Élodie & Jean + S.")
+        XCTAssertEqual(label.id, UUID(uuidString: identifier))
+        XCTAssertEqual(label.name, "Élodie & Jean + S.")
+        XCTAssertEqual(label.dateLine, "À rendre le 29/02/2028")
     }
 
-    func testRefusesAmbiguousOrUnboundedLinks() {
-        for text in ["", "\nAlice", "Alice\u{0000}", String(repeating: "é", count: 129)] {
-            XCTAssertThrowsError(try TMSPrintRequest(url: link(name: text)))
+    func testRefusesAmbiguousOrUnboundedLabels() {
+        for text in ["", "  ", "\nAlice", "Alice\u{0000}", String(repeating: "é", count: 129)] {
+            XCTAssertThrowsError(try request(name: text))
         }
-        for date in ["2027-02-29", "2027-04-31", "2027-13-01", "2027-00-01", "2027-01-00", "2027-1-01", "2027-01-01T12:00:00Z"] {
-            XCTAssertThrowsError(try TMSPrintRequest(url: link(date: date)), date)
+        for date in ["2027-02-29", "2027-04-31", "2027-13-01", "2027-00-01", "2027-01-00", "2027-1-01", "2027-01-01T12:00:00Z", "1899-12-31"] {
+            XCTAssertThrowsError(try request(date: date), date)
         }
-        let valid = link().absoluteString
-        for invalid in [valid + "&name=Other", valid + "&command=print", valid + "#fragment",
-                        valid.replacingOccurrences(of: "v=1", with: "v=2"),
-                        valid.replacingOccurrences(of: "tmsprint:", with: "https:"),
-                        valid.replacingOccurrences(of: "//print?", with: "//print/other?"),
-                        valid.replacingOccurrences(of: "//print?", with: "//user@print?"),
-                        valid.replacingOccurrences(of: identifier, with: "bad-id")] {
-            XCTAssertThrowsError(try TMSPrintRequest(url: URL(string: invalid)!))
-        }
+        XCTAssertThrowsError(try request(id: "bad-id"))
+        XCTAssertNoThrow(try request(name: String(repeating: "é", count: 128)))
     }
 
     func testHistorySurvivesRestartAndDoesNotRepeatAJob() {

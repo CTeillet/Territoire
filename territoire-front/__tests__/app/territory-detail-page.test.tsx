@@ -19,7 +19,6 @@ import { Assignment } from "@/models/assignment";
 import { TerritoryType } from "@/models/territory-type";
 import { fetchTerritories } from "@/store/slices/territory-slice";
 import * as assignmentLabel from "@/lib/assignment-label";
-import { setNativeLabelPrintingEnabled } from "@/lib/iphone-label-printer";
 import {
   jsonResponse,
   mockApi,
@@ -627,50 +626,7 @@ describe("Historique des attributions", () => {
     }
   });
 
-  it("sur iPhone avec l'app native choisie, permet de réimprimer avec l'échéance actuelle", async () => {
-    stubIPhone();
-    setNativeLabelPrintingEnabled(true);
-    render(<Toaster />);
-    try {
-      renderWithStore(
-        <AssignmentsList
-          assignments={[
-            assignment({ dueDate: "2027-04-15" }),
-            assignment({ id: "as0", returnDate: "2026-08-01" }),
-          ]}
-        />
-      );
-      const buttons = await screen.findAllByRole("button", {
-        name: "Imprimer avec TMS Impression",
-      });
-      expect(buttons).toHaveLength(1);
-      await userEvent.click(buttons[0]);
-      const first = new URL(
-        (await screen.findByRole("link", { name: "Imprimer" })).getAttribute(
-          "href"
-        )!
-      );
-      expect(first.searchParams.get("dueDate")).toBe("2027-04-15");
-      await userEvent.click(buttons[0]);
-      await waitFor(() => {
-        const second = new URL(
-          screen.getByRole("link", { name: "Imprimer" }).getAttribute("href")!
-        );
-        expect(second.searchParams.get("id")).not.toBe(
-          first.searchParams.get("id")
-        );
-      });
-    } finally {
-      setNativeLabelPrintingEnabled(false);
-      act(() => {
-        toast.dismiss();
-      });
-    }
-  });
-
   it("dans l'app iOS TMS, réimprime directement par l'app avec l'échéance actuelle", async () => {
-    // Choix de Safari resté dans le stockage : sans effet dans l'app
-    setNativeLabelPrintingEnabled(true);
     const postMessage = stubNativeApp();
     try {
       renderWithStore(
@@ -685,8 +641,9 @@ describe("Historique des attributions", () => {
         name: "Imprimer l'étiquette",
       });
       expect(buttons).toHaveLength(1);
+      // Pas de fichier LBX dans l'app
       expect(
-        screen.queryByRole("button", { name: "Imprimer avec TMS Impression" })
+        screen.queryByRole("button", { name: "Télécharger l'étiquette" })
       ).not.toBeInTheDocument();
 
       await userEvent.click(buttons[0]);
@@ -701,7 +658,6 @@ describe("Historique des attributions", () => {
         )
       );
     } finally {
-      setNativeLabelPrintingEnabled(false);
       unstubNativeApp();
       act(() => {
         toast.dismiss();
