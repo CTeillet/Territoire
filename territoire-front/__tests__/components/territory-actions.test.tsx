@@ -56,6 +56,13 @@ describe("Boutons d'action d'un territoire", () => {
 
   const button = (name: string) => screen.getByRole("button", { name });
 
+  // Hors action principale, les actions sont dans le menu « Plus d'actions »
+  const openMenu = () => userEvent.click(button("Plus d'actions"));
+  const chooseInMenu = async (name: string) => {
+    await openMenu();
+    await userEvent.click(await screen.findByRole("menuitem", { name }));
+  };
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
@@ -68,17 +75,19 @@ describe("Boutons d'action d'un territoire", () => {
       <TerritoryDataActionButtons territoryId="t1" status="AVAILABLE" />
     );
 
+    expect(button("Assigner")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Voir les détails" })
+      screen.queryByRole("button", { name: "Retour en stock" })
+    ).not.toBeInTheDocument();
+    await openMenu();
+    expect(
+      screen.getByRole("menuitem", { name: "Voir les détails" })
     ).toHaveAttribute("href", "/territoires/t1");
-    expect(button("Assignation du territoire")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", {
-        name: "Retour du territoire dans le stock",
-      })
+      screen.queryByRole("menuitem", { name: "Voir la carte" })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Voir la carte du territoire" })
+      screen.queryByRole("menuitem", { name: "Annuler l'assignation" })
     ).not.toBeInTheDocument();
   });
 
@@ -92,7 +101,7 @@ describe("Boutons d'action d'un territoire", () => {
     );
     await waitFor(() => expect(api).toHaveBeenCalledWith("/api/personnes"));
 
-    await userEvent.click(button("Assignation du territoire"));
+    await userEvent.click(button("Assigner"));
     await userEvent.click(await screen.findByRole("combobox"));
     await userEvent.click(await screen.findByText("Anne Martin"));
     await userEvent.click(screen.getByText("Confirmer l'assignation"));
@@ -116,7 +125,7 @@ describe("Boutons d'action d'un territoire", () => {
         <TerritoryDataActionButtons territoryId="t1" status="AVAILABLE" />
       );
       await waitFor(() => expect(api).toHaveBeenCalledWith("/api/personnes"));
-      await userEvent.click(button("Assignation du territoire"));
+      await userEvent.click(button("Assigner"));
       await userEvent.click(await screen.findByRole("combobox"));
       await userEvent.click(await screen.findByText("Anne Martin"));
       await userEvent.click(screen.getByText("Confirmer l'assignation"));
@@ -219,7 +228,7 @@ describe("Boutons d'action d'un territoire", () => {
       />
     );
 
-    await userEvent.click(button("Assignation du territoire"));
+    await userEvent.click(button("Assigner"));
     await userEvent.type(
       await screen.findByPlaceholderText("Prénom"),
       " Paul "
@@ -240,8 +249,9 @@ describe("Boutons d'action d'un territoire", () => {
       firstName: "Paul",
       lastName: "Durand",
     });
+    await openMenu();
     expect(
-      screen.queryByRole("link", { name: "Voir les détails" })
+      screen.queryByRole("menuitem", { name: "Voir les détails" })
     ).not.toBeInTheDocument();
   });
 
@@ -251,7 +261,7 @@ describe("Boutons d'action d'un territoire", () => {
       <TerritoryDataActionButtons territoryId="t1" status="AVAILABLE" />
     );
 
-    await userEvent.click(button("Assignation du territoire"));
+    await userEvent.click(button("Assigner"));
     await userEvent.type(await screen.findByPlaceholderText("Prénom"), "Paul");
     await userEvent.type(screen.getByPlaceholderText("Nom"), "Durand");
     await userEvent.click(screen.getByText("Confirmer l'assignation"));
@@ -267,8 +277,14 @@ describe("Boutons d'action d'un territoire", () => {
     );
   });
 
+  // Le retour est l'action principale, l'annulation est rangée dans le menu
+  const trigger = (action: string) =>
+    action === "Retour en stock"
+      ? userEvent.click(button(action))
+      : chooseInMenu(action);
+
   it.each([
-    ["Retour du territoire dans le stock", "/api/territoires/t1/retour"],
+    ["Retour en stock", "/api/territoires/t1/retour"],
     ["Annuler l'assignation", "/api/territoires/t1/annuler-assignation"],
   ])("%s après confirmation", async (action, url) => {
     setup();
@@ -276,7 +292,7 @@ describe("Boutons d'action d'un territoire", () => {
       <TerritoryDataActionButtons territoryId="t1" status="LATE" />
     );
 
-    await userEvent.click(button(action));
+    await trigger(action);
     await userEvent.click(
       within(await screen.findByRole("dialog")).getByRole("button", {
         name: "Confirmer",
@@ -296,7 +312,7 @@ describe("Boutons d'action d'un territoire", () => {
 
   it.each([
     [
-      "Retour du territoire dans le stock",
+      "Retour en stock",
       "POST /api/territoires/t1/retour",
       "❌ Erreur lors du retour du territoire :",
     ],
@@ -306,7 +322,7 @@ describe("Boutons d'action d'un territoire", () => {
       "❌ Erreur lors de l'annulation de l'assignation :",
     ],
     [
-      "Prolongation du territoire",
+      "Prolonger",
       "POST /api/territoires/t1/prolongation",
       "❌ Erreur lors de la prolongation du territoire :",
     ],
@@ -316,7 +332,7 @@ describe("Boutons d'action d'un territoire", () => {
       <TerritoryDataActionButtons territoryId="t1" status="ASSIGNED" />
     );
 
-    await userEvent.click(button(action));
+    await trigger(action);
     await userEvent.click(
       within(await screen.findByRole("dialog")).getByRole("button", {
         name: "Confirmer",
@@ -334,7 +350,7 @@ describe("Boutons d'action d'un territoire", () => {
       <TerritoryDataActionButtons territoryId="t1" status="ASSIGNED" />
     );
 
-    await userEvent.click(button("Prolongation du territoire"));
+    await chooseInMenu("Prolonger");
     await userEvent.click(
       within(await screen.findByRole("dialog")).getByRole("button", {
         name: "Confirmer",
@@ -357,7 +373,7 @@ describe("Boutons d'action d'un territoire", () => {
       "GESTIONNAIRE"
     );
 
-    await userEvent.click(button("Signaler comme perdu"));
+    await chooseInMenu("Signaler comme perdu");
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith("/api/territoires/t1/perdu", {
         method: "PUT",
@@ -371,7 +387,7 @@ describe("Boutons d'action d'un territoire", () => {
       <TerritoryDataActionButtons territoryId="t1" status="ASSIGNED" lost />,
       "GESTIONNAIRE"
     );
-    await userEvent.click(button("Retirer des territoires perdus"));
+    await chooseInMenu("Retirer des territoires perdus");
     await waitFor(() =>
       expect(api).toHaveBeenLastCalledWith("/api/territoires/t1/perdu", {
         method: "PUT",
@@ -381,7 +397,7 @@ describe("Boutons d'action d'un territoire", () => {
     );
   });
 
-  it("masque les actions de gestion à un simple utilisateur", () => {
+  it("masque les actions de gestion à un simple utilisateur", async () => {
     setup();
     renderWithStore(
       <TerritoryDataActionButtons territoryId="t1" status="ASSIGNED" />,
@@ -389,18 +405,20 @@ describe("Boutons d'action d'un territoire", () => {
     );
 
     expect(
-      screen.queryByRole("button", {
-        name: "Retour du territoire dans le stock",
-      })
+      screen.queryByRole("button", { name: "Retour en stock" })
     ).not.toBeInTheDocument();
+    await openMenu();
     expect(
-      screen.queryByRole("button", {
-        name: "Télécharger une carte de territoire",
-      })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Signaler comme perdu" })
-    ).not.toBeInTheDocument();
+      screen.getByRole("menuitem", { name: "Voir les détails" })
+    ).toBeInTheDocument();
+    for (const name of [
+      "Prolonger",
+      "Importer une carte",
+      "Signaler comme perdu",
+      "Annuler l'assignation",
+    ]) {
+      expect(screen.queryByRole("menuitem", { name })).not.toBeInTheDocument();
+    }
   });
 
   it("téléverse une carte de territoire puis recharge la page", async () => {
@@ -415,7 +433,7 @@ describe("Boutons d'action d'un territoire", () => {
     ) as HTMLInputElement;
     const click = vi.spyOn(input, "click");
 
-    await userEvent.click(button("Télécharger une carte de territoire"));
+    await chooseInMenu("Importer une carte");
     expect(click).toHaveBeenCalled();
 
     await userEvent.upload(
@@ -477,11 +495,16 @@ describe("Boutons d'action d'un territoire", () => {
       />
     );
 
-    await userEvent.click(button("Voir la carte du territoire"));
+    await chooseInMenu("Voir la carte");
 
     await waitFor(() =>
       expect(open).toHaveBeenCalledWith("blob:carte", "_blank")
     );
+    // Une carte existe déjà : l'import la remplace
+    await openMenu();
+    expect(
+      screen.getByRole("menuitem", { name: "Remplacer la carte" })
+    ).toBeInTheDocument();
   });
 
   it("journalise l'échec de l'ouverture de la carte", async () => {
@@ -494,7 +517,7 @@ describe("Boutons d'action d'un territoire", () => {
       />
     );
 
-    await userEvent.click(button("Voir la carte du territoire"));
+    await chooseInMenu("Voir la carte");
     await waitFor(() =>
       expect(console.error).toHaveBeenCalledWith(
         "❌ Erreur lors de la récupération de la carte du territoire"
@@ -502,7 +525,7 @@ describe("Boutons d'action d'un territoire", () => {
     );
 
     api.mockRejectedValueOnce(new Error("réseau"));
-    await userEvent.click(button("Voir la carte du territoire"));
+    await chooseInMenu("Voir la carte");
     await waitFor(() =>
       expect(console.error).toHaveBeenCalledWith(
         "❌ Erreur lors de la récupération de la carte du territoire:",

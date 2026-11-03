@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Dashboard from "@/app/(app)/page";
 import StatistiquesPage from "@/app/(app)/statistiques/page";
@@ -175,6 +175,33 @@ describe("Tableau de bord", () => {
     expect(
       screen.getByText("Statistiques des territoires")
     ).toBeInTheDocument();
+  });
+
+  it("affiche une carte par attribution sur téléphone", async () => {
+    const desktopWidth = window.innerWidth;
+    window.innerWidth = 375;
+    try {
+      mockApi(routes);
+      renderWithStore(<Dashboard />);
+
+      const jean = (await screen.findByText(/Jean Dupont/)).closest("li")!;
+      expect(within(jean).getByRole("link", { name: "T-2" })).toHaveAttribute(
+        "href",
+        "/territoires/2"
+      );
+      expect(within(jean).getByText("ATTRIBUÉ")).toBeInTheDocument();
+      // Pas de date de retour pour une attribution en cours
+      expect(
+        within(jean)
+          .getAllByRole("term")
+          .map((term) => term.textContent)
+      ).toEqual(["Attribué le", "À rendre le"]);
+      const anne = screen.getByText(/Anne Martin/).closest("li")!;
+      expect(within(anne).getByText("Rendu le")).toBeInTheDocument();
+      expect(within(anne).getByText("2026-10-05")).toBeInTheDocument();
+    } finally {
+      window.innerWidth = desktopWidth;
+    }
   });
 
   it("indique l'absence de données", async () => {

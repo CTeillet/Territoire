@@ -278,8 +278,9 @@ const TerritoryHeader = ({
       </div>
 
       {/* Actions */}
-      <div className="mt-6 flex justify-start">
+      <div className="mt-6">
         <TerritoryDataActionButtons
+          className="justify-start"
           territoryId={territoryId}
           showDetails={false}
           status={status}

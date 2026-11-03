@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { authFetch } from "@/utils/auth-fetch";
 import { toast } from "sonner";
 import { renderTemplate } from "@/lib/template";
+import { cn } from "@/lib/utils";
 
 /** Lien personnel de la personne (variable {{ link }} du message), ou chaîne vide s'il n'est pas actif. */
 async function fetchPersonLink(personId: string): Promise<string> {
@@ -69,6 +70,7 @@ export interface ReminderDialogProps {
   canSendWhatsApp: boolean;
   // Désactive le bouton d'ouverture "Rappeler" (préféré par le produit)
   triggerDisabled?: boolean;
+  triggerClassName?: string;
   // Si vrai: toutes les attributions de la personne ont déjà un rappel → on désactive les actions
   disabledBecauseAllReminded?: boolean;
   // Les actions ne portent que sur les territoires sélectionnés dans la boîte de dialogue
@@ -86,6 +88,7 @@ export function ReminderDialog({
   description = "Vous pouvez envoyer un message WhatsApp ou simplement enregistrer les rappels.",
   canSendWhatsApp,
   triggerDisabled = false,
+  triggerClassName,
   disabledBecauseAllReminded = false,
   onManualReminders,
   onSendWhatsApp,
@@ -175,7 +178,10 @@ export function ReminderDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
-          className="px-3 py-2 font-medium inline-flex items-center gap-2"
+          className={cn(
+            "px-3 py-2 font-medium inline-flex items-center gap-2",
+            triggerClassName
+          )}
           disabled={triggerDisabled}
           title={
             triggerDisabled

@@ -211,7 +211,7 @@ describe("DataTable des territoires sur téléphone", () => {
     expect(screen.getByText("Jean Dupont")).toBeInTheDocument();
   });
 
-  it("garde le tri, les filtres et la pagination du tableau", () => {
+  it("garde le tri, les filtres et la pagination du tableau", async () => {
     localStorage.setItem(
       "tableSorting-test",
       JSON.stringify([{ id: "name", desc: true }])
@@ -225,7 +225,14 @@ describe("DataTable des territoires sur téléphone", () => {
     expect(
       screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)
     ).toEqual(["R-12", "R-11", "R-10", "R-1"]);
-    // Les en-têtes triables restent accessibles au-dessus des fiches
+    // Les en-têtes triables restent accessibles au-dessus des fiches, repliés derrière un résumé
+    const options = screen.getByRole("button", { name: /^Trier et filtrer/ });
+    expect(options).toHaveTextContent("Territoire ↓ · 1 filtre");
+    expect(
+      screen.queryByRole("button", { name: "Territoire" })
+    ).not.toBeInTheDocument();
+    await userEvent.click(options);
+    expect(options).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getByRole("button", { name: "Territoire" })
     ).toBeInTheDocument();

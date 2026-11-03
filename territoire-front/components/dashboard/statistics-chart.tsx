@@ -139,19 +139,31 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
             {statisticsLoading ? (
               <p>Chargement des statistiques...</p>
             ) : (
-              <ChartContainer config={chartConfig}>
-                <LineChart data={formattedChartData}>
+              // Un point par jour rendait les courbes illisibles : points au survol seulement,
+              // dates espacées et graphique plus haut sur téléphone
+              <ChartContainer
+                config={chartConfig}
+                className="aspect-auto h-64 w-full md:h-80"
+              >
+                <LineChart
+                  data={formattedChartData}
+                  margin={{ left: 0, right: 8 }}
+                >
                   <CartesianGrid vertical={false} />
                   <XAxis
                     dataKey="date"
                     tickLine={false}
                     axisLine={false}
                     tickMargin={10}
+                    minTickGap={24}
                   />
-                  <YAxis />
-                  <ChartTooltip
-                    content={<ChartTooltipContent hideLabel={true} />}
+                  <YAxis
+                    width={36}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
                   />
+                  <ChartTooltip content={<ChartTooltipContent />} />
                   <ChartLegend content={<ChartLegendContent />} />
 
                   <Line
@@ -159,28 +171,28 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
                     type="monotone"
                     stroke="var(--color-available)"
                     strokeWidth={2}
-                    dot={true}
+                    dot={false}
                   />
                   <Line
                     dataKey="assigned"
                     type="monotone"
                     stroke="var(--color-assigned)"
                     strokeWidth={2}
-                    dot={true}
+                    dot={false}
                   />
                   <Line
                     dataKey="pending"
                     type="monotone"
                     stroke="var(--color-pending)"
                     strokeWidth={2}
-                    dot={true}
+                    dot={false}
                   />
                   <Line
                     dataKey="late"
                     type="monotone"
                     stroke="var(--color-late)"
                     strokeWidth={2}
-                    dot={true}
+                    dot={false}
                   />
                 </LineChart>
               </ChartContainer>
