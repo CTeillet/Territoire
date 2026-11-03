@@ -6,7 +6,7 @@ import { hydrateRoot } from "react-dom/client";
 import { toast } from "sonner";
 import { LabelPrinterSection } from "@/components/parameters/other-parameter/label-printer-section";
 import * as assignmentLabel from "@/lib/assignment-label";
-import { isAutoPrintEnabled } from "@/lib/label-printer";
+import { isAutoPrintEnabled, NO_CHOOSER_MESSAGE } from "@/lib/label-printer";
 import {
   FakePrinterPort,
   stubSerial,
@@ -145,7 +145,7 @@ describe("LabelPrinterSection", () => {
   });
 
   it("reste silencieux quand la fenêtre de choix est fermée sans sélection", async () => {
-    const serial = stubSerial([]);
+    const serial = stubSerial([], undefined, 600);
     render(<LabelPrinterSection />);
 
     await userEvent.click(
@@ -153,7 +153,28 @@ describe("LabelPrinterSection", () => {
     );
 
     await waitFor(() => expect(serial.requestPort).toHaveBeenCalled());
+    // Fenêtre fermée au bout de 600 ms
+    await act(() => new Promise((resolve) => setTimeout(resolve, 700)));
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("explique quoi vérifier quand le navigateur n'ouvre pas la fenêtre de choix", async () => {
+    stubSerial([]);
+    render(<LabelPrinterSection />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Choisir l'imprimante" })
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(NO_CHOOSER_MESSAGE, {
+        duration: 10_000,
+      })
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Choisir l'imprimante" })
+    ).toBeInTheDocument();
   });
 });

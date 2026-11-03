@@ -132,7 +132,7 @@ Il s'authentifie par une clé dédiée dans l'en-tête `X-API-Key`, qui n'ouvre 
    ```
 
 ### Imprimante d'étiquettes (Brother P-touch)
-Le navigateur pilote directement l'imprimante en Bluetooth (API Web Serial) : rien à installer, ni sur le VPS ni sur l'appareil. C'est l'appareil qui fait l'attribution qui imprime. Il faut Chrome ou Edge sur ordinateur, ou Chrome sur Android. Les iPhone et iPad n'ont pas Web Serial : TMS y prépare un fichier d'étiquette que l'application Brother imprime (voir plus bas).
+Le navigateur pilote directement l'imprimante en Bluetooth (API Web Serial) : rien à installer, ni sur le VPS ni sur l'appareil. C'est l'appareil qui fait l'attribution qui imprime. Il faut Chrome ou Edge sur ordinateur, ou Chrome sur Android : sur une tablette Samsung, pas Samsung Internet (TMS installé sur l'écran d'accueil s'ouvre avec le navigateur qui l'a installé). Si la fenêtre de choix de l'imprimante ne s'ouvre pas, TMS l'indique avec les points à vérifier. Les iPhone et iPad n'ont pas Web Serial : TMS y prépare un fichier d'étiquette que l'application Brother imprime (voir plus bas).
 
 **Mise en place (sur chaque appareil)**
 1. Appairer la P-touch dans les réglages Bluetooth de l'appareil (sous Windows : Paramètres > Bluetooth et appareils > Ajouter un appareil).
