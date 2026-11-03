@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TerritoryRequestsPage from "@/app/(app)/demandes/page";
@@ -9,6 +9,7 @@ import {
 import { TerritoryType } from "@/models/territory-type";
 import { TERRITORY_REQUESTS_CHANGED } from "@/lib/territory-request-api";
 import * as assignmentLabel from "@/lib/assignment-label";
+import { setNativeLabelPrintingEnabled } from "@/lib/iphone-label-printer";
 import { toast } from "sonner";
 import { jsonResponse, mockApi, renderWithRole } from "../test-utils";
 import { captureDownloads, stubIPhone } from "../mocks/ios";
@@ -60,6 +61,9 @@ const available: AvailableTerritory[] = [
 ];
 
 describe("Page des demandes de territoire", () => {
+  afterEach(() => {
+    setNativeLabelPrintingEnabled(false);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
@@ -208,6 +212,38 @@ describe("Page des demandes de territoire", () => {
     expect(downloads.map(({ name }) => name)).toEqual([
       "etiquette-jean-d-2027-02-12.lbx",
     ]);
+  });
+
+  it("sur iPhone, propose le lien natif avec la personne et la date renvoyées lors d'une attribution depuis une demande", async () => {
+    stubIPhone();
+    setNativeLabelPrintingEnabled(true);
+    mockApi({
+      "GET /api/demandes-territoire/d1/territoires-disponibles": available,
+      "GET /api/demandes-territoire": [request()],
+      "POST /api/territoires/t2/attribuer/p1": {
+        id: "a2",
+        person: { id: "p1", firstName: "Jean", lastName: "Dupont" },
+        dueDate: "2027-05-16",
+      },
+    });
+    renderWithRole(<TerritoryRequestsPage />, "ADMIN");
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Attribuer" })
+    );
+    await userEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", {
+        name: "Attribuer",
+      })
+    );
+    await waitFor(() => expect(toast.custom).toHaveBeenCalled());
+    const [renderCard] = vi.mocked(toast.custom).mock.calls[0];
+    render(renderCard("etiquette-a2"));
+    const url = new URL(
+      screen.getByRole("link", { name: "Imprimer" }).getAttribute("href")!
+    );
+    expect(url.searchParams.get("name")).toBe("Jean D.");
+    expect(url.searchParams.get("dueDate")).toBe("2027-05-16");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("propose tous les territoires quand la personne n'a pas de préférence", async () => {

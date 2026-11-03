@@ -11,7 +11,10 @@ import { canManageAssignments } from "@/models/role";
 import EditAssignmentDatesDialog from "@/components/territory/id/edit-assignment-dates-dialog";
 import { useLabelPrinter } from "@/hooks/use-label-printer";
 import { printAssignmentLabel } from "@/lib/assignment-label";
-import { offerAssignmentLabelFile } from "@/components/shared/assignment-label-file";
+import {
+  offerAssignmentLabelFile,
+  offerNativeAssignmentLabel,
+} from "@/components/shared/assignment-label-file";
 
 const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
   const role = useSelector((state: RootState) => state.auth.user?.role);
@@ -64,11 +67,18 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                 <TooltipProvider>
                   <div className="flex gap-2">
                     {/* Étiquette perdue, ratée ou à refaire après une modification de l'échéance.
-                        Sur iPhone, fichier LBX pour Design&Print 2, sans imprimante choisie dans le navigateur. */}
+                        Sur iPhone, lien vers TMS Impression ou fichier LBX selon le réglage local. */}
                     {assignment.person &&
                       assignment.returnDate === null &&
                       canManageAssignments(role) &&
-                      (labelPrinter.lbx ? (
+                      (labelPrinter.native ? (
+                        <ActionButton
+                          icon={Printer}
+                          tooltip="Imprimer avec TMS Impression"
+                          onClick={() => offerNativeAssignmentLabel(assignment)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        />
+                      ) : labelPrinter.lbx ? (
                         <ActionButton
                           icon={FileDown}
                           tooltip="Télécharger l'étiquette"
