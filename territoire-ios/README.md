@@ -1,47 +1,70 @@
-# TMS Impression — iPhone et Brother PT-P710BT
+# TMS pour iPhone — avec la Brother PT-P710BT
 
-App native autonome qui reçoit une étiquette depuis TMS, se connecte à la
-PT-P710BT et l'imprime. Les outils de diagnostic restent disponibles.
+Une seule app sur l'écran d'accueil : **TMS**. Elle affiche le site TMS
+(`TMSBaseURL` dans App/Info.plist, https://tms.cteillet.fr) et imprime les
+étiquettes d'attribution sur la PT-P710BT, sans passer par Safari ni par une
+autre app. Elle remplace TMS Impression (versions 1.x), dont elle reprend
+l'identifiant : Sideloadly l'installe par-dessus.
 
-**Validation matérielle du 3 novembre 2026 :** l'utilisateur a installé la
-version 1.0 depuis Windows avec Sideloadly et confirme avoir imprimé l'étiquette
-de test sur sa PT-P710BT. La liaison native et l'impression sont donc validées
-sur cet équipement. Le parcours TMS avec texte variable ajouté en 1.1 doit
-encore être essayé sur le téléphone après installation et déploiement du web.
+Les écrans de TMS viennent du site : un déploiement du front suffit à les mettre
+à jour, sans réinstaller l'app. L'app n'ajoute que ce qu'un navigateur ne sait pas
+faire sur iPhone, c'est-à-dire parler à l'imprimante en Bluetooth.
 
-Il utilise l'API publique Apple External Accessory et une adaptation du protocole
-raster déjà présent dans territoire-front/lib/ptouch.ts. Aucun SDK Brother privé,
-serveur d'impression, compte TMS ou abonnement Apple payant n'est requis pour
-construire le fichier non signé. L'installation et l'accès matériel sont ensuite
-deux validations distinctes. À l'utilisation, seuls l'iPhone et l'imprimante
-sont nécessaires ; le PC sert à signer et renouveler l'installation.
+**Validation matérielle du 3 novembre 2026 :** la version 1.0, installée depuis
+Windows avec Sideloadly, a imprimé l'étiquette de test sur la PT-P710BT. La liaison
+native et l'impression sont donc validées sur cet équipement. Le parcours avec le
+nom et la date de l'attribution (depuis la 1.1) et la version 2.0 doivent encore
+être essayés sur le téléphone.
 
-## Utiliser la version 1.1 depuis TMS
+L'impression utilise l'API publique Apple External Accessory et une adaptation du
+protocole raster de territoire-front/lib/ptouch.ts. Aucun SDK Brother privé,
+serveur d'impression ou abonnement Apple payant n'est requis. À l'utilisation,
+seuls l'iPhone, l'imprimante et l'accès à TMS sont nécessaires ; le PC sert à
+signer et renouveler l'installation.
 
-1. Télécharger le nouvel IPA de cette branche et le réinstaller avec Sideloadly,
-   avec le même compte Apple. Son nom sur l'écran d'accueil devient
-   **TMS Impression** ; le bundle identifier reste identique à celui du diagnostic.
-2. Dans l'app, activer **Imprimer automatiquement les demandes TMS** si souhaité.
-   Par défaut, un bouton permet de vérifier le nom et la date avant d'imprimer.
-3. Avec la version web de cette branche déployée, ouvrir TMS sur l'iPhone,
-   **Paramètres > Autres paramètres > Imprimante d'étiquettes**, puis cocher
-   **Utiliser l'app TMS Impression sur cet iPhone**. Ce choix est local au navigateur.
-4. Après une attribution réussie, toucher **Imprimer** dans la carte d'étiquette.
-   iOS peut demander de confirmer l'ouverture de l'app. Celle-ci reçoit le prénom,
-   l'initiale du nom et la date de retour renvoyée par le backend, ouvre la connexion
-   et imprime sur le ruban TZe détecté. Garder l'app au premier plan jusqu'à la fin.
-5. Revenir dans TMS avec le retour d'iOS ou le sélecteur d'apps.
+## Utiliser l'app
+
+1. Installer l'IPA avec Sideloadly (voir plus bas), avec le même compte Apple que
+   TMS Impression s'il était installé.
+2. Ouvrir **TMS** et se connecter avec son compte TMS. La session reste ouverte
+   d'un lancement à l'autre, comme dans Safari ; elle est propre à l'app (se
+   connecter dans Safari ne connecte pas l'app).
+3. Dans **Paramètres > Autres paramètres > Imprimante d'étiquettes**, cocher
+   **Utiliser l'app TMS Impression sur cet iPhone**. Ce réglage est propre à l'app.
+4. Après une attribution, toucher **Imprimer** dans la carte d'étiquette : l'écran
+   **Imprimante** s'ouvre par-dessus TMS, avec le prénom, l'initiale du nom et la
+   date de retour. Il se connecte et imprime sur le ruban TZe détecté. Le fermer
+   pour revenir à TMS.
+5. Dans l'écran Imprimante, **Imprimer automatiquement les demandes TMS** évite de
+   confirmer chaque étiquette. Par défaut, un bouton permet de vérifier le nom et la
+   date avant d'imprimer.
 
 Le parcours couvre les attributions classiques, celles depuis une demande et la
 réimpression depuis l'historique du territoire. Une campagne sans personne ne
-génère aucune étiquette. Les paramètres proposent aussi un test avec un nom et
-une date, et le téléchargement LBX reste disponible.
+génère aucune étiquette. Les paramètres proposent aussi un test avec un nom et une
+date. Le résultat de l'impression est affiché dans l'écran Imprimante : TMS ne le
+connaît pas encore (prévu dans une prochaine version, avec l'impression directe).
 
-Le bouton est un lien réellement touché par l'utilisateur : le navigateur ne
-tente pas d'ouvrir une app depuis le retour d'une requête d'attribution asynchrone.
-TMS ne peut ni détecter l'installation ou l'expiration de la signature de l'app,
-ni annoncer une impression réussie : le résultat est affiché dans l'app native.
-Le choix LBX reste actif par défaut tant que l'app native n'a pas été choisie.
+Les liens `tmsprint` envoyés depuis Safari ou une PWA ouvrent aussi l'écran
+Imprimante, comme avec TMS Impression.
+
+## Ce que l'app fait du site
+
+- Les pages de TMS restent dans l'app ; retour arrière par glissement depuis le bord.
+- Les itinéraires (Google Maps, Plans, Waze) et les autres sites s'ouvrent dans leur
+  app ou dans Safari. Les liens vers une autre app que Téléphone, Messages, Mail ou
+  Plans sont ignorés.
+- Les fichiers téléchargés (export Excel d'une campagne, étiquette LBX…) ouvrent la
+  feuille de partage d'iOS : Enregistrer dans Fichiers, AirDrop, Design&Print 2…
+- La carte d'un territoire s'ouvre dans une fenêtre avec un bouton Fermer. Un appui
+  long sur l'image permet de l'enregistrer.
+- L'import de fichiers (.vcf, .xlsx, photo de la carte) passe par le sélecteur
+  d'iOS. La position sur la carte demande l'autorisation de localisation.
+- Si TMS est injoignable, un écran propose de réessayer et donne accès à l'écran
+  Imprimante.
+
+Le service worker du site n'est pas actif dans l'app (il faudrait déclarer les
+domaines de l'app à iOS) : il ne servait qu'au cache du logo et du manifeste.
 
 ## Contrat du lien web → iOS
 
@@ -68,10 +91,10 @@ automatiquement. Plusieurs P710BT visibles demandent une sélection manuelle.
 
 ## Obtenir le fichier d'installation sans Mac
 
-1. Ouvrir le workflow **iOS - Diagnostic P710BT** dans les Actions du dépôt.
-2. Choisir une exécution réussie correspondant à la branche du prototype.
-3. Dans **Artifacts**, télécharger **p710bt-diagnostic-ios-unsigned**.
-4. Décompresser cette archive : elle contient **TMSPrinterDiagnostic-unsigned.ipa**,
+1. Ouvrir le workflow **iOS - App TMS** dans les Actions du dépôt.
+2. Choisir une exécution réussie correspondant à la branche voulue.
+3. Dans **Artifacts**, télécharger **tms-ios-unsigned**.
+4. Décompresser cette archive : elle contient **TMS-unsigned.ipa**,
    son empreinte SHA-256, le journal de compilation et ce mode d'emploi.
 
 Les modifications de ce dossier déclenchent une compilation sur un runner macOS.
@@ -79,7 +102,7 @@ Le workflow utilise uniquement des permissions de lecture et ne demande aucun
 certificat, secret Apple ou clé de signature.
 
 Le bouton Run workflow devient disponible lorsque le workflow est présent sur la
-branche par défaut. Avant cela, un push sur la branche du prototype le déclenche
+branche par défaut. Avant cela, un push sur une branche de travail le déclenche
 également.
 
 ## Installer depuis Windows avec un compte Apple gratuit
@@ -96,7 +119,11 @@ ton appareil avec ton propre compte Apple.
    de l'appareil si iOS le demande.
 5. Activer le Mode développeur dans Réglages > Confidentialité et sécurité, puis
    redémarrer si demandé (iOS 16 et suivants).
-6. Ouvrir **TMS Impression**.
+6. Ouvrir **TMS**.
+
+Une mise à jour s'installe de la même façon, par-dessus la version en place : la
+session TMS et les réglages de l'app sont conservés. TMS Impression 1.x est
+remplacée, pas dupliquée, car l'identifiant de l'app est le même.
 
 [AltStore Classic pour Windows](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows)
 est une autre possibilité de signature/installation.
@@ -111,7 +138,9 @@ permet. Le PC sert à l'installation/au renouvellement, pas à l'impression.
 1. Allumer la PT-P710BT et vérifier qu'elle fonctionne avec l'app Brother utilisée
    pour la V1 LBX. Puis fermer Design&Print 2 et iPrint&Label pour libérer la liaison.
 2. Dans Réglages > Bluetooth, appairer la PT-P710BT avec l'iPhone.
-3. Ouvrir le prototype, accepter l'accès Bluetooth si demandé, puis **Actualiser**.
+3. Ouvrir l'écran Imprimante : dans TMS, **Paramètres > Autres paramètres >
+   Imprimante d'étiquettes**, option de l'app cochée, toucher **Essayer TMS Impression**.
+   Accepter l'accès Bluetooth si demandé, puis **Actualiser**.
    Le bouton **Appairer…** présente aussi le sélecteur Apple.
 4. Sélectionner la P710BT et examiner le modèle et les protocoles affichés.
 5. Toucher **Ouvrir la connexion**, puis **Lire l'état — sans imprimer**.
@@ -144,11 +173,11 @@ relancée automatiquement, notamment après un échec ou une absence de confirma
 | Étiquette sortie et fin d'impression reçue | L'essai d'impression de bout en bout est validé sur ton appareil. |
 | Données envoyées, confirmation absente | Résultat incertain : vérifier l'étiquette avant un nouvel essai manuel. |
 
-Le rapport contient la version du prototype, le modèle/firmware, les protocoles,
+Le rapport contient la version de l'app, le modèle/firmware, les protocoles,
 les événements des flux et les octets de diagnostic. Il n'inclut ni compte Apple,
 ni identifiant TMS, ni numéro de série de l'imprimante.
 
-## Protocole MFi : ce que ce prototype vérifie
+## Protocole MFi : ce que l'app vérifie
 
 La déclaration est **com.brother.ptcbp**, le protocole documenté dans le
 guide iOS général de Brother. L'impression physique a été confirmée avec le build
@@ -168,17 +197,19 @@ l'app avec ce nom :
 Le fabricant contrôle l'accès des apps aux accessoires MFi. Brother précise que
 les modèles hors liste standard, dont la PT-P710BT, demandent une requête spéciale
 pour la distribution d'applications. Le sideloading ne garantit pas cet accès et
-ce prototype ne valide pas une future autorisation de distribution.
+cette app ne valide pas une future autorisation de distribution.
 
 ## Développement et vérifications
 
 Les tests du dossier Core ne simulent pas un succès matériel. Ils contrôlent le
 découpage des trames reçues, les erreurs et médias, l'orientation des points et le
-décodage indépendant du flux raster complet.
+décodage indépendant du flux raster complet. Ils vérifient aussi la politique de
+navigation de la vue web (pages TMS gardées, liens externes, contenus générés,
+liens bloqués) et les noms des fichiers téléchargés.
 
 Sur un Mac équipé de Xcode et XcodeGen :
 
-    cd ios-printer-diagnostic
+    cd territoire-ios
     swift test
     bash scripts/build-ipa.sh
 
@@ -188,8 +219,8 @@ pour le simulateur. Un simulateur ne permet pas de tester la connexion physique.
 Les tests Swift couvrent aussi le contrat des liens web, les entrées invalides et
 l'historique contre les doublons. Les tests frontend contrôlent le lien Unicode,
 la date du backend, les réglages iOS, la carte après attribution et le repli LBX.
-La compilation ne remplace pas l'essai matériel du parcours depuis Safari et
-depuis une PWA ajoutée à l'écran d'accueil.
+La compilation ne remplace ni l'essai matériel, ni celui du site dans l'app :
+connexion, carte et position, imports et exports de fichiers, liens d'itinéraire.
 
 ## Références
 
