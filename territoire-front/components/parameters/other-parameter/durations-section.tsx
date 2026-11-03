@@ -85,10 +85,9 @@ export function DurationsSection({
     <div className="flex flex-col gap-3">
       {showTitle && <h2 className="text-lg font-semibold">Durées</h2>}
       <p className="text-sm text-muted-foreground">
-        La durée d&apos;attribution fixe l&apos;échéance des nouvelles
-        attributions et la prolongation par défaut ; les échéances en cours ne
-        changent pas. Un territoire rendu reste en attente pendant la durée
-        d&apos;attente, puis redevient disponible au traitement de nuit suivant.
+        S&apos;appliquent aux nouvelles attributions et prolongations, pas aux
+        échéances en cours. Un territoire rendu redevient disponible après la
+        durée d&apos;attente.
       </p>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">

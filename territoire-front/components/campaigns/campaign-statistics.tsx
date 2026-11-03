@@ -161,7 +161,7 @@ export function CampaignStatisticsComponent({
 
   return (
     <Card className="shadow-md border-0 mt-8">
-      <CardHeader className="pb-6 flex flex-row items-start justify-between">
+      <CardHeader className="flex flex-col gap-3 px-4 pb-6 sm:flex-row sm:items-start sm:justify-between md:px-6">
         <div>
           <CardTitle className="text-2xl font-bold mb-2">
             Statistiques
@@ -180,12 +180,13 @@ export function CampaignStatisticsComponent({
           {isExporting ? "Export en cours..." : "Exporter en Excel"}
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 md:px-6">
         {/* Summary Cards */}
         <StatisticsSummary statistics={statistics} />
 
         <Tabs defaultValue="charts" className="w-full">
-          <TabsList className="mb-6">
+          {/* Téléphone : onglets resserrés pour tenir dans la carte */}
+          <TabsList className="mb-6 *:max-sm:px-1.5 *:max-sm:text-xs">
             <TabsTrigger value="charts">Graphiques</TabsTrigger>
             <TabsTrigger value="details">Détails par type</TabsTrigger>
             <TabsTrigger value="cities">Détails par ville</TabsTrigger>

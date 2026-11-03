@@ -243,7 +243,7 @@ export default function CampaignDetailPage() {
     <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
       <Button
         variant="ghost"
-        className="mb-8 text-base hover:bg-gray-100"
+        className="mb-4 text-base hover:bg-gray-100 md:mb-8"
         onClick={() => router.push("/campagnes")}
       >
         <ArrowLeft className="mr-2 h-5 w-5" />
@@ -363,7 +363,7 @@ export default function CampaignDetailPage() {
         )}
       </div>
 
-      <Tabs defaultValue="configuration" className="mt-8">
+      <Tabs defaultValue="configuration" className="mt-4 md:mt-8">
         <TabsList className="mb-6 w-full max-w-lg mx-auto">
           <TabsTrigger value="configuration" className="flex-1">
             Configuration
@@ -378,7 +378,7 @@ export default function CampaignDetailPage() {
 
         <TabsContent value="configuration">
           <Card className="shadow-md border-0">
-            <CardHeader className="pb-6">
+            <CardHeader className="px-4 pb-6 md:px-6">
               <CardTitle className="text-2xl font-bold mb-2">
                 Territoires de la campagne
               </CardTitle>
@@ -388,7 +388,7 @@ export default function CampaignDetailPage() {
                   : "Sélectionnez les territoires qui restent à la fin de la campagne"}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 md:px-6">
               {campaign.territories.length === 0 ? (
                 <div className="flex justify-center items-center h-40 bg-gray-50 rounded-lg">
                   <p className="text-lg text-gray-500">
@@ -417,7 +417,7 @@ export default function CampaignDetailPage() {
                     .map(([cityName, territories]) => (
                       <div
                         key={cityName}
-                        className="border rounded-lg p-4 md:p-6 shadow-sm"
+                        className="border rounded-lg p-3 md:p-6 shadow-sm"
                       >
                         <div className="flex flex-wrap gap-2 justify-between items-center mb-5 pb-2 border-b">
                           <h3 className="text-xl font-semibold">{cityName}</h3>
@@ -436,21 +436,22 @@ export default function CampaignDetailPage() {
                             </Button>
                           )}
                         </div>
-                        <div className="max-h-60 overflow-auto">
+                        {/* Téléphone : pas de zone qui défile dans la page */}
+                        <div className="md:max-h-60 md:overflow-auto">
                           <Table>
                             <TableHeader className="sticky top-0 bg-white z-10">
                               <TableRow className="border-b-2 border-gray-200">
                                 {!campaign.closed && (
                                   <TableHead className="w-12 py-3"></TableHead>
                                 )}
-                                <TableHead className="py-3 text-base font-semibold">
-                                  Nom du territoire
+                                <TableHead className="py-3 font-semibold md:text-base">
+                                  Territoire
                                 </TableHead>
-                                <TableHead className="py-3 text-base font-semibold">
+                                <TableHead className="py-3 font-semibold md:text-base">
                                   Type
                                 </TableHead>
                                 {campaign.closed && (
-                                  <TableHead className="py-3 text-base font-semibold">
+                                  <TableHead className="py-3 font-semibold md:text-base">
                                     Statut
                                   </TableHead>
                                 )}
@@ -506,10 +507,10 @@ export default function CampaignDetailPage() {
                                           />
                                         </TableCell>
                                       )}
-                                      <TableCell className="font-medium text-base py-3">
+                                      <TableCell className="font-medium py-3 md:text-base">
                                         {territory.name}
                                       </TableCell>
-                                      <TableCell className="py-3 text-base">
+                                      <TableCell className="py-3 md:text-base">
                                         {territory.type
                                           ? TYPE_TRANSLATIONS[territory.type]
                                           : "N/A"}
@@ -517,7 +518,7 @@ export default function CampaignDetailPage() {
                                       {campaign.closed && (
                                         <TableCell className="py-3">
                                           <span
-                                            className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
+                                            className={`px-2 py-1 rounded-full text-xs font-semibold md:px-3 md:py-1.5 md:text-sm ${
                                               isUsed
                                                 ? "bg-green-100 text-green-800"
                                                 : "bg-gray-100 text-gray-800"
@@ -554,7 +555,7 @@ export default function CampaignDetailPage() {
 
         <TabsContent value="map">
           <Card className="shadow-md border-0">
-            <CardHeader className="pb-6">
+            <CardHeader className="px-4 pb-6 md:px-6">
               <CardTitle className="text-2xl font-bold mb-2">
                 Carte de la campagne
               </CardTitle>
@@ -563,7 +564,7 @@ export default function CampaignDetailPage() {
                 campagne
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 md:px-6">
               <CampaignMap
                 campaignId={campaignId}
                 remainingTerritoryIds={

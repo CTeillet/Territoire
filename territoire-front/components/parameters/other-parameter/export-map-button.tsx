@@ -220,10 +220,6 @@ export const ExportTerritoriesMapButton: React.FC<Props> = ({
           </DialogContent>
         </Dialog>
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        Fichier: <span className="font-mono">{filename}</span>
-      </p>
     </div>
   );
 };

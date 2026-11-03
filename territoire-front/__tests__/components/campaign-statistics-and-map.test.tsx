@@ -194,7 +194,11 @@ describe("Carte d'une campagne", () => {
     expect(lat).toBeCloseTo(48.15);
     expect(lng).toBeCloseTo(-1.65);
 
-    await userEvent.click(screen.getByText("Type (Immeuble/Pavillon)"));
+    await userEvent.click(screen.getByRole("button", { name: "Type" }));
+    expect(screen.getByRole("button", { name: "Type" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
     expect(styles().map((s: { fillColor: string }) => s.fillColor)).toEqual([
       "#3b82f6",
       "#f97316",
@@ -205,7 +209,7 @@ describe("Carte d'une campagne", () => {
       screen.getByText("Opacité réduite = Déjà utilisé")
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText("Statut (Visité/Restant)"));
+    await userEvent.click(screen.getByRole("button", { name: "Statut" }));
     expect(screen.getByText("Utilisé")).toBeInTheDocument();
   });
 

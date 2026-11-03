@@ -18,16 +18,35 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campaigns/create-campaign-dialog";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchCampaigns } from "@/store/slices/campaign-slice";
 import { canManageCampaigns } from "@/models/role";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Campaign } from "@/models/campaign";
+
+const StatusBadge = ({ closed }: { closed: boolean }) => (
+  <span
+    className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
+      closed ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+    }`}
+  >
+    {closed ? "Terminée" : "En cours"}
+  </span>
+);
+
+const territoriesSummary = (campaign: Campaign) =>
+  `${campaign.territories.length} territoires` +
+  (campaign.closed
+    ? ` (${campaign.territories.length - campaign.remainingTerritories.length} utilisés)`
+    : "");
 
 export default function CampaignsPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const dispatch = useAppDispatch();
   const { campaigns, loading } = useAppSelector((state) => state.campaigns);
   const canManage = canManageCampaigns(
@@ -92,7 +111,7 @@ export default function CampaignsPage() {
         </Card>
       ) : (
         <Card className="shadow-md border-0">
-          <CardHeader className="pb-6">
+          <CardHeader className="px-4 pb-6 md:px-6">
             <CardTitle className="text-2xl font-bold mb-2">
               Liste des campagnes
             </CardTitle>
@@ -100,72 +119,92 @@ export default function CampaignsPage() {
               Toutes les campagnes d&apos;invitation et leur statut
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b-2 border-gray-200">
-                  <TableHead className="py-4 text-base font-semibold">
-                    Nom
-                  </TableHead>
-                  <TableHead className="py-4 text-base font-semibold">
-                    Date de début
-                  </TableHead>
-                  <TableHead className="py-4 text-base font-semibold">
-                    Date de fin
-                  </TableHead>
-                  <TableHead className="py-4 text-base font-semibold">
-                    Statut
-                  </TableHead>
-                  <TableHead className="py-4 text-base font-semibold">
-                    Territoires
-                  </TableHead>
-                  <TableHead className="py-4 text-base font-semibold">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <CardContent className="px-4 md:px-6">
+            {isMobile ? (
+              // Téléphone : une fiche par campagne, le tableau ne tient pas sur la largeur
+              <ul className="divide-y">
                 {campaigns.map((campaign) => (
-                  <TableRow key={campaign.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium text-base py-4">
-                      {campaign.name}
-                    </TableCell>
-                    <TableCell className="py-4">
-                      {formatDate(campaign.startDate)}
-                    </TableCell>
-                    <TableCell className="py-4">
-                      {formatDate(campaign.endDate)}
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <span
-                        className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
-                          campaign.closed
-                            ? "bg-green-100 text-green-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {campaign.closed ? "Terminée" : "En cours"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      {campaign.territories.length} territoires
-                      {campaign.closed &&
-                        ` (${campaign.territories.length - campaign.remainingTerritories.length} utilisés)`}
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewCampaign(campaign.id)}
-                        className="px-4 py-2 font-medium"
-                      >
-                        Détails
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <li key={campaign.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleViewCampaign(campaign.id)}
+                      className="flex w-full items-center gap-3 py-4 text-left"
+                    >
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{campaign.name}</span>
+                          <StatusBadge closed={campaign.closed} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(campaign.startDate)} →{" "}
+                          {formatDate(campaign.endDate)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {territoriesSummary(campaign)}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    </button>
+                  </li>
                 ))}
-              </TableBody>
-            </Table>
+              </ul>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b-2 border-gray-200">
+                    <TableHead className="py-4 text-base font-semibold">
+                      Nom
+                    </TableHead>
+                    <TableHead className="py-4 text-base font-semibold">
+                      Date de début
+                    </TableHead>
+                    <TableHead className="py-4 text-base font-semibold">
+                      Date de fin
+                    </TableHead>
+                    <TableHead className="py-4 text-base font-semibold">
+                      Statut
+                    </TableHead>
+                    <TableHead className="py-4 text-base font-semibold">
+                      Territoires
+                    </TableHead>
+                    <TableHead className="py-4 text-base font-semibold">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {campaigns.map((campaign) => (
+                    <TableRow key={campaign.id} className="hover:bg-gray-50">
+                      <TableCell className="font-medium text-base py-4">
+                        {campaign.name}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        {formatDate(campaign.startDate)}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        {formatDate(campaign.endDate)}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <StatusBadge closed={campaign.closed} />
+                      </TableCell>
+                      <TableCell className="py-4">
+                        {territoriesSummary(campaign)}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewCampaign(campaign.id)}
+                          className="px-4 py-2 font-medium"
+                        >
+                          Détails
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       )}

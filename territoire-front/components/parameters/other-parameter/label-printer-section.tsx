@@ -148,8 +148,7 @@ export function LabelPrinterSection({
           <p className="text-sm text-muted-foreground">
             L&apos;app TMS imprime l&apos;étiquette de chaque attribution sur la
             PT-P710BT appairée en Bluetooth avec cet iPhone : prénom, initiale
-            du nom et date de retour prévue. TMS affiche le résultat de
-            l&apos;impression.
+            du nom et date de retour prévue.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button onClick={onTestPrint} disabled={printing}>
@@ -170,9 +169,7 @@ export function LabelPrinterSection({
             appareil
           </label>
           <p className="text-xs text-muted-foreground">
-            Sinon, une carte propose « Imprimer » après chaque attribution. Les
-            réglages de l&apos;imprimante servent à l&apos;appairer, à vérifier
-            la connexion et à partager un diagnostic.
+            Sinon, une carte propose « Imprimer » après chaque attribution.
           </p>
         </>
       ) : (

@@ -60,6 +60,27 @@ describe("Gestion des utilisateurs", () => {
     ).toHaveTextContent("Utilisateur");
   });
 
+  it("affiche une fiche par utilisateur sur téléphone", async () => {
+    const desktopWidth = window.innerWidth;
+    window.innerWidth = 375;
+    try {
+      setup();
+
+      const bob = (await screen.findByText("bob@exemple.fr")).closest("li")!;
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+      expect(within(bob).getByText("Bob")).toBeInTheDocument();
+      expect(
+        within(bob).getByRole("combobox", { name: "Rôle de Bob" })
+      ).toHaveTextContent("Utilisateur");
+      expect(
+        within(bob).getByRole("button", { name: "Supprimer Bob" })
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Vous" })).toBeDisabled();
+    } finally {
+      window.innerWidth = desktopWidth;
+    }
+  });
+
   it("affiche le chargement", () => {
     mockApi({ "GET /api/utilisateurs": () => new Promise(() => {}) });
     renderWithStore(<UserManagement />);

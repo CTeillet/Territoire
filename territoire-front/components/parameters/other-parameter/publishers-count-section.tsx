@@ -51,27 +51,21 @@ export const PublishersCountSection = () => {
   };
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-xl font-bold">Paramètres généraux</h2>
-      <div className="flex flex-wrap items-center gap-3">
-        <label
-          htmlFor="publishers-count"
-          className="w-full sm:w-auto sm:min-w-64"
-        >
-          Nombre de proclamateurs
-        </label>
-        <Input
-          id="publishers-count"
-          type="number"
-          min={0}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          className="w-40"
-        />
-        <Button onClick={onSave} disabled={loading}>
-          {loading ? "Enregistrement..." : "Enregistrer"}
-        </Button>
-      </div>
+    <div className="flex flex-wrap items-center gap-3">
+      <label htmlFor="publishers-count" className="w-full text-sm sm:w-auto">
+        Nombre de proclamateurs
+      </label>
+      <Input
+        id="publishers-count"
+        type="number"
+        min={0}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="w-40"
+      />
+      <Button onClick={onSave} disabled={loading}>
+        {loading ? "Enregistrement..." : "Enregistrer"}
+      </Button>
     </div>
   );
 };

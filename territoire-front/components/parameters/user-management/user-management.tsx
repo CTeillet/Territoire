@@ -65,7 +65,7 @@ const UserManagement = () => {
   };
 
   return (
-    <div className="mt-4 mr-5 ml-5">
+    <div className="mt-4 md:mx-5">
       <UserTable
         users={users}
         loading={loading}

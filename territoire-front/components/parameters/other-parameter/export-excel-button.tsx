@@ -46,7 +46,7 @@ export const ExportExcelButton = ({ showTitle = true }: Props) => {
   return (
     <div className="flex flex-col gap-2">
       {showTitle && <h2 className="text-lg font-semibold">Exporter</h2>}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <label htmlFor="school-year" className="text-sm">
           Année scolaire (début):
         </label>

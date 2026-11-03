@@ -32,7 +32,7 @@ const DeleteUserDialog = ({
       <AlertDialogTrigger asChild>
         <Button
           variant="destructive"
-          className="p-2"
+          className="p-2 max-md:min-h-11 max-md:min-w-11"
           disabled={isDeleting}
           aria-label={`Supprimer ${username}`}
         >

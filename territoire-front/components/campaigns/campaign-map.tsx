@@ -113,21 +113,24 @@ const CampaignMap: React.FC<CampaignMapProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* La légende à côté détaille les couleurs : des libellés courts tiennent sur un téléphone */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Colorier par :</span>
           <Button
             variant={colorBy === "status" ? "default" : "outline"}
             size="sm"
+            aria-pressed={colorBy === "status"}
             onClick={() => setColorBy("status")}
           >
-            Statut (Visité/Restant)
+            Statut
           </Button>
           <Button
             variant={colorBy === "type" ? "default" : "outline"}
             size="sm"
+            aria-pressed={colorBy === "type"}
             onClick={() => setColorBy("type")}
           >
-            Type (Immeuble/Pavillon)
+            Type
           </Button>
         </div>
 

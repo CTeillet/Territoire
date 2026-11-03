@@ -2,44 +2,90 @@
 
 import UserManagement from "@/components/parameters/user-management/user-management";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ReactNode, useState } from "react";
 import CityManagement from "@/components/parameters/city-management/city-management";
-import OtherParameter from "@/components/parameters/other-parameter/other-parameter";
+import SettingsTab from "@/components/parameters/other-parameter/settings-tab";
+import DataTab from "@/components/parameters/other-parameter/data-tab";
+import { LabelPrinterSection } from "@/components/parameters/other-parameter/label-printer-section";
+import { ParameterGroup } from "@/components/parameters/other-parameter/parameter-group";
 import AccessManagement from "@/components/parameters/access/access-management";
 import { useAppSelector } from "@/store/store";
 import { canSendAccess } from "@/lib/person-access-api";
+import { canManageAssignments, canManageSettings } from "@/models/role";
+
+type Section = { value: string; label: string; content: ReactNode };
 
 const ParametersPage = () => {
   const [selectedTab, setSelectedTab] = useState("cities");
   const role = useAppSelector((state) => state.auth.user?.role);
 
+  const sections: Section[] = [
+    { value: "cities", label: "Villes", content: <CityManagement /> },
+    { value: "users", label: "Utilisateurs", content: <UserManagement /> },
+    ...(canSendAccess(role)
+      ? [
+          {
+            value: "access",
+            label: "Accès numériques",
+            content: <AccessManagement />,
+          },
+        ]
+      : []),
+    ...(canManageSettings(role)
+      ? [{ value: "settings", label: "Réglages", content: <SettingsTab /> }]
+      : []),
+    ...(canManageAssignments(role)
+      ? [
+          {
+            value: "printer",
+            label: "Imprimante",
+            content: (
+              <ParameterGroup title="Imprimante d'étiquettes">
+                <LabelPrinterSection showTitle={false} />
+              </ParameterGroup>
+            ),
+          },
+        ]
+      : []),
+    { value: "data", label: "Données", content: <DataTab /> },
+  ];
+
   return (
     <div className="p-4 md:p-6">
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        {/* Téléphone : les onglets ne tiennent pas sur la largeur, ils défilent */}
-        <TabsList className="max-w-full justify-start overflow-x-auto">
-          <TabsTrigger value="cities">Villes</TabsTrigger>
-          <TabsTrigger value="users">Gestion des utilisateurs</TabsTrigger>
-          {canSendAccess(role) && (
-            <TabsTrigger value="access">Accès numériques</TabsTrigger>
-          )}
-          <TabsTrigger value="others">Autres paramètres</TabsTrigger>
+        {/* Téléphone et tablette (barre latérale ouverte) : les onglets ne tiennent pas sur la largeur, une liste déroulante les remplace */}
+        <Select value={selectedTab} onValueChange={setSelectedTab}>
+          <SelectTrigger aria-label="Section" className="w-full lg:hidden">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sections.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <TabsList className="hidden lg:inline-flex">
+          {sections.map(({ value, label }) => (
+            <TabsTrigger key={value} value={value}>
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="users">
-          <UserManagement />
-        </TabsContent>
-        <TabsContent value="cities">
-          <CityManagement />
-        </TabsContent>
-        {canSendAccess(role) && (
-          <TabsContent value="access">
-            <AccessManagement />
+        {sections.map(({ value, content }) => (
+          <TabsContent key={value} value={value}>
+            {content}
           </TabsContent>
-        )}
-        <TabsContent value="others">
-          <OtherParameter />
-        </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
