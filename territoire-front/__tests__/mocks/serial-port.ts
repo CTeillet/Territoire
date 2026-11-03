@@ -92,13 +92,21 @@ export class FakePrinterPort {
 
 /**
  * navigator.serial simulé : `ports` sont les imprimantes déjà autorisées, `chosen` celle que l'utilisateur choisit
- * dans la fenêtre du navigateur (aucune : fenêtre fermée sans choix).
+ * dans la fenêtre du navigateur. Sans `chosen`, la fenêtre est fermée sans choix au bout de `closedAfterMs` ;
+ * 0 : refus immédiat, d'un navigateur qui n'affiche pas la fenêtre.
  */
-export function stubSerial(ports: FakePrinterPort[], chosen?: FakePrinterPort) {
+export function stubSerial(
+  ports: FakePrinterPort[],
+  chosen?: FakePrinterPort,
+  closedAfterMs = 0
+) {
   const serial = {
     getPorts: vi.fn(async () => ports.filter((port) => !port.forgotten)),
     requestPort: vi.fn(async () => {
       if (!chosen) {
+        if (closedAfterMs) {
+          await new Promise((resolve) => setTimeout(resolve, closedAfterMs));
+        }
         throw new DOMException("Aucun port choisi", "NotFoundError");
       }
       if (!ports.includes(chosen)) ports.push(chosen);

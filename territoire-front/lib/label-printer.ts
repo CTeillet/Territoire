@@ -44,10 +44,14 @@ const BAUD_RATE = 9600;
 const STATUS_ATTEMPTS = 5;
 const STATUS_TIMEOUT_MS = 1500;
 const PRINT_TIMEOUT_MS = 30000;
+// Personne n'ouvre puis ne ferme la fenêtre de choix aussi vite : un refus plus rapide vient du navigateur
+const CHOOSER_MIN_MS = 500;
 const AUTO_PRINT_KEY = "labelPrinter.autoPrint";
 
 export const UNSUPPORTED_MESSAGE =
   "Ce navigateur ne peut pas piloter l'imprimante d'étiquettes : utilisez Chrome ou Edge sur ordinateur, ou Chrome sur Android.";
+export const NO_CHOOSER_MESSAGE =
+  "Ce navigateur n'a pas ouvert la fenêtre de choix de l'imprimante : utilisez Chrome (sur une tablette Samsung, pas Samsung Internet), vérifiez que le Bluetooth est activé et la P-touch appairée, et autorisez Chrome à accéder aux appareils à proximité.";
 const NO_PRINTER_MESSAGE =
   "Aucune imprimante d'étiquettes sur cet appareil (Paramètres > Autres paramètres).";
 const UNREACHABLE_MESSAGE =
@@ -73,13 +77,28 @@ export async function getLabelPrinter(): Promise<SerialPortLike | null> {
 /**
  * Choix de l'imprimante dans la liste des appareils Bluetooth appairés (fenêtre du navigateur, à ouvrir depuis
  * un clic). Les autres imprimantes déjà autorisées sont oubliées ; l'impression automatique est activée.
+ * Rejette avec NotFoundError si la fenêtre est fermée sans choix.
  */
 export async function connectLabelPrinter(): Promise<SerialPortLike> {
   const api = serial();
   if (!api) throw new Error(UNSUPPORTED_MESSAGE);
-  const port = await api.requestPort({
-    allowedBluetoothServiceClassIds: [SERIAL_PORT_PROFILE],
-  });
+  const requestedAt = Date.now();
+  let port: SerialPortLike;
+  try {
+    port = await api.requestPort({
+      allowedBluetoothServiceClassIds: [SERIAL_PORT_PROFILE],
+    });
+  } catch (error) {
+    // Certains navigateurs annoncent Web Serial sans savoir afficher la fenêtre : ils répondent aussitôt
+    // « aucun port choisi », comme si l'utilisateur l'avait fermée
+    if (
+      (error as Error).name === "NotFoundError" &&
+      Date.now() - requestedAt < CHOOSER_MIN_MS
+    ) {
+      throw new Error(NO_CHOOSER_MESSAGE);
+    }
+    throw error;
+  }
   for (const other of await api.getPorts()) {
     if (other !== port) await other.forget?.();
   }

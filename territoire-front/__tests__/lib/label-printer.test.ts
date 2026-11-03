@@ -5,6 +5,7 @@ import {
   getLabelPrinter,
   isAutoPrintEnabled,
   isLabelPrintingSupported,
+  NO_CHOOSER_MESSAGE,
   printLabel,
   setAutoPrintEnabled,
   UNSUPPORTED_MESSAGE,
@@ -64,6 +65,37 @@ describe("label-printer", () => {
     await forgetLabelPrinter();
     expect(chosen.forgotten).toBe(true);
     expect(await getLabelPrinter()).toBeNull();
+    expect(isAutoPrintEnabled()).toBe(false);
+  });
+
+  it("distingue une fenêtre de choix fermée d'un navigateur qui ne l'ouvre pas", async () => {
+    vi.useFakeTimers();
+    // Fenêtre fermée sans choix au bout de 2 s : l'erreur du navigateur, que l'écran passe sous silence
+    stubSerial([], undefined, 2000);
+    const closed = connectLabelPrinter();
+    const assertion = expect(closed).rejects.toMatchObject({
+      name: "NotFoundError",
+    });
+    await vi.advanceTimersByTimeAsync(2000);
+    await assertion;
+
+    // Refus immédiat : la fenêtre ne s'est pas ouverte, le message dit quoi vérifier
+    stubSerial([]);
+    await expect(connectLabelPrinter()).rejects.toThrow(NO_CHOOSER_MESSAGE);
+
+    // Autres erreurs transmises telles quelles
+    Object.defineProperty(navigator, "serial", {
+      value: {
+        getPorts: async () => [],
+        requestPort: async () => {
+          throw new DOMException("Interdit", "SecurityError");
+        },
+      },
+      configurable: true,
+    });
+    await expect(connectLabelPrinter()).rejects.toMatchObject({
+      name: "SecurityError",
+    });
     expect(isAutoPrintEnabled()).toBe(false);
   });
 
