@@ -7,6 +7,8 @@ import {
   isLabelPrintingSupported,
   printLabel,
 } from "@/lib/label-printer";
+import { buildLabelLbx } from "@/lib/lbx";
+import { safeFileName } from "@/lib/file-share";
 
 /** Étiquette d'une attribution, collée sur la carte du territoire : à qui il est confié et pour quand. */
 export interface LabelText {
@@ -25,8 +27,11 @@ const PADDING_MM = 2;
 const DEFAULT_ASCENT = 0.905;
 const DEFAULT_DESCENT = 0.212;
 
-const formatDay = (value: string) =>
-  new Date(`${value}T00:00:00`).toLocaleDateString("fr-FR");
+// Date du backend (AAAA-MM-JJ) recopiée telle quelle : sans objet Date, pas de décalage de fuseau horaire
+const formatDay = (value: string) => {
+  const [year, month, day] = value.slice(0, 10).split("-");
+  return `${day}/${month}/${year}`;
+};
 
 /** Prénom, initiale du nom et échéance ; null pour une attribution sans personne (campagne). */
 export function assignmentLabelText(
@@ -101,6 +106,30 @@ export function renderLabel(text: LabelText, height: number): Bitmap {
     ink[i] = luminance < 128 ? 1 : 0;
   }
   return { width, height, ink };
+}
+
+/** Étiquette d'une attribution en fichier LBX, pour P-touch Design&Print 2. */
+export interface LabelFile {
+  text: LabelText;
+  file: File;
+}
+
+/** Fichier LBX de l'étiquette ; null pour une attribution sans personne (campagne). */
+export function assignmentLabelFile(
+  assignment: Pick<Assignment, "person" | "dueDate"> | null | undefined
+): LabelFile | null {
+  const text = assignmentLabelText(assignment);
+  if (!assignment || !text) return null;
+  const bytes = buildLabelLbx(text) as Uint8Array<ArrayBuffer>;
+  const name = safeFileName(
+    `etiquette ${text.name} ${assignment.dueDate.slice(0, 10)}`,
+    "lbx"
+  );
+  // Type générique : iOS reconnaît le fichier à son extension et propose Design&Print 2
+  return {
+    text,
+    file: new File([bytes], name, { type: "application/octet-stream" }),
+  };
 }
 
 /** Imprime l'étiquette d'une attribution, avec un message de suivi (et « Réessayer » en cas d'échec). */

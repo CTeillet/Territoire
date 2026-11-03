@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderToString } from "react-dom/server";
+import { hydrateRoot } from "react-dom/client";
 import { toast } from "sonner";
 import { LabelPrinterSection } from "@/components/parameters/other-parameter/label-printer-section";
 import * as assignmentLabel from "@/lib/assignment-label";
@@ -10,6 +12,7 @@ import {
   stubSerial,
   unstubSerial,
 } from "../mocks/serial-port";
+import { captureDownloads, stubIPhone } from "../mocks/ios";
 
 vi.mock("sonner", () => ({
   toast: { loading: vi.fn(), success: vi.fn(), error: vi.fn() },
@@ -33,10 +36,67 @@ describe("LabelPrinterSection", () => {
 
     expect(
       await screen.findByText(/utilisez Chrome ou Edge sur ordinateur/)
-    ).toBeInTheDocument();
+    ).toHaveTextContent(
+      "Sur iPhone et iPad, l'étiquette se télécharge en fichier pour l'application Brother Design&Print 2."
+    );
     expect(
       screen.queryByRole("button", { name: "Choisir l'imprimante" })
     ).not.toBeInTheDocument();
+  });
+
+  it("sur iPhone, explique le fichier LBX et télécharge une étiquette de test, sans commande Web Serial", async () => {
+    stubIPhone();
+    const downloads = captureDownloads();
+    render(<LabelPrinterSection />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Télécharger une étiquette de test",
+      })
+    );
+
+    expect(downloads.map(({ name }) => name)).toEqual([
+      expect.stringMatching(/^etiquette-jean-d-\d{4}-\d{2}-\d{2}\.lbx$/),
+    ]);
+    expect(screen.getByText(/P-touch Design&Print 2/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/choisissez Design&Print 2 dans les options de partage/)
+    ).toHaveTextContent("puis touchez « Imprimer »");
+    expect(screen.queryByText(/ne le permettent pas/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/utilisez Chrome/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Choisir l'imprimante" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Aperçu de l'étiquette" })
+    ).toBeInTheDocument();
+  });
+
+  it("ne lit pas l'appareil au rendu serveur : l'hydratation sur iPhone se passe sans écart", async () => {
+    stubIPhone();
+    const html = renderToString(<LabelPrinterSection />);
+    expect(html).not.toContain("Télécharger une étiquette de test");
+
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    const consoleError = vi.spyOn(console, "error");
+    const recoverable = vi.fn();
+    await act(async () => {
+      hydrateRoot(container, <LabelPrinterSection />, {
+        onRecoverableError: recoverable,
+      });
+    });
+
+    expect(
+      await within(container).findByRole("button", {
+        name: "Télécharger une étiquette de test",
+      })
+    ).toBeInTheDocument();
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    container.remove();
   });
 
   it("choisit l'imprimante, imprime un test, règle l'impression automatique puis l'oublie", async () => {

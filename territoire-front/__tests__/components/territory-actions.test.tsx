@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -7,12 +8,14 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast, Toaster } from "sonner";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import AssignTerritoryDialog from "@/components/territory/assign-territory-dialog";
 import ExtendConfirmationDialog from "@/components/territory/extend-confirmation-dialog";
 import { addMonths, addWeeks, format } from "date-fns";
 import * as assignmentLabel from "@/lib/assignment-label";
 import { jsonResponse, mockApi, renderWithStore } from "../test-utils";
+import { captureDownloads, stubIPhone } from "../mocks/ios";
 
 const persons = [
   { id: "p1", firstName: "Jean", lastName: "Dupont" },
@@ -97,6 +100,85 @@ describe("Boutons d'action d'un territoire", () => {
     );
     // Étiquette imprimée si l'appareil est réglé pour
     await waitFor(() => expect(autoPrint).toHaveBeenCalledWith(assignment));
+  });
+
+  describe("sur iPhone", () => {
+    const assigned = { ...assignment, person: persons[1] };
+
+    const assignToAnne = async () => {
+      render(<Toaster />);
+      renderWithStore(
+        <TerritoryDataActionButtons territoryId="t1" status="AVAILABLE" />
+      );
+      await waitFor(() => expect(api).toHaveBeenCalledWith("/api/personnes"));
+      await userEvent.click(button("Assignation du territoire"));
+      await userEvent.click(await screen.findByRole("combobox"));
+      await userEvent.click(await screen.findByText("Anne Martin"));
+      await userEvent.click(screen.getByText("Confirmer l'assignation"));
+    };
+
+    beforeEach(() => {
+      stubIPhone();
+    });
+
+    afterEach(() => {
+      act(() => {
+        toast.dismiss();
+      });
+    });
+
+    it("propose l'étiquette en fichier LBX, téléchargeable après la fermeture du dialogue", async () => {
+      setup({ "POST /api/territoires/t1/attribuer": assigned });
+      const autoPrint = vi.spyOn(assignmentLabel, "autoPrintAssignmentLabel");
+      const downloads = captureDownloads();
+
+      await assignToAnne();
+
+      expect(await screen.findByText("Étiquette prête")).toBeInTheDocument();
+      // Données renvoyées par le backend
+      expect(
+        screen.getByText("Anne M. · À rendre le 11/02/2027")
+      ).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Télécharger" })
+      );
+      expect(downloads.map(({ name }) => name)).toEqual([
+        "etiquette-anne-m-2027-02-11.lbx",
+      ]);
+      // Ni Web Serial ni réglage d'impression automatique sur iPhone
+      expect(autoPrint).not.toHaveBeenCalled();
+    });
+
+    it("garde l'attribution quand le fichier ne peut pas être généré", async () => {
+      setup({ "POST /api/territoires/t1/attribuer": assigned });
+      vi.spyOn(assignmentLabel, "assignmentLabelFile").mockImplementation(
+        () => {
+          throw new Error("Archive impossible");
+        }
+      );
+
+      await assignToAnne();
+
+      expect(
+        await screen.findByText(
+          "Le fichier de l'étiquette n'a pas pu être généré."
+        )
+      ).toBeInTheDocument();
+      expect(api).toHaveBeenCalledWith(
+        "/api/territoires/t1/attribuer/p2",
+        expect.objectContaining({ method: "POST" })
+      );
+      expect(console.error).not.toHaveBeenCalledWith(
+        "❌ Erreur lors de l'assignation :",
+        expect.anything()
+      );
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+      );
+    });
   });
 
   it("crée une nouvelle personne puis lui attribue le territoire", async () => {

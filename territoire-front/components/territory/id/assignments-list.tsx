@@ -2,7 +2,7 @@
 
 import { Assignment } from "@/models/assignment";
 import ActionButton from "@/components/shared/action-button";
-import { CalendarCog, Eye, Printer } from "lucide-react";
+import { CalendarCog, Eye, FileDown, Printer } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState } from "react";
 import { useSelector } from "react-redux";
@@ -11,6 +11,7 @@ import { canManageAssignments } from "@/models/role";
 import EditAssignmentDatesDialog from "@/components/territory/id/edit-assignment-dates-dialog";
 import { useLabelPrinter } from "@/hooks/use-label-printer";
 import { printAssignmentLabel } from "@/lib/assignment-label";
+import { offerAssignmentLabelFile } from "@/components/shared/assignment-label-file";
 
 const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
   const role = useSelector((state: RootState) => state.auth.user?.role);
@@ -62,18 +63,30 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                 </div>
                 <TooltipProvider>
                   <div className="flex gap-2">
-                    {/* Étiquette perdue, ratée ou à refaire après une modification de l'échéance */}
+                    {/* Étiquette perdue, ratée ou à refaire après une modification de l'échéance.
+                        Sur iPhone, fichier LBX pour Design&Print 2, sans imprimante choisie dans le navigateur. */}
                     {assignment.person &&
                       assignment.returnDate === null &&
                       canManageAssignments(role) &&
-                      labelPrinter.connected && (
+                      (labelPrinter.lbx ? (
                         <ActionButton
-                          icon={Printer}
-                          tooltip="Imprimer l'étiquette"
-                          onClick={() => void printAssignmentLabel(assignment)}
+                          icon={FileDown}
+                          tooltip="Télécharger l'étiquette"
+                          onClick={() => offerAssignmentLabelFile(assignment)}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         />
-                      )}
+                      ) : (
+                        labelPrinter.connected && (
+                          <ActionButton
+                            icon={Printer}
+                            tooltip="Imprimer l'étiquette"
+                            onClick={() =>
+                              void printAssignmentLabel(assignment)
+                            }
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          />
+                        )
+                      ))}
                     {/* Les dates d'une campagne suivent celles de la campagne */}
                     {assignment.person && canManageAssignments(role) && (
                       <ActionButton
