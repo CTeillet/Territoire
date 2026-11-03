@@ -296,7 +296,7 @@ describe("Carte d'édition d'un territoire", () => {
     expect(api).toHaveBeenCalledWith("/api/territoires/geojson");
   });
 
-  it("colore les autres territoires selon leur statut, comme la carte des territoires", () => {
+  it("colore les autres territoires en gris, quel que soit leur statut", () => {
     renderWithStore(
       <TerritoryIdMap territory={territory([hull])} city={TEST_CITY} />,
       "ADMIN",
@@ -315,10 +315,14 @@ describe("Carte d'édition d'un territoire", () => {
         .getByTestId("geojson")
         .getAttribute("data-styles")!
     );
-    expect(styles).toEqual([
-      { color: "#9333ea", fillColor: "#9333ea", weight: 2, fillOpacity: 0.25 },
-      { color: "#ec4899", fillColor: "#ec4899", weight: 2, fillOpacity: 0.25 },
-    ]);
+    // Un style unique (pas de fonction par territoire) : même gris pour tous
+    expect(styles).toEqual({
+      color: "#4b5563",
+      weight: 2,
+      dashArray: "6 4",
+      fillColor: "#6b7280",
+      fillOpacity: 0.3,
+    });
   });
 
   it("affiche le contour et les pâtés, et cadre la carte sur le contour", async () => {
