@@ -44,7 +44,7 @@ const ListCity = ({ cities }: { cities: City[] }) => {
   };
 
   return (
-    <Card className="shadow-lg border border-gray-200">
+    <Card>
       <CardHeader>
         <CardTitle>Liste des villes</CardTitle>
       </CardHeader>

@@ -35,11 +35,14 @@ import {
   updatePersonAccessExpiration,
 } from "@/lib/person-access-api";
 
-export const ACCESS_STATUS_BADGE: Record<AccessStatus, string> = {
-  AUCUN: "bg-gray-400",
-  ACTIF: "bg-green-600",
-  EXPIRE: "bg-orange-500",
-  REVOQUE: "bg-red-600",
+export const ACCESS_STATUS_BADGE: Record<
+  AccessStatus,
+  "neutral" | "success" | "warning" | "danger"
+> = {
+  AUCUN: "neutral",
+  ACTIF: "success",
+  EXPIRE: "warning",
+  REVOQUE: "danger",
 };
 
 export const formatDateTime = (value: string | null) =>
@@ -113,7 +116,7 @@ export default function PersonAccessCard({ personId }: { personId: string }) {
         <CardTitle className="flex items-center gap-3">
           <KeyRound className="h-5 w-5" />
           Accès numérique
-          <Badge className={`${ACCESS_STATUS_BADGE[status]} text-white`}>
+          <Badge variant={ACCESS_STATUS_BADGE[status]}>
             {ACCESS_STATUS_LABELS[status]}
           </Badge>
         </CardTitle>
@@ -213,7 +216,7 @@ export default function PersonAccessCard({ personId }: { personId: string }) {
           {manage && status !== "AUCUN" && status !== "REVOQUE" && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={busy}>
+                <Button variant="destructive-outline" disabled={busy}>
                   <ShieldOff className="h-4 w-4" />
                   Révoquer
                 </Button>
@@ -229,6 +232,7 @@ export default function PersonAccessCard({ personId }: { personId: string }) {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Annuler</AlertDialogCancel>
                   <AlertDialogAction
+                    variant="destructive"
                     onClick={() =>
                       run(() => revokePersonAccess(personId), "Lien révoqué")
                     }

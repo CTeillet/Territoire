@@ -2,7 +2,7 @@
 
 import { AddressNotToDo } from "@/models/addressNotToDo";
 import React, { useState } from "react";
-import { Pencil, Trash, Check, PlusCircle } from "lucide-react";
+import { Pencil, Trash, Check, Plus } from "lucide-react";
 
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
   addAddressNotToVisit,
@@ -143,9 +144,9 @@ const AddressNotToDoList = () => {
   };
 
   return (
-    <div className="mt-6 border border-gray-200 bg-white p-4 md:p-6 rounded-lg shadow-sm">
-      <h2 className="text-lg font-semibold mb-2">
-        🚫 Adresses à ne pas visiter
+    <div className="rounded-xl border bg-card p-4 shadow-sm md:p-6">
+      <h2 className="mb-4 leading-none font-semibold">
+        Adresses à ne pas visiter
       </h2>
 
       <ul>
@@ -156,41 +157,41 @@ const AddressNotToDoList = () => {
           >
             {editingIndex === index ? (
               <div className="flex flex-wrap gap-2">
-                <input
+                <Input
                   type="text"
                   name="number"
                   value={editedAddress?.number || ""}
                   onChange={handleEditChange}
-                  className="border p-1 rounded w-16"
+                  className="w-16"
                 />
-                <input
+                <Input
                   type="text"
                   name="street"
                   value={editedAddress?.street || ""}
                   onChange={handleEditChange}
-                  className="border p-1 rounded w-40"
+                  className="w-40"
                 />
-                <input
+                <Input
                   type="text"
                   name="zipCode"
                   value={editedAddress?.zipCode || ""}
                   onChange={handleEditChange}
-                  className="border p-1 rounded w-20"
+                  className="w-20"
                 />
-                <input
+                <Input
                   type="text"
                   name="city"
                   value={editedAddress?.city || ""}
                   onChange={handleEditChange}
-                  className="border p-1 rounded w-32"
+                  className="w-32"
                 />
-                <button
+                <Button
+                  size="icon"
                   aria-label="Enregistrer l'adresse"
                   onClick={handleSaveEdit}
-                  className="bg-green-500 text-white p-1 rounded hover:bg-green-600 flex items-center gap-1"
                 >
-                  <Check size={16} />
-                </button>
+                  <Check aria-hidden="true" />
+                </Button>
               </div>
             ) : (
               <>
@@ -199,22 +200,24 @@ const AddressNotToDoList = () => {
                   {address.city}
                 </span>
                 <div className="flex shrink-0 gap-2">
-                  <button
+                  <Button
+                    variant="outline"
+                    size="icon"
                     aria-label="Modifier l'adresse"
                     onClick={() => handleEdit(index)}
-                    className="text-blue-500 hover:text-blue-700"
                   >
-                    <Pencil size={18} />
-                  </button>
+                    <Pencil aria-hidden="true" />
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         aria-label="Supprimer l'adresse"
-                        variant="destructive"
-                        className="p-2"
+                        variant="destructive-outline"
+                        size="icon"
+                        disabled={deleting}
                         onClick={() => handleDeleteClick(index)}
                       >
-                        {deleting ? "Suppression..." : <Trash size={18} />}
+                        <Trash aria-hidden="true" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -234,8 +237,8 @@ const AddressNotToDoList = () => {
                       <AlertDialogFooter className="flex justify-end gap-2">
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
                         <AlertDialogAction
+                          variant="destructive"
                           onClick={handleConfirmDelete}
-                          className="bg-red-600 hover:bg-red-700"
                         >
                           Supprimer
                         </AlertDialogAction>
@@ -250,47 +253,44 @@ const AddressNotToDoList = () => {
       </ul>
 
       <div className="mt-4">
-        <h3 className="text-md font-semibold mb-2">Ajouter une adresse</h3>
+        <h3 className="mb-2 font-semibold">Ajouter une adresse</h3>
         <div className="flex flex-wrap gap-2">
-          <input
+          <Input
             type="text"
             name="number"
             placeholder="Numéro"
             value={newAddress.number}
             onChange={handleChange}
-            className="border p-2 rounded"
+            className="w-auto min-w-28 flex-1"
           />
-          <input
+          <Input
             type="text"
             name="street"
             placeholder="Rue"
             value={newAddress.street}
             onChange={handleChange}
-            className="border p-2 rounded"
+            className="w-auto min-w-28 flex-1"
           />
-          <input
+          <Input
             type="text"
             name="zipCode"
             placeholder="Code postal"
             value={newAddress.zipCode}
             onChange={handleChange}
-            className="border p-2 rounded"
+            className="w-auto min-w-28 flex-1"
           />
-          <input
+          <Input
             type="text"
             name="city"
             placeholder="Ville"
             value={newAddress.city}
             onChange={handleChange}
-            className="border p-2 rounded"
+            className="w-auto min-w-28 flex-1"
           />
-          <button
-            aria-label="Ajouter l'adresse"
-            onClick={handleAddAddress}
-            className="bg-red-500 text-white p-2 rounded hover:bg-red-600 flex items-center gap-1"
-          >
-            <PlusCircle size={18} />
-          </button>
+          <Button aria-label="Ajouter l'adresse" onClick={handleAddAddress}>
+            <Plus aria-hidden="true" />
+            Ajouter
+          </Button>
         </div>
       </div>
     </div>

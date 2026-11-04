@@ -32,6 +32,7 @@ import { formatDateTime } from "@/components/person/person-access-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppSelector } from "@/store/store";
 import { canSendAccess } from "@/lib/person-access-api";
+import { PageContainer, PageHeader } from "@/components/shared/page-layout";
 import {
   closeTerritoryRequest,
   fetchTerritoryRequests,
@@ -43,11 +44,14 @@ import {
   TerritoryRequestStatus,
 } from "@/models/territory-request";
 
-const STATUS_BADGE: Record<TerritoryRequestStatus, string> = {
-  EN_ATTENTE: "bg-blue-600",
-  ATTRIBUEE: "bg-green-600",
-  CLOTUREE: "bg-gray-500",
-  ANNULEE: "bg-gray-400",
+const STATUS_BADGE: Record<
+  TerritoryRequestStatus,
+  "info" | "success" | "neutral"
+> = {
+  EN_ATTENTE: "info",
+  ATTRIBUEE: "success",
+  CLOTUREE: "neutral",
+  ANNULEE: "neutral",
 };
 
 /** Demandes de nouveau territoire faites par les personnes depuis leur lien personnel. */
@@ -105,29 +109,24 @@ export default function TerritoryRequestsPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            Demandes de territoire
-          </h1>
-          <p className="text-muted-foreground">
-            Faites par les personnes depuis leur lien personnel. Attribuer un
-            territoire à la personne clôture sa demande.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="with-history"
-            className="bg-white"
-            checked={withHistory}
-            onCheckedChange={(checked) => setWithHistory(Boolean(checked))}
-          />
-          <Label htmlFor="with-history">Afficher les demandes traitées</Label>
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Demandes de territoire"
+        description="Faites par les personnes depuis leur lien personnel. Attribuer un territoire à la personne clôture sa demande."
+        actions={
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="with-history"
+              className="bg-white"
+              checked={withHistory}
+              onCheckedChange={(checked) => setWithHistory(Boolean(checked))}
+            />
+            <Label htmlFor="with-history">Afficher les demandes traitées</Label>
+          </div>
+        }
+      />
 
-      <div className="rounded-md border bg-white">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -221,9 +220,7 @@ export default function TerritoryRequestsPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col items-end gap-1">
-                      <Badge
-                        className={`${STATUS_BADGE[request.status]} text-white`}
-                      >
+                      <Badge variant={STATUS_BADGE[request.status]}>
                         {TERRITORY_REQUEST_STATUS_LABELS[request.status]}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
@@ -253,6 +250,6 @@ export default function TerritoryRequestsPage() {
         onOpenChange={(open) => !open && setAssigning(null)}
         onAssigned={refresh}
       />
-    </div>
+    </PageContainer>
   );
 }

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   PrintCard,
   TerritoryPrintSheets,
@@ -30,6 +31,7 @@ import {
   updateTerritoryLost,
 } from "@/store/slices/territory-slice";
 import { filterBySearch } from "@/lib/search";
+import { PageContainer, PageHeader } from "@/components/shared/page-layout";
 
 // À l'impression, seules les feuilles (rendues dans <body> par un portail) sont visibles, en A4 paysage sans marge
 const PRINT_CSS = `
@@ -240,16 +242,11 @@ export default function TerritoryPrintPage() {
   );
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-bold">
-          Impression des cartes
-        </h1>
-        <p className="text-muted-foreground">
-          Les cartes des territoires sélectionnés sont imprimées par 4 sur des
-          feuilles A4 en paysage, à découper le long des pointillés.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Impression des cartes"
+        description="Les cartes des territoires sélectionnés sont imprimées par 4 sur des feuilles A4 en paysage, à découper le long des pointillés."
+      />
 
       <div className="grid items-start gap-6 lg:grid-cols-[22rem_1fr]">
         {/* En deux colonnes, la sélection reste à l'écran pendant qu'on fait défiler l'aperçu */}
@@ -257,9 +254,9 @@ export default function TerritoryPrintPage() {
           {lostTerritories.length > 0 && (
             <section
               aria-label="Territoires perdus"
-              className="space-y-2 rounded-md border border-orange-300 bg-orange-50 p-3"
+              className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3"
             >
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-orange-800">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-amber-800">
                 <TriangleAlert className="h-4 w-4 shrink-0" />
                 {plural(
                   lostTerritories.length,
@@ -288,11 +285,10 @@ export default function TerritoryPrintPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <select
+          <NativeSelect
             aria-label="Ville"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="h-9 w-full rounded-md border bg-white px-2 text-base md:text-sm"
           >
             <option value="">Toutes les villes</option>
             {cities.map((name) => (
@@ -300,7 +296,7 @@ export default function TerritoryPrintPage() {
                 {name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={selectVisible}>
               Tout sélectionner
@@ -320,7 +316,9 @@ export default function TerritoryPrintPage() {
               Chargement des territoires...
             </p>
           ) : (
-            <div className="max-h-[45vh] overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
+            // relative : les libellés sr-only (« perdu », « sans carte »), positionnés en absolu, restent dans la liste.
+            // Sans lui, ils sortent de la zone qui défile et allongent la page d'un grand vide en bas.
+            <div className="relative max-h-[45vh] overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
               {visibleByCity.map(([cityLabel, cityTerritories]) => (
                 <section key={cityLabel} aria-label={cityLabel || "Sans ville"}>
                   <h3 className="sticky top-0 z-[1] bg-white py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -341,7 +339,7 @@ export default function TerritoryPrintPage() {
                             t.hasMap
                               ? "cursor-pointer hover:bg-gray-50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-gray-100"
                               : "border-dashed text-gray-400",
-                            t.lost && "border-orange-400"
+                            t.lost && "border-amber-400"
                           )}
                         >
                           <Checkbox
@@ -358,7 +356,7 @@ export default function TerritoryPrintPage() {
                           {t.lost && (
                             <span
                               aria-hidden="true"
-                              className="ml-auto size-2 shrink-0 rounded-full bg-orange-500"
+                              className="ml-auto size-2 shrink-0 rounded-full bg-amber-500"
                             />
                           )}
                           {t.lost && <span className="sr-only">perdu</span>}
@@ -382,7 +380,7 @@ export default function TerritoryPrintPage() {
             <span className="flex items-center gap-1.5">
               <span
                 aria-hidden="true"
-                className="size-2 rounded-full bg-orange-500"
+                className="size-2 rounded-full bg-amber-500"
               />
               Perdu
             </span>
@@ -400,7 +398,7 @@ export default function TerritoryPrintPage() {
           {!isMobile && printBar}
 
           {selectedLost.length > 0 && canManageAssignments(user?.role) && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-orange-300 bg-orange-50 p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
               <p>
                 {selectedLost.length > 1
                   ? `${selectedLost.length} territoires perdus sélectionnés : une fois leurs cartes imprimées, retirez-les des perdus.`
@@ -445,6 +443,6 @@ export default function TerritoryPrintPage() {
           document.body
         )}
       <style>{PRINT_CSS}</style>
-    </div>
+    </PageContainer>
   );
 }

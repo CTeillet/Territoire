@@ -80,14 +80,10 @@ export function CampaignStatisticsComponent({
 
   if (loading) {
     return (
-      <Card className="shadow-md border-0">
+      <Card>
         <CardHeader className="pb-6">
-          <CardTitle className="text-2xl font-bold mb-2">
-            Statistiques
-          </CardTitle>
-          <CardDescription className="text-base">
-            Chargement des statistiques...
-          </CardDescription>
+          <CardTitle>Statistiques</CardTitle>
+          <CardDescription>Chargement des statistiques...</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -95,14 +91,10 @@ export function CampaignStatisticsComponent({
 
   if (!statistics) {
     return (
-      <Card className="shadow-md border-0">
+      <Card>
         <CardHeader className="pb-6">
-          <CardTitle className="text-2xl font-bold mb-2">
-            Statistiques
-          </CardTitle>
-          <CardDescription className="text-base">
-            Aucune statistique disponible
-          </CardDescription>
+          <CardTitle>Statistiques</CardTitle>
+          <CardDescription>Aucune statistique disponible</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -160,13 +152,11 @@ export function CampaignStatisticsComponent({
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
   return (
-    <Card className="shadow-md border-0 mt-8">
+    <Card className="mt-8">
       <CardHeader className="flex flex-col gap-3 px-4 pb-6 sm:flex-row sm:items-start sm:justify-between md:px-6">
         <div>
-          <CardTitle className="text-2xl font-bold mb-2">
-            Statistiques
-          </CardTitle>
-          <CardDescription className="text-base">
+          <CardTitle>Statistiques</CardTitle>
+          <CardDescription>
             Statistiques des territoires pour cette campagne
           </CardDescription>
         </div>
@@ -180,7 +170,7 @@ export function CampaignStatisticsComponent({
           {isExporting ? "Export en cours..." : "Exporter en Excel"}
         </Button>
       </CardHeader>
-      <CardContent className="px-4 md:px-6">
+      <CardContent>
         {/* Summary Cards */}
         <StatisticsSummary statistics={statistics} />
 

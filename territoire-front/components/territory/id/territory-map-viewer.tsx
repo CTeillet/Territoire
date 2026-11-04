@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TriangleAlert } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
 
 interface TerritoryMapViewerProps {
@@ -74,11 +75,9 @@ const TerritoryMapViewer: React.FC<TerritoryMapViewerProps> = ({
   };
 
   return (
-    <Card className="mb-6 max-w-4xl mx-auto">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-xl font-bold flex items-center">
-          <span className="mr-2">🗺️</span> Carte du territoire
-        </CardTitle>
+        <CardTitle>Carte du territoire</CardTitle>
       </CardHeader>
       <CardContent className="flex justify-center">
         <div className="relative w-full h-[500px] border border-gray-200 rounded-md overflow-hidden">
@@ -89,7 +88,10 @@ const TerritoryMapViewer: React.FC<TerritoryMapViewerProps> = ({
           )}
           {hasError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-4 text-center">
-              <div className="text-red-500 text-xl mb-2">⚠️</div>
+              <TriangleAlert
+                aria-hidden="true"
+                className="mb-2 h-6 w-6 text-destructive"
+              />
               <p className="text-gray-700">
                 Impossible de charger l&apos;image. Veuillez réessayer plus
                 tard.

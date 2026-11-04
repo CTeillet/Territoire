@@ -161,8 +161,8 @@ export function CreateCampaignDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="px-5 py-2.5 text-base font-medium h-auto">
-          <Plus className="mr-2 h-5 w-5" />
+        <Button>
+          <Plus aria-hidden="true" />
           Nouvelle campagne
         </Button>
       </DialogTrigger>

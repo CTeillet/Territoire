@@ -189,7 +189,7 @@ describe("Tableau de bord", () => {
         "href",
         "/territoires/2"
       );
-      expect(within(jean).getByText("ATTRIBUÉ")).toBeInTheDocument();
+      expect(within(jean).getByText("En cours")).toBeInTheDocument();
       // Pas de date de retour pour une attribution en cours
       expect(
         within(jean)

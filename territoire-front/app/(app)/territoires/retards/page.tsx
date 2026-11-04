@@ -14,9 +14,12 @@ import {
 } from "@/store/slices/territory-slice";
 import { createReminder, fetchReminders } from "@/store/slices/reminder-slice";
 import Link from "next/link";
-import { PageHeader } from "@/components/late-territory/page-header";
-import { LoadingState } from "@/components/late-territory/loading-state";
-import { EmptyState } from "@/components/late-territory/empty-state";
+import {
+  EmptyState,
+  LoadingState,
+  PageContainer,
+  PageHeader,
+} from "@/components/shared/page-layout";
 import { ReminderStatusBadge } from "@/components/late-territory/reminder-status-badge";
 import { TerritoryNameLink } from "@/components/territory/territory-name-link";
 import { fetchPersons } from "@/store/slices/person-slice";
@@ -37,6 +40,7 @@ import {
 import {
   ArrowUpDown,
   CalendarPlus,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -440,19 +444,27 @@ export default function LateTerritoriesPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
+    <PageContainer>
       <PageHeader
         title="Territoires en retard"
         description="Gérez les territoires en retard et envoyez des rappels"
       />
 
       {territoriesLoading || remindersLoading || !territoriesData ? (
-        <LoadingState />
+        <LoadingState message="Chargement des territoires en retard..." />
       ) : territories.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          icon={CheckCircle2}
+          title="Aucun territoire en retard"
+          description="Un territoire passe en retard quand sa date de retour est dépassée. Tous sont à jour."
+        >
+          <Button asChild variant="outline">
+            <Link href="/territoires">Voir tous les territoires</Link>
+          </Button>
+        </EmptyState>
       ) : (
-        <>
-          <div className="flex items-center justify-end gap-2 mb-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-end gap-2">
             <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
             <label
               htmlFor="late-sort-select"
@@ -481,7 +493,7 @@ export default function LateTerritoriesPage() {
             {sortedGroups.map((g) => (
               <div
                 key={g.personId}
-                className="border rounded-lg bg-white shadow-sm"
+                className="rounded-xl border bg-card shadow-sm"
               >
                 {/* Tout l'en-tête déplie le groupe ; sur téléphone, les actions passent dessous en pleine largeur */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
@@ -609,8 +621,8 @@ export default function LateTerritoriesPage() {
             onConfirm={handleExtend}
             title={extendTarget?.title}
           />
-        </>
+        </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

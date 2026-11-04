@@ -34,8 +34,8 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
   });
 
   return (
-    <div className="mt-6 border border-gray-200 bg-white p-4 md:p-6 rounded-lg shadow-sm">
-      <h2 className="text-lg font-semibold mb-2">📋 Historique</h2>
+    <div className="rounded-xl border bg-card p-4 shadow-sm md:p-6">
+      <h2 className="mb-4 leading-none font-semibold">Historique</h2>
       {sortedAssignments.length === 0 ? (
         <p className="text-gray-500">Pas d&#39;historique pour ce territoire</p>
       ) : (
@@ -53,7 +53,6 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                   </strong>
                   <br />
                   <span className="text-sm text-gray-600">
-                    📅{" "}
                     {new Date(assignment.assignmentDate).toLocaleDateString()} →{" "}
                     {assignment.returnDate
                       ? new Date(assignment.returnDate).toLocaleDateString()
@@ -73,7 +72,6 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                           icon={FileDown}
                           tooltip="Télécharger l'étiquette"
                           onClick={() => offerAssignmentLabelFile(assignment)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         />
                       ) : (
                         labelPrinter.connected && (
@@ -83,7 +81,6 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                             onClick={() =>
                               void printAssignmentLabel(assignment)
                             }
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
                           />
                         )
                       ))}
@@ -93,7 +90,6 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                         icon={CalendarCog}
                         tooltip="Modifier les dates"
                         onClick={() => setEditedAssignment(assignment)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white"
                       />
                     )}
                     {assignment.person && (
@@ -101,7 +97,6 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                         icon={Eye}
                         tooltip="Voir les détails de la personne"
                         href={`/personnes/${assignment.person.id}`}
-                        className="bg-gray-500 hover:bg-gray-600 text-white"
                       />
                     )}
                   </div>

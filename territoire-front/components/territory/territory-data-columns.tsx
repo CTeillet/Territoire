@@ -6,15 +6,13 @@ import {
   isOneOf,
 } from "@/components/ui/data-table-features";
 import { Territory } from "@/models/territory";
-import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
-import { Badge } from "@/components/ui/badge";
 import React from "react";
 import { DataTableColumnHeader } from "@/components/territory/territory-data-header";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import { TerritoryNameLink } from "@/components/territory/territory-name-link";
-import { getBadgeColor } from "@/components/utils";
 import { LostBadge } from "@/components/territory/lost-badge";
+import { TerritoryStatusBadge } from "@/components/territory/territory-status-badge";
 
 export const COLUMNS_ID_TRANSLATIONS = {
   actions: "Actions",
@@ -88,16 +86,8 @@ export const territoryDataColumns: ColumnDef<
     cell: ({ row }) => {
       return (
         <div className="flex flex-col items-center gap-1">
-          <Badge
-            className={`${getBadgeColor(row.getValue("status"))} text-white px-2 py-1 rounded w-full `}
-          >
-            {
-              STATUS_TRANSLATIONS[
-                row.getValue("status") as keyof typeof STATUS_TRANSLATIONS
-              ]
-            }
-          </Badge>
-          {row.original.lost && <LostBadge className="w-full" />}
+          <TerritoryStatusBadge status={row.original.status} />
+          {row.original.lost && <LostBadge />}
         </div>
       );
     },
@@ -202,3 +192,11 @@ export const territoryDataColumns: ColumnDef<
     },
   },
 ];
+
+// Colonnes de l'attribution en cours : sans objet pour un territoire qui n'est pas attribué
+const ASSIGNMENT_COLUMNS = new Set(["assignedTo", "assignedOn", "waitedFor"]);
+
+/** Territoires non parcourus (disponibles ou en attente) : les mêmes colonnes, sans celles de l'attribution. */
+export const nonVisitedTerritoryColumns = territoryDataColumns.filter(
+  (column) => !ASSIGNMENT_COLUMNS.has(column.id ?? "")
+);

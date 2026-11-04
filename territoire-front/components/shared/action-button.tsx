@@ -15,6 +15,7 @@ type ActionButtonProps = {
   className?: string;
 };
 
+/** Bouton icône avec infobulle, au contour comme les autres boutons secondaires (pas de couleur propre). */
 const ActionButton: React.FC<ActionButtonProps> = ({
   icon: Icon,
   tooltip,
@@ -26,14 +27,20 @@ const ActionButton: React.FC<ActionButtonProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         {href ? (
-          <Link href={href} aria-label={tooltip}>
-            <Button className={className} tabIndex={-1}>
+          <Button asChild variant="outline" size="icon" className={className}>
+            <Link href={href} aria-label={tooltip}>
               <Icon />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         ) : (
           // Bouton icône seule : l'infobulle sert aussi de nom accessible
-          <Button className={className} onClick={onClick} aria-label={tooltip}>
+          <Button
+            variant="outline"
+            size="icon"
+            className={className}
+            onClick={onClick}
+            aria-label={tooltip}
+          >
             <Icon />
           </Button>
         )}

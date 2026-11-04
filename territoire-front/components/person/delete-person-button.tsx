@@ -24,6 +24,8 @@ interface DeletePersonButtonProps {
   person: Person;
   className?: string;
   onDeleted?: () => void;
+  /** Avec le libellé « Supprimer » (fiche) ; sinon l'icône seule (liste). */
+  showLabel?: boolean;
 }
 
 /** Bouton de suppression avec confirmation, réservé aux rôles autorisés par l'API. */
@@ -31,6 +33,7 @@ const DeletePersonButton: React.FC<DeletePersonButtonProps> = ({
   person,
   className,
   onDeleted,
+  showLabel = false,
 }) => {
   const dispatch = useAppDispatch();
   const deleting = useAppSelector((state) => state.persons.deleting);
@@ -54,12 +57,14 @@ const DeletePersonButton: React.FC<DeletePersonButtonProps> = ({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
-          variant="destructive"
+          variant="destructive-outline"
+          size={showLabel ? "default" : "icon"}
           className={className}
           disabled={deleting}
           aria-label={`Supprimer ${person.firstName} ${person.lastName}`}
         >
-          {deleting ? "Suppression..." : <Trash2 size={18} />}
+          <Trash2 aria-hidden="true" />
+          {showLabel && (deleting ? "Suppression..." : "Supprimer")}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -76,10 +81,7 @@ const DeletePersonButton: React.FC<DeletePersonButtonProps> = ({
         </AlertDialogHeader>
         <AlertDialogFooter className="flex justify-end gap-2">
           <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            className="bg-red-600 hover:bg-red-700"
-          >
+          <AlertDialogAction variant="destructive" onClick={handleDelete}>
             Supprimer
           </AlertDialogAction>
         </AlertDialogFooter>

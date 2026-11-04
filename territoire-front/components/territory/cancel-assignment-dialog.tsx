@@ -33,10 +33,7 @@ const CancelAssignmentDialog: React.FC<CancelAssignmentDialogProps> = ({
           <Button variant="outline" onClick={onClose}>
             Annuler
           </Button>
-          <Button
-            className="bg-red-500 hover:bg-red-600 text-white"
-            onClick={onConfirm}
-          >
+          <Button variant="destructive" onClick={onConfirm}>
             Confirmer
           </Button>
         </DialogFooter>

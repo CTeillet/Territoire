@@ -8,6 +8,11 @@ import CreatePersonDialog from "@/components/person/create-person-dialog";
 import { Person } from "@/models/person";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  LoadingState,
+  PageContainer,
+  PageHeader,
+} from "@/components/shared/page-layout";
 
 const PersonsPage = () => {
   const dispatch = useAppDispatch();
@@ -40,18 +45,18 @@ const PersonsPage = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold">Liste des Personnes</h1>
-      {loading ? (
-        <p className="text-center text-lg">Chargement...</p>
-      ) : (
-        <PersonList persons={persons} />
-      )}
-      <CreatePersonDialog
-        onCreate={handleCreatePerson}
-        isLoading={creating} // Ajout de l'état de création
+    <PageContainer>
+      <PageHeader
+        title="Personnes"
+        actions={
+          <CreatePersonDialog
+            onCreate={handleCreatePerson}
+            isLoading={creating}
+          />
+        }
       />
-    </div>
+      {loading ? <LoadingState /> : <PersonList persons={persons} />}
+    </PageContainer>
   );
 };
 

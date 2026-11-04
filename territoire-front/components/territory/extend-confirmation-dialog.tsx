@@ -142,7 +142,6 @@ const ExtendConfirmationDialog: React.FC<ExtendConfirmationDialogProps> = ({
             Annuler
           </Button>
           <Button
-            className="bg-blue-500 hover:bg-blue-600 text-white"
             onClick={handleConfirm}
             disabled={selectedOption === "custom" && !customDate}
           >

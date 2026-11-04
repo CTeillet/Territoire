@@ -92,13 +92,9 @@ const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({
       }}
     >
       <AlertDialogTrigger asChild>
-        <Button
-          variant="default"
-          size="lg"
-          className="flex justify-end mt-4"
-          aria-label="Ajouter une personne"
-        >
-          <Plus className="w-4 h-4" />
+        <Button>
+          <Plus aria-hidden="true" />
+          Ajouter une personne
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

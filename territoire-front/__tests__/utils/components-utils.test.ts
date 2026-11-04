@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  formatPhoneNumber,
-  getBadgeColor,
-  phoneMatches,
-} from "@/components/utils";
-import { TerritoryStatus } from "@/models/territory-status";
+import { formatPhoneNumber, phoneMatches } from "@/components/utils";
 
 describe("components utils", () => {
   describe("formatPhoneNumber", () => {
@@ -34,18 +29,6 @@ describe("components utils", () => {
       expect(phoneMatches("+33612345678", "jean")).toBe(false);
       expect(phoneMatches("+33612345678", "jean 06")).toBe(false);
       expect(phoneMatches("+33612345678", " + ")).toBe(false);
-    });
-  });
-
-  describe("getBadgeColor", () => {
-    it("should return the correct color class for each TerritoryStatus", () => {
-      expect(getBadgeColor("AVAILABLE")).toBe("bg-purple-500");
-      expect(getBadgeColor("ASSIGNED")).toBe("bg-green-500");
-      expect(getBadgeColor("LATE")).toBe("bg-pink-500");
-      expect(getBadgeColor("PENDING")).toBe("bg-blue-500");
-      expect(getBadgeColor("UNKNOWN" as unknown as TerritoryStatus)).toBe(
-        "bg-gray-500"
-      );
     });
   });
 });

@@ -26,7 +26,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SchoolYearPeriod } from "@/models/school-year-period";
-import { Calendar, BarChart3, Clock } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
+import {
+  LoadingState,
+  PageContainer,
+  PageHeader,
+} from "@/components/shared/page-layout";
 
 const StatistiquesPage = () => {
   const { isAuthenticated } = useAuth();
@@ -76,53 +81,46 @@ const StatistiquesPage = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
-            <BarChart3 className="h-8 w-8 text-primary" />
-            Statistiques des Territoires
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Consultez l&apos;historique et les statistiques par période scolaire
-            (du 1er septembre au 31 août)
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 bg-muted/40 p-2 rounded-lg border">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
-          <label
-            htmlFor="period-select"
-            className="text-sm font-medium whitespace-nowrap"
-          >
-            Période scolaire :
-          </label>
-          <Select
-            value={
-              selectedPeriod ? String(selectedPeriod.startYear) : undefined
-            }
-            onValueChange={handlePeriodChange}
-            disabled={schoolYearPeriods.length === 0}
-          >
-            <SelectTrigger
-              id="period-select"
-              className="w-full max-w-[200px] bg-background"
+    <PageContainer>
+      <PageHeader
+        title="Statistiques"
+        description="Consultez l'historique et les statistiques par période scolaire (du 1er septembre au 31 août)"
+        actions={
+          <div className="flex items-center gap-3">
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+            <label
+              htmlFor="period-select"
+              className="text-sm font-medium whitespace-nowrap"
             >
-              <SelectValue placeholder="Sélectionner une période" />
-            </SelectTrigger>
-            <SelectContent>
-              {schoolYearPeriods.map((period) => (
-                <SelectItem
-                  key={period.startYear}
-                  value={String(period.startYear)}
-                >
-                  {period.label} {period.current ? "(En cours)" : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+              Période scolaire :
+            </label>
+            <Select
+              value={
+                selectedPeriod ? String(selectedPeriod.startYear) : undefined
+              }
+              onValueChange={handlePeriodChange}
+              disabled={schoolYearPeriods.length === 0}
+            >
+              <SelectTrigger
+                id="period-select"
+                className="w-full max-w-[200px] bg-background"
+              >
+                <SelectValue placeholder="Sélectionner une période" />
+              </SelectTrigger>
+              <SelectContent>
+                {schoolYearPeriods.map((period) => (
+                  <SelectItem
+                    key={period.startYear}
+                    value={String(period.startYear)}
+                  >
+                    {period.label} {period.current ? "(En cours)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       {selectedPeriod && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 py-2 px-4 rounded-md border border-primary/20">
@@ -168,7 +166,7 @@ const StatistiquesPage = () => {
             periodLabel={selectedPeriod.label}
           />
 
-          <Card className="shadow-md border-0">
+          <Card>
             <CardHeader>
               <CardTitle>Carte de couverture des territoires</CardTitle>
               <CardDescription>
@@ -191,13 +189,9 @@ const StatistiquesPage = () => {
           />
         </>
       ) : statisticsLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">
-            Chargement des statistiques...
-          </p>
-        </div>
+        <LoadingState message="Chargement des statistiques..." />
       ) : null}
-    </div>
+    </PageContainer>
   );
 };
 

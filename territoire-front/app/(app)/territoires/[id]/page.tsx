@@ -9,9 +9,7 @@ import TerritoryHeader from "@/components/territory/id/territory-header";
 import AssignmentsList from "@/components/territory/id/assignments-list";
 import AddressNotToDoList from "@/components/territory/id/address-not-to-do-list";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { BackLink, PageContainer } from "@/components/shared/page-layout";
 import { useAuth } from "@/hooks/use-auth";
 import TerritoryMapViewer from "@/components/territory/id/territory-map-viewer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,58 +57,55 @@ const TerritoryPage = () => {
   }
 
   return (
-    <div className="p-4 md:p-6">
-      {/* Bouton pour revenir à la liste des territoires */}
-      <Link href="/territoires">
-        <Button variant="outline" className="flex items-center gap-2 mb-5">
-          <ChevronLeft className="w-5 h-5" />
-          Retour
-        </Button>
-      </Link>
+    <PageContainer>
+      {/* Une seule colonne pour tous les blocs de la fiche, carte comprise */}
+      <div className="mx-auto max-w-5xl space-y-6">
+        <BackLink href="/territoires" label="Retour aux territoires" />
 
-      {/* Header du territoire */}
-      <TerritoryHeader
-        name={selectedTerritory.name}
-        city={selectedTerritory.city.name}
-        status={selectedTerritory.status}
-        type={selectedTerritory.type}
-        lastModifiedDate={selectedTerritory.lastModifiedDate}
-        note={selectedTerritory.note}
-        territoryId={selectedTerritory.id}
-        territoryMapId={selectedTerritory.territoryMapId}
-        lost={selectedTerritory.lost}
-      />
+        {/* Header du territoire */}
+        <TerritoryHeader
+          name={selectedTerritory.name}
+          city={selectedTerritory.city.name}
+          status={selectedTerritory.status}
+          type={selectedTerritory.type}
+          lastModifiedDate={selectedTerritory.lastModifiedDate}
+          note={selectedTerritory.note}
+          territoryId={selectedTerritory.id}
+          territoryMapId={selectedTerritory.territoryMapId}
+          lost={selectedTerritory.lost}
+        />
 
-      {/* Carte du territoire (GeoJSON) */}
-      <TerritoryIdMap
-        territory={selectedTerritory}
-        city={selectedTerritory.city}
-      />
+        {/* Carte du territoire (GeoJSON) */}
+        <TerritoryIdMap
+          territory={selectedTerritory}
+          city={selectedTerritory.city}
+        />
 
-      {/* Carte du territoire (Image) */}
-      {selectedTerritory.territoryMapId ? (
-        <TerritoryMapViewer territoryMapId={selectedTerritory.territoryMapId} />
-      ) : (
-        <Card className="mb-6 max-w-4xl mx-auto">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold flex items-center">
-              <span className="mr-2">🗺️</span> Carte du territoire
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-md w-full">
-              <p>Aucune carte n&apos;a été téléchargée pour ce territoire.</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {/* Carte du territoire (Image) */}
+        {selectedTerritory.territoryMapId ? (
+          <TerritoryMapViewer
+            territoryMapId={selectedTerritory.territoryMapId}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Carte du territoire</CardTitle>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-md w-full">
+                <p>Aucune carte n&apos;a été téléchargée pour ce territoire.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Liste des adresses à ne pas visiter */}
-      <AddressNotToDoList />
+        {/* Liste des adresses à ne pas visiter */}
+        <AddressNotToDoList />
 
-      {/* Liste des attributions */}
-      <AssignmentsList assignments={selectedTerritory.assignments || []} />
-    </div>
+        {/* Liste des attributions */}
+        <AssignmentsList assignments={selectedTerritory.assignments || []} />
+      </div>
+    </PageContainer>
   );
 };
 

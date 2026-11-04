@@ -20,8 +20,7 @@ import { useIsClient } from "@/hooks/use-is-client";
 import { canSendAccess } from "@/lib/person-access-api";
 import { filterBySearch, NO_MATCH } from "@/lib/search";
 import { territorySearchRanks } from "@/lib/territory-search";
-import { getBadgeColor } from "@/components/utils";
-import { STATUS_TRANSLATIONS } from "@/models/territory-status";
+import { TerritoryStatusBadge } from "@/components/territory/territory-status-badge";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchTerritories } from "@/store/slices/territory-slice";
 import { fetchPersons } from "@/store/slices/person-slice";
@@ -217,14 +216,10 @@ export function QuickSearch() {
                     territory.assignedTo !== NOT_SET &&
                     ` · ${territory.assignedTo}`}
                 </span>
-                <span
-                  className={cn(
-                    "ml-auto shrink-0 rounded px-1.5 py-0.5 text-xs text-white",
-                    getBadgeColor(territory.status)
-                  )}
-                >
-                  {STATUS_TRANSLATIONS[territory.status]}
-                </span>
+                <TerritoryStatusBadge
+                  status={territory.status}
+                  className="ml-auto"
+                />
               </CommandItem>
             ))}
           </CommandGroup>

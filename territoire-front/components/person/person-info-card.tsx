@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Person } from "@/models/person";
 import { formatPhoneNumber } from "@/components/utils";
 
@@ -8,11 +8,11 @@ interface PersonInfoCardProps {
 
 const PersonInfoCard = ({ person }: PersonInfoCardProps) => {
   return (
-    <Card className="border-2 border-gray-200 shadow-sm">
-      <CardContent className="pt-6">
-        <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">
-          Informations personnelles
-        </h3>
+    <Card>
+      <CardHeader>
+        <CardTitle>Informations personnelles</CardTitle>
+      </CardHeader>
+      <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="mb-3">

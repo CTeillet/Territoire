@@ -18,6 +18,7 @@ import { ParameterGroup } from "@/components/parameters/other-parameter/paramete
 import AccessManagement from "@/components/parameters/access/access-management";
 import { useAppSelector } from "@/store/store";
 import { canSendAccess } from "@/lib/person-access-api";
+import { PageContainer, PageHeader } from "@/components/shared/page-layout";
 import { canManageAssignments, canManageSettings } from "@/models/role";
 
 type Section = { value: string; label: string; content: ReactNode };
@@ -58,7 +59,8 @@ const ParametersPage = () => {
   ];
 
   return (
-    <div className="p-4 md:p-6">
+    <PageContainer>
+      <PageHeader title="Paramètres" />
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         {/* Téléphone et tablette (barre latérale ouverte) : les onglets ne tiennent pas sur la largeur, une liste déroulante les remplace */}
         <Select value={selectedTab} onValueChange={setSelectedTab}>
@@ -87,7 +89,7 @@ const ParametersPage = () => {
           </TabsContent>
         ))}
       </Tabs>
-    </div>
+    </PageContainer>
   );
 };
 

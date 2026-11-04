@@ -12,7 +12,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { TerritoryStatusBadge } from "@/components/territory/territory-status-badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -199,9 +199,7 @@ export default function MyTerritoriesPage() {
                   {territory.cityName}
                 </span>
               )}
-              {territory.late && (
-                <Badge className="bg-pink-600 text-white">En retard</Badge>
-              )}
+              {territory.late && <TerritoryStatusBadge status="LATE" />}
             </CardTitle>
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <CalendarClock className="h-4 w-4" />À rendre avant le{" "}
