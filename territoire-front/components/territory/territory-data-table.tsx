@@ -51,6 +51,11 @@ interface DataTableProps {
   /** Recherche (nom, ville, personne, note) : les lignes trouvées, les plus pertinentes d'abord. */
   searchQuery?: string;
   /**
+   * Lignes à montrer, dans cet ordre (ex. territoires d'une adresse) ; prime sur `searchQuery`.
+   * Une liste vide ne montre rien ; `null` ou absent, pas de restriction.
+   */
+  restrictToIds?: string[] | null;
+  /**
    * Identifiants des lignes retenues par la recherche et les filtres, dans l'ordre du tableau ;
    * `null` sans recherche ni filtre (toutes les lignes). Sert à ne montrer sur la carte que ces territoires.
    */
@@ -90,12 +95,16 @@ export function DataTable<TValue>({
   data,
   tableId,
   searchQuery = "",
+  restrictToIds = null,
   onFilteredIdsChange,
   exportFileName = "territoires",
 }: DataTableProps) {
   const isMobile = useIsMobile();
   const query = searchQuery.trim();
-  const searching = query !== "";
+  const searching = restrictToIds !== null || query !== "";
+  // Ce qui est cherché : change quand la recherche ou la liste imposée change
+  const searchKey =
+    restrictToIds !== null ? `ids:${restrictToIds.join(",")}` : query;
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({
       id: false,
@@ -152,21 +161,28 @@ export function DataTable<TValue>({
     setPagination((old) => ({ ...old, pageIndex: 0 }));
 
   // Changer la recherche ramène aussi à la première page (pas au retour sur le tableau, qui garde la sienne)
-  const [searchedQuery, setSearchedQuery] = useState(query);
-  if (searchedQuery !== query) {
-    setSearchedQuery(query);
+  const [searchedKey, setSearchedKey] = useState(searchKey);
+  if (searchedKey !== searchKey) {
+    setSearchedKey(searchKey);
     resetPageIndex();
   }
 
   // Lignes avec leur pertinence : de nouveaux objets à chaque recherche, que le tableau recalcule entièrement
   const rows = useMemo<Territory[]>(() => {
-    if (!searching) return data;
+    if (restrictToIds !== null) {
+      const positions = new Map(restrictToIds.map((id, index) => [id, index]));
+      return data.map((territory) => ({
+        ...territory,
+        searchRank: positions.get(territory.id) ?? NO_MATCH,
+      }));
+    }
+    if (!query) return data;
     const ranks = territorySearchRanks(data, query);
     return data.map((territory, index) => ({
       ...territory,
       searchRank: ranks[index],
     }));
-  }, [data, query, searching]);
+  }, [data, query, restrictToIds]);
   const allColumns = useMemo(() => [...columns, searchColumn], [columns]);
 
   useEffect(() => {
@@ -210,7 +226,7 @@ export function DataTable<TValue>({
         ? [{ id: SEARCH_COLUMN_ID, desc: false }, ...sorting]
         : sorting,
       columnFilters: searching
-        ? [...columnFilters, { id: SEARCH_COLUMN_ID, value: query }]
+        ? [...columnFilters, { id: SEARCH_COLUMN_ID, value: searchKey }]
         : columnFilters,
       pagination,
     },

@@ -1,18 +1,14 @@
 "use client";
+import { Building, ChevronDown, ChevronRight, Search } from "lucide-react";
 import {
-  Building,
-  ChartBar,
-  Contact,
-  Settings,
-  Calendar,
-  Clock,
-  MapPin,
-  ChevronDown,
-  ChevronRight,
-  BarChart3,
-  Inbox,
-  Printer,
-} from "lucide-react";
+  dashboardItems,
+  otherItems,
+  territoryItems,
+} from "@/components/navigation-items";
+import {
+  openQuickSearch,
+  useQuickSearchShortcut,
+} from "@/components/quick-search";
 
 import {
   Sidebar,
@@ -40,68 +36,6 @@ import {
   TERRITORY_REQUESTS_CHANGED,
 } from "@/lib/territory-request-api";
 
-// Menu items.
-const dashboardItems = [
-  {
-    title: "Tableau de bord",
-    url: "/",
-    icon: ChartBar,
-  },
-];
-
-// Territory-related items
-const territoryItems = [
-  {
-    title: "Territoires",
-    url: "/territoires",
-    icon: Building,
-  },
-  {
-    title: "Territoires en retard",
-    url: "/territoires/retards",
-    icon: Clock,
-  },
-  {
-    title: "Territoires non parcourus",
-    url: "/territoires/non-parcourus",
-    icon: MapPin,
-  },
-  {
-    title: "Impression des cartes",
-    url: "/territoires/impression",
-    icon: Printer,
-  },
-];
-
-// Other items
-const otherItems = [
-  {
-    title: "Personnes",
-    url: "/personnes",
-    icon: Contact,
-  },
-  {
-    title: "Demandes",
-    url: "/demandes",
-    icon: Inbox,
-  },
-  {
-    title: "Campagnes",
-    url: "/campagnes",
-    icon: Calendar,
-  },
-  {
-    title: "Statistiques",
-    url: "/statistiques",
-    icon: BarChart3,
-  },
-  {
-    title: "Paramètres",
-    url: "/parametres",
-    icon: Settings,
-  },
-];
-
 export function AppSidebar() {
   const pathname = usePathname();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -112,6 +46,7 @@ export function AppSidebar() {
   const pendingRequests = usePendingRequestCount(canSeeRequests, pathname);
   // Sur téléphone, le menu recouvre la page : il se referme une fois la page choisie
   const { setOpenMobile } = useSidebar();
+  const shortcut = useQuickSearchShortcut();
 
   // Check if any territory page is active
   const isTerritoryActive = pathname.startsWith("/territoires");
@@ -174,6 +109,25 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-12">
             <SidebarMenu>
+              {isClient && user && (
+                <SidebarMenuItem className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenMobile(false);
+                      openQuickSearch();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg border border-gray-400 bg-gray-200 p-3 text-left text-gray-700 transition-colors duration-200 hover:bg-gray-100"
+                  >
+                    <Search aria-hidden="true" className="h-5 w-5" />
+                    <span className="text-base">Rechercher</span>
+                    <kbd className="ml-auto rounded border border-gray-400 bg-white px-1.5 font-sans text-xs text-gray-600">
+                      {shortcut}
+                    </kbd>
+                  </button>
+                </SidebarMenuItem>
+              )}
+
               {/* Dashboard item */}
               {dashboardItems.map(renderMenuItem)}
 

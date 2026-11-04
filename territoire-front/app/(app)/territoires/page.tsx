@@ -12,7 +12,20 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import CreateTerritoryModal from "@/components/territory/create-territory-modal";
 import { TerritorySearchInput } from "@/components/territory/territory-search-input";
+import {
+  AddressSearch,
+  AddressSelection,
+} from "@/components/territory/address-search";
 import { TerritoryCollection } from "@/models/territory";
+import { geoJsonCenter } from "@/lib/geo";
+import { cn } from "@/lib/utils";
+
+type SearchMode = "territoire" | "adresse";
+
+const SEARCH_MODES: { mode: SearchMode; label: string }[] = [
+  { mode: "territoire", label: "Nom, ville, personne" },
+  { mode: "adresse", label: "Adresse" },
+];
 
 // Recherche gardée le temps de la session : revenir d'un territoire la retrouve, comme la page du tableau
 const SEARCH_STORAGE_KEY = "tableSearch-territories";
@@ -47,6 +60,8 @@ const TerritoryPage = () => {
   );
   // Territoires retenus par la recherche et les filtres du tableau (null : tous), seuls affichés sur la carte
   const [visibleIds, setVisibleIds] = useState<string[] | null>(null);
+  const [searchMode, setSearchMode] = useState<SearchMode>("territoire");
+  const [address, setAddress] = useState<AddressSelection | null>(null);
 
   useEffect(() => {
     setIsClient(true); // On attend le chargement côté client
@@ -91,6 +106,19 @@ const TerritoryPage = () => {
     [territoriesGeojson]
   );
 
+  // Les adresses proches des territoires sont proposées d'abord
+  const territoriesCenter = useMemo(() => {
+    if (!territoriesGeojson) return null;
+    const [lat, lng] = geoJsonCenter(territoriesGeojson, [NaN, NaN]);
+    return Number.isNaN(lat) ? null : { lat, lng };
+  }, [territoriesGeojson]);
+
+  const changeSearchMode = (mode: SearchMode) => {
+    setSearchMode(mode);
+    // Une seule recherche à la fois : l'adresse choisie ne reste pas en revenant à la recherche par nom
+    if (mode === "territoire") setAddress(null);
+  };
+
   // Empêche l'affichage tant que le client n'est pas chargé (évite hydration error)
   if (!isClient) return null;
 
@@ -103,15 +131,49 @@ const TerritoryPage = () => {
       ) : (
         <>
           {territoriesGeojson && (
-            <TerritorySearchInput
-              value={search}
-              onChange={handleSearchChange}
-            />
+            <div className="space-y-2">
+              <div
+                role="group"
+                aria-label="Rechercher par"
+                className="inline-flex rounded-md border bg-white p-0.5"
+              >
+                {SEARCH_MODES.map(({ mode, label }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={searchMode === mode}
+                    onClick={() => changeSearchMode(mode)}
+                    className={cn(
+                      "min-h-9 rounded px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      searchMode === mode
+                        ? "bg-gray-900 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {searchMode === "territoire" ? (
+                <TerritorySearchInput
+                  value={search}
+                  onChange={handleSearchChange}
+                />
+              ) : (
+                <AddressSearch
+                  features={territoriesGeojson.features}
+                  near={territoriesCenter}
+                  selection={address}
+                  onSelect={setAddress}
+                />
+              )}
+            </div>
           )}
           {mapData && (
             <TerritoryMap
               geoJsonData={mapData}
               fitToData={visibleIds !== null}
+              focusPoint={address}
             />
           )}
           {(user?.role === "ADMIN" || user?.role === "SUPERVISEUR") && (
@@ -122,7 +184,9 @@ const TerritoryPage = () => {
               columns={territoryDataColumns}
               data={tableData}
               tableId="territories"
-              searchQuery={search}
+              // En recherche d'adresse : les territoires de l'adresse, le plus pertinent d'abord
+              searchQuery={searchMode === "territoire" ? search : ""}
+              restrictToIds={address?.territoryIds ?? null}
               onFilteredIdsChange={setVisibleIds}
             />
           )}

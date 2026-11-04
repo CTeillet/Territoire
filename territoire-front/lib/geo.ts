@@ -21,12 +21,13 @@ export function geoJsonCenter<G extends Geometry | null, P>(
     });
   };
 
+  // Un territoire sans pâté peut avoir une géométrie vide
   collection?.features.forEach((feature) => {
     const geometry = feature.geometry;
     if (geometry?.type === "Polygon") {
-      addRing(geometry.coordinates[0]);
+      addRing(geometry.coordinates[0] ?? []);
     } else if (geometry?.type === "MultiPolygon") {
-      geometry.coordinates.forEach((polygon) => addRing(polygon[0]));
+      geometry.coordinates.forEach((polygon) => addRing(polygon[0] ?? []));
     }
   });
 

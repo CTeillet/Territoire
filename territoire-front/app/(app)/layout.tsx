@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { QuickSearch, QuickSearchButton } from "@/components/quick-search";
 
 /** Layout de l'application de gestion (sidebar). Les pages publiques (/m/...) n'en héritent pas. */
 export default function AppLayout({
@@ -24,8 +25,10 @@ export default function AppLayout({
             height={100}
             className="h-7 w-auto md:hidden"
           />
+          <QuickSearchButton className="ml-auto md:hidden" />
         </header>
         {children}
+        <QuickSearch />
       </main>
     </SidebarProvider>
   );

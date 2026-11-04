@@ -21,14 +21,17 @@ vi.mock("@/components/territory/territory-map", () => ({
   default: ({
     geoJsonData,
     fitToData,
+    focusPoint,
   }: {
     geoJsonData: { features: { properties: { name: string } }[] };
     fitToData?: boolean;
+    focusPoint?: { label: string } | null;
   }) => (
     <div
       data-testid="territory-map"
       data-names={geoJsonData.features.map((f) => f.properties.name).join(",")}
       data-fit={String(!!fitToData)}
+      data-focus={focusPoint?.label ?? ""}
     />
   ),
 }));
@@ -449,6 +452,189 @@ describe("Recherche de territoires", () => {
     await search("r");
 
     expect(screen.getByText("Page 1 sur 2")).toBeInTheDocument();
+  });
+});
+
+describe("Recherche par adresse", () => {
+  // Carrés de 0,002° côte à côte (environ 150 m de large), séparés d'environ 15 m
+  const square = (
+    id: string,
+    name: string,
+    lng: number,
+    extra: Record<string, unknown> = {}
+  ) => ({
+    ...props(id, name, "ASSIGNED", { assignedTo: "Jean Dupont", ...extra }),
+    geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [lng, 48.7],
+          [lng + 0.002, 48.7],
+          [lng + 0.002, 48.702],
+          [lng, 48.702],
+          [lng, 48.7],
+        ],
+      ],
+    },
+  });
+  const located = {
+    type: "FeatureCollection",
+    features: [
+      square("a1", "R-14", 2.36),
+      square("a2", "R-15", 2.3622, {
+        status: "AVAILABLE",
+        assignedTo: "N/A",
+      }),
+      square("a3", "V-01", 2.4),
+    ],
+  };
+  const geocoding = (...features: [string, number, number][]) =>
+    ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        type: "FeatureCollection",
+        features: features.map(([label, lng, lat]) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [lng, lat] },
+          properties: { label },
+        })),
+      }),
+    }) as Response;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  const renderPage = async () => {
+    mockApi({
+      "GET /api/territoires/geojson": located,
+      "GET /api/personnes": [],
+    });
+    renderWithStore(<TerritoryPage />);
+    await screen.findByText("R-14");
+    await userEvent.click(screen.getByRole("button", { name: "Adresse" }));
+    return screen.getByRole("combobox", { name: "Rechercher une adresse" });
+  };
+
+  it("trouve le territoire d'une adresse, le montre sur la carte et dans le tableau", async () => {
+    const geocode = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        geocoding(
+          ["12 Rue Victor Hugo 91550 Paray-Vieille-Poste", 2.3619, 48.701],
+          ["12 Rue Victor Hugo 91200 Athis-Mons", 2.39, 48.71]
+        )
+      );
+    const input = await renderPage();
+    expect(screen.getByRole("button", { name: "Adresse" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+
+    await userEvent.type(input, "12 rue victor hugo");
+    await userEvent.click(
+      await screen.findByRole("option", {
+        name: "12 Rue Victor Hugo 91550 Paray-Vieille-Poste",
+      })
+    );
+
+    // Recherche près des territoires
+    const url = new URL(String(geocode.mock.calls.at(-1)![0]));
+    expect(url.searchParams.get("q")).toBe("12 rue victor hugo");
+    expect(url.searchParams.get("lat")).toMatch(/^48\.70/);
+
+    const result = screen.getByTestId("address-result");
+    expect(result).toHaveTextContent(
+      "Dans le territoire R-14 Attribué Jean Dupont"
+    );
+    // R-15 est de l'autre côté de la rue
+    expect(result).toHaveTextContent("Juste à côté : R-15 Disponible à 20 m");
+    expect(within(result).getByRole("link", { name: "R-14" })).toHaveAttribute(
+      "href",
+      "/territoires/a1"
+    );
+
+    expect(rowNames()).toEqual(["R-14", "R-15"]);
+    const map = screen.getByTestId("territory-map");
+    expect(map).toHaveAttribute(
+      "data-focus",
+      "12 Rue Victor Hugo 91550 Paray-Vieille-Poste"
+    );
+    expect(map).toHaveAttribute("data-names", "R-14,R-15");
+  });
+
+  it("indique les territoires les plus proches d'une adresse qui n'est dans aucun", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      geocoding(["3 Rue des Champs 91550 Paray-Vieille-Poste", 2.3655, 48.701])
+    );
+    const input = await renderPage();
+
+    await userEvent.type(input, "3 rue des champs");
+    await userEvent.click(
+      await screen.findByRole("option", {
+        name: "3 Rue des Champs 91550 Paray-Vieille-Poste",
+      })
+    );
+
+    const result = screen.getByTestId("address-result");
+    expect(result).toHaveTextContent(
+      "Cette adresse n'est dans aucun territoire."
+    );
+    expect(result).toHaveTextContent("Le plus proche : R-15");
+    expect(rowNames()).toEqual(["R-15", "R-14"]);
+  });
+
+  it("signale une adresse introuvable ou un service indisponible", async () => {
+    const geocode = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(geocoding());
+    const input = await renderPage();
+
+    await userEvent.type(input, "zzzz");
+    // En attendant la réponse du service
+    expect(screen.getByText("Recherche de l'adresse…")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Aucune adresse trouvée")
+    ).toBeInTheDocument();
+
+    geocode.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await userEvent.type(input, "z");
+    expect(
+      await screen.findByText(
+        "Recherche d'adresse impossible : vérifiez votre réseau"
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("revient à la recherche par nom en effaçant l'adresse", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      geocoding([
+        "12 Rue Victor Hugo 91550 Paray-Vieille-Poste",
+        2.3619,
+        48.701,
+      ])
+    );
+    const input = await renderPage();
+    await userEvent.type(input, "12 rue victor hugo");
+    await userEvent.click(await screen.findByRole("option"));
+    expect(rowNames()).toEqual(["R-14", "R-15"]);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Nom, ville, personne" })
+    );
+
+    expect(rowNames()).toHaveLength(3);
+    expect(screen.getByTestId("territory-map")).toHaveAttribute(
+      "data-focus",
+      ""
+    );
+    expect(
+      screen.getByRole("searchbox", { name: "Rechercher un territoire" })
+    ).toBeInTheDocument();
   });
 });
 
