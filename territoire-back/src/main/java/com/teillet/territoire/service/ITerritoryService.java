@@ -25,6 +25,13 @@ public interface ITerritoryService {
 	@Transactional
 	void releasePendingTerritories();
 
+	/**
+	 * Rend disponible tout de suite un territoire en attente, sans attendre la fin de la durée d'attente.
+	 * Refusé ({@link IllegalStateException}, 409) pour un territoire qui n'est pas en attente.
+	 */
+	@Transactional
+	TerritoryDto makeAvailable(UUID id) throws IOException;
+
 	Territory getTerritory(UUID id);
 
 	TerritoryDto getTerritoryDto(UUID id) throws IOException;

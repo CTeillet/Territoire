@@ -134,6 +134,16 @@ class TerritoryController {
 		}
 	}
 
+	/** Territoire en attente rendu disponible sans attendre la fin de la durée d'attente des paramètres. */
+	@PostMapping("/{territoryId}/rendre-disponible")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
+	public TerritoryDto makeTerritoryAvailable(@PathVariable UUID territoryId) throws IOException {
+		log.info("Début : Remise à disposition du territoire {}", territoryId);
+		TerritoryDto territory = territoryService.makeAvailable(territoryId);
+		log.info("Fin : Remise à disposition du territoire {}", territoryId);
+		return territory;
+	}
+
 	/** Territoire perdu (sa carte papier a disparu) ou retiré des perdus : les perdus sont proposés à la réimpression. */
 	@PutMapping("/{territoryId}/perdu")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")

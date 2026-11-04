@@ -35,6 +35,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -234,6 +235,84 @@ class TerritoryControllerIntegrationTest {
 
 		Territory afterCancel = territoryRepository.findById(savedTerritory.getId()).orElseThrow();
 		assertEquals(TerritoryStatus.AVAILABLE, afterCancel.getStatus());
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testMakeAvailable_PendingTerritoryCanBeAssignedAgain() throws Exception {
+		LocalDate lastModifiedDate = LocalDate.now().minusMonths(2);
+		Territory territory = createTestTerritory("Territoire Attente", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE);
+		territory.setLastModifiedDate(lastModifiedDate);
+		Territory savedTerritory = territoryRepository.save(territory);
+		Person person = personRepository.save(Person.builder().firstName("Anne").lastName("Martin").build());
+		mockMvc.perform(post("/api/territoires/{id}/attribuer/{personId}", savedTerritory.getId(), person.getId()))
+				.andExpect(status().isOk());
+		mockMvc.perform(post("/api/territoires/{id}/retour", savedTerritory.getId()))
+				.andExpect(status().isOk());
+		assertEquals(TerritoryStatus.PENDING, territoryRepository.findById(savedTerritory.getId()).orElseThrow().getStatus());
+
+		// Rendu aujourd'hui : le traitement de nuit l'aurait laissé en attente
+		mockMvc.perform(post("/api/territoires/{id}/rendre-disponible", savedTerritory.getId()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("AVAILABLE"))
+				.andExpect(jsonPath("$.lastVisitedOn").value(LocalDate.now().toString()))
+				.andExpect(jsonPath("$.assignments.length()").value(1));
+
+		Territory available = territoryRepository.findById(savedTerritory.getId()).orElseThrow();
+		assertEquals(TerritoryStatus.AVAILABLE, available.getStatus());
+		assertEquals(lastModifiedDate, available.getLastModifiedDate());
+		// L'attribution terminée est conservée telle quelle
+		Assignment returned = assignmentRepository.findAll().getFirst();
+		assertEquals(LocalDate.now(), returned.getReturnDate());
+		assertEquals(ReturnSource.RESPONSABLE, returned.getReturnedVia());
+
+		mockMvc.perform(post("/api/territoires/{id}/attribuer/{personId}", savedTerritory.getId(), person.getId()))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testMakeAvailable_RefusesTerritoryNotPending() throws Exception {
+		Territory availableTerritory = territoryRepository.save(createTestTerritory("Territoire Dispo", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		mockMvc.perform(post("/api/territoires/{id}/rendre-disponible", availableTerritory.getId()))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error").value("Ce territoire est déjà disponible"));
+
+		Territory assignedTerritory = territoryRepository.save(createTestTerritory("Territoire Attribué", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		Person person = personRepository.save(Person.builder().firstName("Luc").lastName("Bernard").build());
+		mockMvc.perform(post("/api/territoires/{id}/attribuer/{personId}", assignedTerritory.getId(), person.getId()))
+				.andExpect(status().isOk());
+
+		// Attribué ou en retard, le territoire est encore chez quelqu'un : son attribution reste en cours
+		for (TerritoryStatus heldStatus : new TerritoryStatus[]{TerritoryStatus.ASSIGNED, TerritoryStatus.LATE}) {
+			Territory current = territoryRepository.findById(assignedTerritory.getId()).orElseThrow();
+			current.setStatus(heldStatus);
+			territoryRepository.save(current);
+
+			mockMvc.perform(post("/api/territoires/{id}/rendre-disponible", assignedTerritory.getId()))
+					.andExpect(status().isConflict())
+					.andExpect(jsonPath("$.error").value("Ce territoire est attribué : utilisez « Retour en stock » ou « Annuler l'assignation »"));
+			assertEquals(heldStatus, territoryRepository.findById(assignedTerritory.getId()).orElseThrow().getStatus());
+		}
+		assertTrue(assignmentRepository.findByReturnDateNullAndTerritory_Id(assignedTerritory.getId()).isPresent());
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void testMakeAvailable_ForbiddenForUser() throws Exception {
+		Territory saved = territoryRepository.save(createTestTerritory("Territoire", TerritoryType.HOUSE, TerritoryStatus.PENDING));
+
+		mockMvc.perform(post("/api/territoires/{id}/rendre-disponible", saved.getId()))
+				.andExpect(status().isForbidden());
+
+		assertEquals(TerritoryStatus.PENDING, territoryRepository.findById(saved.getId()).orElseThrow().getStatus());
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testMakeAvailable_UnknownTerritory_NotFound() throws Exception {
+		mockMvc.perform(post("/api/territoires/{id}/rendre-disponible", UUID.randomUUID()))
+				.andExpect(status().isNotFound());
 	}
 
 	@Test
@@ -508,7 +587,7 @@ class TerritoryControllerIntegrationTest {
 	@Test
 	@WithMockUser(roles = "UTILISATEUR")
 	void testGetTerritory_UnknownId_NotFound() throws Exception {
-		mockMvc.perform(get("/api/territoires/{id}", java.util.UUID.randomUUID()))
+		mockMvc.perform(get("/api/territoires/{id}", UUID.randomUUID()))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.error").value("Territoire non trouvé"));
 	}
