@@ -269,7 +269,7 @@ describe("Boutons d'action d'un territoire", () => {
     await waitFor(() =>
       expect(console.error).toHaveBeenCalledWith(
         "❌ Erreur lors de l'assignation :",
-        "Échec de la création"
+        "Échec de l'ajout de la personne. Veuillez réessayer."
       )
     );
     expect(api.mock.calls.some(([url]) => url.includes("/attribuer/"))).toBe(

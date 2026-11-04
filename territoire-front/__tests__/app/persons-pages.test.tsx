@@ -205,6 +205,48 @@ describe("Liste des personnes", () => {
     expect(toast.success).not.toHaveBeenCalled();
   });
 
+  it("affiche le motif d'un refus de la création", async () => {
+    setup({
+      "POST /api/personnes": jsonResponse(
+        { status: 400, error: "Le nom est requis" },
+        400
+      ),
+    });
+    renderWithStore(<PersonsPage />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Ajouter une personne" })
+    );
+    await userEvent.type(screen.getByPlaceholderText("Prénom *"), "Lucie");
+    await userEvent.type(screen.getByPlaceholderText("Nom *"), "Bernard");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ajouter la personne" })
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Le nom est requis")
+    );
+  });
+
+  it("refuse un prénom fait d'espaces sans appeler le serveur", async () => {
+    setup();
+    renderWithStore(<PersonsPage />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Ajouter une personne" })
+    );
+    await userEvent.type(screen.getByPlaceholderText("Prénom *"), "   ");
+    await userEvent.type(screen.getByPlaceholderText("Nom *"), "Bernard");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ajouter la personne" })
+    );
+
+    expect(await screen.findByText("Le prénom est requis")).toBeInTheDocument();
+    expect(api.mock.calls.some(([, init]) => init?.method === "POST")).toBe(
+      false
+    );
+  });
+
   it("exige le prénom et le nom", async () => {
     setup();
     renderWithStore(<PersonsPage />);
@@ -359,6 +401,49 @@ describe("Fiche d'une personne", () => {
         email: "jean@exemple.fr",
       })
     );
+  });
+
+  it("refuse un nom vide sans appeler le serveur et reste en édition", async () => {
+    setup();
+    renderWithStore(<PersonDetail />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Modifier" })
+    );
+    const lastName = screen.getByLabelText("Nom :");
+    await userEvent.clear(lastName);
+    await userEvent.type(lastName, "   ");
+    await userEvent.click(screen.getByRole("button", { name: "Sauvegarder" }));
+
+    expect(toast.error).toHaveBeenCalledWith("Le prénom et le nom sont requis");
+    expect(api.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(
+      false
+    );
+    expect(screen.getByText("Modifier les informations")).toBeInTheDocument();
+  });
+
+  it("affiche le motif d'un refus du serveur et garde la fiche en édition", async () => {
+    setup({
+      "PUT /api/personnes/p1": jsonResponse(
+        { status: 400, error: "Le nom ne doit pas dépasser 255 caractères" },
+        400
+      ),
+    });
+    renderWithStore(<PersonDetail />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Modifier" })
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Sauvegarder" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Le nom ne doit pas dépasser 255 caractères"
+      )
+    );
+    // La fiche n'est pas remplacée par l'erreur : le formulaire est toujours là
+    expect(screen.getByText("Modifier les informations")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nom :")).toHaveValue("Dupont");
   });
 
   it("annule la modification", async () => {

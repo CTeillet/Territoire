@@ -78,7 +78,7 @@ describe("cas d'erreur des petits slices", () => {
       [
         "createPerson",
         () => createPerson({ firstName: "Jean", lastName: "Dupont" }),
-        "Échec de la création",
+        "Échec de l'ajout de la personne. Veuillez réessayer.",
       ],
       ["updatePerson", () => updatePerson(person), "Échec de la mise à jour"],
       [

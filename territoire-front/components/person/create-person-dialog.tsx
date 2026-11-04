@@ -35,8 +35,9 @@ type CreatePersonDialogProps = {
 };
 
 const createPersonSchema = z.object({
-  firstName: z.string().min(1, "Le prénom est requis"),
-  lastName: z.string().min(1, "Le nom est requis"),
+  // Des espaces seuls ne font pas un nom (refusé aussi par le serveur)
+  firstName: z.string().trim().min(1, "Le prénom est requis"),
+  lastName: z.string().trim().min(1, "Le nom est requis"),
   email: z.string().email("Email invalide").optional().or(z.literal("")),
   phoneNumber: z.string().optional().or(z.literal("")),
 });
@@ -74,7 +75,12 @@ const CreatePersonDialog: React.FC<CreatePersonDialogProps> = ({
       setDialogOpen(false);
     } catch (error) {
       console.error(error);
-      toast.error("Échec de l'ajout de la personne. Veuillez réessayer.");
+      // Motif du serveur s'il y en a un (ex. « Le nom est requis »)
+      toast.error(
+        typeof error === "string"
+          ? error
+          : "Échec de l'ajout de la personne. Veuillez réessayer."
+      );
     }
   };
 

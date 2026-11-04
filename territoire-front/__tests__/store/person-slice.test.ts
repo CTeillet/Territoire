@@ -127,7 +127,8 @@ describe("person slice", () => {
         payload: "Erreur mise à jour",
       });
       expect(rejected.updating).toBe(false);
-      expect(rejected.error).toBe("Erreur mise à jour");
+      // Motif affiché en toast par l'appelant, pas en erreur de page
+      expect(rejected.error).toBeNull();
     });
 
     it("should handle fetchAssignedTerritories lifecycle", () => {

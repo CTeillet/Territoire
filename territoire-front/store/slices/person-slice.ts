@@ -83,7 +83,10 @@ export const createPerson = createAsyncThunk<
     if (!response.ok) {
       // Motif du serveur (ex. « Le nom est requis »)
       return rejectWithValue(
-        await apiErrorMessage(response, "Échec de la création")
+        await apiErrorMessage(
+          response,
+          "Échec de l'ajout de la personne. Veuillez réessayer."
+        )
       );
     }
 
@@ -239,9 +242,9 @@ const personSlice = createSlice({
           state.persons[index] = action.payload; // Met à jour la personne dans le store
         }
       })
-      .addCase(updatePerson.rejected, (state, action) => {
+      // Motif affiché en toast par l'appelant : la fiche reste en édition (pas d'erreur de page)
+      .addCase(updatePerson.rejected, (state) => {
         state.updating = false;
-        state.error = action.payload as string;
       })
 
       // 🔹 Récupération des territoires assignés à une personne
