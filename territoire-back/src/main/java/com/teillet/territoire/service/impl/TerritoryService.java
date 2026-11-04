@@ -128,6 +128,31 @@ public class TerritoryService implements ITerritoryService {
 		log.info("Libération des territoires en attente terminée : {} territoire(s) disponible(s)", released);
 	}
 
+	/**
+	 * Remise à disposition à la main, sans attendre {@link #releasePendingTerritories()}. Seul un territoire en attente
+	 * est concerné : attribué ou en retard, il est encore chez quelqu'un (« Retour en stock » ou « Annuler l'assignation »
+	 * s'en chargent). Comme pour les autres changements de statut, l'historique des statuts (photographie quotidienne,
+	 * cf. {@link TerritoryStatusHistoryService#recordDailyStatistics()}) en tient compte au traitement de nuit suivant.
+	 * La date de dernière modification ne bouge pas, comme pour tout changement de statut.
+	 */
+	@Transactional
+	@Override
+	public TerritoryDto makeAvailable(UUID id) throws IOException {
+		// @Version sur Territory : un retour ou une attribution simultanés font échouer l'un des deux (409)
+		Territory territory = getTerritory(id);
+		switch (territory.getStatus()) {
+			case PENDING -> {
+				log.info("Territoire {} rendu disponible avant la fin de la durée d'attente", territory.getName());
+				updateTerritoryStatus(territory, TerritoryStatus.AVAILABLE);
+			}
+			case AVAILABLE -> throw new IllegalStateException("Ce territoire est déjà disponible");
+			case ASSIGNED, LATE -> throw new IllegalStateException(
+					"Ce territoire est attribué : utilisez « Retour en stock » ou « Annuler l'assignation »");
+			case null -> throw new IllegalStateException("Seul un territoire en attente peut être rendu disponible");
+		}
+		return TerritoryMapper.toDto(territory);
+	}
+
 	@Override
 	public Territory getTerritory(UUID id) {
 		return territoryRepository.findById(id)

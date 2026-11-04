@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Ban,
   CalendarPlus,
+  CircleCheck,
   Ellipsis,
   Eye,
   FileCheck,
@@ -34,12 +35,14 @@ import {
   assignTerritory,
   cancelAssignment,
   extendTerritory,
+  makeTerritoryAvailable,
   returnTerritory,
   updateTerritoryLost,
 } from "@/store/slices/territory-slice";
 import { Person } from "@/models/person";
 import ExtendConfirmationDialog from "@/components/territory/extend-confirmation-dialog";
 import CancelAssignmentDialog from "@/components/territory/cancel-assignment-dialog";
+import MakeAvailableDialog from "@/components/territory/make-available-dialog";
 import { authFetch } from "@/utils/auth-fetch";
 import { canManageAssignments } from "@/models/role";
 import { labelAfterAssignment } from "@/components/shared/assignment-label-file";
@@ -73,6 +76,8 @@ export function TerritoryDataActionButtons({
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
   const [isExtendDialogOpen, setIsExtendDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isMakeAvailableDialogOpen, setIsMakeAvailableDialogOpen] =
+    useState(false);
 
   // Référence pour l'input de fichier caché
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +86,8 @@ export function TerritoryDataActionButtons({
   const canUploadMap = user?.role === "ADMIN" || user?.role === "SUPERVISEUR";
   const showAssign = canManage && status === "AVAILABLE";
   const showReturn = canManage && (status === "ASSIGNED" || status === "LATE");
+  // Sans attendre la fin de la durée d'attente (traitement de nuit)
+  const showMakeAvailable = canManage && status === "PENDING";
 
   useEffect(() => {
     if (persons.length === 0 && !isFetchingPersons) {
@@ -143,6 +150,20 @@ export function TerritoryDataActionButtons({
       await dispatch(cancelAssignment(territoryId)).unwrap();
     } catch (error) {
       console.error("❌ Erreur lors de l'annulation de l'assignation :", error);
+      toast.error(String(error));
+    }
+  };
+
+  const handleMakeAvailable = async () => {
+    setIsMakeAvailableDialogOpen(false);
+    try {
+      await dispatch(makeTerritoryAvailable(territoryId)).unwrap();
+      toast.success("Territoire disponible : il peut être attribué.");
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors de la remise à disposition du territoire :",
+        error
+      );
       toast.error(String(error));
     }
   };
@@ -271,6 +292,15 @@ export function TerritoryDataActionButtons({
   ].filter(Boolean);
 
   const manageItems = [
+    showMakeAvailable && (
+      <DropdownMenuItem
+        key="make-available"
+        onSelect={() => setIsMakeAvailableDialogOpen(true)}
+      >
+        <CircleCheck />
+        Rendre disponible
+      </DropdownMenuItem>
+    ),
     showReturn && (
       <DropdownMenuItem
         key="extend"
@@ -400,6 +430,13 @@ export function TerritoryDataActionButtons({
         isOpen={isCancelDialogOpen}
         onClose={() => setIsCancelDialogOpen(false)}
         onConfirm={handleCancelAssignment}
+      />
+
+      {/* Fenêtre de dialogue de confirmation de remise à disposition */}
+      <MakeAvailableDialog
+        isOpen={isMakeAvailableDialogOpen}
+        onClose={() => setIsMakeAvailableDialogOpen(false)}
+        onConfirm={handleMakeAvailable}
       />
     </div>
   );

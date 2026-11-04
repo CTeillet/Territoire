@@ -371,6 +371,142 @@ describe("Boutons d'action d'un territoire", () => {
     }
   );
 
+  describe("territoire en attente", () => {
+    afterEach(() => {
+      act(() => {
+        toast.dismiss();
+      });
+    });
+
+    it("le rend disponible après confirmation", async () => {
+      setup({ "POST /api/territoires/t1/rendre-disponible": {} });
+      render(<Toaster />);
+      const { store } = renderWithStore(
+        <TerritoryDataActionButtons territoryId="t1" status="PENDING" />,
+        "GESTIONNAIRE",
+        {
+          territories: {
+            selectedTerritory: { id: "t1", status: "PENDING" } as never,
+          },
+        }
+      );
+
+      // Ni attribution ni retour : seulement le menu
+      expect(
+        screen.queryByRole("button", { name: "Assigner" })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Retour en stock" })
+      ).not.toBeInTheDocument();
+      await chooseInMenu("Rendre disponible");
+      const dialog = await screen.findByRole("dialog");
+      expect(
+        within(dialog).getByText(/sans attendre la fin de la durée d'attente/)
+      ).toBeInTheDocument();
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Rendre disponible" })
+      );
+
+      await waitFor(() =>
+        expect(api).toHaveBeenCalledWith(
+          "/api/territoires/t1/rendre-disponible",
+          expect.objectContaining({ method: "POST" })
+        )
+      );
+      expect(
+        await screen.findByText(
+          "Territoire disponible : il peut être attribué."
+        )
+      ).toBeInTheDocument();
+      expect(store.getState().territories.selectedTerritory?.status).toBe(
+        "AVAILABLE"
+      );
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("ne fait rien si la confirmation est annulée", async () => {
+      setup();
+      renderWithStore(
+        <TerritoryDataActionButtons territoryId="t1" status="PENDING" />
+      );
+
+      await chooseInMenu("Rendre disponible");
+      await userEvent.click(
+        within(await screen.findByRole("dialog")).getByRole("button", {
+          name: "Annuler",
+        })
+      );
+
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+      );
+      expect(
+        api.mock.calls.some(([url]) => url.includes("/rendre-disponible"))
+      ).toBe(false);
+    });
+
+    it("affiche le motif du refus du serveur", async () => {
+      setup({
+        "POST /api/territoires/t1/rendre-disponible": jsonResponse(
+          {
+            timestamp: "2026-11-04T10:00:00Z",
+            status: 409,
+            error: "Ce territoire est déjà disponible",
+            path: "/api/territoires/t1/rendre-disponible",
+          },
+          409
+        ),
+      });
+      render(<Toaster />);
+      renderWithStore(
+        <TerritoryDataActionButtons territoryId="t1" status="PENDING" />
+      );
+
+      await chooseInMenu("Rendre disponible");
+      await userEvent.click(
+        within(await screen.findByRole("dialog")).getByRole("button", {
+          name: "Rendre disponible",
+        })
+      );
+
+      expect(
+        await screen.findByText("Ce territoire est déjà disponible")
+      ).toBeInTheDocument();
+      expect(console.error).toHaveBeenCalledWith(
+        "❌ Erreur lors de la remise à disposition du territoire :",
+        "Ce territoire est déjà disponible"
+      );
+    });
+
+    it.each(["AVAILABLE", "ASSIGNED", "LATE"] as const)(
+      "n'est pas proposé pour un territoire %s",
+      async (status) => {
+        setup();
+        renderWithStore(
+          <TerritoryDataActionButtons territoryId="t1" status={status} />
+        );
+
+        await openMenu();
+        expect(
+          screen.queryByRole("menuitem", { name: "Rendre disponible" })
+        ).not.toBeInTheDocument();
+      }
+    );
+
+    it("n'est pas proposé à un simple utilisateur", async () => {
+      setup();
+      renderWithStore(
+        <TerritoryDataActionButtons territoryId="t1" status="PENDING" />,
+        "UTILISATEUR"
+      );
+
+      await openMenu();
+      expect(
+        screen.queryByRole("menuitem", { name: "Rendre disponible" })
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("prolonge le territoire de la durée choisie", async () => {
     setup();
     renderWithStore(

@@ -20,6 +20,7 @@ import territoryReducer, {
   fetchTerritoryDistributionByCity,
   fetchTerritoryPeriodStatistics,
   fetchTerritoryStatusHistory,
+  makeTerritoryAvailable,
   modifyAddressNotToVisit,
   returnTerritory,
   updateAssignmentDates,
@@ -633,6 +634,75 @@ describe("territory-slice : thunks et reducers", () => {
       expect(store.getState().territories.selectedTerritory?.assignedTo).toBe(
         ""
       );
+    });
+
+    it("makeTerritoryAvailable : rend disponible un territoire en attente sans toucher à son historique", async () => {
+      const returned = assignment({
+        returnDate: "2026-10-11",
+        returnedVia: "RESPONSABLE",
+      });
+      const pending = () =>
+        territory({
+          status: "PENDING",
+          assignments: [returned] as Territory["assignments"],
+          lastVisitedOn: "2026-10-11",
+        });
+      const store = newStore({
+        territoriesGeojson: {
+          ...collection(),
+          features: [{ ...collection().features[0], properties: pending() }],
+        },
+        selectedTerritory: pending(),
+      });
+      const state = () => store.getState().territories;
+      authFetch.mockResolvedValueOnce(ok(territory()));
+
+      await store.dispatch(makeTerritoryAvailable("t1"));
+
+      expect(authFetch).toHaveBeenLastCalledWith(
+        "/api/territoires/t1/rendre-disponible",
+        expect.objectContaining({ method: "POST" })
+      );
+      for (const t of [
+        state().territoriesGeojson!.features[0].properties,
+        state().selectedTerritory!,
+      ]) {
+        expect(t.status).toBe("AVAILABLE");
+        expect(t.assignments).toEqual([returned]);
+        expect(t.lastVisitedOn).toBe("2026-10-11");
+      }
+      expect(state().updating).toBe(false);
+    });
+
+    it("makeTerritoryAvailable : garde le statut et remonte le motif du refus", async () => {
+      const store = newStore({
+        selectedTerritory: territory({ status: "ASSIGNED" }),
+      });
+      const state = () => store.getState().territories;
+
+      authFetch.mockResolvedValueOnce(
+        refused(
+          409,
+          "Ce territoire est attribué : utilisez « Retour en stock » ou « Annuler l'assignation »"
+        )
+      );
+      const rejected = await store.dispatch(makeTerritoryAvailable("t1"));
+      expect(rejected.payload).toBe(
+        "Ce territoire est attribué : utilisez « Retour en stock » ou « Annuler l'assignation »"
+      );
+      expect(state().selectedTerritory?.status).toBe("ASSIGNED");
+      expect(state().updating).toBe(false);
+
+      authFetch.mockResolvedValueOnce(failing(502, "<html>Bad Gateway</html>"));
+      await store.dispatch(makeTerritoryAvailable("t1"));
+      expect(state().error).toBe(
+        "Erreur lors de la remise à disposition du territoire"
+      );
+
+      // Territoire absent du store (ni liste ni fiche) : rien à mettre à jour
+      authFetch.mockResolvedValueOnce(ok(territory()));
+      await store.dispatch(makeTerritoryAvailable("x"));
+      expect(state().selectedTerritory?.status).toBe("ASSIGNED");
     });
 
     // Fiche ouverte directement par son adresse : la liste des territoires n'est pas chargée

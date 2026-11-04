@@ -14,8 +14,8 @@ export const canManageCampaigns = (role?: Role | null): boolean =>
   role === "ADMIN" || role === "SUPERVISEUR";
 
 /**
- * Attribution, retour, prolongation, correction des dates d'attribution et territoires perdus
- * (cf. TerritoryController, AssignmentController).
+ * Attribution, retour, prolongation, correction des dates d'attribution, territoires perdus et remise à
+ * disposition d'un territoire en attente (cf. TerritoryController, AssignmentController).
  */
 export const canManageAssignments = (role?: Role | null): boolean =>
   role === "ADMIN" || role === "SUPERVISEUR" || role === "GESTIONNAIRE";

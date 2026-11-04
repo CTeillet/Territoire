@@ -4,6 +4,7 @@ import com.teillet.territoire.dto.AverageAssignmentDurationDto;
 import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.dto.SchoolYearPeriodDto;
 import com.teillet.territoire.dto.TerritoryDistributionByCityDto;
+import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.dto.TerritoryPeriodStatisticsDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
@@ -18,6 +19,10 @@ import com.teillet.territoire.service.impl.TerritoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
@@ -25,6 +30,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -194,6 +200,37 @@ class TerritoryServiceTest {
 		assertEquals(TerritoryStatus.PENDING, recentlyReturned.getStatus());
 		assertEquals(TerritoryStatus.AVAILABLE, oldReturned.getStatus());
 		verify(territoryRepository, times(1)).save(any(Territory.class));
+	}
+
+	@Test
+	void testMakeAvailable_PendingTerritoryBecomesAvailable() throws IOException {
+		LocalDate lastModifiedDate = LocalDate.now().minusMonths(2);
+		city.setCenter(new GeometryFactory().createPoint(new Coordinate(-1.68, 48.11)));
+		territory.setStatus(TerritoryStatus.PENDING);
+		territory.setLastModifiedDate(lastModifiedDate);
+		territory.setAddressesNotToDo(new ArrayList<>());
+		when(territoryRepository.findById(territoryId)).thenReturn(Optional.of(territory));
+		when(territoryRepository.save(any(Territory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		TerritoryDto result = territoryService.makeAvailable(territoryId);
+
+		assertEquals(TerritoryStatus.AVAILABLE, result.getStatus());
+		assertEquals(TerritoryStatus.AVAILABLE, territory.getStatus());
+		// Comme tout changement de statut : la date de dernière modification suit le territoire lui-même
+		assertEquals(lastModifiedDate, territory.getLastModifiedDate());
+		verify(territoryRepository).save(territory);
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = TerritoryStatus.class, names = {"AVAILABLE", "ASSIGNED", "LATE"})
+	void testMakeAvailable_RefusesTerritoryNotPending(TerritoryStatus status) {
+		territory.setStatus(status);
+		when(territoryRepository.findById(territoryId)).thenReturn(Optional.of(territory));
+
+		assertThrows(IllegalStateException.class, () -> territoryService.makeAvailable(territoryId));
+
+		assertEquals(status, territory.getStatus());
+		verify(territoryRepository, never()).save(any(Territory.class));
 	}
 
 	@Test

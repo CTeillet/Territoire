@@ -446,6 +446,31 @@ export const updateTerritoryLost = createAsyncThunk(
   }
 );
 
+/** Territoire en attente rendu disponible sans attendre la fin de la durée d'attente (refusé par le back sinon). */
+export const makeTerritoryAvailable = createAsyncThunk(
+  "territories/makeTerritoryAvailable",
+  async (territoryId: string, { rejectWithValue }) => {
+    const response = await authFetch(
+      `${BASE_URL}/${territoryId}/rendre-disponible`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    if (!response.ok) {
+      return rejectWithValue(
+        await apiErrorMessage(
+          response,
+          "Erreur lors de la remise à disposition du territoire"
+        )
+      );
+    }
+
+    return territoryId;
+  }
+);
+
 export const fetchTerritories = createAsyncThunk<TerritoryCollection>(
   "territories/fetchGeoJson",
   async (_, { rejectWithValue }) => {
@@ -1056,6 +1081,21 @@ const territorySlice = createSlice({
         });
       })
       .addCase(updateTerritoryLost.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload as string;
+      })
+
+      // Seul le statut change : les attributions et le dernier parcours restent ceux du dernier retour
+      .addCase(makeTerritoryAvailable.pending, (state) => {
+        state.updating = true;
+      })
+      .addCase(makeTerritoryAvailable.fulfilled, (state, action) => {
+        state.updating = false;
+        updateTerritoryEverywhere(state, action.payload, (t) => {
+          t.status = "AVAILABLE";
+        });
+      })
+      .addCase(makeTerritoryAvailable.rejected, (state, action) => {
         state.updating = false;
         state.error = action.payload as string;
       })
