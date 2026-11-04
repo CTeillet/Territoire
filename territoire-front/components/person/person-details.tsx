@@ -5,6 +5,8 @@ import { RootState, useAppDispatch } from "@/store/store";
 import { fetchAssignedTerritories } from "@/store/slices/person-slice";
 import PersonInfoCard from "./person-info-card";
 import AssignedTerritoriesList from "./assigned-territories-list";
+import { AssignTerritoryToPersonDialog } from "./assign-territory-to-person-dialog";
+import { canManageAssignments } from "@/models/role";
 
 interface PersonDetailsProps {
   person: Person;
@@ -15,6 +17,7 @@ const PersonDetails = ({ person }: PersonDetailsProps) => {
   const { assignedTerritories, loadingAssignedTerritories } = useSelector(
     (state: RootState) => state.persons
   );
+  const role = useSelector((state: RootState) => state.auth.user?.role);
 
   useEffect(() => {
     if (person.id) {
@@ -28,6 +31,14 @@ const PersonDetails = ({ person }: PersonDetailsProps) => {
       <AssignedTerritoriesList
         assignedTerritories={assignedTerritories}
         loadingAssignedTerritories={loadingAssignedTerritories}
+        action={
+          canManageAssignments(role) && (
+            <AssignTerritoryToPersonDialog
+              person={person}
+              history={assignedTerritories}
+            />
+          )
+        }
       />
     </div>
   );
