@@ -37,7 +37,7 @@ Le schéma est géré par Flyway (`territoire-back/src/main/resources/db/migrati
 Une entité modifiée sans migration est détectée en CI par `FlywayValidateIntegrationTest`, qui démarre l'application sur une copie du schéma de production (`src/test/resources/db/schema-production.sql`) dans un conteneur PostGIS. `FlywaySchemaIntegrationTest` vérifie que les migrations ne changent rien à ce schéma et le recréent à l'identique sur une base vide.
 
 ## Développement local
-Prérequis : Docker, Java 25, Node.js 24.
+Prérequis : Docker, Java 25, Node.js 24 avec npm 11 (`nvm use` dans `territoire-front` lit `.nvmrc` ; avec npm 10, `npm ci` refuse le lockfile).
 
 ```bash
 # Base PostGIS locale (utilisateur admin / base territoire)

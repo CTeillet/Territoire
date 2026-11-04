@@ -78,7 +78,7 @@ describe("cas d'erreur des petits slices", () => {
       [
         "createPerson",
         () => createPerson({ firstName: "Jean", lastName: "Dupont" }),
-        "Échec de la création",
+        "Échec de l'ajout de la personne. Veuillez réessayer.",
       ],
       ["updatePerson", () => updatePerson(person), "Échec de la mise à jour"],
       [
@@ -105,6 +105,25 @@ describe("cas d'erreur des petits slices", () => {
         expect(
           ((await s.dispatch(thunk() as never)) as { payload: unknown }).payload
         ).toBe("Une erreur inconnue s'est produite");
+      }
+    );
+
+    it.each([
+      [
+        "createPerson",
+        () => createPerson({ firstName: "Jean", lastName: " " }),
+      ],
+      ["updatePerson", () => updatePerson({ ...person, lastName: "" })],
+    ])(
+      "%s : remonte le motif du refus (validation du serveur)",
+      async (_name, thunk) => {
+        authFetch.mockResolvedValueOnce(
+          failing({}, { status: 400, error: "Le nom est requis" })
+        );
+        expect(
+          ((await store().dispatch(thunk() as never)) as { payload: unknown })
+            .payload
+        ).toBe("Le nom est requis");
       }
     );
 

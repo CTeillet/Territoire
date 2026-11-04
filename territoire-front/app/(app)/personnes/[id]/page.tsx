@@ -84,16 +84,23 @@ const PersonDetail = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Enregistrement des modifications
-  const handleSave = () => {
-    if (person) {
-      const updatedPerson: Person = {
-        ...person,
-        ...formData,
-      };
-      dispatch(updatePerson(updatedPerson)).then(() => {
-        setEditing(false);
-      });
+  // Enregistrement des modifications : en cas de refus, le motif s'affiche et la fiche reste en édition
+  const handleSave = async () => {
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      toast.error("Le prénom et le nom sont requis");
+      return;
+    }
+    const updatedPerson: Person = {
+      ...person,
+      ...formData,
+    };
+    try {
+      await dispatch(updatePerson(updatedPerson)).unwrap();
+      setEditing(false);
+    } catch (message) {
+      toast.error(
+        typeof message === "string" ? message : "Échec de la mise à jour"
+      );
     }
   };
 

@@ -113,6 +113,42 @@ class PersonControllerIntegrationTest {
 	}
 
 	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testCreatePerson_TrimsNames() throws Exception {
+		mockMvc.perform(post("/api/personnes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"firstName\":\"  Bob \",\"lastName\":\" Martin  \"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.firstName").value("Bob"))
+				.andExpect(jsonPath("$.lastName").value("Martin"));
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testCreatePerson_WithoutFirstName_BadRequest() throws Exception {
+		mockMvc.perform(post("/api/personnes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"firstName\":\"   \",\"lastName\":\"Martin\"}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("Le prénom est requis"))
+				.andExpect(jsonPath("$.fields.firstName").value("Le prénom est requis"));
+
+		assertEquals(0, personRepository.count());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testCreatePerson_WithoutLastName_BadRequest() throws Exception {
+		mockMvc.perform(post("/api/personnes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"firstName\":\"Bob\"}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("Le nom est requis"));
+
+		assertEquals(0, personRepository.count());
+	}
+
+	@Test
 	@WithMockUser(roles = "UTILISATEUR")
 	void testCreatePerson_User_Forbidden() throws Exception {
 		Person person = Person.builder()
@@ -144,6 +180,24 @@ class PersonControllerIntegrationTest {
 
 		Person updated = personRepository.findById(saved.getId()).orElseThrow();
 		assertEquals("Chaplin", updated.getLastName());
+	}
+
+	@Test
+	@WithMockUser(roles = "SUPERVISEUR")
+	void testModifyPerson_WithoutLastName_BadRequest() throws Exception {
+		Person saved = personRepository.save(Person.builder()
+				.firstName("Charlie")
+				.lastName("Brown")
+				.build());
+
+		mockMvc.perform(put("/api/personnes/{id}", saved.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"firstName\":\"Charlie\",\"lastName\":\"\"}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("Le nom est requis"));
+
+		// La fiche reste inchangée
+		assertEquals("Brown", personRepository.findById(saved.getId()).orElseThrow().getLastName());
 	}
 
 	@Test
