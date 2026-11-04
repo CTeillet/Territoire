@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserPosition, useUserPosition } from "@/hooks/use-user-position";
+import { keepPageForOffline } from "@/lib/public-access-offline";
 import {
   directionsLinks,
   distanceMeters,
@@ -98,6 +99,10 @@ function FitToUserPosition({
 export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
   const locate = useUserPosition();
   const [travelMode, setTravelMode] = useTravelMode();
+  // La carte est chargée à part : ses fichiers (Leaflet) sont gardés pour l'ouvrir aussi sans réseau
+  useEffect(() => {
+    keepPageForOffline();
+  }, []);
   const { hull, blocks, outline, bounds, center } = useMemo(() => {
     let collection: FeatureCollection;
     try {
