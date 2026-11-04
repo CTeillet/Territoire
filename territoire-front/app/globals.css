@@ -192,3 +192,13 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
+
+/*
+ * Leaflet : un clic sur un polygone (path SVG .leaflet-interactive) lui donne
+ * le focus, et le navigateur dessine alors un contour rectangulaire autour de
+ * sa boîte englobante. Ces paths ne sont pas atteignables au clavier, on
+ * supprime donc ce contour sans perte d'accessibilité.
+ */
+.leaflet-container .leaflet-interactive:focus {
+  outline: none;
+}
