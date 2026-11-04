@@ -1,15 +1,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Assignment } from "@/models/assignment";
+import React from "react";
 import TerritoryItem from "./territory-item";
 
 interface AssignedTerritoriesListProps {
   assignedTerritories: Assignment[];
   loadingAssignedTerritories: boolean;
+  /** Action à côté du titre (ex. attribuer un territoire). */
+  action?: React.ReactNode;
 }
 
 const AssignedTerritoriesList = ({
   assignedTerritories,
   loadingAssignedTerritories,
+  action,
 }: AssignedTerritoriesListProps) => {
   // Sort territories: current ones first, then by most recent assignment date
   const sortedTerritories = [...assignedTerritories].sort((a, b) => {
@@ -27,9 +31,12 @@ const AssignedTerritoriesList = ({
   return (
     <Card className="border-2 border-gray-200 shadow-sm">
       <CardContent className="pt-6">
-        <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">
-          Territoires assignés
-        </h3>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+          <h3 className="text-xl font-semibold text-gray-800">
+            Territoires assignés
+          </h3>
+          {action}
+        </div>
         {loadingAssignedTerritories ? (
           <p className="text-center py-4">Chargement des territoires...</p>
         ) : sortedTerritories.length > 0 ? (

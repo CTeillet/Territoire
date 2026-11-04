@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PersonsPage from "@/app/(app)/personnes/page";
 import PersonDetail from "@/app/(app)/personnes/[id]/page";
 import { toast } from "sonner";
 import { jsonResponse, mockApi, renderWithStore } from "../test-utils";
+import { labelAfterAssignment } from "@/components/shared/assignment-label-file";
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -13,6 +14,16 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "p1" }),
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+// Étiquette d'attribution : testée à part, on vérifie seulement qu'elle est demandée
+vi.mock(
+  "@/components/shared/assignment-label-file",
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import("@/components/shared/assignment-label-file")
+    >()),
+    labelAfterAssignment: vi.fn(),
+  })
+);
 
 const persons = [
   {
@@ -444,6 +455,177 @@ describe("Fiche d'une personne", () => {
     // La fiche n'est pas remplacée par l'erreur : le formulaire est toujours là
     expect(screen.getByText("Modifier les informations")).toBeInTheDocument();
     expect(screen.getByLabelText("Nom :")).toHaveValue("Dupont");
+  });
+
+  describe("attribution d'un territoire", () => {
+    // « Eu ces deux dernières années » se compte à partir d'aujourd'hui : date figée (seulement Date)
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-11-04T12:00:00"));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const territory = (
+      id: string,
+      name: string,
+      extra: Record<string, unknown> = {}
+    ) => ({
+      type: "Feature",
+      geometry: null,
+      properties: {
+        id,
+        name,
+        status: "AVAILABLE",
+        city: "Rennes",
+        type: "HOUSE",
+        lastVisitedOn: "2026-01-10",
+        assignedTo: "N/A",
+        assignedOn: "N/A",
+        waitedFor: "N/A",
+        assignments: [],
+        ...extra,
+      },
+    });
+    const geojson = {
+      type: "FeatureCollection",
+      features: [
+        territory("t5", "R-20", { lastVisitedOn: "2026-05-02" }),
+        // Jean a eu R-14 (t3) en 2025 : proposé en dernier
+        territory("t3", "R-14", { lastVisitedOn: "2025-08-01" }),
+        territory("t6", "R-21", { lastVisitedOn: "nouveau" }),
+        territory("t7", "B-1", { city: "Bruz", type: "BUILDING" }),
+        territory("t8", "R-22", { status: "ASSIGNED" }),
+      ],
+    };
+
+    const openDialog = async () => {
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Attribuer un territoire" })
+      );
+      return screen.findByRole("dialog");
+    };
+    const proposed = (dialog: HTMLElement) =>
+      within(dialog)
+        .getAllByRole("radio")
+        .map((radio) => radio.closest("label")!.textContent);
+
+    it("propose les territoires disponibles, les plus indiqués d'abord, et attribue le choisi", async () => {
+      const assignment = {
+        id: "as9",
+        territory: { territoryId: "t6", name: "R-21", status: "ASSIGNED" },
+        person: persons[0],
+        assignmentDate: "2026-11-04",
+        dueDate: "2027-03-04",
+        returnDate: null,
+      };
+      setup({
+        "GET /api/territoires/geojson": geojson,
+        "POST /api/territoires/t6/attribuer/p1": assignment,
+      });
+      renderWithStore(<PersonDetail />);
+
+      const dialog = await openDialog();
+      expect(
+        within(dialog).getByText("Attribuer un territoire à Jean Dupont")
+      ).toBeInTheDocument();
+      // Jean a déjà R-13 en cours
+      expect(dialog).toHaveTextContent("Jean a déjà 1 territoire en cours.");
+      await waitFor(() => expect(proposed(dialog)).toHaveLength(4));
+      expect(proposed(dialog)).toEqual([
+        "R-21Rennes · Pavillon · jamais parcouru",
+        "B-1Bruz · Immeuble · parcouru le 10 janv. 2026",
+        "R-20Rennes · Pavillon · parcouru le 2 mai 2026",
+        "R-14Rennes · Pavillon · parcouru le 1 août 2025 · déjà eu par Jean le 1 juin 2025",
+      ]);
+
+      await userEvent.click(
+        within(dialog).getByRole("radio", { name: /R-21/ })
+      );
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Attribuer" })
+      );
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          "R-21 attribué à Jean Dupont"
+        )
+      );
+      expect(api).toHaveBeenCalledWith(
+        "/api/territoires/t6/attribuer/p1",
+        expect.objectContaining({ method: "POST" })
+      );
+      expect(labelAfterAssignment).toHaveBeenCalledWith(assignment);
+      // La liste des territoires de Jean est rechargée
+      expect(
+        api.mock.calls.filter(
+          ([url]) => url === "/api/personnes/p1/territoires"
+        )
+      ).toHaveLength(2);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("filtre par ville et par type", async () => {
+      setup({ "GET /api/territoires/geojson": geojson });
+      renderWithStore(<PersonDetail />);
+      const dialog = await openDialog();
+      await waitFor(() => expect(proposed(dialog)).toHaveLength(4));
+
+      await userEvent.selectOptions(
+        within(dialog).getByRole("combobox", { name: "Type" }),
+        "Immeuble"
+      );
+      expect(proposed(dialog)).toEqual([
+        "B-1Bruz · Immeuble · parcouru le 10 janv. 2026",
+      ]);
+
+      await userEvent.selectOptions(
+        within(dialog).getByRole("combobox", { name: "Ville" }),
+        "Rennes"
+      );
+      expect(
+        within(dialog).getByText(
+          "Aucun territoire disponible avec ces critères pour le moment."
+        )
+      ).toBeInTheDocument();
+    });
+
+    it("affiche le refus du serveur sans fermer la fenêtre", async () => {
+      setup({
+        "GET /api/territoires/geojson": geojson,
+        "POST /api/territoires/t6/attribuer/p1": jsonResponse(
+          { status: 409, error: "Ce territoire n'est pas disponible" },
+          409
+        ),
+      });
+      renderWithStore(<PersonDetail />);
+      const dialog = await openDialog();
+
+      await userEvent.click(
+        await within(dialog).findByRole("radio", { name: /R-21/ })
+      );
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Attribuer" })
+      );
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          "Ce territoire n'est pas disponible"
+        )
+      );
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
+
+    it("n'est pas proposée à un simple utilisateur", async () => {
+      setup();
+      renderWithStore(<PersonDetail />, "UTILISATEUR");
+
+      await screen.findByText("Détails de Jean Dupont");
+      expect(
+        screen.queryByRole("button", { name: "Attribuer un territoire" })
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("annule la modification", async () => {
