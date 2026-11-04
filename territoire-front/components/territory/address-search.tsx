@@ -9,9 +9,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Badge } from "@/components/ui/badge";
 import { TerritoryNameLink } from "@/components/territory/territory-name-link";
-import { getBadgeColor } from "@/components/utils";
+import { TerritoryStatusBadge } from "@/components/territory/territory-status-badge";
 import {
   ADDRESS_MIN_LENGTH,
   AddressResult,
@@ -19,7 +18,6 @@ import {
   territoriesAtPoint,
 } from "@/lib/address-search";
 import { formatDistance, LatLng } from "@/lib/geo";
-import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TerritoryFeature } from "@/models/territory";
 
 const DEBOUNCE_MS = 300;
@@ -35,9 +33,7 @@ function TerritorySummary({ feature }: { feature: TerritoryFeature }) {
     // Espaces entre les éléments : lus comme une phrase (« R-14 Attribué Jean Dupont »)
     <span className="inline-flex flex-wrap items-center gap-x-1">
       <TerritoryNameLink id={id} name={name} />{" "}
-      <Badge className={`${getBadgeColor(status)} text-white`}>
-        {STATUS_TRANSLATIONS[status]}
-      </Badge>
+      <TerritoryStatusBadge status={status} />
       {assignedTo && assignedTo !== NOT_SET && (
         <>
           {" "}

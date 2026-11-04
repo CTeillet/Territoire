@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { buildTerritoryPopup } from "@/components/territory/territory-popup";
 import { MAP_HEIGHT_CLASSES } from "@/components/shared/map-height";
+import { territoryStatusStyle } from "@/components/territory/territory-status";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
@@ -220,39 +221,17 @@ const onEachFeature = (feature: TerritoryFeature, layer: Layer) => {
 const territoryStyle = (
   feature?: Feature<Geometry, { status: TerritoryStatus }>
 ): PathOptions => {
-  if (!feature || !feature.properties) {
-    return {
-      fillColor: "#6b7280", // Couleur par défaut (gris)
-      color: "#6b7280",
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.6,
-    };
-  }
-
-  const badgeColor = getBadgeColorTerritory(feature.properties.status);
+  // Sans statut : gris, comme un statut inconnu
+  const { color } = territoryStatusStyle(
+    feature?.properties?.status as TerritoryStatus
+  );
   return {
-    fillColor: badgeColor,
-    color: badgeColor,
+    fillColor: color,
+    color,
     weight: 2,
     opacity: 1,
     fillOpacity: 0.6,
   };
-};
-
-export const getBadgeColorTerritory = (status: TerritoryStatus) => {
-  switch (status) {
-    case "AVAILABLE":
-      return "#9333ea";
-    case "ASSIGNED":
-      return "#22c55e";
-    case "LATE":
-      return "#ec4899";
-    case "PENDING":
-      return "#0ea5e9";
-    default:
-      return "#6b7280";
-  }
 };
 
 export default TerritoryMap;

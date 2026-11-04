@@ -31,8 +31,9 @@ const DeleteUserDialog = ({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button
-          variant="destructive"
-          className="p-2 max-md:min-h-11 max-md:min-w-11"
+          variant="destructive-outline"
+          size="icon"
+          className="max-md:min-h-11 max-md:min-w-11"
           disabled={isDeleting}
           aria-label={`Supprimer ${username}`}
         >
@@ -50,8 +51,8 @@ const DeleteUserDialog = ({
         <AlertDialogFooter className="flex justify-end gap-2">
           <AlertDialogCancel>Annuler</AlertDialogCancel>
           <AlertDialogAction
+            variant="destructive"
             onClick={() => onDelete(userId)}
-            className="bg-red-600 hover:bg-red-700"
           >
             Supprimer
           </AlertDialogAction>

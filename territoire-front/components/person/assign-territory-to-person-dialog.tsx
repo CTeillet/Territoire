@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { MapPinPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
@@ -36,8 +37,8 @@ const formatDay = (value: string) =>
     dateStyle: "medium",
   });
 
-const selectClass =
-  "h-11 w-full rounded-md border bg-white px-2 text-base md:h-9 md:text-sm";
+// Cible de 44 px sur téléphone
+const selectClass = "h-11 md:h-9";
 
 /**
  * Attribution d'un territoire depuis la fiche d'une personne : les territoires disponibles les plus indiqués
@@ -165,7 +166,7 @@ export function AssignTerritoryToPersonDialog({
           <div className="grid grid-cols-2 gap-2">
             <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">Ville</span>
-              <select
+              <NativeSelect
                 className={selectClass}
                 value={cityName}
                 onChange={(e) => {
@@ -179,11 +180,11 @@ export function AssignTerritoryToPersonDialog({
                     {city}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">Type</span>
-              <select
+              <NativeSelect
                 className={selectClass}
                 value={type}
                 onChange={(e) => {
@@ -194,7 +195,7 @@ export function AssignTerritoryToPersonDialog({
                 <option value="">Tous</option>
                 <option value={TerritoryType.HOUSE}>Pavillon</option>
                 <option value={TerritoryType.BUILDING}>Immeuble</option>
-              </select>
+              </NativeSelect>
             </label>
           </div>
 

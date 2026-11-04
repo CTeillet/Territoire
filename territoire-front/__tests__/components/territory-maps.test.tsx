@@ -2,9 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import TerritoryMap, {
-  getBadgeColorTerritory,
-} from "@/components/territory/territory-map";
+import TerritoryMap from "@/components/territory/territory-map";
 import TerritoryIdMap from "@/components/territory/id/territory-id-map";
 import { layers } from "../mocks/leaflet-dynamic";
 import {
@@ -223,10 +221,6 @@ describe("Carte des territoires", () => {
     await userEvent.click(screen.getByTitle("Réduire la carte"));
 
     expect(screen.getByTitle("Agrandir la carte")).toBeInTheDocument();
-  });
-
-  it("utilise une couleur par défaut pour un statut inconnu", () => {
-    expect(getBadgeColorTerritory("INCONNU" as never)).toBe("#6b7280");
   });
 });
 

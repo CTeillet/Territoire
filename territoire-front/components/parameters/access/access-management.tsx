@@ -335,16 +335,14 @@ export default function AccessManagement() {
                       {a.personName}
                     </Link>
                     {!a.hasPhone && (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        <PhoneOff className="h-3 w-3" />
+                      <Badge variant="neutral" className="ml-2">
+                        <PhoneOff />
                         sans numéro
-                      </span>
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      className={`${ACCESS_STATUS_BADGE[a.status]} text-white`}
-                    >
+                    <Badge variant={ACCESS_STATUS_BADGE[a.status]}>
                       {ACCESS_STATUS_LABELS[a.status]}
                     </Badge>
                   </TableCell>

@@ -62,7 +62,7 @@ export function TerritoryPeriodStatistics({
   const COLORS = ["#22c55e", "#ef4444"];
 
   return (
-    <Card className="shadow-md border-0">
+    <Card>
       <CardHeader className="px-4 md:px-6">
         <CardTitle>Statistiques détaillées</CardTitle>
         <CardDescription>
@@ -71,7 +71,7 @@ export function TerritoryPeriodStatistics({
             : "Répartition des territoires parcourus et non parcourus"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-4 md:px-6">
+      <CardContent>
         {loading ? (
           <p>Chargement des statistiques...</p>
         ) : error ? (

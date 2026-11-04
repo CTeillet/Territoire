@@ -18,12 +18,12 @@ export function StatisticsSummary({ statistics }: StatisticsSummaryProps) {
       <StatCard
         title="Territoires utilisés"
         value={statistics.usedTerritories}
-        valueClassName="text-3xl font-bold text-green-600"
+        valueClassName="text-green-700"
       />
       <StatCard
         title="Territoires restants"
         value={statistics.availableTerritories}
-        valueClassName="text-3xl font-bold text-blue-600"
+        valueClassName="text-sky-700"
       />
     </GridContainer>
   );

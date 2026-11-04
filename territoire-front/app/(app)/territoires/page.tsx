@@ -19,6 +19,11 @@ import {
 import { TerritoryCollection } from "@/models/territory";
 import { geoJsonCenter } from "@/lib/geo";
 import { cn } from "@/lib/utils";
+import {
+  LoadingState,
+  PageContainer,
+  PageHeader,
+} from "@/components/shared/page-layout";
 
 type SearchMode = "territoire" | "adresse";
 
@@ -123,11 +128,18 @@ const TerritoryPage = () => {
   if (!isClient) return null;
 
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
-      <h1 className="text-xl font-bold">Territoires</h1>
+    <PageContainer>
+      <PageHeader
+        title="Territoires"
+        actions={
+          (user?.role === "ADMIN" || user?.role === "SUPERVISEUR") && (
+            <CreateTerritoryModal />
+          )
+        }
+      />
 
       {loading ? (
-        <p>Chargement des territoires...</p>
+        <LoadingState message="Chargement des territoires..." />
       ) : (
         <>
           {territoriesGeojson && (
@@ -176,9 +188,6 @@ const TerritoryPage = () => {
               focusPoint={address}
             />
           )}
-          {(user?.role === "ADMIN" || user?.role === "SUPERVISEUR") && (
-            <CreateTerritoryModal />
-          )}
           {territoriesGeojson && (
             <DataTable
               columns={territoryDataColumns}
@@ -192,7 +201,7 @@ const TerritoryPage = () => {
           )}
         </>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

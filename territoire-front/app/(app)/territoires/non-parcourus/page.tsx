@@ -3,14 +3,18 @@
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchTerritories } from "@/store/slices/territory-slice";
-import { PageHeader } from "@/components/late-territory/page-header";
-import { LoadingState } from "@/components/late-territory/loading-state";
-import { EmptyState } from "@/components/late-territory/empty-state";
+import {
+  EmptyState,
+  LoadingState,
+  PageContainer,
+  PageHeader,
+} from "@/components/shared/page-layout";
 import { DataTable } from "@/components/territory/territory-data-table";
-import { nonVisitedTerritoryColumns } from "@/components/non-visited-territory/non-visited-territory-columns";
+import { nonVisitedTerritoryColumns } from "@/components/territory/territory-data-columns";
 
 export default function NonVisitedTerritoriesPage() {
   const router = useRouter();
@@ -99,28 +103,28 @@ export default function NonVisitedTerritoriesPage() {
   const referenceYear = currentMonth < 9 ? currentYear - 1 : currentYear;
 
   return (
-    <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
+    <PageContainer>
       <PageHeader
         title="Territoires non parcourus"
         description={`Liste des territoires non parcourus depuis le 1er septembre ${referenceYear}`}
       />
 
       {loading ? (
-        <LoadingState />
-      ) : !territoriesData ? (
-        <EmptyState />
+        <LoadingState message="Chargement des territoires..." />
       ) : nonVisitedTerritories.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          icon={CheckCircle2}
+          title="Aucun territoire non parcouru"
+          description={`Tous les territoires ont été parcourus depuis le 1er septembre ${referenceYear}.`}
+        />
       ) : (
-        <div className="w-full bg-white p-4 md:p-6 rounded-lg shadow-md">
-          <DataTable
-            data={nonVisitedTerritories}
-            columns={columns}
-            tableId="non-visited-territories"
-            exportFileName="territoires-non-parcourus"
-          />
-        </div>
+        <DataTable
+          data={nonVisitedTerritories}
+          columns={columns}
+          tableId="non-visited-territories"
+          exportFileName="territoires-non-parcourus"
+        />
       )}
-    </div>
+    </PageContainer>
   );
 }

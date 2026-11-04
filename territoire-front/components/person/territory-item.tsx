@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { Assignment } from "@/models/assignment";
 import { Button } from "@/components/ui/button";
 import { TerritoryNameLink } from "@/components/territory/territory-name-link";
+import { AssignmentStatusBadge } from "@/components/shared/assignment-status-badge";
 
 interface TerritoryItemProps {
   assignment: Assignment;
@@ -14,7 +15,8 @@ const TerritoryItem = ({ assignment }: TerritoryItemProps) => {
 
   return (
     <li
-      className={`flex flex-wrap items-center gap-3 p-3 rounded-md ${isCurrentAssignment ? "bg-blue-50 border-l-4 border-blue-400" : "bg-gray-50"}`}
+      // Attribution en cours : liseré vert, comme son badge
+      className={`flex flex-wrap items-center gap-3 rounded-md p-3 ${isCurrentAssignment ? "border-l-4 border-green-500 bg-green-50" : "bg-gray-50"}`}
     >
       <div className="min-w-0 flex-1">
         <div className="font-medium text-gray-800">
@@ -25,9 +27,7 @@ const TerritoryItem = ({ assignment }: TerritoryItemProps) => {
             name
           )}
           {isCurrentAssignment && (
-            <span className="ml-2 text-sm font-medium text-blue-600 px-2 py-0.5 rounded-full bg-blue-100">
-              En cours
-            </span>
+            <AssignmentStatusBadge assignment={assignment} className="ml-2" />
           )}
         </div>
         <div className="text-sm text-gray-600 mt-1">

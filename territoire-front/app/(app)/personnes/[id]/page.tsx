@@ -12,6 +12,11 @@ import PersonActions from "@/components/person/person-actions";
 import PersonAccessCard from "@/components/person/person-access-card";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import {
+  LoadingState,
+  PageContainer,
+  PageHeader,
+} from "@/components/shared/page-layout";
 
 const PersonDetail = () => {
   const { id } = useParams();
@@ -70,13 +75,16 @@ const PersonDetail = () => {
   }
 
   // Gestion du chargement et des erreurs
-  if (loading) return <p className="text-center text-lg">Chargement...</p>;
-  if (error) return <p className="text-center text-lg text-red-500">{error}</p>;
+  if (loading) return <LoadingState />;
+  if (error)
+    return <p className="p-6 text-center text-lg text-destructive">{error}</p>;
   if (!person)
     return deleted ? (
       <p>Redirection en cours...</p>
     ) : (
-      <p className="text-center text-lg text-red-500">Personne introuvable</p>
+      <p className="p-6 text-center text-lg text-destructive">
+        Personne introuvable
+      </p>
     );
 
   // Gestion des changements de formulaire
@@ -111,12 +119,25 @@ const PersonDetail = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold">
-        {editing
-          ? "Modifier les informations"
-          : `Détails de ${person.firstName} ${person.lastName}`}
-      </h1>
+    <PageContainer>
+      <PageHeader
+        back={{ href: "/personnes", label: "Retour aux personnes" }}
+        title={
+          editing
+            ? "Modifier les informations"
+            : `${person.firstName} ${person.lastName}`
+        }
+        actions={
+          <PersonActions
+            person={person}
+            editing={editing}
+            onEdit={() => setEditing(true)}
+            onSave={handleSave}
+            onCancel={() => setEditing(false)}
+            onDeleted={handleDeleted}
+          />
+        }
+      />
 
       {editing ? (
         <PersonEditForm
@@ -130,21 +151,14 @@ const PersonDetail = () => {
         <PersonDetails person={person} />
       )}
 
-      <PersonActions
-        person={person}
-        editing={editing}
-        onEdit={() => setEditing(true)}
-        onSave={handleSave}
-        onCancel={() => setEditing(false)}
-        onDeleted={handleDeleted}
-      />
-
       {!editing && person.id && <PersonAccessCard personId={person.id} />}
 
       {updating && (
-        <p className="text-center text-blue-500">Mise à jour en cours...</p>
+        <p role="status" className="text-center text-muted-foreground">
+          Mise à jour en cours...
+        </p>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

@@ -302,9 +302,7 @@ describe("Liste des personnes", () => {
   it("indique une liste vide, le chargement et redirige sans connexion", async () => {
     setup({ "GET /api/personnes": [] });
     const { unmount } = renderWithStore(<PersonsPage />);
-    expect(
-      await screen.findByText("Aucune personne trouvée.")
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Aucune personne")).toBeInTheDocument();
     unmount();
 
     renderWithStore(<PersonsPage />, null);
@@ -367,7 +365,7 @@ describe("Fiche d'une personne", () => {
     renderWithStore(<PersonDetail />);
 
     expect(
-      await screen.findByText("Détails de Jean Dupont")
+      await screen.findByRole("heading", { level: 1, name: "Jean Dupont" })
     ).toBeInTheDocument();
     expect(screen.getByText("jean@exemple.fr")).toBeInTheDocument();
     const items = await screen.findAllByRole("listitem");
@@ -398,10 +396,12 @@ describe("Fiche d'une personne", () => {
     const lastName = screen.getByLabelText("Nom :");
     await userEvent.clear(lastName);
     await userEvent.type(lastName, "Dupond");
-    await userEvent.click(screen.getByRole("button", { name: "Sauvegarder" }));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
 
     await waitFor(() =>
-      expect(screen.getByText("Détails de Jean Dupond")).toBeInTheDocument()
+      expect(
+        screen.getByRole("heading", { level: 1, name: "Jean Dupond" })
+      ).toBeInTheDocument()
     );
     const put = api.mock.calls.find(([, init]) => init?.method === "PUT")!;
     expect(JSON.parse(String(put[1]?.body))).toEqual(
@@ -424,7 +424,7 @@ describe("Fiche d'une personne", () => {
     const lastName = screen.getByLabelText("Nom :");
     await userEvent.clear(lastName);
     await userEvent.type(lastName, "   ");
-    await userEvent.click(screen.getByRole("button", { name: "Sauvegarder" }));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
 
     expect(toast.error).toHaveBeenCalledWith("Le prénom et le nom sont requis");
     expect(api.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(
@@ -445,7 +445,7 @@ describe("Fiche d'une personne", () => {
     await userEvent.click(
       await screen.findByRole("button", { name: "Modifier" })
     );
-    await userEvent.click(screen.getByRole("button", { name: "Sauvegarder" }));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
@@ -621,7 +621,7 @@ describe("Fiche d'une personne", () => {
       setup();
       renderWithStore(<PersonDetail />, "UTILISATEUR");
 
-      await screen.findByText("Détails de Jean Dupont");
+      await screen.findByRole("heading", { level: 1, name: "Jean Dupont" });
       expect(
         screen.queryByRole("button", { name: "Attribuer un territoire" })
       ).not.toBeInTheDocument();
@@ -637,7 +637,9 @@ describe("Fiche d'une personne", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Annuler" }));
 
-    expect(screen.getByText("Détails de Jean Dupont")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Jean Dupont" })
+    ).toBeInTheDocument();
   });
 
   it("supprime la personne après confirmation et revient à la liste", async () => {
@@ -690,7 +692,9 @@ describe("Fiche d'une personne", () => {
         "Impossible : historique d'attributions"
       )
     );
-    expect(screen.getByText("Détails de Jean Dupont")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Jean Dupont" })
+    ).toBeInTheDocument();
     expect(replace).not.toHaveBeenCalled();
   });
 
@@ -699,7 +703,7 @@ describe("Fiche d'une personne", () => {
     renderWithStore(<PersonDetail />, "UTILISATEUR");
 
     expect(
-      await screen.findByText("Détails de Jean Dupont")
+      await screen.findByRole("heading", { level: 1, name: "Jean Dupont" })
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Supprimer Jean Dupont" })

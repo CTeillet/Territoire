@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,6 +20,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Calendar, ChevronRight } from "lucide-react";
+import {
+  EmptyState,
+  LoadingState,
+  PageContainer,
+  PageHeader,
+} from "@/components/shared/page-layout";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CreateCampaignDialog } from "@/components/campaigns/create-campaign-dialog";
@@ -28,15 +35,12 @@ import { canManageCampaigns } from "@/models/role";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Campaign } from "@/models/campaign";
 
-const StatusBadge = ({ closed }: { closed: boolean }) => (
-  <span
-    className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
-      closed ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
-    }`}
-  >
-    {closed ? "Terminée" : "En cours"}
-  </span>
-);
+const StatusBadge = ({ closed }: { closed: boolean }) =>
+  closed ? (
+    <Badge variant="neutral">Terminée</Badge>
+  ) : (
+    <Badge variant="success">En cours</Badge>
+  );
 
 const territoriesSummary = (campaign: Campaign) =>
   `${campaign.territories.length} territoires` +
@@ -69,57 +73,36 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
-      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:justify-between sm:items-center md:mb-10">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-3">
-            Gestion des campagnes
-          </h1>
-          <p className="text-gray-500 md:text-lg">
-            Gérez les campagnes d&apos;invitation et les assignations de
-            territoires
-          </p>
-        </div>
-        {canManage && (
-          <CreateCampaignDialog
-            onCampaignCreated={() => dispatch(fetchCampaigns())}
-          />
-        )}
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Campagnes"
+        description="Gérez les campagnes d'invitation et les assignations de territoires"
+        actions={
+          canManage && (
+            <CreateCampaignDialog
+              onCampaignCreated={() => dispatch(fetchCampaigns())}
+            />
+          )
+        }
+      />
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <p>Chargement des campagnes...</p>
-        </div>
+        <LoadingState message="Chargement des campagnes..." />
       ) : campaigns.length === 0 ? (
-        <Card className="shadow-md border-0">
-          <CardContent className="flex flex-col items-center justify-center h-80 py-12">
-            <Calendar className="h-20 w-20 text-gray-400 mb-6" />
-            <h3 className="text-2xl font-semibold mb-3">
-              Aucune campagne trouvée
-            </h3>
-            <p className="text-gray-500 text-center text-lg mb-6 max-w-md">
-              Créez votre première campagne pour commencer à gérer les
-              assignations de territoires.
-            </p>
-            {canManage && (
-              <CreateCampaignDialog
-                onCampaignCreated={() => dispatch(fetchCampaigns())}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Calendar}
+          title="Aucune campagne trouvée"
+          description="Créez votre première campagne pour commencer à gérer les assignations de territoires."
+        />
       ) : (
-        <Card className="shadow-md border-0">
-          <CardHeader className="px-4 pb-6 md:px-6">
-            <CardTitle className="text-2xl font-bold mb-2">
-              Liste des campagnes
-            </CardTitle>
-            <CardDescription className="text-base">
+        <Card>
+          <CardHeader>
+            <CardTitle>Liste des campagnes</CardTitle>
+            <CardDescription>
               Toutes les campagnes d&apos;invitation et leur statut
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-4 md:px-6">
+          <CardContent>
             {isMobile ? (
               // Téléphone : une fiche par campagne, le tableau ne tient pas sur la largeur
               <ul className="divide-y">
@@ -151,51 +134,32 @@ export default function CampaignsPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-b-2 border-gray-200">
-                    <TableHead className="py-4 text-base font-semibold">
-                      Nom
-                    </TableHead>
-                    <TableHead className="py-4 text-base font-semibold">
-                      Date de début
-                    </TableHead>
-                    <TableHead className="py-4 text-base font-semibold">
-                      Date de fin
-                    </TableHead>
-                    <TableHead className="py-4 text-base font-semibold">
-                      Statut
-                    </TableHead>
-                    <TableHead className="py-4 text-base font-semibold">
-                      Territoires
-                    </TableHead>
-                    <TableHead className="py-4 text-base font-semibold">
-                      Actions
-                    </TableHead>
+                  <TableRow>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Date de début</TableHead>
+                    <TableHead>Date de fin</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Territoires</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {campaigns.map((campaign) => (
-                    <TableRow key={campaign.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium text-base py-4">
+                    <TableRow key={campaign.id}>
+                      <TableCell className="font-medium">
                         {campaign.name}
                       </TableCell>
-                      <TableCell className="py-4">
-                        {formatDate(campaign.startDate)}
-                      </TableCell>
-                      <TableCell className="py-4">
-                        {formatDate(campaign.endDate)}
-                      </TableCell>
-                      <TableCell className="py-4">
+                      <TableCell>{formatDate(campaign.startDate)}</TableCell>
+                      <TableCell>{formatDate(campaign.endDate)}</TableCell>
+                      <TableCell>
                         <StatusBadge closed={campaign.closed} />
                       </TableCell>
-                      <TableCell className="py-4">
-                        {territoriesSummary(campaign)}
-                      </TableCell>
-                      <TableCell className="py-4">
+                      <TableCell>{territoriesSummary(campaign)}</TableCell>
+                      <TableCell>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewCampaign(campaign.id)}
-                          className="px-4 py-2 font-medium"
                         >
                           Détails
                         </Button>
@@ -208,6 +172,6 @@ export default function CampaignsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

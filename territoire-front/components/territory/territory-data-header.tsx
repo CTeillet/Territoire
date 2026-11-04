@@ -4,6 +4,8 @@ import { Column, RowData } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -120,23 +122,23 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
               </div>
             ) : column.id === "type" ? (
               // Select pour filtrer les types de territoire
-              <select
+              <NativeSelect
                 value={filterValue as string}
                 onChange={(e) => handleFilterChange(e.target.value)}
-                className="p-1 text-base md:text-sm border rounded-md w-full"
+                className="h-8"
                 onPointerDown={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
               >
                 <option value="">Tous</option>
                 <option value="BUILDING">Immeuble</option>
                 <option value="HOUSE">Pavillon</option>
-              </select>
+              </NativeSelect>
             ) : column.id === "city" ? (
               // Select pour filtrer les villes
-              <select
+              <NativeSelect
                 value={filterValue as string}
                 onChange={(e) => handleFilterChange(e.target.value)}
-                className="p-1 text-base md:text-sm border rounded-md w-full"
+                className="h-8"
                 onPointerDown={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
               >
@@ -146,15 +148,15 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
                     {city}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             ) : (
               // Input texte pour les autres colonnes
-              <input
+              <Input
                 type="text"
                 value={filterValue as string}
                 onChange={(e) => handleFilterChange(e.target.value)}
                 placeholder={`Filtrer ${title}`}
-                className="p-1 text-base md:text-sm border rounded-md w-full"
+                className="h-8"
                 onPointerDown={(e) => e.stopPropagation()} // Empêche la fermeture du menu
                 onKeyDown={(e) => e.stopPropagation()} // Empêche le typeahead du menu
               />

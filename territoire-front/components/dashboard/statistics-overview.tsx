@@ -1,4 +1,4 @@
-import StatCard from "@/components/dashboard/stat-card";
+import { StatCard } from "@/components/shared/ui/stat-card";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/store/store";
@@ -109,14 +109,14 @@ export const StatisticsOverview: React.FC<StatisticsOverviewProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           title={`Territoires parcourus (${periodLabel || "période"})`}
-          count={territoriesVisited}
+          value={territoriesVisited}
         />
         <StatCard
           title={`Territoires non parcourus (${periodLabel || "période"})`}
-          count={territoriesNotAssigned}
+          value={territoriesNotAssigned}
         />
-        <StatCard title="Taux de couverture" count={percentageVisited} />
-        <StatCard title="Total des territoires" count={totalTerritories} />
+        <StatCard title="Taux de couverture" value={percentageVisited} />
+        <StatCard title="Total des territoires" value={totalTerritories} />
       </div>
     );
   }
@@ -125,7 +125,7 @@ export const StatisticsOverview: React.FC<StatisticsOverviewProps> = ({
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       <StatCard
         title="Territoires disponibles"
-        count={
+        value={
           territories?.features.filter(
             (f) => f.properties.status === "AVAILABLE"
           ).length || 0
@@ -133,15 +133,15 @@ export const StatisticsOverview: React.FC<StatisticsOverviewProps> = ({
       />
       <StatCard
         title="Territoires en retard"
-        count={
+        value={
           territories?.features.filter((f) => f.properties.status === "LATE")
             .length || 0
         }
       />
-      <StatCard title="Moyenne par proclamateur" count={avgPerPublisher} />
+      <StatCard title="Moyenne par proclamateur" value={avgPerPublisher} />
       <StatCard
         title="Territoires en circulation"
-        count={territoriesInCirculation}
+        value={territoriesInCirculation}
       />
       <StatCard
         title={
@@ -149,9 +149,9 @@ export const StatisticsOverview: React.FC<StatisticsOverviewProps> = ({
             ? `Non parcourus (${periodLabel})`
             : "Non parcourus depuis le 01/09"
         }
-        count={territoriesNotAssigned}
+        value={territoriesNotAssigned}
       />
-      <StatCard title="Total des territoires" count={totalTerritories} />
+      <StatCard title="Total des territoires" value={totalTerritories} />
     </div>
   );
 };

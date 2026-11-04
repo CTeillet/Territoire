@@ -30,12 +30,7 @@ const ReturnConfirmationDialog: React.FC<ReturnConfirmationDialogProps> = ({
           <Button variant="outline" onClick={onClose}>
             Annuler
           </Button>
-          <Button
-            className="bg-blue-500 hover:bg-blue-600 text-white"
-            onClick={onConfirm}
-          >
-            Confirmer
-          </Button>
+          <Button onClick={onConfirm}>Confirmer</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

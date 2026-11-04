@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Calendar, Trash2 } from "lucide-react";
+import { Calendar, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -45,6 +46,11 @@ import { CampaignStatisticsComponent } from "@/components/campaigns/campaign-sta
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
 import CampaignMap from "@/components/campaigns/campaign-map";
 import { canEditCampaignProgress, canManageCampaigns } from "@/models/role";
+import {
+  LoadingState,
+  PageContainer,
+  PageHeader,
+} from "@/components/shared/page-layout";
 
 export default function CampaignDetailPage() {
   const router = useRouter();
@@ -220,150 +226,117 @@ export default function CampaignDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="container mx-auto py-6 px-6">
-        <div className="flex justify-center items-center h-64">
-          <p>Chargement des détails de la campagne...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Chargement des détails de la campagne..." />;
   }
 
   if (!campaign) {
-    return (
-      <div className="container mx-auto py-6 px-6">
-        <div className="flex justify-center items-center h-64">
-          <p>Campagne non trouvée</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Campagne non trouvée" />;
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 md:px-6 md:py-8">
-      <Button
-        variant="ghost"
-        className="mb-4 text-base hover:bg-gray-100 md:mb-8"
-        onClick={() => router.push("/campagnes")}
-      >
-        <ArrowLeft className="mr-2 h-5 w-5" />
-        Retour aux campagnes
-      </Button>
-
-      <div className="flex flex-col gap-4 mb-6 md:flex-row md:justify-between md:items-start md:mb-10">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            {campaign.name}
-          </h1>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 mb-3">
-            <div className="flex items-center">
-              <Calendar className="h-5 w-5 mr-2 text-gray-500" />
-              <span className="text-base">
-                Début: {formatDate(campaign.startDate)}
+    <PageContainer>
+      <PageHeader
+        back={{ href: "/campagnes", label: "Retour aux campagnes" }}
+        title={campaign.name}
+        description={
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+              <span className="flex items-center gap-2">
+                <Calendar aria-hidden="true" className="h-4 w-4" />
+                Début : {formatDate(campaign.startDate)}
               </span>
-            </div>
-            {campaign.endDate && (
-              <div className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-gray-500" />
-                <span className="text-base">
-                  Fin: {formatDate(campaign.endDate)}
+              {campaign.endDate && (
+                <span className="flex items-center gap-2">
+                  <Calendar aria-hidden="true" className="h-4 w-4" />
+                  Fin : {formatDate(campaign.endDate)}
                 </span>
-              </div>
-            )}
+              )}
+            </div>
+            <p>{campaign.description || "Aucune description"}</p>
           </div>
-          <p className="text-gray-600 text-lg mb-4">
-            {campaign.description || "Aucune description"}
-          </p>
-        </div>
-
-        {!campaign.closed && canManage && (
-          <div className="flex flex-wrap gap-4">
-            <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  className="px-5 py-2.5 text-base font-medium h-auto"
-                >
-                  Clôturer la campagne
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader className="pb-4">
-                  <DialogTitle className="text-2xl font-bold">
+        }
+        actions={
+          !campaign.closed &&
+          canManage && (
+            <>
+              <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive-outline">
                     Clôturer la campagne
-                  </DialogTitle>
-                  <DialogDescription className="mt-2 text-base">
-                    Êtes-vous sûr de vouloir clôturer cette campagne ? Cette
-                    action créera des assignations pour tous les territoires qui
-                    ont été utilisés pendant la campagne et ne pourra pas être
-                    annulée.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="pt-2 gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCloseDialog(false)}
-                    className="px-5"
-                  >
-                    Annuler
                   </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleCloseCampaign}
-                    disabled={isClosing}
-                    className="px-5"
-                  >
-                    {isClosing ? "Clôture en cours..." : "Clôturer la campagne"}
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Clôturer la campagne</DialogTitle>
+                    <DialogDescription>
+                      Êtes-vous sûr de vouloir clôturer cette campagne ? Cette
+                      action créera des assignations pour tous les territoires
+                      qui ont été utilisés pendant la campagne et ne pourra pas
+                      être annulée.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCloseDialog(false)}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleCloseCampaign}
+                      disabled={isClosing}
+                    >
+                      {isClosing
+                        ? "Clôture en cours..."
+                        : "Clôturer la campagne"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Dialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="destructive-outline">
+                    <Trash2 aria-hidden="true" />
+                    Supprimer
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex items-center px-5 py-2.5 text-base font-medium h-auto"
-                >
-                  <Trash2 className="mr-2 h-5 w-5" />
-                  Supprimer
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader className="pb-4">
-                  <DialogTitle className="text-2xl font-bold">
-                    Supprimer la campagne
-                  </DialogTitle>
-                  <DialogDescription className="mt-2 text-base">
-                    Êtes-vous sûr de vouloir supprimer cette campagne ? Cette
-                    action ne pourra pas être annulée.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="pt-2 gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowDeleteDialog(false)}
-                    className="px-5"
-                  >
-                    Annuler
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteCampaign}
-                    disabled={isDeleting}
-                    className="px-5"
-                  >
-                    {isDeleting
-                      ? "Suppression en cours..."
-                      : "Supprimer la campagne"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
-      </div>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Supprimer la campagne</DialogTitle>
+                    <DialogDescription>
+                      Êtes-vous sûr de vouloir supprimer cette campagne ? Cette
+                      action ne pourra pas être annulée.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDeleteDialog(false)}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteCampaign}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting
+                        ? "Suppression en cours..."
+                        : "Supprimer la campagne"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )
+        }
+      />
 
-      <Tabs defaultValue="configuration" className="mt-4 md:mt-8">
+      <Tabs defaultValue="configuration">
         <TabsList className="mb-6 w-full max-w-lg mx-auto">
           <TabsTrigger value="configuration" className="flex-1">
             Configuration
@@ -377,18 +350,16 @@ export default function CampaignDetailPage() {
         </TabsList>
 
         <TabsContent value="configuration">
-          <Card className="shadow-md border-0">
-            <CardHeader className="px-4 pb-6 md:px-6">
-              <CardTitle className="text-2xl font-bold mb-2">
-                Territoires de la campagne
-              </CardTitle>
-              <CardDescription className="text-base">
+          <Card>
+            <CardHeader>
+              <CardTitle>Territoires de la campagne</CardTitle>
+              <CardDescription>
                 {campaign.closed
                   ? "Liste des territoires qui ont été utilisés pendant cette campagne"
                   : "Sélectionnez les territoires qui restent à la fin de la campagne"}
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-4 md:px-6">
+            <CardContent>
               {campaign.territories.length === 0 ? (
                 <div className="flex justify-center items-center h-40 bg-gray-50 rounded-lg">
                   <p className="text-lg text-gray-500">
@@ -517,15 +488,13 @@ export default function CampaignDetailPage() {
                                       </TableCell>
                                       {campaign.closed && (
                                         <TableCell className="py-3">
-                                          <span
-                                            className={`px-2 py-1 rounded-full text-xs font-semibold md:px-3 md:py-1.5 md:text-sm ${
-                                              isUsed
-                                                ? "bg-green-100 text-green-800"
-                                                : "bg-gray-100 text-gray-800"
-                                            }`}
+                                          <Badge
+                                            variant={
+                                              isUsed ? "success" : "neutral"
+                                            }
                                           >
                                             {isUsed ? "Utilisé" : "Non utilisé"}
-                                          </span>
+                                          </Badge>
                                         </TableCell>
                                       )}
                                     </TableRow>
@@ -554,17 +523,15 @@ export default function CampaignDetailPage() {
         </TabsContent>
 
         <TabsContent value="map">
-          <Card className="shadow-md border-0">
-            <CardHeader className="px-4 pb-6 md:px-6">
-              <CardTitle className="text-2xl font-bold mb-2">
-                Carte de la campagne
-              </CardTitle>
-              <CardDescription className="text-base">
+          <Card>
+            <CardHeader>
+              <CardTitle>Carte de la campagne</CardTitle>
+              <CardDescription>
                 Visualisez la couverture géographique et l&apos;avancement de la
                 campagne
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-4 md:px-6">
+            <CardContent>
               <CampaignMap
                 campaignId={campaignId}
                 remainingTerritoryIds={
@@ -581,6 +548,6 @@ export default function CampaignDetailPage() {
           <CampaignStatisticsComponent campaignId={campaignId} />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 }

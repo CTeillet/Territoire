@@ -341,16 +341,18 @@ export function DataTable<TValue>({
       {isMobile ? (
         <MobileRows table={table} />
       ) : (
-        <div className="overflow-x-auto">
+        // Même cadre blanc sur toutes les pages qui affichent ce tableau
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table className="w-full border-collapse">
             {/* En-tête de la table */}
-            <TableHeader className="bg-gray-100 border-b-2 border-gray-300">
+            <TableHeader className="bg-gray-100">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
-                      className="px-4 py-3 text-center text-gray-700 font-semibold uppercase tracking-wider"
+                      // Même graisse que les en-têtes triables (boutons) : « Actions » ne détonne plus en capitales
+                      className="px-4 py-3 text-center font-medium text-gray-700"
                     >
                       {header.isPlaceholder
                         ? null
@@ -375,7 +377,7 @@ export function DataTable<TValue>({
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className="px-4 py-3 text-center text-gray-700 border-b"
+                        className="px-4 py-3 text-center text-gray-700"
                       >
                         {flexRender(
                           cell.column.columnDef.cell,

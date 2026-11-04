@@ -5,6 +5,9 @@ import PersonCard from "./person-card";
 import { phoneMatches } from "@/components/utils";
 import { filterBySearch } from "@/lib/search";
 import React, { useState, useMemo } from "react";
+import { Users } from "lucide-react";
+import { SearchInput } from "@/components/shared/search-input";
+import { EmptyState } from "@/components/shared/page-layout";
 
 interface PersonListProps {
   persons: Person[];
@@ -48,25 +51,27 @@ const PersonList: React.FC<PersonListProps> = ({ persons }) => {
   }, [filteredPersons]);
 
   if (persons.length === 0) {
-    return <p className="text-center text-lg">Aucune personne trouvée.</p>;
+    return (
+      <EmptyState
+        icon={Users}
+        title="Aucune personne"
+        description="Ajoutez une personne pour lui attribuer des territoires."
+      />
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Search field */}
-      <div className="w-full">
-        <input
-          type="text"
-          placeholder="Rechercher une personne..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
+      <SearchInput
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="Rechercher une personne..."
+        label="Rechercher une personne"
+      />
 
       {/* No results message */}
       {filteredPersons.length === 0 && (
-        <p className="text-center text-lg">
+        <p className="py-8 text-center text-muted-foreground">
           Aucune personne ne correspond à votre recherche.
         </p>
       )}
@@ -76,7 +81,7 @@ const PersonList: React.FC<PersonListProps> = ({ persons }) => {
         <div key={letter} className="space-y-4">
           <h2
             id={`letter-${letter}`}
-            className="text-2xl font-bold border-b-2 border-gray-300 pb-2"
+            className="border-b border-gray-300 pb-2 text-xl font-semibold"
           >
             {letter}
           </h2>
@@ -95,7 +100,7 @@ const PersonList: React.FC<PersonListProps> = ({ persons }) => {
             <a
               key={letter}
               href={`#letter-${letter}`}
-              className="px-2 py-1 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+              className="rounded-md border bg-white px-2.5 py-1 text-sm font-medium hover:bg-gray-100"
             >
               {letter}
             </a>

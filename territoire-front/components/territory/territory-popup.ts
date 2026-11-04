@@ -2,7 +2,10 @@ import {
   STATUS_TRANSLATIONS,
   TerritoryStatus,
 } from "@/models/territory-status";
-import { getBadgeColor } from "@/components/utils";
+import {
+  STATUS_BADGE_BASE,
+  territoryStatusStyle,
+} from "@/components/territory/territory-status";
 
 /**
  * Contenu statique du popup d'un territoire sur la carte (nom + statut) et emplacement où React insère les boutons.
@@ -25,9 +28,15 @@ export function buildTerritoryPopup(
 
   const badgeWrapper = document.createElement("div");
   badgeWrapper.className = "flex justify-center mt-2 mb-5";
+  // Même badge que dans les tableaux (TerritoryStatusBadge), avec la pastille de la couleur du polygone
+  const { color, badge: badgeColors } = territoryStatusStyle(status);
   const badge = document.createElement("span");
-  badge.className = `${getBadgeColor(status)} text-white px-2 py-1 rounded w-full text-center`;
-  badge.textContent = STATUS_TRANSLATIONS[status] || status;
+  badge.className = `${STATUS_BADGE_BASE} ${badgeColors}`;
+  const dot = document.createElement("span");
+  dot.setAttribute("aria-hidden", "true");
+  dot.className = "size-2 shrink-0 rounded-full";
+  dot.style.backgroundColor = color;
+  badge.append(dot, STATUS_TRANSLATIONS[status] || status);
   badgeWrapper.appendChild(badge);
 
   const reactSlot = document.createElement("div");

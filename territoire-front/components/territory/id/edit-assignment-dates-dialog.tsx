@@ -193,11 +193,7 @@ const EditAssignmentDatesDialog: React.FC<EditAssignmentDatesDialogProps> = ({
           <Button variant="outline" onClick={onClose} disabled={submitting}>
             Annuler
           </Button>
-          <Button
-            className="bg-blue-500 hover:bg-blue-600 text-white"
-            onClick={handleSave}
-            disabled={!!error || submitting}
-          >
+          <Button onClick={handleSave} disabled={!!error || submitting}>
             {submitting ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </DialogFooter>

@@ -93,7 +93,8 @@ describe("Page des campagnes", () => {
     expect(
       await screen.findByText("Aucune campagne trouvée")
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Nouvelle campagne")).toHaveLength(2);
+    // Un seul bouton de création, dans l'en-tête de la page
+    expect(screen.getAllByText("Nouvelle campagne")).toHaveLength(1);
   });
 
   it("ne propose pas la création à un simple utilisateur", async () => {

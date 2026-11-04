@@ -89,8 +89,8 @@ describe("Page détail d'une campagne", () => {
 
     expect(await screen.findByText("Campagne d'automne")).toBeInTheDocument();
     expect(screen.getByText("Invitations")).toBeInTheDocument();
-    expect(screen.getByText(/Début: 01 septembre 2026/)).toBeInTheDocument();
-    expect(screen.getByText(/Fin: 31 octobre 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Début : 01 septembre 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Fin : 31 octobre 2026/)).toBeInTheDocument();
     const cities = screen
       .getAllByRole("heading", { level: 3 })
       .map((h) => h.textContent);
@@ -289,7 +289,7 @@ describe("Page détail d'une campagne", () => {
     expect(
       screen.queryByRole("button", { name: "Clôturer la campagne" })
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/Fin:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Fin :/)).not.toBeInTheDocument();
   });
 
   it("un gestionnaire peut faire avancer la campagne mais pas la clôturer ni la supprimer", async () => {
@@ -352,8 +352,8 @@ describe("Page détail d'une campagne", () => {
     setup();
     renderWithStore(<CampaignDetailPage />);
 
-    await userEvent.click(await screen.findByText("Retour aux campagnes"));
-
-    expect(push).toHaveBeenCalledWith("/campagnes");
+    expect(
+      await screen.findByRole("link", { name: "Retour aux campagnes" })
+    ).toHaveAttribute("href", "/campagnes");
   });
 });

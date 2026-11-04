@@ -299,7 +299,7 @@ const TerritoryMap = ({
       ref={mapRef}
       bounds={bounds}
       style={{ zIndex: 0 }}
-      className="mt-6 h-[60svh] w-full border border-gray-300 rounded-lg overflow-hidden shadow-sm mx-auto md:h-[800px] md:w-3/4"
+      className="h-[60svh] w-full overflow-hidden rounded-xl border shadow-sm md:h-[800px]"
     >
       <MapUpdater isSidebarOpen={sidebar.state === "expanded"} />{" "}
       {/* Ajout pour gérer la sidebar */}

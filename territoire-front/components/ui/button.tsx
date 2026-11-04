@@ -11,6 +11,9 @@ const buttonVariants = cva(
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
+        // Ouvre une suppression à confirmer : rouge discret, le rouge plein est réservé au bouton de confirmation
+        "destructive-outline":
+          "border border-red-200 bg-background text-red-700 shadow-xs hover:bg-red-50 hover:text-red-800 focus-visible:ring-destructive/20",
         outline:
           "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

@@ -1,17 +1,13 @@
-import { Badge } from "@/components/ui/badge";
 import {
   CalendarIcon,
-  CheckCircleIcon,
   CheckIcon,
-  EditIcon,
   MapPinIcon,
+  PencilIcon,
   TrashIcon,
   XIcon,
 } from "lucide-react";
-import {
-  STATUS_TRANSLATIONS,
-  TerritoryStatus,
-} from "@/models/territory-status";
+import { Button } from "@/components/ui/button";
+import { TerritoryStatus } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS, TerritoryType } from "@/models/territory-type";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import { useEffect, useState } from "react";
@@ -43,7 +39,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
-import { getBadgeColor } from "@/components/utils";
+import { TerritoryStatusBadge } from "@/components/territory/territory-status-badge";
 import { LostBadge } from "@/components/territory/lost-badge";
 
 interface TerritoryHeaderProps {
@@ -114,11 +110,10 @@ const TerritoryHeader = ({
   };
 
   return (
-    <div className="mb-4 p-4 md:p-6 max-w-4xl mx-auto bg-gray-100 rounded-lg shadow-lg">
+    <div className="rounded-xl border bg-card p-4 shadow-sm md:p-6">
       {/* Nom et édition */}
-      <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center">
-          <CheckCircleIcon className="mr-2 shrink-0 text-blue-500" />
           {isEditing ? (
             <Input
               value={tempName}
@@ -134,41 +129,45 @@ const TerritoryHeader = ({
 
         {/* Boutons d'édition et validation */}
         {user?.role === "ADMIN" || user?.role === "SUPERVISEUR" ? (
-          <div className="flex shrink-0 items-center space-x-2">
+          // Mêmes boutons libellés que sur la fiche d'une personne
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             {isEditing ? (
               <>
-                <button
+                <Button
                   aria-label="Enregistrer les modifications"
-                  className="bg-green-500 p-2 rounded-full hover:bg-green-600 transition"
                   onClick={handleSave}
                 >
-                  <CheckIcon className="w-5 h-5 text-white" />
-                </button>
-                <button
+                  <CheckIcon aria-hidden="true" />
+                  Enregistrer
+                </Button>
+                <Button
+                  variant="outline"
                   aria-label="Annuler les modifications"
-                  className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition"
                   onClick={() => setIsEditing(false)}
                 >
-                  <XIcon className="w-5 h-5 text-white" />
-                </button>
+                  <XIcon aria-hidden="true" />
+                  Annuler
+                </Button>
               </>
             ) : (
               <>
-                <button
+                <Button
+                  variant="outline"
                   aria-label="Modifier le territoire"
-                  className="bg-gray-300 p-2 rounded-full hover:bg-gray-400 transition"
                   onClick={() => setIsEditing(true)}
                 >
-                  <EditIcon className="w-5 h-5 text-gray-800" />
-                </button>
+                  <PencilIcon aria-hidden="true" />
+                  Modifier
+                </Button>
                 <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <AlertDialogTrigger asChild>
-                    <button
+                    <Button
+                      variant="destructive-outline"
                       aria-label="Supprimer le territoire"
-                      className="bg-red-500 p-2 rounded-full hover:bg-red-600 transition"
                     >
-                      <TrashIcon className="w-5 h-5 text-white" />
-                    </button>
+                      <TrashIcon aria-hidden="true" />
+                      Supprimer
+                    </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
@@ -183,8 +182,8 @@ const TerritoryHeader = ({
                     <AlertDialogFooter>
                       <AlertDialogCancel>Annuler</AlertDialogCancel>
                       <AlertDialogAction
+                        variant="destructive"
                         onClick={handleDelete}
-                        className="bg-red-500 hover:bg-red-600 text-white"
                       >
                         Supprimer
                       </AlertDialogAction>
@@ -201,7 +200,10 @@ const TerritoryHeader = ({
 
       {/* Ville modifiable */}
       <div className="text-gray-700 flex items-center mb-2">
-        <MapPinIcon className="mr-2 text-red-500 flex-shrink-0" />
+        <MapPinIcon
+          aria-hidden="true"
+          className="mr-2 h-4 w-4 shrink-0 text-muted-foreground"
+        />
         <span className="font-semibold mr-2 flex-shrink-0">Ville :</span>
         <div className="flex-grow min-w-0">
           {isEditing ? (
@@ -225,18 +227,14 @@ const TerritoryHeader = ({
 
       {/* Statut */}
       <p className="text-gray-700 flex items-center mb-2">
-        <span className="font-semibold">🗂 Statut :</span>
-        <Badge
-          className={`${getBadgeColor(status)} text-white px-2 py-1 rounded ml-2`}
-        >
-          {STATUS_TRANSLATIONS[status]}
-        </Badge>
+        <span className="font-semibold">Statut :</span>
+        <TerritoryStatusBadge status={status} className="ml-2" />
         {lost && <LostBadge className="ml-2" />}
       </p>
 
       {/* Type */}
       <div className="text-gray-700 flex items-center mb-2">
-        <span className="font-semibold">🏠 Type :</span>
+        <span className="font-semibold">Type :</span>
         {isEditing ? (
           <Select
             value={tempType}
@@ -257,15 +255,15 @@ const TerritoryHeader = ({
 
       {/* Dernière modification */}
       {lastModifiedDate && (
-        <p className="text-gray-500 flex items-center mb-1">
-          <CalendarIcon className="mr-2 text-gray-500" /> ⏳ Dernière
-          modification : {lastModifiedDate}
+        <p className="mb-1 flex items-center text-sm text-muted-foreground">
+          <CalendarIcon aria-hidden="true" className="mr-2 h-4 w-4" />
+          Dernière modification : {lastModifiedDate}
         </p>
       )}
 
       {/* Note modifiable */}
-      <div className="mt-6 p-3 border-l-4 border-blue-500 bg-blue-50 rounded">
-        <h3 className="text-lg font-semibold">Note :</h3>
+      <div className="mt-6 rounded-md bg-muted p-3">
+        <h3 className="font-semibold">Note :</h3>
         {isEditing ? (
           <Input
             value={tempNote}

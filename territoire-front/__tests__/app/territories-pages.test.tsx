@@ -765,8 +765,9 @@ describe("Territoires non parcourus", () => {
       },
     });
     const { unmount } = renderWithStore(<NonVisitedTerritoriesPage />);
+    // Message propre à la page (elle reprenait celui des territoires en retard)
     expect(
-      await screen.findByText("Aucun territoire en retard")
+      await screen.findByText("Aucun territoire non parcouru")
     ).toBeInTheDocument();
     unmount();
 
