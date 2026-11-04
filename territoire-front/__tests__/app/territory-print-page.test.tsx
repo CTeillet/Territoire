@@ -112,9 +112,10 @@ describe("Impression des cartes", () => {
       screen.getByRole("combobox", { name: "Ville" }),
       ""
     );
+    // Recherche tolérante, comme la liste des territoires : « PVP 1 » trouve PVP10
     await userEvent.type(
       screen.getByRole("textbox", { name: "Rechercher un territoire" }),
-      "pvp1"
+      "PVP 1"
     );
     expect(screen.getAllByRole("checkbox")).toHaveLength(1);
     await userEvent.click(

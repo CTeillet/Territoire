@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileUp } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
+import { apiErrorText } from "@/utils/api-error";
 
 type Props = { showTitle?: boolean };
 
@@ -36,7 +37,8 @@ export const ImportExcelSection = ({ showTitle = true }: Props) => {
         const result = await response.text();
         setUploadMessage("✅ " + result);
       } else {
-        const errorText = await response.text();
+        // Motif de l'import en texte brut, ou { error } pour les autres refus (droits, fichier trop gros...)
+        const errorText = await apiErrorText(response, "l'import a échoué.");
         setUploadMessage("❌ Erreur : " + errorText);
       }
     } catch (error) {

@@ -6,13 +6,21 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import React from "react";
-import { DataTableFeatures } from "@/components/ui/data-table-features";
+import {
+  DataTableFeatures,
+  filterValues,
+} from "@/components/ui/data-table-features";
+import { STATUS_TRANSLATIONS } from "@/models/territory-status";
+
+// Ordre des statuts proposés au filtre
+const STATUS_OPTIONS = ["AVAILABLE", "ASSIGNED", "LATE", "PENDING"] as const;
 
 interface DataTableColumnHeaderProps<
   TData extends RowData,
@@ -31,6 +39,15 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
 
   const handleFilterChange = (value: string) => {
     column.setFilterValue(value || undefined); // Si vide, supprimer le filtre
+  };
+
+  // Statuts : plusieurs à la fois (ex. disponibles et en attente) ; aucun coché, pas de filtre
+  const selectedStatuses = filterValues(filterValue);
+  const toggleStatus = (status: string, checked: boolean) => {
+    const next = checked
+      ? [...selectedStatuses, status]
+      : selectedStatuses.filter((value) => value !== status);
+    column.setFilterValue(next.length ? next : undefined);
   };
 
   // Villes des territoires du tableau, plus la ville filtrée si elle n'y figure plus
@@ -86,20 +103,21 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
 
             {/* Champ de filtre */}
             {column.id === "status" ? (
-              // Select pour filtrer les statuts
-              <select
-                value={filterValue as string}
-                onChange={(e) => handleFilterChange(e.target.value)}
-                className="p-1 text-base md:text-sm border rounded-md w-full"
-                onPointerDown={(e) => e.stopPropagation()} // Empêche la fermeture du menu
-                onKeyDown={(e) => e.stopPropagation()} // Empêche le typeahead du menu
-              >
-                <option value="">Tous</option>
-                <option value="AVAILABLE">Disponible</option>
-                <option value="ASSIGNED">Attribué</option>
-                <option value="LATE">En retard</option>
-                <option value="PENDING">En attente</option>
-              </select>
+              // Cases à cocher : le menu reste ouvert pour en cocher plusieurs
+              <div role="group" aria-label="Statuts affichés">
+                {STATUS_OPTIONS.map((status) => (
+                  <DropdownMenuCheckboxItem
+                    key={status}
+                    checked={selectedStatuses.includes(status)}
+                    onCheckedChange={(checked) =>
+                      toggleStatus(status, checked === true)
+                    }
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    {STATUS_TRANSLATIONS[status]}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </div>
             ) : column.id === "type" ? (
               // Select pour filtrer les types de territoire
               <select

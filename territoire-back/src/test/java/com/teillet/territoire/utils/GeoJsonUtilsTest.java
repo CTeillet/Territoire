@@ -162,6 +162,19 @@ class GeoJsonUtilsTest {
 	}
 
 	@Test
+	void convertToGeoJSON_territories_givesNoteWhenPresent() throws Exception {
+		Territory withNote = territory("Avec note", TerritoryStatus.AVAILABLE, TerritoryType.HOUSE, null);
+		withNote.setNote("Digicode 1234B");
+		Territory withoutNote = territory("Sans note", TerritoryStatus.AVAILABLE, TerritoryType.HOUSE, null);
+
+		JsonNode features = parse(GeoJsonUtils.convertToGeoJSON(List.of(withNote, withoutNote))).path("features");
+
+		// La recherche de la liste des territoires porte aussi sur la note
+		assertEquals("Digicode 1234B", features.get(0).path("properties").path("note").asText());
+		assertFalse(features.get(1).path("properties").has("note"));
+	}
+
+	@Test
 	void convertToGeoJSON_territories_keepsOrderOfTerritories() throws Exception {
 		Territory first = territory("A", TerritoryStatus.AVAILABLE, TerritoryType.HOUSE, square(1, 45));
 		Territory second = territory("B", TerritoryStatus.LATE, TerritoryType.BUILDING, square(2, 46));

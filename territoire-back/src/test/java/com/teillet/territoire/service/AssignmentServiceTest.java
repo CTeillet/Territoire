@@ -129,7 +129,10 @@ class AssignmentServiceTest {
 		when(personService.getPerson(personId)).thenReturn(person);
 		when(territoryService.getTerritory(territoryId)).thenReturn(territory);
 
-		assertThrows(IllegalStateException.class, () -> assignmentService.assignTerritory(territoryId, personId));
+		IllegalStateException error = assertThrows(IllegalStateException.class,
+				() -> assignmentService.assignTerritory(territoryId, personId));
+		// Message affiché tel quel par le front (409)
+		assertEquals("Ce territoire n'est pas disponible", error.getMessage());
 		verify(assignmentRepository, never()).save(any());
 	}
 

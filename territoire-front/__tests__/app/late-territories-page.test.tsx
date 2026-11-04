@@ -494,9 +494,15 @@ describe("Page des territoires en retard", () => {
     it("signale les territoires non prolongés et les garde en retard", async () => {
       setup([], {
         "POST /api/territoires/t1/prolongation": extension("t1"),
+        // Refus tel que l'envoie le back : seul le motif est affiché, pas le JSON
         "POST /api/territoires/t2/prolongation": jsonResponse(
-          "Aucune attribution en cours",
-          409
+          {
+            timestamp: "2026-11-04T10:00:00Z",
+            status: 404,
+            error: "Aucune attribution en cours",
+            path: "/api/territoires/t2/prolongation",
+          },
+          404
         ),
       });
       renderWithStore(<LateTerritoriesPage />);

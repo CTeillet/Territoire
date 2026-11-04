@@ -117,6 +117,7 @@ export default function NonVisitedTerritoriesPage() {
             data={nonVisitedTerritories}
             columns={columns}
             tableId="non-visited-territories"
+            exportFileName="territoires-non-parcourus"
           />
         </div>
       )}

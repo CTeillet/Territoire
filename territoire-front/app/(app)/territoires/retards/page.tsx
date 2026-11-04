@@ -40,6 +40,8 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+// Noms comparés sans casse, accents, espaces ni tirets (« Jean-Pierre » = « jean pierre »)
+import { normalizeSearchText } from "@/lib/search";
 
 // Territoires en retard d'une même personne
 type Group = {
@@ -114,17 +116,6 @@ function sortGroups(
   return [...groups].sort((a, b) => compare(a, b) || compareNames(a, b));
 }
 
-// Normalisation pour comparer les chaînes sans casse ni accents
-function normalizeString(str?: string | null): string {
-  if (!str) return "";
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 // Recherche une personne soit par son ID (UUID), soit par son nom complet
 function findPerson(
   personList: Person[],
@@ -135,11 +126,11 @@ function findPerson(
   const byId = personList.find((p) => p.id === key);
   if (byId) return byId;
 
-  const normKey = normalizeString(key);
+  const normKey = normalizeSearchText(key);
 
   return personList.find((p) => {
-    const firstLast = normalizeString(`${p.firstName} ${p.lastName}`);
-    const lastFirst = normalizeString(`${p.lastName} ${p.firstName}`);
+    const firstLast = normalizeSearchText(`${p.firstName} ${p.lastName}`);
+    const lastFirst = normalizeSearchText(`${p.lastName} ${p.firstName}`);
     return firstLast === normKey || lastFirst === normKey;
   });
 }
@@ -233,14 +224,14 @@ export default function LateTerritoriesPage() {
   const hasReminder = (territory: Territory, personKey: string) => {
     const person = findPerson(persons, personKey);
     const personId = person?.id || personKey;
-    const normKey = normalizeString(personKey);
+    const normKey = normalizeSearchText(personKey);
 
     return reminders.some((reminder) => {
       const matchesPerson =
         reminder.personId === personId ||
         reminder.personId === personKey ||
         (reminder.personName &&
-          normalizeString(reminder.personName) === normKey);
+          normalizeSearchText(reminder.personName) === normKey);
 
       const matchesTerritory =
         (Array.isArray(reminder.territoryIds) &&

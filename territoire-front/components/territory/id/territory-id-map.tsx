@@ -10,6 +10,8 @@ import {
   TileLayer,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { toast } from "sonner";
+import { apiErrorMessage } from "@/utils/api-error";
 import {
   LatLng,
   LatLngBoundsExpression,
@@ -216,10 +218,12 @@ const TerritoryMap = ({
     );
 
     if (!response.ok) {
-      console.error(
-        "❌ Erreur lors de la suppression du bloc :",
-        await response.text()
+      const message = await apiErrorMessage(
+        response,
+        "Impossible de supprimer le pâté"
       );
+      console.error("❌ Erreur lors de la suppression du bloc :", message);
+      toast.error(message);
       return;
     }
 
@@ -246,10 +250,12 @@ const TerritoryMap = ({
     });
 
     if (!response.ok) {
-      console.error(
-        "❌ Erreur lors de l'ajout du bloc :",
-        await response.text()
+      const message = await apiErrorMessage(
+        response,
+        "Impossible d'ajouter le pâté"
       );
+      console.error("❌ Erreur lors de l'ajout du bloc :", message);
+      toast.error(message);
       return;
     }
 

@@ -1,7 +1,10 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { DataTableFeatures } from "@/components/ui/data-table-features";
+import {
+  DataTableFeatures,
+  isOneOf,
+} from "@/components/ui/data-table-features";
 import { Territory } from "@/models/territory";
 import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
@@ -96,9 +99,9 @@ export const nonVisitedTerritoryColumns: ColumnDef<
       );
     },
     enableColumnFilter: true,
-    filterFn: (row, columnId, filterValue) => {
-      return filterValue === "" || row.getValue(columnId) === filterValue;
-    },
+    // Plusieurs statuts à la fois (cf. DataTableColumnHeader)
+    filterFn: (row, columnId, filterValue) =>
+      isOneOf(row.getValue(columnId), filterValue),
   },
   {
     id: "type",

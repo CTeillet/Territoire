@@ -3,6 +3,7 @@
 import { Person } from "@/models/person";
 import PersonCard from "./person-card";
 import { phoneMatches } from "@/components/utils";
+import { filterBySearch } from "@/lib/search";
 import React, { useState, useMemo } from "react";
 
 interface PersonListProps {
@@ -12,17 +13,21 @@ interface PersonListProps {
 const PersonList: React.FC<PersonListProps> = ({ persons }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filter persons based on search query
+  // Recherche sans casse ni accents, sur le prénom et le nom dans n'importe quel ordre, l'e-mail ou le numéro
   const filteredPersons = useMemo(() => {
     if (!searchQuery.trim()) return persons;
 
-    const query = searchQuery.toLowerCase();
+    const found = new Set(
+      filterBySearch(persons, searchQuery, (person) => [
+        person.firstName,
+        person.lastName,
+        person.email,
+      ])
+    );
     return persons.filter(
       (person) =>
-        person.firstName.toLowerCase().includes(query) ||
-        person.lastName.toLowerCase().includes(query) ||
-        (person.email && person.email.toLowerCase().includes(query)) ||
-        (person.phoneNumber && phoneMatches(person.phoneNumber, query))
+        found.has(person) ||
+        (person.phoneNumber && phoneMatches(person.phoneNumber, searchQuery))
     );
   }, [persons, searchQuery]);
 

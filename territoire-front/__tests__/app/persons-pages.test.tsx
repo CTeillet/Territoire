@@ -83,6 +83,14 @@ describe("Liste des personnes", () => {
     await userEvent.type(search, "0612");
     expect(screen.getByText("Jean Dupont")).toBeInTheDocument();
 
+    // Prénom et nom dans n'importe quel ordre, sans casse ni accents
+    for (const query of ["jean dupont", "DUPONT Jean", "jéan dup"]) {
+      await userEvent.clear(search);
+      await userEvent.type(search, query);
+      expect(screen.getByText("Jean Dupont")).toBeInTheDocument();
+      expect(screen.queryByText("Anne Martin")).not.toBeInTheDocument();
+    }
+
     await userEvent.clear(search);
     await userEvent.type(search, "zzz");
     expect(

@@ -43,7 +43,7 @@ import {
 // Menu items.
 const dashboardItems = [
   {
-    title: "Dashboard",
+    title: "Tableau de bord",
     url: "/",
     icon: ChartBar,
   },

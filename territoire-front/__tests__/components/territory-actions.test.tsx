@@ -326,23 +326,50 @@ describe("Boutons d'action d'un territoire", () => {
       "POST /api/territoires/t1/prolongation",
       "❌ Erreur lors de la prolongation du territoire :",
     ],
-  ])("%s : journalise l'échec", async (action, route, message) => {
-    setup({ [route]: jsonResponse("refusé", 409) });
-    renderWithStore(
-      <TerritoryDataActionButtons territoryId="t1" status="ASSIGNED" />
-    );
+  ])(
+    "%s : journalise l'échec et affiche le motif du serveur",
+    async (action, route, message) => {
+      setup({
+        [route]: jsonResponse(
+          {
+            timestamp: "2026-11-04T10:00:00Z",
+            status: 409,
+            error: "Ce territoire vient d'être modifié par quelqu'un d'autre",
+            path: route.split(" ")[1],
+          },
+          409
+        ),
+      });
+      render(<Toaster />);
+      renderWithStore(
+        <TerritoryDataActionButtons territoryId="t1" status="ASSIGNED" />
+      );
 
-    await trigger(action);
-    await userEvent.click(
-      within(await screen.findByRole("dialog")).getByRole("button", {
-        name: "Confirmer",
-      })
-    );
+      await trigger(action);
+      await userEvent.click(
+        within(await screen.findByRole("dialog")).getByRole("button", {
+          name: "Confirmer",
+        })
+      );
 
-    await waitFor(() =>
-      expect(console.error).toHaveBeenCalledWith(message, expect.anything())
-    );
-  });
+      await waitFor(() =>
+        expect(console.error).toHaveBeenCalledWith(
+          message,
+          "Ce territoire vient d'être modifié par quelqu'un d'autre"
+        )
+      );
+      // Le motif seul, pas le JSON de la réponse
+      expect(
+        await screen.findByText(
+          "Ce territoire vient d'être modifié par quelqu'un d'autre"
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/timestamp/)).not.toBeInTheDocument();
+      act(() => {
+        toast.dismiss();
+      });
+    }
+  );
 
   it("prolonge le territoire de la durée choisie", async () => {
     setup();
