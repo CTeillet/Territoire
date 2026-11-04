@@ -168,9 +168,16 @@ public class AssignmentService implements IAssignmentService {
 				.toList();
 	}
 
+	/**
+	 * Prolongation par défaut : la durée d'attribution des paramètres.
+	 * {@code @Transactional} indispensable : l'appel à {@link #extendTerritory(UUID, LocalDate)} passe par {@code this} et
+	 * non par le proxy Spring, son {@code @Transactional} ne s'applique donc pas. Sans transaction ici, la clôture de
+	 * l'attribution en cours et la création de la nouvelle seraient enregistrées séparément : un échec de la seconde
+	 * laisserait le territoire attribué sans attribution en cours.
+	 */
+	@Transactional
 	@Override
 	public AssignmentDto extendTerritory(UUID territoryId) {
-		// Prolongation par défaut : la durée d'attribution des paramètres
 		return extendTerritory(territoryId, LocalDate.now().plusMonths(settingService.getDurationSettings().getAssignmentDurationMonths()));
 	}
 
@@ -199,7 +206,9 @@ public class AssignmentService implements IAssignmentService {
 		} else {
 			running.setReturnDate(today);
 			running.setReturnedVia(ReturnSource.PROLONGATION);
-			assignmentRepository.save(running);
+			// Clôture écrite en base avant l'insertion de la nouvelle attribution : Hibernate exécute les insertions avant
+			// les mises à jour, et l'index uk_assignment_running_territory (V5) refuse deux attributions en cours.
+			assignmentRepository.saveAndFlush(running);
 			result = assignmentRepository.save(Assignment.builder()
 					.territory(territory)
 					.person(running.getPerson())

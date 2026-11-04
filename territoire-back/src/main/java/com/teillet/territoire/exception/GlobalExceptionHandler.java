@@ -31,6 +31,8 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+	/** Index unique de la migration V5 : une seule attribution en cours par territoire. */
+	private static final String RUNNING_ASSIGNMENT_INDEX = "uk_assignment_running_territory";
 
 	@ExceptionHandler({NotFoundException.class, EntityNotFoundException.class})
 	public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException e, HttpServletRequest request) {
@@ -55,7 +57,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException e, HttpServletRequest request) {
-		log.warn("Violation d'intégrité sur {} : {}", request.getRequestURI(), e.getMostSpecificCause().getMessage());
+		String cause = e.getMostSpecificCause().getMessage();
+		log.warn("Violation d'intégrité sur {} : {}", request.getRequestURI(), cause);
+		if (cause != null && cause.contains(RUNNING_ASSIGNMENT_INDEX)) {
+			// Deux attributions simultanées du même territoire : Hibernate insère l'attribution avant de mettre à jour le
+			// territoire, l'index refuse donc la seconde avant que le verrou optimiste (@Version) ne la détecte
+			return build(HttpStatus.CONFLICT, "Ce territoire a déjà une attribution en cours, rechargez la page et réessayez", request);
+		}
 		return build(HttpStatus.CONFLICT,
 				"Opération impossible : des données liées existent encore (attributions, territoires, rappels...)", request);
 	}

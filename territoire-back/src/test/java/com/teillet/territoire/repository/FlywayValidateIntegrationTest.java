@@ -4,6 +4,7 @@ import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.Role;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
+import com.teillet.territoire.exception.GlobalExceptionHandler;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Territory;
@@ -16,6 +17,10 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -23,8 +28,10 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -84,6 +91,23 @@ class FlywayValidateIntegrationTest {
 				.returnDate(LocalDate.now())
 				.returnedVia(ReturnSource.PROLONGATION)
 				.build());
+		// V5 : une seule attribution en cours par territoire (index uk_assignment_running_territory)
+		assignmentRepository.save(Assignment.builder()
+				.territory(territory)
+				.assignmentDate(LocalDate.now())
+				.dueDate(LocalDate.now().plusMonths(4))
+				.build());
+		DataIntegrityViolationException duplicate = assertThrows(DataIntegrityViolationException.class,
+				() -> assignmentRepository.save(Assignment.builder()
+						.territory(territory)
+						.assignmentDate(LocalDate.now())
+						.dueDate(LocalDate.now().plusMonths(4))
+						.build()));
+		// Erreur renvoyée par l'API (deux attributions simultanées du même territoire), reconnue d'après le message de PostgreSQL
+		ResponseEntity<Map<String, Object>> response = new GlobalExceptionHandler()
+				.handleDataIntegrity(duplicate, new MockHttpServletRequest("POST", "/api/attributions"));
+		assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+		assertEquals("Ce territoire a déjà une attribution en cours, rechargez la page et réessayez", response.getBody().get("error"));
 		User user = new User();
 		user.setEmail("admin@example.com");
 		user.setUsername("admin");

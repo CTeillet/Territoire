@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -251,10 +252,14 @@ class AssignmentServiceTest {
 		assertEquals(ReturnSource.PROLONGATION, running.getReturnedVia());
 		assertEquals(today.plusMonths(1), running.getDueDate());
 
-		// La nouvelle commence aujourd'hui pour la même personne
+		// Clôture écrite en base avant l'insertion de la nouvelle (index d'unicité de l'attribution en cours)
+		InOrder order = inOrder(assignmentRepository);
+		order.verify(assignmentRepository).saveAndFlush(running);
 		ArgumentCaptor<Assignment> saved = ArgumentCaptor.forClass(Assignment.class);
-		verify(assignmentRepository, times(2)).save(saved.capture());
-		Assignment created = saved.getAllValues().get(1);
+		order.verify(assignmentRepository).save(saved.capture());
+
+		// La nouvelle commence aujourd'hui pour la même personne
+		Assignment created = saved.getValue();
 		assertNotSame(running, created);
 		assertEquals(territory, created.getTerritory());
 		assertEquals(person, created.getPerson());
