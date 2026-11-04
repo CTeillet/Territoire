@@ -16,6 +16,11 @@ vi.mock("next/font/google", () => ({
 vi.mock("@/components/app-sidebar", () => ({
   AppSidebar: () => <nav>menu</nav>,
 }));
+// Recherche rapide testée à part (elle lit le store)
+vi.mock("@/components/quick-search", () => ({
+  QuickSearch: () => null,
+  QuickSearchButton: () => null,
+}));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
   useRouter: () => ({ push: vi.fn() }),

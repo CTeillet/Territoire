@@ -9,8 +9,8 @@ vi.mock("next/dynamic", () => import("../mocks/leaflet-dynamic"));
 
 describe("Chargement différé de react-leaflet", () => {
   it("chaque carte charge les vrais composants MapContainer, TileLayer et GeoJSON", async () => {
-    // 3 cartes × 3 composants
-    expect(loaders).toHaveLength(9);
+    // 3 cartes × 3 composants, plus le repère d'adresse de la carte des territoires (point et infobulle)
+    expect(loaders).toHaveLength(11);
 
     const components = await Promise.all(loaders.map((load) => load()));
 
@@ -22,5 +22,7 @@ describe("Chargement différé de react-leaflet", () => {
     ]) {
       expect(components.filter((c) => c === expected)).toHaveLength(3);
     }
+    expect(components).toContain(ReactLeaflet.CircleMarker);
+    expect(components).toContain(ReactLeaflet.Tooltip);
   });
 });

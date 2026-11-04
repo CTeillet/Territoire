@@ -12,6 +12,7 @@ import { Provider } from "react-redux";
 import { store } from "@/store/store";
 import MapUpdater from "@/components/territory/map-updater";
 import MapFitBounds from "@/components/territory/map-fit-bounds";
+import { LatLng } from "@/lib/geo";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2 } from "lucide-react";
@@ -30,6 +31,14 @@ const GeoJSON = dynamic(
   () => import("react-leaflet").then((mod) => mod.GeoJSON),
   { ssr: false }
 );
+const CircleMarker = dynamic(
+  () => import("react-leaflet").then((mod) => mod.CircleMarker),
+  { ssr: false }
+);
+const Tooltip = dynamic(
+  () => import("react-leaflet").then((mod) => mod.Tooltip),
+  { ssr: false }
+);
 
 const defaultCenter: [number, number] = [48.695874, 2.367055];
 
@@ -37,11 +46,14 @@ interface TerritoryCollectionProps {
   geoJsonData: TerritoryCollection;
   /** Cadrer la carte sur les territoires reçus quand ils changent (ex. résultat d'une recherche). */
   fitToData?: boolean;
+  /** Adresse cherchée : un repère, et la carte la cadre avec les territoires reçus. */
+  focusPoint?: (LatLng & { label: string }) | null;
 }
 
 const TerritoryMap: React.FC<TerritoryCollectionProps> = ({
   geoJsonData,
   fitToData = false,
+  focusPoint = null,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const center = useMemo(() => calculateCenter(geoJsonData), [geoJsonData]);
@@ -81,8 +93,32 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({
             data={geoJsonData}
             style={territoryStyle}
           />
-          {fitToData && (
-            <MapFitBounds data={geoJsonData} selectionKey={selectionKey} />
+          {focusPoint && (
+            <CircleMarker
+              center={[focusPoint.lat, focusPoint.lng]}
+              radius={9}
+              pathOptions={{
+                color: "#111827",
+                weight: 3,
+                fillColor: "#ffffff",
+                fillOpacity: 1,
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -8]} permanent>
+                {focusPoint.label}
+              </Tooltip>
+            </CircleMarker>
+          )}
+          {(fitToData || focusPoint) && (
+            <MapFitBounds
+              data={geoJsonData}
+              point={focusPoint}
+              selectionKey={
+                focusPoint
+                  ? `${selectionKey}@${focusPoint.lat},${focusPoint.lng}`
+                  : selectionKey
+              }
+            />
           )}
         </MapContainer>
       </div>

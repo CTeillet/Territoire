@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Role } from "@/models/role";
 import { notifyTerritoryRequestsChanged } from "@/lib/territory-request-api";
+import { QUICK_SEARCH_EVENT } from "@/components/quick-search";
 import { jsonResponse, mockApi, renderWithRole } from "../test-utils";
 
 vi.mock("next/navigation", () => ({
@@ -48,6 +49,20 @@ describe("AppSidebar", () => {
       "href",
       "/parametres"
     );
+  });
+
+  it("ouvre la recherche rapide et affiche son raccourci", async () => {
+    mockApi({ "GET /api/demandes-territoire/en-attente/nombre": 0 });
+    const opened = vi.fn();
+    window.addEventListener(QUICK_SEARCH_EVENT, opened);
+    renderSidebar("UTILISATEUR");
+
+    const button = screen.getByRole("button", { name: /Rechercher/ });
+    expect(button).toHaveTextContent("Ctrl K");
+    await userEvent.click(button);
+
+    expect(opened).toHaveBeenCalledTimes(1);
+    window.removeEventListener(QUICK_SEARCH_EVENT, opened);
   });
 
   it("affiche le nombre de demandes en attente et le rafraîchit après une action", async () => {
