@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MyTerritoriesPage from "@/app/m/[token]/page";
 import {
@@ -65,6 +65,7 @@ describe("Page « mes territoires »", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     fetchMock = vi.fn<typeof fetch>();
     global.fetch = fetchMock;
   });
@@ -415,6 +416,126 @@ describe("Page « mes territoires »", () => {
       expect(toast.error).toHaveBeenCalledWith(
         "Cette demande a déjà été traitée."
       );
+    });
+  });
+  describe("sans réseau", () => {
+    // Réponse du service worker faute de réseau (cf. public/sw.js)
+    const offlineResponse = () =>
+      ({
+        ok: false,
+        status: 503,
+        headers: new Headers({
+          "content-type": "application/json",
+          "X-Hors-Ligne": "1",
+        }),
+        json: async () => ({ error: "Pas de connexion réseau." }),
+      }) as Response;
+
+    const visitOnline = async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(view([territory()])));
+      const page = render(<MyTerritoriesPage />);
+      expect(await screen.findByText("R-12")).toBeInTheDocument();
+      page.unmount();
+    };
+
+    it("affiche la dernière vue reçue, avec sa date, quand le réseau manque", async () => {
+      await visitOnline();
+
+      fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+      render(<MyTerritoriesPage />);
+
+      expect(await screen.findByText("R-12")).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /^Hors ligne : informations du \d+ \S+ à \d{2}:\d{2}\./
+      );
+      expect(
+        screen.getByText("12 rue des Lilas, 35000 Rennes")
+      ).toBeInTheDocument();
+      // Rendre ou demander un territoire attend le réseau
+      expect(
+        screen.getByRole("button", { name: "Rendre ce territoire" })
+      ).toBeDisabled();
+      expect(
+        screen.queryByRole("button", { name: "Demander un territoire" })
+      ).not.toBeInTheDocument();
+    });
+
+    it("reconnaît la réponse du service worker et se met à jour quand le réseau revient", async () => {
+      await visitOnline();
+
+      fetchMock.mockResolvedValueOnce(offlineResponse());
+      render(<MyTerritoriesPage />);
+      expect(await screen.findByRole("status")).toHaveTextContent("Hors ligne");
+
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(view([territory({ name: "R-13" })]))
+      );
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+
+      expect(await screen.findByText("R-13")).toBeInTheDocument();
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+
+    it("réessaie à la demande", async () => {
+      await visitOnline();
+      fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+      render(<MyTerritoriesPage />);
+      await screen.findByRole("status");
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(view([territory()])));
+      await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+
+      await waitFor(() =>
+        expect(screen.queryByRole("status")).not.toBeInTheDocument()
+      );
+    });
+
+    it("sans vue gardée, indique simplement l'absence de réseau", async () => {
+      fetchMock.mockResolvedValueOnce(offlineResponse());
+      render(<MyTerritoriesPage />);
+
+      expect(
+        await screen.findByText("Pas de connexion réseau. Réessayez plus tard.")
+      ).toBeInTheDocument();
+    });
+
+    it("oublie la vue gardée quand le lien n'est plus valide", async () => {
+      await visitOnline();
+
+      fetchMock.mockResolvedValueOnce(jsonResponse({}, 404));
+      const page = render(<MyTerritoriesPage />);
+      expect(
+        await screen.findByText(/Ce lien n'est pas ou plus valide/)
+      ).toBeInTheDocument();
+      page.unmount();
+
+      fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+      render(<MyTerritoriesPage />);
+      expect(
+        await screen.findByText("Pas de connexion réseau. Réessayez plus tard.")
+      ).toBeInTheDocument();
+    });
+
+    it("garde la vue à jour après un retour", async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(view([territory()])))
+        .mockResolvedValueOnce(jsonResponse(view([])));
+      const page = render(<MyTerritoriesPage />);
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Rendre ce territoire" })
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Rendre" }));
+      await screen.findByText("Tu n'as aucun territoire en cours.");
+      page.unmount();
+
+      fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+      render(<MyTerritoriesPage />);
+      expect(
+        await screen.findByText("Tu n'as aucun territoire en cours.")
+      ).toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("Hors ligne");
     });
   });
 });
