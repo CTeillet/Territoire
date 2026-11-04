@@ -8,7 +8,7 @@ import { DataTableColumnHeader } from "@/components/territory/territory-data-hea
 const fakeColumn = (
   id: string,
   sorted: false | "asc" | "desc" = false,
-  filter?: string,
+  filter?: string | string[],
   values: string[] = []
 ) =>
   ({
@@ -76,7 +76,6 @@ describe("DataTableColumnHeader", () => {
 
   it.each([
     ["name", () => screen.getByPlaceholderText("Filtrer Nom")],
-    ["status", () => screen.getByRole("combobox")],
     ["type", () => screen.getByRole("combobox")],
     ["city", () => screen.getByRole("combobox")],
   ])(
@@ -98,20 +97,74 @@ describe("DataTableColumnHeader", () => {
     }
   );
 
-  it("propose les statuts et les types de territoire", async () => {
+  it("propose les statuts à cocher, et le menu reste ouvert pour en cocher plusieurs", async () => {
     const status = fakeColumn("status");
     await open(status, "Statut");
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
-      "Tous",
+    const options = screen.getAllByRole("menuitemcheckbox");
+    expect(options.map((o) => o.textContent)).toEqual([
       "Disponible",
       "Attribué",
       "En retard",
       "En attente",
     ]);
+    expect(
+      options.every((o) => o.getAttribute("aria-checked") === "false")
+    ).toBe(true);
+
+    await userEvent.click(
+      screen.getByRole("menuitemcheckbox", { name: "En retard" })
+    );
+    expect(status.setFilterValue).toHaveBeenCalledWith(["LATE"]);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
+  it("ajoute ou retire un statut à ceux déjà filtrés", async () => {
+    const status = fakeColumn("status", false, ["AVAILABLE", "PENDING"]);
+    await open(status, "Statut");
+    expect(
+      screen.getByRole("menuitemcheckbox", { name: "Disponible" })
+    ).toHaveAttribute("aria-checked", "true");
+
+    await userEvent.click(
+      screen.getByRole("menuitemcheckbox", { name: "En retard" })
+    );
+    expect(status.setFilterValue).toHaveBeenLastCalledWith([
+      "AVAILABLE",
+      "PENDING",
+      "LATE",
+    ]);
+    await userEvent.click(
+      screen.getByRole("menuitemcheckbox", { name: "Disponible" })
+    );
+    expect(status.setFilterValue).toHaveBeenLastCalledWith(["PENDING"]);
+  });
+
+  it("retire le filtre quand plus aucun statut n'est coché, et relit un filtre mémorisé seul", async () => {
+    // Avant les cases à cocher, un seul statut était mémorisé (texte)
+    const status = fakeColumn("status", false, "LATE");
+    await open(status, "Statut");
+    expect(
+      screen.getByRole("menuitemcheckbox", { name: "En retard" })
+    ).toHaveAttribute("aria-checked", "true");
+
+    await userEvent.click(
+      screen.getByRole("menuitemcheckbox", { name: "En retard" })
+    );
+    expect(status.setFilterValue).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("propose les types de territoire", async () => {
+    const type = fakeColumn("type");
+    await open(type, "Type");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "Tous",
+      "Immeuble",
+      "Pavillon",
+    ]);
     fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "LATE" },
+      target: { value: "BUILDING" },
     });
-    expect(status.setFilterValue).toHaveBeenCalledWith("LATE");
+    expect(type.setFilterValue).toHaveBeenCalledWith("BUILDING");
   });
 
   it("propose les villes du tableau, triées et sans doublon", async () => {

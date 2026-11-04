@@ -23,9 +23,7 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold">
-        Dashboard des Territoires
-      </h1>
+      <h1 className="text-2xl md:text-3xl font-bold">Tableau de bord</h1>
       <StatisticsOverview />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <AverageAssignmentDurationChart />

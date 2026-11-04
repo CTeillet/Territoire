@@ -219,8 +219,10 @@ export const extendTerritory = createAsyncThunk(
 
     if (!response.ok) {
       return rejectWithValue(
-        (await response.text()) ||
+        await apiErrorMessage(
+          response,
           "Erreur lors de la prolongation du territoire"
+        )
       );
     }
 
@@ -246,7 +248,7 @@ export const returnTerritory = createAsyncThunk(
 
     if (!response.ok) {
       return rejectWithValue(
-        (await response.text()) || "Erreur lors du retour du territoire"
+        await apiErrorMessage(response, "Erreur lors du retour du territoire")
       );
     }
 
@@ -276,8 +278,10 @@ export const cancelAssignment = createAsyncThunk(
 
     if (!response.ok) {
       return rejectWithValue(
-        (await response.text()) ||
+        await apiErrorMessage(
+          response,
           "Erreur lors de l'annulation de l'assignation"
+        )
       );
     }
 
@@ -308,7 +312,13 @@ export const assignTerritory = createAsyncThunk(
     );
 
     if (!response.ok) {
-      return rejectWithValue("Erreur lors de l'assignation du territoire");
+      // Motif de l'API affiché tel quel (ex. territoire déjà attribué entre-temps)
+      return rejectWithValue(
+        await apiErrorMessage(
+          response,
+          "Erreur lors de l'assignation du territoire"
+        )
+      );
     }
 
     try {

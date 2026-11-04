@@ -4,6 +4,7 @@ import {
   directionsLinks,
   distanceMeters,
   formatDistance,
+  geoJsonBounds,
   isInside,
   nearestPointOnOutline,
 } from "@/lib/geo";
@@ -107,5 +108,46 @@ describe("geo", () => {
       waze: "https://waze.com/ul?ll=48.123457,-1.600000&navigate=yes",
     });
     expect(directionsLinks(destination, "driving").apple).toContain("dirflg=d");
+  });
+});
+
+describe("geoJsonBounds", () => {
+  it("encadre les polygones et multipolygones, en [[sud, ouest], [nord, est]]", () => {
+    const multi: Feature = {
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: [
+          [
+            [
+              [-1.7, 48.2],
+              [-1.65, 48.2],
+              [-1.65, 48.25],
+              [-1.7, 48.2],
+            ],
+          ],
+        ],
+      },
+    };
+    expect(
+      geoJsonBounds({
+        type: "FeatureCollection",
+        features: [polygon(outer, hole), multi],
+      })
+    ).toEqual([
+      [48.11, -1.7],
+      [48.25, -1.65],
+    ]);
+  });
+
+  it("ne renvoie rien sans polygone", () => {
+    expect(geoJsonBounds(null)).toBeNull();
+    expect(
+      geoJsonBounds({
+        type: "FeatureCollection",
+        features: [{ type: "Feature", properties: {}, geometry: null }],
+      })
+    ).toBeNull();
   });
 });

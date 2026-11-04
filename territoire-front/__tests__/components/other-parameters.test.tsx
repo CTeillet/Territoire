@@ -239,6 +239,33 @@ describe("ImportExcelSection", () => {
     ).toBeInTheDocument();
   });
 
+  it("affiche le motif d'un refus en JSON (droits, fichier trop gros...) sans le JSON", async () => {
+    mockApi({
+      "POST /api/excel": jsonResponse(
+        { status: 403, error: "Accès refusé", path: "/api/excel" },
+        403
+      ),
+    });
+
+    await upload();
+
+    expect(
+      await screen.findByText("❌ Erreur : Accès refusé")
+    ).toBeInTheDocument();
+  });
+
+  it("n'affiche pas une page d'erreur HTML du serveur", async () => {
+    mockApi({
+      "POST /api/excel": jsonResponse("<html><body>502</body></html>", 502),
+    });
+
+    await upload();
+
+    expect(
+      await screen.findByText("❌ Erreur : l'import a échoué.")
+    ).toBeInTheDocument();
+  });
+
   it("signale une erreur réseau", async () => {
     mockApi({ "POST /api/excel": networkError });
 

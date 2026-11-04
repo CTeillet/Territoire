@@ -20,13 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import React, { useEffect, useId, useState } from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import {
   dataTableFeatures,
   DataTableFeatures,
 } from "@/components/ui/data-table-features";
-import * as XLSX from "xlsx";
+import { format } from "date-fns";
+import { toast } from "sonner";
 import { Territory } from "@/models/territory";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,15 +41,61 @@ import { COLUMNS_ID_TRANSLATIONS } from "@/components/territory/territory-data-c
 import { STATUS_TRANSLATIONS } from "@/models/territory-status";
 import { TYPE_TRANSLATIONS } from "@/models/territory-type";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { NO_MATCH } from "@/lib/search";
+import { territorySearchRanks } from "@/lib/territory-search";
 
 interface DataTableProps {
   columns: ColumnDef<DataTableFeatures, Territory, unknown>[];
   data: Territory[];
   tableId?: string; // Identifiant unique pour la table
+  /** Recherche (nom, ville, personne, note) : les lignes trouvées, les plus pertinentes d'abord. */
+  searchQuery?: string;
+  /**
+   * Identifiants des lignes retenues par la recherche et les filtres, dans l'ordre du tableau ;
+   * `null` sans recherche ni filtre (toutes les lignes). Sert à ne montrer sur la carte que ces territoires.
+   */
+  onFilteredIdsChange?: (ids: string[] | null) => void;
+  /** Début du nom du fichier exporté, complété par la date du jour. */
+  exportFileName?: string;
 }
 
-export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
+/**
+ * Colonne masquée de la recherche : elle écarte les lignes qui ne correspondent pas et, en tête du tri,
+ * place les plus pertinentes d'abord ; le tri choisi par l'utilisateur départage les autres.
+ * Elle n'apparaît ni dans les filtres et le tri mémorisés, ni à l'écran, ni dans l'export.
+ */
+const SEARCH_COLUMN_ID = "searchRank";
+
+type RankedTerritory = Territory & { searchRank?: number };
+
+const searchRankOf = (territory: Territory) =>
+  (territory as RankedTerritory).searchRank ?? 0;
+
+const searchColumn: ColumnDef<DataTableFeatures, Territory, unknown> = {
+  id: SEARCH_COLUMN_ID,
+  accessorFn: searchRankOf,
+  filterFn: (row) => searchRankOf(row.original) !== NO_MATCH,
+  sortFn: (rowA, rowB) =>
+    searchRankOf(rowA.original) - searchRankOf(rowB.original),
+};
+
+const withoutSearch = <T extends { id: string }>(entries: T[]) =>
+  entries.filter((entry) => entry.id !== SEARCH_COLUMN_ID);
+
+const territoryCount = (count: number) =>
+  `${count} ${count > 1 ? "territoires" : "territoire"}`;
+
+export function DataTable<TValue>({
+  columns,
+  data,
+  tableId,
+  searchQuery = "",
+  onFilteredIdsChange,
+  exportFileName = "territoires",
+}: DataTableProps) {
   const isMobile = useIsMobile();
+  const query = searchQuery.trim();
+  const searching = query !== "";
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({
       id: false,
@@ -104,6 +151,24 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
   const resetPageIndex = () =>
     setPagination((old) => ({ ...old, pageIndex: 0 }));
 
+  // Changer la recherche ramène aussi à la première page (pas au retour sur le tableau, qui garde la sienne)
+  const [searchedQuery, setSearchedQuery] = useState(query);
+  if (searchedQuery !== query) {
+    setSearchedQuery(query);
+    resetPageIndex();
+  }
+
+  // Lignes avec leur pertinence : de nouveaux objets à chaque recherche, que le tableau recalcule entièrement
+  const rows = useMemo<Territory[]>(() => {
+    if (!searching) return data;
+    const ranks = territorySearchRanks(data, query);
+    return data.map((territory, index) => ({
+      ...territory,
+      searchRank: ranks[index],
+    }));
+  }, [data, query, searching]);
+  const allColumns = useMemo(() => [...columns, searchColumn], [columns]);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storageKey = `tableFilters${tableId ? `-${tableId}` : ""}`;
@@ -121,26 +186,52 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
 
   const table = useTable({
     features: dataTableFeatures,
-    data,
-    columns,
+    data: rows,
+    columns: allColumns,
     onColumnVisibilityChange: setColumnVisibility,
+    // La colonne de recherche n'est jamais mémorisée : seule la recherche en cours la remet dans l'état
     onSortingChange: (updater) => {
-      setSorting(updater);
+      setSorting((old) =>
+        withoutSearch(typeof updater === "function" ? updater(old) : updater)
+      );
       resetPageIndex();
     },
     onColumnFiltersChange: (updater) => {
-      setColumnFilters(updater);
+      setColumnFilters((old) =>
+        withoutSearch(typeof updater === "function" ? updater(old) : updater)
+      );
       resetPageIndex();
     },
     onPaginationChange: setPagination,
     autoResetPageIndex: false,
     state: {
-      columnVisibility,
-      sorting,
-      columnFilters,
+      columnVisibility: { ...columnVisibility, [SEARCH_COLUMN_ID]: false },
+      sorting: searching
+        ? [{ id: SEARCH_COLUMN_ID, desc: false }, ...sorting]
+        : sorting,
+      columnFilters: searching
+        ? [...columnFilters, { id: SEARCH_COLUMN_ID, value: query }]
+        : columnFilters,
       pagination,
     },
   });
+
+  const filteredRows = table.getFilteredRowModel().rows;
+  const isFiltered = searching || columnFilters.length > 0;
+  // Une chaîne plutôt qu'un tableau : l'effet ne se relance que si les lignes retenues changent
+  const filteredIdsKey = isFiltered
+    ? filteredRows.map((row) => row.original.id).join("\n")
+    : null;
+  useEffect(() => {
+    if (!onFilteredIdsChange) return;
+    onFilteredIdsChange(
+      filteredIdsKey === null
+        ? null
+        : filteredIdsKey === ""
+          ? []
+          : filteredIdsKey.split("\n")
+    );
+  }, [filteredIdsKey, onFilteredIdsChange]);
 
   // La page courante peut ne plus exister si des lignes sortent du filtre (ex. territoire assigné) :
   // on se replace alors sur la dernière page (sauf tableau vide, ex. données pas encore chargées)
@@ -149,49 +240,68 @@ export function DataTable<TValue>({ columns, data, tableId }: DataTableProps) {
     setPagination({ ...pagination, pageIndex: pageCount - 1 });
   }
 
-  const exportToExcel = () => {
-    const filteredData: Record<string, TValue>[] = table
-      .getFilteredRowModel()
-      .rows.map((row) => {
-        const rowData: Record<string, TValue> = {};
-        row.getVisibleCells().forEach((cell) => {
-          const columnHeader = cell.column
-            .id as keyof typeof COLUMNS_ID_TRANSLATIONS;
-          if (columnHeader !== "actions") {
-            // Remplacer la clé par sa traduction
-            const translatedHeader = COLUMNS_ID_TRANSLATIONS[columnHeader];
-            let cellValue: TValue = cell.getValue() as TValue;
+  const exportToExcel = async () => {
+    const filteredData: Record<string, TValue>[] = filteredRows.map((row) => {
+      const rowData: Record<string, TValue> = {};
+      row.getVisibleCells().forEach((cell) => {
+        const columnHeader = cell.column
+          .id as keyof typeof COLUMNS_ID_TRANSLATIONS;
+        if (columnHeader !== "actions") {
+          // Remplacer la clé par sa traduction
+          const translatedHeader = COLUMNS_ID_TRANSLATIONS[columnHeader];
+          let cellValue: TValue = cell.getValue() as TValue;
 
-            // Traduire la valeur de la colonne "statut"
-            if (columnHeader === "status") {
-              cellValue = STATUS_TRANSLATIONS[
-                cellValue as keyof typeof STATUS_TRANSLATIONS
-              ] as unknown as TValue;
-            }
-
-            // Traduire la valeur de la colonne "type"
-            if (columnHeader === "type" && cellValue) {
-              cellValue = TYPE_TRANSLATIONS[
-                cellValue as keyof typeof TYPE_TRANSLATIONS
-              ] as unknown as TValue;
-            }
-
-            rowData[translatedHeader] = cellValue;
+          // Traduire la valeur de la colonne "statut"
+          if (columnHeader === "status") {
+            cellValue = STATUS_TRANSLATIONS[
+              cellValue as keyof typeof STATUS_TRANSLATIONS
+            ] as unknown as TValue;
           }
-        });
-        return rowData;
-      });
 
+          // Traduire la valeur de la colonne "type"
+          if (columnHeader === "type" && cellValue) {
+            cellValue = TYPE_TRANSLATIONS[
+              cellValue as keyof typeof TYPE_TRANSLATIONS
+            ] as unknown as TValue;
+          }
+
+          rowData[translatedHeader] = cellValue;
+        }
+      });
+      return rowData;
+    });
+
+    // Bibliothèque chargée au premier export seulement : elle pèse plus que le reste de la page
+    let XLSX: typeof import("xlsx");
+    try {
+      XLSX = await import("xlsx");
+    } catch (error) {
+      console.error("Chargement de l'export Excel impossible :", error);
+      toast.error("Export impossible : vérifiez votre connexion et réessayez");
+      return;
+    }
     const ws = XLSX.utils.json_to_sheet(filteredData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Feuille 1");
-    XLSX.writeFile(wb, "table_data.xlsx");
+    XLSX.writeFile(
+      wb,
+      `${exportFileName}_${format(new Date(), "yyyy-MM-dd")}.xlsx`
+    );
   };
 
   return (
     <div className="w-full">
-      <div className="flex justify-end mb-4 gap-2">
-        {table.state.columnFilters.length > 0 && (
+      <div className="flex flex-wrap items-center justify-end mb-4 gap-2">
+        <p
+          className="mr-auto text-sm text-gray-600"
+          aria-live="polite"
+          data-testid="territory-count"
+        >
+          {isFiltered
+            ? `${territoryCount(filteredRows.length)} sur ${data.length}`
+            : territoryCount(data.length)}
+        </p>
+        {columnFilters.length > 0 && (
           <Button
             variant="ghost"
             size="sm"
@@ -315,11 +425,12 @@ function MobileRows({
   const optionsId = useId();
   const [showOptions, setShowOptions] = useState(false);
 
-  const [sort] = table.state.sorting;
+  // La recherche en cours (colonne masquée) n'est ni un tri ni un filtre choisi par l'utilisateur
+  const [sort] = withoutSearch(table.state.sorting);
   const sortedColumn = sort
     ? headers.find((header) => header.column.id === sort.id)?.column
     : undefined;
-  const filterCount = table.state.columnFilters.length;
+  const filterCount = withoutSearch(table.state.columnFilters).length;
   const summary = [
     sort &&
       sortedColumn &&

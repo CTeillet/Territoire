@@ -108,6 +108,8 @@ public class GeoJsonUtils {
 		builder.add("assignments", List.class);
 		builder.add("territoryMapId", String.class);
 		builder.add("lost", Boolean.class);
+		// Cherchée par la recherche de la liste des territoires (front)
+		builder.add("note", String.class);
 		return builder.buildFeatureType();
 	}
 
@@ -167,6 +169,7 @@ public class GeoJsonUtils {
 		// Comme TerritoryMapper : le type MIME suffit à savoir qu'une carte existe, sans charger l'image
 		featureBuilder.add(territory.getTerritoryMapContentType() != null ? territory.getId().toString() : null);
 		featureBuilder.add(territory.isLost());
+		featureBuilder.add(territory.getNote());
 		return featureBuilder.buildFeature(null);
 	}
 	private static SimpleFeature createTerritoryFeatureCampaign(SimpleFeatureType featureType, Territory territory, boolean usedInCampaign) {

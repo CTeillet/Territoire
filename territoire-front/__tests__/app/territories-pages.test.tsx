@@ -6,6 +6,7 @@ import NonVisitedTerritoriesPage from "@/app/(app)/territoires/non-parcourus/pag
 import LoginPage from "@/app/(app)/login/page";
 import CreateTerritoryModal from "@/components/territory/create-territory-modal";
 import * as XLSX from "xlsx";
+import { format } from "date-fns";
 import {
   jsonResponse,
   mockApi,
@@ -15,8 +16,21 @@ import {
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+// Carte simulée : elle expose les territoires reçus et si elle doit se recadrer sur eux
 vi.mock("@/components/territory/territory-map", () => ({
-  default: () => <div data-testid="territory-map" />,
+  default: ({
+    geoJsonData,
+    fitToData,
+  }: {
+    geoJsonData: { features: { properties: { name: string } }[] };
+    fitToData?: boolean;
+  }) => (
+    <div
+      data-testid="territory-map"
+      data-names={geoJsonData.features.map((f) => f.properties.name).join(",")}
+      data-fit={String(!!fitToData)}
+    />
+  ),
 }));
 vi.mock("xlsx", async (importOriginal) => ({
   ...(await importOriginal<typeof import("xlsx")>()),
@@ -120,21 +134,46 @@ describe("Liste des territoires", () => {
     fireEvent.change(citySelect, { target: { value: "Cesson" } });
     await userEvent.keyboard("{Escape}");
     expect(rowNames()).toEqual(["C-05"]);
+    // La carte ne montre plus que les territoires du tableau, et se recadre sur eux
+    expect(screen.getByTestId("territory-map")).toHaveAttribute(
+      "data-names",
+      "C-05"
+    );
+    expect(screen.getByTestId("territory-map")).toHaveAttribute(
+      "data-fit",
+      "true"
+    );
+    expect(screen.getByTestId("territory-count")).toHaveTextContent(
+      "1 territoire sur 5"
+    );
     expect(
       JSON.parse(localStorage.getItem("tableFilters-territories")!)
     ).toEqual([{ id: "city", value: "Cesson" }]);
 
     await userEvent.click(screen.getByText("Réinitialiser les filtres"));
     expect(rowNames()).toHaveLength(5);
+    expect(screen.getByTestId("territory-count")).toHaveTextContent(
+      "5 territoires"
+    );
+    expect(screen.getByTestId("territory-map")).toHaveAttribute(
+      "data-fit",
+      "false"
+    );
 
-    // Filtre de statut puis de type
+    // Plusieurs statuts à la fois, puis le type
     await userEvent.click(screen.getByRole("button", { name: /Statut/ }));
-    fireEvent.change(
-      within(await screen.findByRole("menu")).getByRole("combobox"),
-      { target: { value: "LATE" } }
+    await userEvent.click(
+      await screen.findByRole("menuitemcheckbox", { name: "En retard" })
+    );
+    await userEvent.click(
+      screen.getByRole("menuitemcheckbox", { name: "En attente" })
     );
     await userEvent.keyboard("{Escape}");
-    expect(rowNames()).toEqual(["A-01"]);
+    // Toujours triés par nom décroissant
+    expect(rowNames()).toEqual(["C-05", "A-01"]);
+    expect(
+      JSON.parse(localStorage.getItem("tableFilters-territories")!)
+    ).toEqual([{ id: "status", value: ["LATE", "PENDING"] }]);
     await userEvent.click(screen.getByText("Réinitialiser les filtres"));
 
     await userEvent.click(screen.getByRole("button", { name: /^Type/ }));
@@ -190,9 +229,13 @@ describe("Liste des territoires", () => {
 
     await userEvent.click(screen.getByText("Exporter"));
 
-    expect(XLSX.writeFile).toHaveBeenCalledWith(
-      expect.anything(),
-      "table_data.xlsx"
+    // Bibliothèque chargée au clic : l'export arrive juste après
+    const today = format(new Date(), "yyyy-MM-dd");
+    await waitFor(() =>
+      expect(XLSX.writeFile).toHaveBeenCalledWith(
+        expect.anything(),
+        `territoires_${today}.xlsx`
+      )
     );
     const rows = jsonToSheet.mock.calls[0][0] as Record<string, unknown>[];
     expect(rows[0]).toEqual(
@@ -224,6 +267,188 @@ describe("Liste des territoires", () => {
     renderWithStore(<TerritoryPage />, null);
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/login"));
+  });
+});
+
+describe("Recherche de territoires", () => {
+  // R-120 et V-112 avant R-12 : l'ordre des résultats vient de leur pertinence, pas des données
+  const searchable = {
+    type: "FeatureCollection",
+    features: [
+      props("s1", "R-120", "AVAILABLE"),
+      props("s2", "V-112", "AVAILABLE", { city: "Vannes" }),
+      props("s3", "R-12", "AVAILABLE"),
+      props("s4", "A-01", "ASSIGNED", { assignedTo: "Élodie Martin" }),
+      props("s5", "C-05", "PENDING", { note: "Digicode 1234 au portail" }),
+      props("s6", "Centre-3", "AVAILABLE", { city: "Évry" }),
+    ],
+  };
+
+  const renderPage = async () => {
+    mockApi({
+      "GET /api/territoires/geojson": searchable,
+      "GET /api/personnes": [],
+    });
+    const view = renderWithStore(<TerritoryPage />);
+    await screen.findByText("R-12");
+    return view;
+  };
+
+  const searchBox = () =>
+    screen.getByRole("searchbox", { name: "Rechercher un territoire" });
+
+  const search = async (text: string) => {
+    await userEvent.clear(searchBox());
+    if (text) await userEvent.type(searchBox(), text);
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    localStorage.clear();
+    sessionStorage.clear();
+    push.mockClear();
+  });
+
+  it("trouve un territoire sans tenir compte des majuscules, tirets ni espaces", async () => {
+    await renderPage();
+
+    for (const text of ["r12", "R 12", "r-12"]) {
+      await search(text);
+      // R-12, identique à la recherche, passe avant R-120 qui ne fait que commencer pareil
+      expect(rowNames()).toEqual(["R-12", "R-120"]);
+    }
+    expect(screen.getByTestId("territory-count")).toHaveTextContent(
+      "2 territoires sur 6"
+    );
+  });
+
+  it("classe les résultats les plus pertinents en premier", async () => {
+    await renderPage();
+
+    await search("12");
+
+    // Numéro exact, puis noms qui le contiennent, puis la note
+    expect(rowNames()).toEqual(["R-12", "R-120", "V-112", "C-05"]);
+  });
+
+  it("garde la pertinence en tête quand un tri est choisi, le tri départageant les autres", async () => {
+    localStorage.setItem(
+      "tableSorting-territories",
+      JSON.stringify([{ id: "name", desc: true }])
+    );
+    await renderPage();
+
+    await search("12");
+
+    expect(rowNames()).toEqual(["R-12", "V-112", "R-120", "C-05"]);
+    // La recherche n'est pas mémorisée avec le tri ni avec les filtres du tableau
+    expect(
+      JSON.parse(localStorage.getItem("tableSorting-territories")!)
+    ).toEqual([{ id: "name", desc: true }]);
+    expect(localStorage.getItem("tableFilters-territories")).toBe("[]");
+  });
+
+  it("cherche aussi dans la ville, la personne et la note, sans les accents", async () => {
+    await renderPage();
+
+    await search("elodie");
+    expect(rowNames()).toEqual(["A-01"]);
+    await search("martin élodie");
+    expect(rowNames()).toEqual(["A-01"]);
+    await search("evry");
+    expect(rowNames()).toEqual(["Centre-3"]);
+    await search("digicode");
+    expect(rowNames()).toEqual(["C-05"]);
+    // « N/A » (non attribué) n'est pas une personne
+    await search("n/a");
+    expect(screen.getByText("Aucun résultat.")).toBeInTheDocument();
+    expect(screen.getByTestId("territory-count")).toHaveTextContent(
+      "0 territoire sur 6"
+    );
+  });
+
+  it("n'affiche sur la carte que les territoires trouvés, puis tous une fois la recherche effacée", async () => {
+    await renderPage();
+    const map = () => screen.getByTestId("territory-map");
+    expect(map()).toHaveAttribute("data-fit", "false");
+
+    await search("r12");
+    // Ordre des données : celui du tableau n'importe pas à la carte (et ne la redessine pas)
+    expect(map()).toHaveAttribute("data-names", "R-120,R-12");
+    expect(map()).toHaveAttribute("data-fit", "true");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Effacer la recherche" })
+    );
+    expect(searchBox()).toHaveValue("");
+    expect(rowNames()).toHaveLength(6);
+    expect(map().getAttribute("data-names")!.split(",")).toHaveLength(6);
+    expect(map()).toHaveAttribute("data-fit", "false");
+  });
+
+  it("efface la recherche avec Échap", async () => {
+    await renderPage();
+
+    await search("r12");
+    await userEvent.keyboard("{Escape}");
+
+    expect(searchBox()).toHaveValue("");
+    expect(rowNames()).toHaveLength(6);
+  });
+
+  it("combine la recherche et les filtres du tableau", async () => {
+    await renderPage();
+
+    await search("12");
+    await userEvent.click(screen.getByRole("button", { name: /Ville/ }));
+    fireEvent.change(
+      within(await screen.findByRole("menu")).getByRole("combobox"),
+      { target: { value: "Vannes" } }
+    );
+    await userEvent.keyboard("{Escape}");
+
+    expect(rowNames()).toEqual(["V-112"]);
+    // Réinitialiser les filtres garde la recherche, qui a son propre bouton
+    await userEvent.click(screen.getByText("Réinitialiser les filtres"));
+    expect(rowNames()).toEqual(["R-12", "R-120", "V-112", "C-05"]);
+  });
+
+  it("retrouve la recherche en revenant sur la page pendant la session", async () => {
+    const { unmount } = await renderPage();
+    await search("r12");
+    expect(sessionStorage.getItem("tableSearch-territories")).toBe("r12");
+    unmount();
+
+    await renderPage();
+    expect(searchBox()).toHaveValue("r12");
+    expect(rowNames()).toEqual(["R-12", "R-120"]);
+
+    await search("");
+    expect(sessionStorage.getItem("tableSearch-territories")).toBeNull();
+  });
+
+  it("revient à la première page quand la recherche change", async () => {
+    const many = {
+      type: "FeatureCollection",
+      features: Array.from({ length: 15 }, (_, i) =>
+        props(`m${i}`, `R-${i + 1}`, "AVAILABLE")
+      ),
+    };
+    mockApi({
+      "GET /api/territoires/geojson": many,
+      "GET /api/personnes": [],
+    });
+    renderWithStore(<TerritoryPage />);
+    await screen.findByText("R-1");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Page suivante" })
+    );
+    expect(screen.getByText("Page 2 sur 2")).toBeInTheDocument();
+
+    await search("r");
+
+    expect(screen.getByText("Page 1 sur 2")).toBeInTheDocument();
   });
 });
 

@@ -60,6 +60,17 @@ const failing = (status = 500, text = ""): Response =>
     json: async () => ({}),
     text: async () => text,
   }) as Response;
+// Refus tel que l'envoie le back (GlobalExceptionHandler) : le motif est dans « error »
+const refused = (status: number, error: string): Response => {
+  const body = { timestamp: "2026-11-04T10:00:00Z", status, error, path: "/" };
+  return {
+    ok: false,
+    status,
+    statusText: "Erreur serveur",
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  } as Response;
+};
 
 const territory = (overrides: Partial<Territory> = {}): Territory => ({
   id: "t1",
@@ -517,6 +528,17 @@ describe("territory-slice : thunks et reducers", () => {
         "Erreur lors de l'assignation du territoire"
       );
 
+      // Le motif du back est affiché tel quel, sans le reste du JSON
+      authFetch.mockResolvedValueOnce(
+        refused(409, "Ce territoire n'est pas disponible")
+      );
+      await store.dispatch(
+        assignTerritory({ territoryId: "t1", personId: "p1" })
+      );
+      expect(store.getState().territories.error).toBe(
+        "Ce territoire n'est pas disponible"
+      );
+
       authFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => {
@@ -532,11 +554,26 @@ describe("territory-slice : thunks et reducers", () => {
     it("returnTerritory et cancelAssignment : remontent le message du serveur en cas d'erreur", async () => {
       const store = newStore();
       authFetch.mockResolvedValueOnce(
-        failing(409, "Aucune attribution en cours")
+        refused(404, "Aucune assignation active trouvée pour ce territoire")
       );
       await store.dispatch(returnTerritory("t1"));
       expect(store.getState().territories.error).toBe(
-        "Aucune attribution en cours"
+        "Aucune assignation active trouvée pour ce territoire"
+      );
+
+      authFetch.mockResolvedValueOnce(
+        refused(404, "Aucune assignation active trouvée pour ce territoire")
+      );
+      await store.dispatch(cancelAssignment("t1"));
+      expect(store.getState().territories.error).toBe(
+        "Aucune assignation active trouvée pour ce territoire"
+      );
+
+      // Corps qui n'est pas du JSON (ex. page d'erreur du proxy) : message par défaut
+      authFetch.mockResolvedValueOnce(failing(502, "<html>Bad Gateway</html>"));
+      await store.dispatch(returnTerritory("t1"));
+      expect(store.getState().territories.error).toBe(
+        "Erreur lors du retour du territoire"
       );
 
       authFetch.mockResolvedValueOnce(failing(500, ""));
@@ -805,9 +842,13 @@ describe("territory-slice : thunks et reducers", () => {
         "ASSIGNED"
       );
 
-      authFetch.mockResolvedValueOnce(failing(500, "Erreur métier"));
+      authFetch.mockResolvedValueOnce(
+        refused(400, "La nouvelle échéance doit être postérieure à aujourd'hui")
+      );
       await store.dispatch(extendTerritory({ territoryId: "t1" }));
-      expect(store.getState().territories.error).toBe("Erreur métier");
+      expect(store.getState().territories.error).toBe(
+        "La nouvelle échéance doit être postérieure à aujourd'hui"
+      );
 
       authFetch.mockResolvedValueOnce(failing(500, ""));
       await store.dispatch(extendTerritory({ territoryId: "t1" }));

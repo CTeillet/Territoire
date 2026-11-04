@@ -162,7 +162,7 @@ describe("Tableau de bord", () => {
     mockApi(routes);
     renderWithStore(<Dashboard />);
 
-    expect(screen.getByText("Dashboard des Territoires")).toBeInTheDocument();
+    expect(screen.getByText("Tableau de bord")).toBeInTheDocument();
     // 3 territoires en circulation pour 4 proclamateurs
     expect(await screen.findByText("0.75")).toBeInTheDocument();
     expect(screen.getByText("Territoires en circulation")).toBeInTheDocument();
@@ -246,9 +246,7 @@ describe("Tableau de bord", () => {
     renderWithStore(<Dashboard />, null);
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/login"));
-    expect(
-      screen.queryByText("Dashboard des Territoires")
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Tableau de bord")).not.toBeInTheDocument();
   });
 });
 

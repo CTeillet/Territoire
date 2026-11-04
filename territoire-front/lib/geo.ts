@@ -33,6 +33,43 @@ export function geoJsonCenter<G extends Geometry | null, P>(
   return count > 0 ? [sumLat / count, sumLng / count] : fallback;
 }
 
+/**
+ * Emprise des polygones d'une carte, en [[sud, ouest], [nord, est]] comme l'attend Leaflet
+ * (`map.fitBounds`), ou `null` sans polygone.
+ */
+export function geoJsonBounds<G extends Geometry | null, P>(
+  collection: FeatureCollection<G, P> | null | undefined
+): [[number, number], [number, number]] | null {
+  let south = Infinity;
+  let west = Infinity;
+  let north = -Infinity;
+  let east = -Infinity;
+  const addRing = (ring: Position[]) => {
+    ring.forEach(([lng, lat]) => {
+      south = Math.min(south, lat);
+      north = Math.max(north, lat);
+      west = Math.min(west, lng);
+      east = Math.max(east, lng);
+    });
+  };
+
+  collection?.features.forEach((feature) => {
+    const geometry = feature.geometry;
+    if (geometry?.type === "Polygon") {
+      addRing(geometry.coordinates[0] ?? []);
+    } else if (geometry?.type === "MultiPolygon") {
+      geometry.coordinates.forEach((polygon) => addRing(polygon[0] ?? []));
+    }
+  });
+
+  return south === Infinity
+    ? null
+    : [
+        [south, west],
+        [north, east],
+      ];
+}
+
 const EARTH_RADIUS_M = 6_371_000;
 const toRad = (deg: number) => (deg * Math.PI) / 180;
 

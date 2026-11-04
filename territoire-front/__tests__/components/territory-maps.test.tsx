@@ -14,12 +14,19 @@ import {
   TEST_CITY,
 } from "../test-utils";
 import { Territory, TerritoryCollection } from "@/models/territory";
+import { toast } from "sonner";
 
 vi.mock("next/dynamic", () => import("../mocks/leaflet-dynamic"));
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/components/ui/sidebar", () => ({
   useSidebar: () => ({ state: "expanded" }),
 }));
 vi.mock("@/components/territory/map-updater", () => ({ default: () => null }));
+vi.mock("@/components/territory/map-fit-bounds", () => ({
+  default: ({ selectionKey }: { selectionKey: string }) => (
+    <div data-testid="fit-bounds" data-selection={selectionKey} />
+  ),
+}));
 vi.mock("@/components/territory/id/geoman-controls", () => ({
   GeomanControl: () => null,
 }));
@@ -193,6 +200,20 @@ describe("Carte des territoires", () => {
     expect(
       await screen.findByRole("menuitem", { name: "Voir les détails" })
     ).toHaveAttribute("href", "/territoires/t1");
+  });
+
+  it("ne se recadre sur ses territoires que si on le lui demande (résultat d'une recherche)", () => {
+    const { unmount } = renderWithStore(
+      <TerritoryMap geoJsonData={collection} />
+    );
+    expect(screen.queryByTestId("fit-bounds")).not.toBeInTheDocument();
+    unmount();
+
+    renderWithStore(<TerritoryMap geoJsonData={collection} fitToData />);
+    expect(screen.getByTestId("fit-bounds")).toHaveAttribute(
+      "data-selection",
+      collection.features.map((f) => f.properties.id).join(",")
+    );
   });
 
   it("agrandit et réduit la carte", async () => {
@@ -396,7 +417,10 @@ describe("Carte d'édition d'un territoire", () => {
 
   it("journalise l'échec de l'enregistrement d'un pâté et ignore une forme invalide", async () => {
     mockApi({
-      "POST /api/territoires/t1/pate": jsonResponse("Polygone invalide", 400),
+      "POST /api/territoires/t1/pate": jsonResponse(
+        { status: 400, error: "Polygone invalide" },
+        400
+      ),
     });
     renderWithStore(
       <TerritoryIdMap territory={territory([])} city={TEST_CITY} />
@@ -412,8 +436,10 @@ describe("Carte d'édition d'un territoire", () => {
 
     expect(console.error).toHaveBeenCalledWith(
       "❌ Erreur lors de l'ajout du bloc :",
-      expect.stringContaining("Polygone invalide")
+      "Polygone invalide"
     );
+    // Motif affiché à l'utilisateur, sans le JSON de la réponse
+    expect(toast.error).toHaveBeenCalledWith("Polygone invalide");
     expect(drawn.remove).not.toHaveBeenCalled();
   });
 
@@ -445,7 +471,10 @@ describe("Carte d'édition d'un territoire", () => {
 
   it("journalise l'échec de la suppression d'un pâté", async () => {
     mockApi({
-      "DELETE /api/territoires/t1/pate/b1": jsonResponse("Introuvable", 404),
+      "DELETE /api/territoires/t1/pate/b1": jsonResponse(
+        { status: 404, error: "Introuvable" },
+        404
+      ),
     });
     renderWithStore(
       <TerritoryIdMap territory={territory([block("b1")])} city={TEST_CITY} />
@@ -462,9 +491,10 @@ describe("Carte d'édition d'un territoire", () => {
     await waitFor(() =>
       expect(console.error).toHaveBeenCalledWith(
         "❌ Erreur lors de la suppression du bloc :",
-        expect.stringContaining("Introuvable")
+        "Introuvable"
       )
     );
+    expect(toast.error).toHaveBeenCalledWith("Introuvable");
     holder.remove();
   });
 

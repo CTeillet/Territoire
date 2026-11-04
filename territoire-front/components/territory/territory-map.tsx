@@ -11,6 +11,7 @@ import { Feature, Geometry } from "geojson";
 import { Provider } from "react-redux";
 import { store } from "@/store/store";
 import MapUpdater from "@/components/territory/map-updater";
+import MapFitBounds from "@/components/territory/map-fit-bounds";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2 } from "lucide-react";
@@ -34,11 +35,21 @@ const defaultCenter: [number, number] = [48.695874, 2.367055];
 
 interface TerritoryCollectionProps {
   geoJsonData: TerritoryCollection;
+  /** Cadrer la carte sur les territoires reçus quand ils changent (ex. résultat d'une recherche). */
+  fitToData?: boolean;
 }
 
-const TerritoryMap: React.FC<TerritoryCollectionProps> = ({ geoJsonData }) => {
+const TerritoryMap: React.FC<TerritoryCollectionProps> = ({
+  geoJsonData,
+  fitToData = false,
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const center = useMemo(() => calculateCenter(geoJsonData), [geoJsonData]);
+  // La couche GeoJSON de Leaflet ne relit pas ses données : elle est recréée quand les territoires affichés changent
+  const selectionKey = useMemo(
+    () => geoJsonData.features.map((f) => f.properties?.id).join(","),
+    [geoJsonData]
+  );
   const sidebar = useSidebar();
 
   const toggleExpand = () => {
@@ -65,10 +76,14 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({ geoJsonData }) => {
             attribution="&copy; OpenStreetMap contributors"
           />
           <GeoJSON
+            key={selectionKey}
             onEachFeature={onEachFeature}
             data={geoJsonData}
             style={territoryStyle}
           />
+          {fitToData && (
+            <MapFitBounds data={geoJsonData} selectionKey={selectionKey} />
+          )}
         </MapContainer>
       </div>
 

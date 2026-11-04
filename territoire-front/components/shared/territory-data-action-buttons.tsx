@@ -116,6 +116,7 @@ export function TerritoryDataActionButtons({
       }
     } catch (error) {
       console.error("❌ Erreur lors de l'assignation :", error);
+      toast.error(String(error));
     }
 
     setIsDialogOpen(false);
@@ -131,6 +132,7 @@ export function TerritoryDataActionButtons({
       await dispatch(returnTerritory(territoryId)).unwrap();
     } catch (error) {
       console.error("❌ Erreur lors du retour du territoire :", error);
+      toast.error(String(error));
     }
   };
 
@@ -141,6 +143,7 @@ export function TerritoryDataActionButtons({
       await dispatch(cancelAssignment(territoryId)).unwrap();
     } catch (error) {
       console.error("❌ Erreur lors de l'annulation de l'assignation :", error);
+      toast.error(String(error));
     }
   };
 
@@ -150,6 +153,7 @@ export function TerritoryDataActionButtons({
       await dispatch(extendTerritory({ territoryId, dueDate })).unwrap();
     } catch (error) {
       console.error("❌ Erreur lors de la prolongation du territoire :", error);
+      toast.error(String(error));
     }
   };
 

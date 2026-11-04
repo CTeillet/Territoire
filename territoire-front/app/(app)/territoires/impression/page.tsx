@@ -29,6 +29,7 @@ import {
   fetchTerritories,
   updateTerritoryLost,
 } from "@/store/slices/territory-slice";
+import { filterBySearch } from "@/lib/search";
 
 // À l'impression, seules les feuilles (rendues dans <body> par un portail) sont visibles, en A4 paysage sans marge
 const PRINT_CSS = `
@@ -100,14 +101,16 @@ export default function TerritoryPrintPage() {
     () => [...new Set(territories.map((t) => t.city))].filter(Boolean),
     [territories]
   );
-  const visible = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("fr");
-    return territories.filter(
-      (t) =>
-        (!city || t.city === city) &&
-        (!query || t.name.toLocaleLowerCase("fr").includes(query))
-    );
-  }, [territories, city, search]);
+  // Recherche tolérante (« r12 » trouve « R-12 »), comme dans la liste des territoires
+  const visible = useMemo(
+    () =>
+      filterBySearch(
+        territories.filter((t) => !city || t.city === city),
+        search,
+        (t) => [t.name]
+      ),
+    [territories, city, search]
+  );
 
   // Une rubrique par ville : le nom de la ville n'est plus répété sur chaque territoire
   const visibleByCity = useMemo(() => {
