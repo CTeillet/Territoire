@@ -1,9 +1,11 @@
 package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.AssignmentDto;
+import com.teillet.territoire.dto.PersonRequest;
 import com.teillet.territoire.model.Person;
 import com.teillet.territoire.service.IAssignmentService;
 import com.teillet.territoire.service.IPersonService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,9 +32,9 @@ class PersonController {
 
 	@PostMapping
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
-	public Person createPerson(@RequestBody Person person) {
+	public Person createPerson(@Valid @RequestBody PersonRequest person) {
 		log.info("Début : Création personne");
-		Person personCreated = personService.createPerson(person);
+		Person personCreated = personService.createPerson(person.toPerson());
 		log.info("Fin : Création personne");
 		return personCreated;
 	}
@@ -47,9 +49,9 @@ class PersonController {
 
 	@PutMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
-	public Person modifyPerson(@PathVariable UUID id, @RequestBody Person person) {
+	public Person modifyPerson(@PathVariable UUID id, @Valid @RequestBody PersonRequest person) {
 		log.info("Début : Modification personne, id {}", id);
-		Person modifiedPerson = personService.modifyPerson(id, person);
+		Person modifiedPerson = personService.modifyPerson(id, person.toPerson());
 		log.info("Fin : Modification personne");
 		return modifiedPerson;
 	}

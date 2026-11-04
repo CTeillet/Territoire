@@ -47,7 +47,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          # Même version qu'en local (nvm use) : territoire-front/.nvmrc
+          node-version-file: './territoire-front/.nvmrc'
           cache: 'npm'
           cache-dependency-path: './territoire-front/package-lock.json'
 

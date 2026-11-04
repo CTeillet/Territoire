@@ -108,6 +108,25 @@ describe("cas d'erreur des petits slices", () => {
       }
     );
 
+    it.each([
+      [
+        "createPerson",
+        () => createPerson({ firstName: "Jean", lastName: " " }),
+      ],
+      ["updatePerson", () => updatePerson({ ...person, lastName: "" })],
+    ])(
+      "%s : remonte le motif du refus (validation du serveur)",
+      async (_name, thunk) => {
+        authFetch.mockResolvedValueOnce(
+          failing({}, { status: 400, error: "Le nom est requis" })
+        );
+        expect(
+          ((await store().dispatch(thunk() as never)) as { payload: unknown })
+            .payload
+        ).toBe("Le nom est requis");
+      }
+    );
+
     it("deletePerson : erreur HTTP", async () => {
       authFetch.mockResolvedValueOnce(failing());
       expect((await store().dispatch(deletePerson("p1"))).payload).toBe(

@@ -324,6 +324,13 @@ describe("Fiche d'une personne", () => {
       "R-12",
     ]);
     expect(within(items[0]).getByText("En cours")).toBeInTheDocument();
+    // Chaque attribution mène à la fiche de son territoire (bouton et nom)
+    expect(
+      within(items[0]).getByRole("link", { name: "Voir le territoire R-13" })
+    ).toHaveAttribute("href", "/territoires/t2");
+    expect(
+      within(items[1]).getByRole("link", { name: "R-14" })
+    ).toHaveAttribute("href", "/territoires/t3");
     expect(await screen.findByText("Accès numérique")).toBeInTheDocument();
   });
 

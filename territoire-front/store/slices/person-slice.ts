@@ -81,7 +81,10 @@ export const createPerson = createAsyncThunk<
 
     // 🔹 Vérifie si la requête à échouer et retourne immédiatement `rejectWithValue`
     if (!response.ok) {
-      return rejectWithValue("Échec de la création");
+      // Motif du serveur (ex. « Le nom est requis »)
+      return rejectWithValue(
+        await apiErrorMessage(response, "Échec de la création")
+      );
     }
 
     try {
@@ -126,7 +129,9 @@ export const updatePerson = createAsyncThunk(
 
     // 🔹 Vérifie si la requête à échouer et retourne immédiatement `rejectWithValue`
     if (!response.ok) {
-      return rejectWithValue("Échec de la mise à jour");
+      return rejectWithValue(
+        await apiErrorMessage(response, "Échec de la mise à jour")
+      );
     }
 
     try {
