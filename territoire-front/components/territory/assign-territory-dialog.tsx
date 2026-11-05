@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -33,7 +33,7 @@ import { ChevronsUpDown } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Person } from "@/models/person";
+import { comparePersons, Person } from "@/models/person";
 
 interface AssignTerritoryDialogProps {
   isOpen: boolean;
@@ -95,6 +95,10 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({
   onAssign,
 }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const sortedPeople = useMemo(
+    () => [...people].sort(comparePersons),
+    [people]
+  );
 
   const form = useForm<AssignForm>({
     resolver: zodResolver(assignSchema),
@@ -181,7 +185,7 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({
                             >
                               Aucune personne
                             </CommandItem>
-                            {people.map((person) => (
+                            {sortedPeople.map((person) => (
                               <CommandItem
                                 key={person.id}
                                 value={`${person.firstName} ${person.lastName}`}

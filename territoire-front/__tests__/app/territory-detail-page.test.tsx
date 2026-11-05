@@ -492,7 +492,7 @@ describe("Historique des attributions", () => {
     ).toBeInTheDocument();
   });
 
-  it("liste les attributions terminées puis en cours, avec campagnes", () => {
+  it("liste l'attribution en cours puis les terminées de la plus récente à la plus ancienne, avec campagnes", () => {
     renderWithStore(
       <AssignmentsList
         assignments={[
@@ -524,17 +524,17 @@ describe("Historique des attributions", () => {
       .getAllByRole("listitem")
       .map((li) => li.querySelector("strong")?.textContent);
     expect(names).toEqual([
+      "Jean Dupont",
       "Campagne: Automne",
       "Anne Martin",
       "N/A",
-      "Jean Dupont",
     ]);
     expect(screen.getByText(/En cours/)).toBeInTheDocument();
     expect(
-      screen.getAllByRole("link", {
-        name: "Voir les détails de la personne",
-      })[0]
-    ).toHaveAttribute("href", "/personnes/p2");
+      screen
+        .getAllByRole("link", { name: "Voir les détails de la personne" })
+        .map((link) => link.getAttribute("href"))
+    ).toEqual(["/personnes/p1", "/personnes/p2"]);
   });
 
   it("réimprime l'étiquette de l'attribution en cours sur un appareil relié à une imprimante", async () => {
@@ -680,7 +680,7 @@ describe("Historique des attributions", () => {
       />
     );
 
-    const [extended, running] = screen.getAllByRole("listitem");
+    const [running, extended] = screen.getAllByRole("listitem");
     expect(extended).toHaveTextContent("(prolongé)");
     expect(running).not.toHaveTextContent("(prolongé)");
   });

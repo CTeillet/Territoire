@@ -21,6 +21,7 @@ import ResetPasswordDialog from "@/components/parameters/user-management/reset-p
 import { Role } from "@/models/role";
 import { User } from "@/models/user"; // Assure-toi que ce type existe
 import { useIsMobile } from "@/hooks/use-mobile";
+import { compareNames } from "@/lib/utils";
 
 type Props = {
   users: User[];
@@ -94,6 +95,9 @@ const UserActions = ({
   );
 
 const UserTable = ({ users, loading, onUpdateRole, ...actions }: Props) => {
+  const sortedUsers = [...users].sort((a, b) =>
+    compareNames(a.username, b.username)
+  );
   const isMobile = useIsMobile();
 
   // Téléphone : une fiche par utilisateur, le tableau ne tient pas sur la largeur
@@ -102,7 +106,7 @@ const UserTable = ({ users, loading, onUpdateRole, ...actions }: Props) => {
       <p className="py-4 text-center">Chargement...</p>
     ) : (
       <ul className="mb-5 space-y-3">
-        {users.map((user) => (
+        {sortedUsers.map((user) => (
           <li
             key={user.id}
             className="space-y-3 rounded-lg border bg-white p-4 shadow-sm"
@@ -145,7 +149,7 @@ const UserTable = ({ users, loading, onUpdateRole, ...actions }: Props) => {
             </TableCell>
           </TableRow>
         ) : (
-          users.map((user) => (
+          sortedUsers.map((user) => (
             <TableRow
               key={user.id}
               className="hover:bg-gray-50 transition duration-200 border-b last:border-b-0"

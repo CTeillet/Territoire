@@ -17,10 +17,12 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { compareNames } from "@/lib/utils";
 import { toast } from "sonner";
 
 const ListCity = ({ cities }: { cities: City[] }) => {
   const dispatch = useAppDispatch();
+  const sortedCities = [...cities].sort((a, b) => compareNames(a.name, b.name));
 
   useEffect(() => {
     dispatch(fetchCities());
@@ -58,7 +60,7 @@ const ListCity = ({ cities }: { cities: City[] }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {cities.map((city) => (
+            {sortedCities.map((city) => (
               <TableRow key={city.id}>
                 <TableCell className="flex items-center gap-3">
                   <span
