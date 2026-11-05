@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Assignment } from "@/models/assignment";
+import { Assignment, compareByMostRecent } from "@/models/assignment";
 import React from "react";
 import TerritoryItem from "./territory-item";
 
@@ -21,18 +21,7 @@ const AssignedTerritoriesList = ({
   loadingAssignedTerritories,
   action,
 }: AssignedTerritoriesListProps) => {
-  // Sort territories: current ones first, then by most recent assignment date
-  const sortedTerritories = [...assignedTerritories].sort((a, b) => {
-    // First sort by whether the territory is currently assigned (null returnDate means it's current)
-    if (a.returnDate === null && b.returnDate !== null) return -1;
-    if (a.returnDate !== null && b.returnDate === null) return 1;
-
-    // Then sort by assignment date (most recent first)
-    return (
-      new Date(b.assignmentDate).getTime() -
-      new Date(a.assignmentDate).getTime()
-    );
-  });
+  const sortedTerritories = [...assignedTerritories].sort(compareByMostRecent);
 
   return (
     <Card>

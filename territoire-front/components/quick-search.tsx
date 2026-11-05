@@ -24,7 +24,8 @@ import { TerritoryStatusBadge } from "@/components/territory/territory-status-ba
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchTerritories } from "@/store/slices/territory-slice";
 import { fetchPersons } from "@/store/slices/person-slice";
-import { cn } from "@/lib/utils";
+import { comparePersons } from "@/models/person";
+import { cn, compareNames } from "@/lib/utils";
 
 /** Événement qui ouvre la recherche rapide depuis n'importe quel bouton. */
 export const QUICK_SEARCH_EVENT = "tms:recherche-rapide";
@@ -39,9 +40,6 @@ const MAX_PERSONS = 6;
 const NOT_SET = "N/A";
 
 const pages = [...dashboardItems, ...territoryItems, ...otherItems];
-
-const compareNames = (a: string, b: string) =>
-  a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" });
 
 /** Raccourci affiché : ⌘K sur Mac, Ctrl K ailleurs (connu seulement dans le navigateur). */
 export function useQuickSearchShortcut() {
@@ -134,11 +132,7 @@ export function QuickSearch() {
       person.lastName,
       person.email,
     ])
-      .sort(
-        (a, b) =>
-          compareNames(a.lastName, b.lastName) ||
-          compareNames(a.firstName, b.firstName)
-      )
+      .sort(comparePersons)
       .slice(0, MAX_PERSONS);
   }, [searching, persons, query]);
 

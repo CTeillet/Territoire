@@ -42,10 +42,7 @@ export function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-/** Ordre « naturel » des noms : PVP2 avant PVP10. */
-export function compareNames(a: string, b: string): number {
-  return a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" });
-}
+export { compareNames } from "@/lib/utils";
 
 /** Ville d'un territoire : un nom dans le GeoJSON de la liste, un objet City dans le détail. */
 export function cityName(territory: Pick<Territory, "city">): string {

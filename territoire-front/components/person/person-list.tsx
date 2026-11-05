@@ -1,6 +1,6 @@
 "use client";
 
-import { Person } from "@/models/person";
+import { comparePersons, Person } from "@/models/person";
 import PersonCard from "./person-card";
 import { phoneMatches } from "@/components/utils";
 import { filterBySearch } from "@/lib/search";
@@ -38,7 +38,7 @@ const PersonList: React.FC<PersonListProps> = ({ persons }) => {
   const groupedPersons = useMemo(() => {
     const groups: Record<string, Person[]> = {};
 
-    filteredPersons.forEach((person) => {
+    [...filteredPersons].sort(comparePersons).forEach((person) => {
       const firstLetter = person.lastName.charAt(0).toUpperCase();
       if (!groups[firstLetter]) {
         groups[firstLetter] = [];

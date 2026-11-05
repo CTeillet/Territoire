@@ -1,6 +1,10 @@
 "use client";
 
-import { Assignment } from "@/models/assignment";
+import {
+  Assignment,
+  assignmentHolder,
+  compareByMostRecent,
+} from "@/models/assignment";
 import ActionButton from "@/components/shared/action-button";
 import { CalendarCog, Eye, FileDown, Printer } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,18 +24,7 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
     null
   );
 
-  // Sort assignments: completed assignments first, then campaigns, then current assignments
-  const sortedAssignments = [...assignments].sort((a, b) => {
-    // If one is current (returnDate is null) and the other is not, the completed one comes first
-    if (a.returnDate === null && b.returnDate !== null) return 1;
-    if (a.returnDate !== null && b.returnDate === null) return -1;
-
-    // If both are completed or both are current, sort by assignmentDate (most recent first)
-    return (
-      new Date(b.assignmentDate).getTime() -
-      new Date(a.assignmentDate).getTime()
-    );
-  });
+  const sortedAssignments = [...assignments].sort(compareByMostRecent);
 
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm md:p-6">
@@ -44,13 +37,7 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
             <li key={assignment.id} className="p-2 border-b">
               <div className="flex justify-between items-center">
                 <div>
-                  <strong>
-                    {assignment.person
-                      ? `${assignment.person.firstName} ${assignment.person.lastName}`
-                      : assignment.campaign
-                        ? `Campagne: ${assignment.campaign.name}`
-                        : "N/A"}
-                  </strong>
+                  <strong>{assignmentHolder(assignment)}</strong>
                   <br />
                   <span className="text-sm text-gray-600">
                     {new Date(assignment.assignmentDate).toLocaleDateString()} →{" "}

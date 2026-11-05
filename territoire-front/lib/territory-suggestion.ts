@@ -1,6 +1,7 @@
 import { Territory } from "@/models/territory";
 import { TerritoryType } from "@/models/territory-type";
 import { Assignment } from "@/models/assignment";
+import { compareNames } from "@/lib/utils";
 
 /** En deçà, un territoire que la personne a déjà eu passe après les autres. */
 export const RECENTLY_HAD_MONTHS = 24;
@@ -20,9 +21,6 @@ export const territoryCityName = (territory: Territory): string | undefined => {
   const city = territory.city as Territory["city"] | string | null | undefined;
   return typeof city === "string" ? city : city?.name;
 };
-
-const compareNames = (a: string, b: string) =>
-  a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" });
 
 /**
  * Territoires à proposer à une personne, du plus au moins indiqué : seulement les disponibles (de la ville et
