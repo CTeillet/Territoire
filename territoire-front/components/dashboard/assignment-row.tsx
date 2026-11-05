@@ -1,17 +1,9 @@
 import React from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Assignment } from "@/models/assignment";
-import { personToString } from "@/models/person";
+import { Assignment, assignmentHolder as holder } from "@/models/assignment";
 import { TerritoryDataActionButtons } from "@/components/shared/territory-data-action-buttons";
 import { TerritoryNameLink } from "@/components/territory/territory-name-link";
 import { AssignmentStatusBadge } from "@/components/shared/assignment-status-badge";
-
-const holder = (assignment: Assignment) =>
-  assignment.person
-    ? personToString(assignment.person)
-    : assignment.campaign
-      ? `Campagne: ${assignment.campaign.name}`
-      : "N/A";
 
 const Actions = ({ assignment }: { assignment: Assignment }) => (
   <TerritoryDataActionButtons

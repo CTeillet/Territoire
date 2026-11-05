@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Card, CardHeader, CardTitle } from "../ui/card";
 import {
   Table,
@@ -15,6 +15,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/store/store";
 import { fetchLatestAssignments } from "@/store/slices/territory-slice";
+import { compareByLatestMovement } from "@/models/assignment";
 
 export const AssignmentsTable: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -27,6 +28,11 @@ export const AssignmentsTable: React.FC = () => {
     dispatch(fetchLatestAssignments());
   }, [dispatch]);
 
+  const sortedAssignments = useMemo(
+    () => [...latestAssignments].sort(compareByLatestMovement),
+    [latestAssignments]
+  );
+
   if (statisticsLoading) return <p>Chargement...</p>;
   if (error) return <p>Erreur: {error}</p>;
 
@@ -37,7 +43,7 @@ export const AssignmentsTable: React.FC = () => {
       </CardHeader>
       {isMobile ? (
         <ul className="space-y-3 px-4 pb-4">
-          {latestAssignments.map((assignment) => (
+          {sortedAssignments.map((assignment) => (
             <AssignmentCard key={assignment.id} {...assignment} />
           ))}
         </ul>
@@ -57,7 +63,7 @@ export const AssignmentsTable: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {latestAssignments.map((assignment) => (
+              {sortedAssignments.map((assignment) => (
                 <AssignmentRow key={assignment.id} {...assignment} />
               ))}
             </TableBody>

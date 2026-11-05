@@ -199,6 +199,10 @@ describe("Tableau de bord", () => {
       const anne = screen.getByText(/Anne Martin/).closest("li")!;
       expect(within(anne).getByText("Rendu le")).toBeInTheDocument();
       expect(within(anne).getByText("2026-10-05")).toBeInTheDocument();
+      // Du dernier mouvement au plus ancien : le retour du 5 octobre avant l'attribution du 1er
+      expect(
+        anne.compareDocumentPosition(jean) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
     } finally {
       window.innerWidth = desktopWidth;
     }
