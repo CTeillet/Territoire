@@ -1,4 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  type MockInstance,
+} from "vitest";
 import {
   act,
   fireEvent,
@@ -359,34 +366,200 @@ describe("Adresses à ne pas visiter", () => {
     });
   };
 
+  let geocoding: MockInstance<typeof fetch>;
+  const geocodingResponse = (features: unknown[]) =>
+    ({
+      ok: true,
+      status: 200,
+      json: async () => ({ type: "FeatureCollection", features }),
+    }) as Response;
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => {});
+    geocoding = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(geocodingResponse([]));
   });
 
-  it("ajoute une adresse complète et vide le formulaire", async () => {
+  const field = () => screen.getByLabelText("Ajouter une adresse");
+  const postedAddress = () =>
+    JSON.parse(
+      String(
+        api.mock.calls.find(([, init]) => init?.method === "POST")?.[1]?.body
+      )
+    );
+
+  it("ajoute une adresse tapée d'un seul tenant, dans la ville du territoire", async () => {
     renderList();
 
-    await userEvent.type(screen.getByPlaceholderText("Numéro"), "8");
-    await userEvent.type(screen.getByPlaceholderText("Rue"), "rue des Iris");
-    await userEvent.type(screen.getByPlaceholderText("Code postal"), "35000");
-    await userEvent.type(screen.getByPlaceholderText("Ville"), "Rennes");
+    expect(
+      screen.getByText("Ville du territoire par défaut : 35000 Rennes")
+    ).toBeInTheDocument();
+    await userEvent.type(field(), "8 bis rue des Iris{Enter}");
+
+    expect(await screen.findByText(/8 bis, rue des Iris/)).toBeInTheDocument();
+    expect(postedAddress()).toEqual({
+      number: "8 bis",
+      street: "rue des Iris",
+      zipCode: "35000",
+      city: "Rennes",
+    });
+    expect(field()).toHaveValue("");
+    expect(field()).toHaveFocus();
+  });
+
+  it("garde le code postal et la ville tapés après la rue", async () => {
+    renderList();
+
+    await userEvent.type(field(), "3 allée des Pins, 35510 Cesson-Sévigné");
     await userEvent.click(
       screen.getByRole("button", { name: "Ajouter l'adresse" })
     );
 
-    expect(await screen.findByText(/8, rue des Iris/)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Rue")).toHaveValue("");
+    expect(await screen.findByText(/3, allée des Pins/)).toBeInTheDocument();
+    expect(postedAddress()).toEqual({
+      number: "3",
+      street: "allée des Pins",
+      zipCode: "35510",
+      city: "Cesson-Sévigné",
+    });
   });
 
-  it("n'ajoute pas une adresse incomplète", async () => {
+  it("ajoute une adresse suggérée près de la ville du territoire", async () => {
+    geocoding.mockResolvedValue(
+      geocodingResponse([
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [-1.67, 48.11] },
+          properties: {
+            label: "8 Rue des Iris 35000 Rennes",
+            type: "housenumber",
+            housenumber: "8",
+            street: "Rue des Iris",
+            postcode: "35000",
+            city: "Rennes",
+          },
+        },
+        // Rue sans numéro : pas proposée
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [-1.68, 48.12] },
+          properties: {
+            label: "Rue des Iris 35200 Rennes",
+            type: "street",
+            street: "Rue des Iris",
+            postcode: "35200",
+            city: "Rennes",
+          },
+        },
+      ])
+    );
     renderList();
 
-    await userEvent.type(screen.getByPlaceholderText("Rue"), "rue des Iris");
+    await userEvent.type(field(), "8 rue des ir");
+    const suggestions = await screen.findByRole("list", {
+      name: "Adresses suggérées",
+    });
+    expect(within(suggestions).getAllByRole("button")).toHaveLength(1);
+    const url = new URL(String(geocoding.mock.calls.at(-1)?.[0]));
+    expect(url.searchParams.get("q")).toBe("8 rue des ir");
+    expect(url.searchParams.get("lat")).toBe("48.11000");
+    expect(url.searchParams.get("lon")).toBe("-1.67000");
+
+    await userEvent.click(
+      within(suggestions).getByRole("button", {
+        name: "Ajouter 8 Rue des Iris, 35000 Rennes",
+      })
+    );
+
+    expect(await screen.findByText(/8, Rue des Iris/)).toBeInTheDocument();
+    expect(postedAddress()).toEqual({
+      number: "8",
+      street: "Rue des Iris",
+      zipCode: "35000",
+      city: "Rennes",
+    });
+    expect(
+      screen.queryByRole("list", { name: "Adresses suggérées" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("parcourt les suggestions au clavier", async () => {
+    geocoding.mockResolvedValue(
+      geocodingResponse(
+        ["35000", "35200"].map((postcode) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [-1.67, 48.11] },
+          properties: {
+            label: `8 Rue des Iris ${postcode} Rennes`,
+            housenumber: "8",
+            street: "Rue des Iris",
+            postcode,
+            city: "Rennes",
+          },
+        }))
+      )
+    );
+    renderList();
+
+    await userEvent.type(field(), "8 rue des iris");
+    const buttons = within(
+      await screen.findByRole("list", { name: "Adresses suggérées" })
+    ).getAllByRole("button");
+
+    await userEvent.keyboard("{ArrowDown}");
+    expect(buttons[0]).toHaveFocus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(buttons[1]).toHaveFocus();
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    expect(field()).toHaveFocus();
+  });
+
+  it("n'interroge pas le service sans numéro et explique quoi saisir", async () => {
+    renderList();
+
+    await userEvent.type(field(), "rue des Iris");
     await userEvent.click(
       screen.getByRole("button", { name: "Ajouter l'adresse" })
     );
 
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Commencez par le numéro, ex. 21 rue de la Paix"
+    );
+    expect(field()).toHaveAttribute("aria-invalid", "true");
+    expect(api).not.toHaveBeenCalled();
+    expect(geocoding).not.toHaveBeenCalled();
+
+    // L'erreur disparaît dès que la saisie reprend
+    await userEvent.type(field(), "x");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("refuse une adresse déjà dans la liste", async () => {
+    renderList();
+
+    await userEvent.type(field(), "12 Rue des lilas{Enter}");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Cette adresse est déjà dans la liste"
+    );
+    expect(api).not.toHaveBeenCalled();
+  });
+
+  it("demande la ville quand le territoire n'en a pas", async () => {
+    renderList(territory({ city: undefined as unknown as Territory["city"] }));
+
+    expect(
+      screen.getByText(
+        "Précisez le code postal et la ville, ex. 21 rue de la Paix, 35000 Rennes"
+      )
+    ).toBeInTheDocument();
+    await userEvent.type(field(), "8 rue des Iris{Enter}");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Précisez le code postal et la ville"
+    );
     expect(api).not.toHaveBeenCalled();
   });
 
@@ -432,13 +605,9 @@ describe("Adresses à ne pas visiter", () => {
     api.mockResolvedValue(jsonResponse({}, 500));
 
     if (action === "l'ajout") {
-      for (const placeholder of ["Numéro", "Rue", "Code postal", "Ville"]) {
-        fireEvent.change(screen.getByPlaceholderText(placeholder), {
-          target: { value: "x" },
-        });
-      }
-      await userEvent.click(
-        screen.getByRole("button", { name: "Ajouter l'adresse" })
+      await userEvent.type(field(), "8 rue des Iris{Enter}");
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "L'adresse n'a pas pu être ajoutée, réessayez"
       );
     } else if (action === "la modification") {
       await userEvent.click(
@@ -466,14 +635,7 @@ describe("Adresses à ne pas visiter", () => {
   it("ne fait rien sans territoire sélectionné", async () => {
     renderList(null);
 
-    for (const placeholder of ["Numéro", "Rue", "Code postal", "Ville"]) {
-      fireEvent.change(screen.getByPlaceholderText(placeholder), {
-        target: { value: "x" },
-      });
-    }
-    await userEvent.click(
-      screen.getByRole("button", { name: "Ajouter l'adresse" })
-    );
+    await userEvent.type(field(), "8 rue des Iris, 35000 Rennes{Enter}");
 
     expect(api).not.toHaveBeenCalled();
   });

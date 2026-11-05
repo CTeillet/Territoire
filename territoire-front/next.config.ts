@@ -3,10 +3,11 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV === "development";
 
 // Domaines externes appelés par le navigateur : les fonds de carte Leaflet (images) et le géocodage de la
-// Géoplateforme (recherche d'adresse de la page Territoires, cf. lib/address-search.ts). Les liens Google
-// Maps, Plans ou Waze sont des navigations, non concernées. Next.js insère des scripts et des styles inline
-// sans nonce : 'unsafe-inline' reste nécessaire, mais un script injecté ne peut ni charger de code d'un
-// autre domaine ni envoyer de données ailleurs qu'à ces services (connect-src, img-src, form-action).
+// Géoplateforme (recherche d'adresse de la page Territoires et suggestions des adresses à ne pas visiter,
+// cf. lib/address-search.ts). Les liens Google Maps, Plans ou Waze sont des navigations, non concernées.
+// Next.js insère des scripts et des styles inline sans nonce : 'unsafe-inline' reste nécessaire, mais un
+// script injecté ne peut ni charger de code d'un autre domaine ni envoyer de données ailleurs qu'à ces
+// services (connect-src, img-src, form-action).
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,

@@ -1,8 +1,9 @@
 "use client";
 
 import { AddressNotToDo } from "@/models/addressNotToDo";
-import React, { useState } from "react";
-import { Pencil, Trash, Check, Plus } from "lucide-react";
+import { AddressNotToDoDto } from "@/models/AddressNotToDoDto";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Pencil, Trash, Check, Plus, MapPin } from "lucide-react";
 
 import {
   AlertDialog,
@@ -23,13 +24,32 @@ import {
   deleteAddressNotToVisit,
   modifyAddressNotToVisit,
 } from "@/store/slices/territory-slice";
+import { parseAddress, sameAddress } from "@/lib/address-input";
+import {
+  ADDRESS_MIN_LENGTH,
+  AddressResult,
+  searchAddresses,
+} from "@/lib/address-search";
 
-interface AddAddressNotToDoDto {
-  street: string;
-  number: string;
-  zipCode: string;
-  city: string;
-}
+const DEBOUNCE_MS = 300;
+
+type Suggestion = { label: string; address: AddressNotToDoDto };
+
+/** Seules les adresses avec un numéro sont proposées : une rue entière n'est pas une adresse à éviter. */
+const toSuggestion = ({
+  housenumber,
+  street,
+  postcode,
+  city,
+}: AddressResult): Suggestion[] =>
+  housenumber && street && postcode && city
+    ? [
+        {
+          label: `${housenumber} ${street}, ${postcode} ${city}`,
+          address: { number: housenumber, street, zipCode: postcode, city },
+        },
+      ]
+    : [];
 
 const AddressNotToDoList = () => {
   const dispatch = useAppDispatch();
@@ -39,12 +59,35 @@ const AddressNotToDoList = () => {
     (state) => state.territories.selectedTerritory
   );
 
-  const [newAddress, setNewAddress] = useState<AddAddressNotToDoDto>({
-    number: "",
-    street: "",
-    zipCode: "",
-    city: "",
-  });
+  const city = selectedTerritory?.city;
+  const latitude = city?.center?.latitude;
+  const longitude = city?.center?.longitude;
+  // Adresses proposées près de la ville du territoire d'abord
+  const near = useMemo(
+    () =>
+      latitude !== undefined && longitude !== undefined
+        ? { lat: latitude, lng: longitude }
+        : null,
+    [latitude, longitude]
+  );
+  const defaultCity =
+    city?.zipCode && city?.name
+      ? { zipCode: city.zipCode, name: city.name }
+      : null;
+
+  const [query, setQuery] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  // Suggestions du service, avec la saisie à laquelle elles répondent
+  const [found, setFound] = useState<{
+    query: string;
+    suggestions: Suggestion[];
+  } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLUListElement>(null);
+  const inputId = useId();
+  const hintId = useId();
+  const errorId = useId();
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editedAddress, setEditedAddress] = useState<AddressNotToDo | null>(
     null
@@ -52,9 +95,30 @@ const AddressNotToDoList = () => {
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewAddress({ ...newAddress, [e.target.name]: e.target.value });
-  };
+  const q = query.trim();
+  // Suggestions dès qu'un numéro et le début de la rue sont tapés
+  const searchable = q.length >= ADDRESS_MIN_LENGTH && /^\d+\D/.test(q);
+
+  useEffect(() => {
+    if (!searchable) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      searchAddresses(q, near, controller.signal)
+        .then((results) =>
+          setFound({ query: q, suggestions: results.flatMap(toSuggestion) })
+        )
+        .catch((e: Error) => {
+          // Service injoignable : la saisie libre reste possible
+          if (e.name !== "AbortError") setFound({ query: q, suggestions: [] });
+        });
+    }, DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [q, searchable, near]);
+
+  const suggestions = searchable && found?.query === q ? found.suggestions : [];
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (editedAddress) {
@@ -62,26 +126,60 @@ const AddressNotToDoList = () => {
     }
   };
 
-  const handleAddAddress = async () => {
-    if (!selectedTerritory) return;
-
+  const addAddress = async (address: AddressNotToDoDto) => {
+    if (!selectedTerritory || adding) return;
     if (
-      newAddress.street &&
-      newAddress.number &&
-      newAddress.zipCode &&
-      newAddress.city
+      selectedTerritory.addressesNotToDo?.some((existing) =>
+        sameAddress(existing, address)
+      )
     ) {
-      try {
-        await dispatch(
-          addAddressNotToVisit({
-            territoryId: selectedTerritory.id,
-            address: newAddress,
-          })
-        ).unwrap();
-        setNewAddress({ street: "", number: "", zipCode: "", city: "" });
-      } catch (error) {
-        console.error("❌ Erreur lors de l'ajout de l'adresse :", error);
-      }
+      setAddError("Cette adresse est déjà dans la liste");
+      return;
+    }
+
+    setAdding(true);
+    try {
+      await dispatch(
+        addAddressNotToVisit({
+          territoryId: selectedTerritory.id,
+          address,
+        })
+      ).unwrap();
+      setQuery("");
+      setFound(null);
+      setAddError(null);
+      inputRef.current?.focus();
+    } catch (error) {
+      console.error("❌ Erreur lors de l'ajout de l'adresse :", error);
+      setAddError("L'adresse n'a pas pu être ajoutée, réessayez");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleAddAddress = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseAddress(query, defaultCity);
+    if (parsed.error !== undefined) {
+      setAddError(parsed.error);
+      return;
+    }
+    void addAddress(parsed.address);
+  };
+
+  // Flèches haut et bas : du champ aux suggestions, et d'une suggestion à l'autre
+  const moveFocus = (e: React.KeyboardEvent, from: number) => {
+    const buttons = Array.from(
+      suggestionsRef.current?.querySelectorAll("button") ?? []
+    );
+    if (e.key === "ArrowDown" && from < buttons.length - 1) {
+      e.preventDefault();
+      buttons[from + 1].focus();
+    } else if (e.key === "ArrowUp" && from >= 0) {
+      e.preventDefault();
+      (from === 0 ? inputRef.current : buttons[from - 1])?.focus();
+    } else if (e.key === "Escape" && from >= 0) {
+      inputRef.current?.focus();
     }
   };
 
@@ -252,47 +350,79 @@ const AddressNotToDoList = () => {
         ))}
       </ul>
 
-      <div className="mt-4">
-        <h3 className="mb-2 font-semibold">Ajouter une adresse</h3>
-        <div className="flex flex-wrap gap-2">
+      <form className="mt-4" onSubmit={handleAddAddress} noValidate>
+        <label htmlFor={inputId} className="mb-2 block font-semibold">
+          Ajouter une adresse
+        </label>
+        <div className="flex gap-2">
           <Input
+            ref={inputRef}
+            id={inputId}
             type="text"
-            name="number"
-            placeholder="Numéro"
-            value={newAddress.number}
-            onChange={handleChange}
-            className="w-auto min-w-28 flex-1"
+            name="address"
+            autoComplete="off"
+            placeholder="21 rue de la Paix"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setAddError(null);
+            }}
+            onKeyDown={(e) => moveFocus(e, -1)}
+            aria-invalid={addError ? true : undefined}
+            aria-describedby={addError ? `${errorId} ${hintId}` : hintId}
+            className="min-w-0 flex-1"
           />
-          <Input
-            type="text"
-            name="street"
-            placeholder="Rue"
-            value={newAddress.street}
-            onChange={handleChange}
-            className="w-auto min-w-28 flex-1"
-          />
-          <Input
-            type="text"
-            name="zipCode"
-            placeholder="Code postal"
-            value={newAddress.zipCode}
-            onChange={handleChange}
-            className="w-auto min-w-28 flex-1"
-          />
-          <Input
-            type="text"
-            name="city"
-            placeholder="Ville"
-            value={newAddress.city}
-            onChange={handleChange}
-            className="w-auto min-w-28 flex-1"
-          />
-          <Button aria-label="Ajouter l'adresse" onClick={handleAddAddress}>
+          <Button
+            type="submit"
+            aria-label="Ajouter l'adresse"
+            disabled={adding}
+          >
             <Plus aria-hidden="true" />
             Ajouter
           </Button>
         </div>
-      </div>
+        {addError && (
+          <p
+            id={errorId}
+            role="alert"
+            className="mt-2 text-sm text-destructive"
+          >
+            {addError}
+          </p>
+        )}
+        <p id={hintId} className="mt-2 text-sm text-muted-foreground">
+          {defaultCity
+            ? `Ville du territoire par défaut : ${defaultCity.zipCode} ${defaultCity.name}`
+            : "Précisez le code postal et la ville, ex. 21 rue de la Paix, 35000 Rennes"}
+        </p>
+        {suggestions.length > 0 && (
+          <ul
+            ref={suggestionsRef}
+            aria-label="Adresses suggérées"
+            className="mt-2 divide-y overflow-hidden rounded-md border"
+          >
+            {suggestions.map((suggestion, index) => (
+              <li key={`${suggestion.label}-${index}`}>
+                <button
+                  type="button"
+                  disabled={adding}
+                  onClick={() => void addAddress(suggestion.address)}
+                  onKeyDown={(e) => moveFocus(e, index)}
+                  className="flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left text-sm outline-none hover:bg-accent focus-visible:bg-accent disabled:opacity-50"
+                >
+                  <MapPin
+                    aria-hidden="true"
+                    className="h-4 w-4 shrink-0 text-muted-foreground"
+                  />
+                  <span className="min-w-0 flex-1">
+                    Ajouter {suggestion.label}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </form>
     </div>
   );
 };

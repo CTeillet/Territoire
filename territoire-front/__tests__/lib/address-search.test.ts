@@ -64,6 +64,56 @@ describe("searchAddresses", () => {
     );
   });
 
+  it("lit le détail de l'adresse quand le service le donne", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      geocoding([
+        {
+          ...address(
+            "12 Rue Victor Hugo 91550 Paray-Vieille-Poste",
+            2.36,
+            48.71
+          ),
+          properties: {
+            label: "12 Rue Victor Hugo 91550 Paray-Vieille-Poste",
+            housenumber: "12",
+            street: "Rue Victor Hugo",
+            postcode: "91550",
+            city: "Paray-Vieille-Poste",
+            // Valeurs inexploitables : ignorées
+            citycode: 91479,
+          },
+        },
+        {
+          ...address("Rue Victor Hugo 91550 Paray-Vieille-Poste", 2.36, 48.71),
+          properties: {
+            label: "Rue Victor Hugo 91550 Paray-Vieille-Poste",
+            housenumber: "",
+            street: "Rue Victor Hugo",
+            postcode: 91550,
+          },
+        },
+      ])
+    );
+
+    expect(await searchAddresses("12 rue victor hugo")).toEqual([
+      {
+        label: "12 Rue Victor Hugo 91550 Paray-Vieille-Poste",
+        lng: 2.36,
+        lat: 48.71,
+        housenumber: "12",
+        street: "Rue Victor Hugo",
+        postcode: "91550",
+        city: "Paray-Vieille-Poste",
+      },
+      {
+        label: "Rue Victor Hugo 91550 Paray-Vieille-Poste",
+        lng: 2.36,
+        lat: 48.71,
+        street: "Rue Victor Hugo",
+      },
+    ]);
+  });
+
   it("n'interroge pas le service pour moins de 3 caractères", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
     expect(await searchAddresses("12")).toEqual([]);
