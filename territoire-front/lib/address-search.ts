@@ -19,12 +19,19 @@ export const ADDRESS_MIN_LENGTH = 3;
 export type AddressResult = LatLng & {
   /** Adresse complète, ex. « 12 Rue Victor Hugo 91550 Paray-Vieille-Poste ». */
   label: string;
+  /** Détail de l'adresse, quand le service le donne (« 12 », « Rue Victor Hugo », « 91550 », « Paray-Vieille-Poste »). */
+  housenumber?: string;
+  street?: string;
+  postcode?: string;
+  city?: string;
 };
 
 type GeocodingFeature = {
   geometry?: { type?: string; coordinates?: unknown };
-  properties?: { label?: unknown };
+  properties?: Record<string, unknown>;
 };
+
+const DETAILS = ["housenumber", "street", "postcode", "city"] as const;
 
 /**
  * Adresses correspondant à la recherche, les plus proches de `near` d'abord (centre des territoires).
@@ -70,7 +77,13 @@ export async function searchAddresses(
     ) {
       return [];
     }
-    return [{ label, lng: coordinates[0], lat: coordinates[1] }];
+    const details = Object.fromEntries(
+      DETAILS.flatMap((key) => {
+        const value = feature.properties?.[key];
+        return typeof value === "string" && value ? [[key, value]] : [];
+      })
+    );
+    return [{ label, lng: coordinates[0], lat: coordinates[1], ...details }];
   });
 }
 
