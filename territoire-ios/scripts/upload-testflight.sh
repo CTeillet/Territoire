@@ -46,14 +46,33 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Temporary keychain holding only the distribution certificate and its private key.
+# The keychain reports any PKCS#12 it cannot read as a wrong password, and refused the .p12 made by
+# OpenSSL 3 on Windows. OpenSSL opens it first (a wrong password is then reported as such), then
+# macOS's own LibreSSL re-exports it in the format the keychain accepts.
 printf '%s' "$IOS_DISTRIBUTION_P12_BASE64" | base64 --decode > "$WORK/distribution.p12"
+LIBRESSL=/usr/bin/openssl
+[ -x "$LIBRESSL" ] || fail "LibreSSL de macOS introuvable ($LIBRESSL)."
+echo "OpenSSL : $(openssl version) ; macOS : $("$LIBRESSL" version)"
+if ! openssl pkcs12 -in "$WORK/distribution.p12" -passin env:IOS_DISTRIBUTION_P12_PASSWORD \
+  -nodes -out "$WORK/identity.pem" 2> "$WORK/pkcs12.log"; then
+  cat "$WORK/pkcs12.log" >&2
+  fail "OpenSSL ne peut pas ouvrir le .p12 : vérifier les secrets IOS_DISTRIBUTION_P12_BASE64 et IOS_DISTRIBUTION_P12_PASSWORD."
+fi
+grep -q "BEGIN CERTIFICATE" "$WORK/identity.pem" && grep -q "PRIVATE KEY" "$WORK/identity.pem" \
+  || fail "Le .p12 doit contenir le certificat et sa clé privée."
+IMPORT_PASSWORD="$(openssl rand -hex 24)"
+export IMPORT_PASSWORD
+"$LIBRESSL" pkcs12 -export -in "$WORK/identity.pem" -out "$WORK/keychain.p12" -passout env:IMPORT_PASSWORD \
+  || fail "Réexport du certificat impossible avec LibreSSL."
+rm -f "$WORK/identity.pem"
+
+# Temporary keychain holding only the distribution certificate and its private key.
 security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 security set-keychain-settings -lut 3600 "$KEYCHAIN"
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-security import "$WORK/distribution.p12" -k "$KEYCHAIN" -P "$IOS_DISTRIBUTION_P12_PASSWORD" \
+security import "$WORK/keychain.p12" -k "$KEYCHAIN" -P "$IMPORT_PASSWORD" \
   -A -t cert -f pkcs12 >/dev/null \
-  || fail "Import du certificat impossible : vérifier le fichier .p12 et son mot de passe."
+  || fail "Le trousseau macOS refuse le certificat réexporté."
 security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
 # shellcheck disable=SC2046 # one keychain path per word, as printed by security.
 security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
