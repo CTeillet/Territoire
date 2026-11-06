@@ -46,9 +46,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# The keychain reports any PKCS#12 it cannot read as a wrong password, and refused the .p12 made by
-# OpenSSL 3 on Windows. OpenSSL opens it first (a wrong password is then reported as such), then
-# macOS's own LibreSSL re-exports it in the format the keychain accepts.
+# The keychain gives the same "wrong password" message for a wrong password and for a PKCS#12 it
+# cannot read. OpenSSL opens the .p12 first, so a wrong password is reported as such; macOS's own
+# LibreSSL then re-exports it in a format the keychain accepts, whatever tool made the original.
 printf '%s' "$IOS_DISTRIBUTION_P12_BASE64" | base64 --decode > "$WORK/distribution.p12"
 LIBRESSL=/usr/bin/openssl
 [ -x "$LIBRESSL" ] || fail "LibreSSL de macOS introuvable ($LIBRESSL)."
