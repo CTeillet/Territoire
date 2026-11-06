@@ -43,6 +43,8 @@ BUILT_APP="$DERIVED/Build/Products/Release-iphoneos/TMS.app"
 test -x "$BUILT_APP/TMS"
 # The home screen icon is compiled from App/Assets.xcassets.
 test -f "$BUILT_APP/Assets.car"
+# App Store Connect requires the reasons for UserDefaults and systemUptime.
+/usr/bin/plutil -lint "$BUILT_APP/PrivacyInfo.xcprivacy"
 /usr/bin/plutil -lint "$BUILT_APP/Info.plist"
 mkdir -p "$STAGING/Payload"
 /usr/bin/ditto "$BUILT_APP" "$STAGING/Payload/TMS.app"

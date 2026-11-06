@@ -5,6 +5,9 @@ on:
     paths:
       - "territoire-ios/**"
       - ".github/workflows/ios-app.yml"
+  # A TestFlight build expires after 90 days: a monthly upload keeps the app installed.
+  schedule:
+    - cron: "17 5 1 * *"
   workflow_dispatch:
     inputs:
       extra_protocols:
@@ -23,7 +26,8 @@ concurrency:
 jobs:
   build:
     name: Tests Swift et IPA iPhone non signé
-    runs-on: macos-15
+    # Xcode 26 (default on this image) is required by App Store Connect: the tested build is the uploaded one.
+    runs-on: macos-26
     timeout-minutes: 20
     defaults:
       run:
@@ -62,11 +66,13 @@ jobs:
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
           ## TMS pour iPhone
-          Téléchargez l'artefact **tms-ios-unsigned**, puis décompressez-le.
+          Sur master, une fois le compte Apple Developer configuré (README de
+          territoire-ios), l'app part sur TestFlight : rien à télécharger.
+
+          Sinon, téléchargez l'artefact **tms-ios-unsigned**, puis décompressez-le.
           Le fichier **TMS-unsigned.ipa** doit être signé et installé depuis Windows
-          avec Sideloadly ou AltStore Classic et votre propre compte Apple. Il remplace
-          TMS Impression (même identifiant). Avec un compte gratuit, la signature est
-          à renouveler tous les 7 jours.
+          avec Sideloadly ou AltStore Classic et votre propre compte Apple. Avec un
+          compte gratuit, la signature est à renouveler tous les 7 jours.
 
           Ouvrez **TMS** sur un véritable iPhone et connectez-vous, puis :
           - Après une attribution, touchez **Imprimer** dans la carte d'étiquette :
@@ -83,3 +89,49 @@ jobs:
 
           Le build valide le code, pas le Bluetooth physique ni le parcours dans TMS.
           SUMMARY
+
+  testflight:
+    name: Signature et envoi sur TestFlight
+    needs: build
+    # Only master, and only once the Apple account is set up (variables and secrets in the README).
+    if: github.ref == 'refs/heads/master' && vars.APPLE_TEAM_ID != ''
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: territoire-ios
+        shell: bash
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      DIAGNOSTIC_EXTRA_PROTOCOLS: ${{ inputs.extra_protocols || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Préparer XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null; then
+            brew install xcodegen
+          fi
+
+      - name: Signer et envoyer sur TestFlight
+        env:
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ vars.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          IOS_APPSTORE_PROFILE_BASE64: ${{ secrets.IOS_APPSTORE_PROFILE_BASE64 }}
+          # Increases at each run, rerun included: App Store Connect refuses a build number twice.
+          BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}
+        run: bash scripts/upload-testflight.sh
+
+      - name: Journaux de signature et d'envoi
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tms-ios-testflight-logs
+          path: territoire-ios/build/testflight/
+          if-no-files-found: ignore
+          retention-days: 14
