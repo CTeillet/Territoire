@@ -17,8 +17,11 @@ targets:
       - path: Core
     settings:
       base:
-        # Identifier of the former TMS Impression app: Sideloadly replaces it instead of adding a second app.
-        PRODUCT_BUNDLE_IDENTIFIER: fr.cteillet.tms.printerdiagnostic
+        # Registered in the Apple Developer team for TestFlight (README). The former Sideloadly app
+        # (fr.cteillet.tms.printerdiagnostic) belongs to the free team and is not replaced.
+        PRODUCT_BUNDLE_IDENTIFIER: fr.cteillet.tms
+        # The TestFlight upload overrides it with a number that increases at each run.
+        CURRENT_PROJECT_VERSION: "5"
         INFOPLIST_FILE: App/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"

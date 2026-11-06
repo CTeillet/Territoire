@@ -3,8 +3,8 @@
 Une seule app sur l'écran d'accueil : **TMS**. Elle affiche le site TMS
 (`TMSBaseURL` dans App/Info.plist, https://tms.cteillet.fr) et imprime les
 étiquettes d'attribution sur la PT-P710BT, sans passer par Safari ni par une
-autre app. Elle remplace TMS Impression (versions 1.x), dont elle reprend
-l'identifiant : Sideloadly l'installe par-dessus.
+autre app. Elle s'installe depuis TestFlight (identifiant `fr.cteillet.tms`), ou
+depuis Windows avec Sideloadly et un compte Apple gratuit.
 
 Les écrans de TMS viennent du site : un déploiement du front suffit à les mettre
 à jour, sans réinstaller l'app. L'app n'ajoute que ce qu'un navigateur ne sait pas
@@ -16,15 +16,14 @@ jour, la version 2.1 (TMS dans l'app, impression directe depuis TMS) a été
 installée et utilisée avec succès sur l'iPhone.
 
 L'impression utilise l'API publique Apple External Accessory et une adaptation du
-protocole raster de territoire-front/lib/ptouch.ts. Aucun SDK Brother privé,
-serveur d'impression ou abonnement Apple payant n'est requis. À l'utilisation,
-seuls l'iPhone, l'imprimante et l'accès à TMS sont nécessaires ; le PC sert à
-signer et renouveler l'installation.
+protocole raster de territoire-front/lib/ptouch.ts. Aucun SDK Brother privé ni
+serveur d'impression n'est requis. À l'utilisation, seuls l'iPhone, l'imprimante
+et l'accès à TMS sont nécessaires. L'abonnement Apple Developer ne sert qu'à
+TestFlight ; sans lui, le PC signe l'app et la renouvelle tous les 7 jours.
 
 ## Utiliser l'app
 
-1. Installer l'IPA avec Sideloadly (voir plus bas), avec le même compte Apple que
-   TMS Impression s'il était installé.
+1. Installer TMS depuis TestFlight, ou l'IPA avec Sideloadly (voir plus bas).
 2. Ouvrir **TMS** et se connecter avec son compte TMS. La session reste ouverte
    d'un lancement à l'autre, comme dans Safari ; elle est propre à l'app (se
    connecter dans Safari ne connecte pas l'app).
@@ -92,6 +91,90 @@ L'app n'accepte ces messages que de la page principale, à l'origine exacte de
 `TMSBaseURL` : ni d'un cadre intégré, ni d'une fenêtre ouverte par la page, ni d'un
 autre site. Le message ne contient aucune commande d'imprimante.
 
+## Installer avec TestFlight (compte Apple Developer)
+
+Avec l'Apple Developer Program (99 € par an), la CI signe l'app et l'envoie sur
+TestFlight à chaque modification de ce dossier poussée sur master, ainsi que le
+1er de chaque mois. L'iPhone installe et met à jour TMS depuis l'app TestFlight,
+sans PC et sans renouvellement tous les 7 jours. Une version TestFlight expire
+après 90 jours ; l'envoi mensuel en fournit toujours une plus récente.
+
+Les versions sont réservées aux testeurs internes de l'équipe : elles ne passent
+pas par la vérification d'Apple, et l'accord MFi de Brother (PPID), exigé pour
+l'App Store, n'est pas demandé.
+
+### Mise en place, une fois, depuis Windows
+
+Travailler dans un dossier hors du dépôt : les fichiers créés contiennent des clés
+privées.
+
+1. Adhérer à l'[Apple Developer Program](https://developer.apple.com/programs/enroll/)
+   en tant que particulier. Relever l'**identifiant d'équipe** (Team ID,
+   10 caractères) dans [Membership details](https://developer.apple.com/account).
+2. Dans [Identifiers](https://developer.apple.com/account/resources/identifiers/list),
+   créer un App ID de type App, avec l'identifiant explicite `fr.cteillet.tms`, sans
+   capacité supplémentaire.
+3. Créer la clé privée et la demande de certificat dans Git Bash :
+
+       openssl genrsa -out tms-distribution.key 2048
+       MSYS_NO_PATHCONV=1 openssl req -new -key tms-distribution.key -out tms-distribution.csr -subj "/CN=TMS Distribution/C=FR"
+
+   `MSYS_NO_PATHCONV=1` empêche Git Bash de prendre `/CN=…` pour un chemin.
+
+   Dans [Certificates](https://developer.apple.com/account/resources/certificates/list),
+   créer un certificat **Apple Distribution** avec `tms-distribution.csr`, télécharger
+   `distribution.cer`, puis :
+
+       openssl x509 -inform DER -in distribution.cer -out tms-distribution.pem
+       openssl pkcs12 -export -inkey tms-distribution.key -in tms-distribution.pem -out tms-distribution.p12 -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES -macalg sha1
+
+   Choisir un mot de passe à l'invite. Les options `-certpbe`, `-keypbe` et `-macalg`
+   produisent un fichier que le trousseau de macOS sait importer.
+4. Dans [Profiles](https://developer.apple.com/account/resources/profiles/list), créer
+   un profil de distribution **App Store Connect** pour `fr.cteillet.tms` avec ce
+   certificat, puis le télécharger (fichier `.mobileprovision`).
+5. Dans [App Store Connect](https://appstoreconnect.apple.com/apps), créer une nouvelle
+   app iOS : langue française, identifiant `fr.cteillet.tms`, référence (SKU)
+   `tms-ios` par exemple. Le nom doit être unique sur l'App Store, « TMS » est
+   probablement pris ; sur l'écran d'accueil, l'app s'appelle toujours TMS.
+6. Dans App Store Connect, **Utilisateurs et accès > Intégrations > App Store Connect
+   API**, générer une clé d'équipe avec le rôle **Gestionnaire d'apps**. Télécharger
+   `AuthKey_<ID de clé>.p8` (possible une seule fois) et relever l'**ID de clé** et
+   l'**ID de l'émetteur**.
+7. Dans l'app, onglet **TestFlight > Tests internes**, créer un groupe, s'y ajouter
+   et laisser la distribution automatique activée.
+8. Enregistrer les variables et les secrets du dépôt, dans Git Bash depuis ce
+   dossier :
+
+       gh variable set APPLE_TEAM_ID -R CTeillet/Territoire --body "<Team ID>"
+       gh variable set APP_STORE_CONNECT_KEY_ID -R CTeillet/Territoire --body "<ID de clé>"
+       gh variable set APP_STORE_CONNECT_ISSUER_ID -R CTeillet/Territoire --body "<ID de l'émetteur>"
+       gh secret set APP_STORE_CONNECT_PRIVATE_KEY -R CTeillet/Territoire < AuthKey_<ID de clé>.p8
+       base64 -w0 tms-distribution.p12 | gh secret set IOS_DISTRIBUTION_P12_BASE64 -R CTeillet/Territoire
+       gh secret set IOS_DISTRIBUTION_P12_PASSWORD -R CTeillet/Territoire
+       base64 -w0 <profil>.mobileprovision | gh secret set IOS_APPSTORE_PROFILE_BASE64 -R CTeillet/Territoire
+
+   La sixième commande demande le mot de passe du `.p12` sans l'afficher. Tant que
+   `APPLE_TEAM_ID` n'existe pas, le workflow ne tente aucun envoi.
+9. Lancer le workflow **iOS - App TMS** sur master (Run workflow). Après le traitement
+   par Apple, souvent 5 à 30 minutes, installer
+   [TestFlight](https://apps.apple.com/app/testflight/id899247664) sur l'iPhone,
+   accepter l'invitation et installer TMS.
+
+L'identifiant change par rapport à l'app installée avec Sideloadly
+(`fr.cteillet.tms.printerdiagnostic`) : la version TestFlight s'installe à côté.
+S'y connecter, réactiver si besoin **Imprimer l'étiquette à chaque attribution faite
+depuis cet appareil**, essayer une impression, puis supprimer l'ancienne app.
+
+### Chaque année
+
+Le certificat Apple Distribution et le profil expirent au bout d'un an. Le résumé
+de chaque envoi donne la date d'expiration du profil, et Apple prévient par e-mail.
+Refaire les étapes 3 et 4, puis remplacer les secrets `IOS_DISTRIBUTION_P12_BASE64`,
+`IOS_DISTRIBUTION_P12_PASSWORD` et `IOS_APPSTORE_PROFILE_BASE64`. La clé d'API
+n'expire pas. Sans renouvellement, les envois échouent ; l'app déjà installée reste
+utilisable jusqu'à l'expiration de sa version TestFlight.
+
 ## Obtenir le fichier d'installation sans Mac
 
 1. Ouvrir le workflow **iOS - App TMS** dans les Actions du dépôt.
@@ -101,14 +184,15 @@ autre site. Le message ne contient aucune commande d'imprimante.
    son empreinte SHA-256, le journal de compilation et ce mode d'emploi.
 
 Les modifications de ce dossier déclenchent une compilation sur un runner macOS.
-Le workflow utilise uniquement des permissions de lecture et ne demande aucun
-certificat, secret Apple ou clé de signature.
+Le workflow utilise uniquement des permissions de lecture. L'IPA non signé ne
+demande aucun certificat, secret Apple ou clé de signature ; seul l'envoi TestFlight,
+sur master, utilise les secrets décrits plus haut.
 
 Le bouton Run workflow devient disponible lorsque le workflow est présent sur la
 branche par défaut. Avant cela, un push sur une branche de travail le déclenche
 également.
 
-## Installer depuis Windows avec un compte Apple gratuit
+## Installer depuis Windows avec un compte Apple gratuit, sans TestFlight
 
 Le fichier IPA produit n'est pas directement installable : il doit être signé pour
 ton appareil avec ton propre compte Apple.
@@ -125,8 +209,10 @@ ton appareil avec ton propre compte Apple.
 6. Ouvrir **TMS**.
 
 Une mise à jour s'installe de la même façon, par-dessus la version en place : la
-session TMS et les réglages de l'app sont conservés. TMS Impression 1.x est
-remplacée, pas dupliquée, car l'identifiant de l'app est le même.
+session TMS et les réglages de l'app sont conservés. L'identifiant est devenu
+`fr.cteillet.tms` avec TestFlight : une première installation par-dessus une TMS ou
+une TMS Impression plus ancienne (`fr.cteillet.tms.printerdiagnostic`) s'ajoute à
+côté, et l'ancienne app est à supprimer.
 
 [AltStore Classic pour Windows](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows)
 est une autre possibilité de signature/installation.
@@ -200,7 +286,9 @@ l'app avec ce nom :
 Le fabricant contrôle l'accès des apps aux accessoires MFi. Brother précise que
 les modèles hors liste standard, dont la PT-P710BT, demandent une requête spéciale
 pour la distribution d'applications. Le sideloading ne garantit pas cet accès et
-cette app ne valide pas une future autorisation de distribution.
+cette app ne valide pas une future autorisation de distribution. Cet accord, qui
+fournit le PPID demandé par Apple, n'est exigé que pour l'App Store : Sideloadly et
+les testeurs internes de TestFlight s'en passent.
 
 ## Développement et vérifications
 
