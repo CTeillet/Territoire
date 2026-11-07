@@ -96,6 +96,36 @@ describe("Carte physique d'un territoire", () => {
     expect(screen.getByRole("button", { name: "Télécharger" })).toBeDisabled();
   });
 
+  it("régénère l'aperçu quand le plan IGN n'a pas été chargé en entier", async () => {
+    let calls = 0;
+    mockApi({
+      [`GET ${CARD_URL}`]: () =>
+        ++calls === 1
+          ? jsonResponse(
+              {
+                error:
+                  "Le plan IGN n'a pas pu être chargé en entier : réessayez dans un instant",
+              },
+              409
+            )
+          : {},
+    });
+    renderWithStore(
+      <PhysicalCardDialog territoryId="t1" territoryName="R-12" hasCard />
+    );
+    await open();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "réessayez dans un instant"
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+
+    expect(
+      await screen.findByAltText("Carte physique du territoire R-12")
+    ).toHaveAttribute("src", "blob:carte-physique");
+    expect(calls).toBe(2);
+  });
+
   it("télécharge l'aperçu en PNG", async () => {
     mockApi({ [`GET ${CARD_URL}`]: {} });
     renderWithStore(
