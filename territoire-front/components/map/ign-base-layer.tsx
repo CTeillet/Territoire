@@ -71,7 +71,9 @@ export function IgnBaseLayer({ themes }: { themes: readonly PlanTheme[] }) {
     let stopWaiting = () => {};
     (async () => {
       try {
-        const [{ maplibreGL }, style] = await Promise.all([
+        const [, { maplibreGL }, style] = await Promise.all([
+          // Donne à MapLibre l'adresse de son worker, avant que la couche crée la carte
+          import("@/lib/maplibre"),
           import("@maplibre/maplibre-gl-leaflet"),
           loadIgnStyle(),
         ]);
