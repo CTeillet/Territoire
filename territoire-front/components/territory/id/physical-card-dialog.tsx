@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Download, Loader2, MapIcon, Save, TriangleAlert } from "lucide-react";
+import {
+  Download,
+  Loader2,
+  MapIcon,
+  RotateCw,
+  Save,
+  TriangleAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -198,6 +205,15 @@ export function PhysicalCardDialog({
                 className="h-6 w-6 text-destructive"
               />
               <p>{preview.message}</p>
+              {/* Nouvelle génération : le plan IGN répond d'ordinaire au deuxième essai */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSession((value) => value + 1)}
+              >
+                <RotateCw aria-hidden="true" />
+                Réessayer
+              </Button>
             </div>
           )}
         </div>

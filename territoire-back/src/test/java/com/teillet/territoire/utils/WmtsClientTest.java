@@ -25,6 +25,8 @@ class WmtsClientTest {
 	private HttpServer server;
 	private final AtomicInteger requests = new AtomicInteger();
 	private volatile boolean failTiles;
+	/** Nombre de premières requêtes en échec : une panne passagère de l'IGN. */
+	private volatile int failFirstRequests;
 	private WmtsClient client;
 
 	@BeforeEach
@@ -32,7 +34,7 @@ class WmtsClientTest {
 		server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		server.createContext("/wmts", exchange -> {
 			requests.incrementAndGet();
-			if (failTiles) {
+			if (failTiles || requests.get() <= failFirstRequests) {
 				exchange.sendResponseHeaders(503, -1);
 				exchange.close();
 				return;
@@ -51,6 +53,7 @@ class WmtsClientTest {
 		props.setStyle("normal");
 		props.setFormat("image/png");
 		client = new WmtsClient(props);
+		client.retryDelayMillis = 0;
 	}
 
 	@AfterEach
@@ -91,6 +94,33 @@ class WmtsClientTest {
 		TileImage mosaic = client.fetchTiles(rennes(0.005), 15);
 
 		assertEquals(new Color(235, 235, 235).getRGB(), mosaic.img().getRGB(5, 5));
+		int tiles = (mosaic.pixelWidth() / MapMath.TILE_SIZE) * (mosaic.pixelHeight() / MapMath.TILE_SIZE);
+		assertEquals(tiles, mosaic.failedTiles());
+		int retried = Math.min(tiles, WmtsClient.MAX_FAILED_WITH_RETRIES);
+		assertEquals(retried * WmtsClient.MAX_ATTEMPTS + (tiles - retried), requests.get(), "les premières tuiles sont réessayées");
+	}
+
+	@Test
+	void fetchTiles_ServerDown_StopsRetryingAfterAFewTiles() {
+		failTiles = true;
+
+		TileImage mosaic = client.fetchTiles(rennes(0.05), 15);
+
+		int tiles = mosaic.failedTiles();
+		assertTrue(tiles > WmtsClient.MAX_FAILED_WITH_RETRIES, tiles + " tuiles");
+		assertEquals(WmtsClient.MAX_FAILED_WITH_RETRIES * WmtsClient.MAX_ATTEMPTS + tiles - WmtsClient.MAX_FAILED_WITH_RETRIES,
+				requests.get());
+	}
+
+	@Test
+	void fetchTiles_TransientFailure_TileRetried() {
+		failFirstRequests = 2;
+
+		TileImage mosaic = client.fetchTiles(rennes(0.0001), 15);
+
+		assertEquals(0, mosaic.failedTiles());
+		assertEquals(Color.RED.getRGB(), mosaic.img().getRGB(5, 5));
+		assertEquals(3, requests.get());
 	}
 
 	@Test
@@ -131,7 +161,9 @@ class WmtsClientTest {
 		props.setFormat("image/png");
 		server.stop(0);
 
-		TileImage mosaic = new WmtsClient(props).fetchTiles(rennes(0.005), 15);
+		WmtsClient unreachable = new WmtsClient(props);
+		unreachable.retryDelayMillis = 0;
+		TileImage mosaic = unreachable.fetchTiles(rennes(0.005), 15);
 
 		assertEquals(new Color(235, 235, 235).getRGB(), mosaic.img().getRGB(5, 5));
 	}

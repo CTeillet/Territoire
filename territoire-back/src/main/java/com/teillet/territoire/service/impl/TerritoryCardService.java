@@ -76,8 +76,6 @@ public class TerritoryCardService implements ITerritoryCardService {
 
 	/** Niveaux de zoom des tuiles : au-delà de 18, Plan IGN n'apporte plus rien ; en deçà de 12, on ne lit plus les rues. */
 	static final int MIN_ZOOM = 12, MAX_ZOOM = 18;
-	/** Emprise minimale du plan (mètres EPSG:3857, environ 230 m au sol) : un territoire d'un pâté reste situé dans son quartier. */
-	static final double MIN_EXTENT_METERS = 350;
 
 	private static final BufferedImage TEMPLATE = loadTemplate();
 
@@ -137,6 +135,10 @@ public class TerritoryCardService implements ITerritoryCardService {
 	private void drawMap(Graphics2D g, Geometry hull, CardFraming framing, boolean hasAddressesNotToDo) {
 		Envelope extent = mapExtent(hull.getEnvelopeInternal(), framing);
 		TileImage tiles = wmtsClient.fetchTiles3857(extent, zoomFor(extent));
+		// Une tuile manquante laisserait un carré gris sur la carte imprimée
+		if (tiles.failedTiles() > 0) {
+			throw new IllegalStateException("Le plan IGN n'a pas pu être chargé en entier : réessayez dans un instant");
+		}
 
 		// Pixels du modèle par mètre : l'emprise a les proportions du cadre
 		double scale = MAP_FRAME.getWidth() / extent.getWidth();
@@ -174,11 +176,12 @@ public class TerritoryCardService implements ITerritoryCardService {
 
 	/**
 	 * Emprise du plan (EPSG:3857), aux proportions du cadre et centrée sur le territoire, qui en occupe la part
-	 * demandée par le cadrage.
+	 * demandée par le cadrage. Un petit territoire prend la largeur minimale du cadrage : sans elle, une barre
+	 * d'immeubles remplirait le cadre au zoom maximal, avec un seul nom de rue, quel que soit le cadrage choisi.
 	 */
 	public static Envelope mapExtent(Envelope territory, CardFraming framing) {
 		double aspect = MAP_FRAME.getWidth() / MAP_FRAME.getHeight();
-		double width = Math.max(MIN_EXTENT_METERS,
+		double width = Math.max(framing.minExtentMeters(),
 				Math.max(territory.getWidth(), territory.getHeight() * aspect) / framing.share());
 		double height = width / aspect;
 		Coordinate center = territory.centre();

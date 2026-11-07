@@ -129,6 +129,19 @@ class TerritoryCardServiceTest {
 	}
 
 	@Test
+	void renderCard_MissingTiles_RefusedRatherThanGreySquares() {
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP33", "Paray", hullWkb(), 0)));
+		when(wmtsClient.fetchTiles3857(any(Envelope.class), anyInt())).thenAnswer(invocation -> new TileImage(
+				new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB), new Envelope(invocation.<Envelope>getArgument(0)), 256, 256, 1));
+
+		IllegalStateException error = assertThrows(IllegalStateException.class,
+				() -> cardService.saveCard(territoryId, CardFraming.NORMAL));
+
+		assertTrue(error.getMessage().contains("réessayez"));
+		verifyNoInteractions(territoryService);
+	}
+
+	@Test
 	void saveCard_StoresThePngAsTheTerritoryMap() {
 		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP 7", "Paray", hullWkb(), 0)));
 
@@ -141,7 +154,7 @@ class TerritoryCardServiceTest {
 
 	@Test
 	void mapExtent_HasTheFrameProportionsAndCentersTheTerritory() {
-		Envelope territory = new Envelope(1000, 1600, 5000, 5200);
+		Envelope territory = new Envelope(1000, 2200, 5000, 5300);
 
 		Envelope extent = TerritoryCardService.mapExtent(territory, CardFraming.NORMAL);
 
@@ -167,9 +180,28 @@ class TerritoryCardServiceTest {
 
 	@Test
 	void mapExtent_TinyTerritoryKeepsItsNeighbourhood() {
-		Envelope extent = TerritoryCardService.mapExtent(new Envelope(0, 10, 0, 10), CardFraming.TIGHT);
+		Envelope tiny = new Envelope(0, 10, 0, 10);
 
-		assertEquals(350, extent.getWidth(), 1e-9);
+		for (CardFraming framing : CardFraming.values()) {
+			assertEquals(framing.minExtentMeters(), TerritoryCardService.mapExtent(tiny, framing).getWidth(), 1e-9);
+		}
+	}
+
+	/**
+	 * Une barre d'immeubles (PVP33, 156 × 28 m en EPSG:3857) remplissait le cadre au zoom 18 quel que soit le cadrage,
+	 * avec un seul nom de rue : chaque cadrage doit montrer un quartier plus étendu, à un niveau de zoom de moins.
+	 */
+	@Test
+	void mapExtent_SmallTerritory_EachFramingZoomsOut() {
+		Envelope strip = new Envelope(262_398, 262_554, 6_241_730, 6_241_758);
+
+		int tight = TerritoryCardService.zoomFor(TerritoryCardService.mapExtent(strip, CardFraming.TIGHT));
+		int normal = TerritoryCardService.zoomFor(TerritoryCardService.mapExtent(strip, CardFraming.NORMAL));
+		int wide = TerritoryCardService.zoomFor(TerritoryCardService.mapExtent(strip, CardFraming.WIDE));
+
+		assertEquals(18, tight);
+		assertEquals(17, normal);
+		assertEquals(16, wide);
 	}
 
 	@Test
