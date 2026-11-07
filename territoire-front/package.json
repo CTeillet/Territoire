@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.20.4",
-    "@hookform/resolvers": "^6.0.2",
+    "@hookform/resolvers": "^7.0.1",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.223.0",
     "@opentelemetry/instrumentation": "^0.223.0",

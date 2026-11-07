@@ -13,6 +13,7 @@ import { UpdateTerritoryDto } from "@/models/update-territory-dto";
 import { TerritoryStatusHistoryDto } from "@/models/territory-status-history";
 import { SchoolYearPeriod } from "@/models/school-year-period";
 import { TerritoryStatisticsBreakdown } from "@/models/campaign-statistics";
+import { CardFraming } from "@/models/card-framing";
 
 interface TerritoryDistribution {
   cityName: string;
@@ -443,6 +444,34 @@ export const updateTerritoryLost = createAsyncThunk(
     }
 
     return { territoryId, lost };
+  }
+);
+
+/**
+ * Génère la carte physique du territoire (formulaire « Carte de territoire » avec le plan du quartier) et la garde
+ * comme carte du territoire, celle de la page « Impression des cartes ».
+ */
+export const saveTerritoryCard = createAsyncThunk(
+  "territories/saveTerritoryCard",
+  async (
+    { territoryId, framing }: { territoryId: string; framing: CardFraming },
+    { rejectWithValue }
+  ) => {
+    const response = await authFetch(
+      `${BASE_URL}/${territoryId}/carte-physique?cadrage=${framing}`,
+      { method: "POST" }
+    );
+
+    if (!response.ok) {
+      return rejectWithValue(
+        await apiErrorMessage(
+          response,
+          "Erreur lors de l'enregistrement de la carte"
+        )
+      );
+    }
+
+    return territoryId;
   }
 );
 
@@ -1083,6 +1112,14 @@ const territorySlice = createSlice({
       .addCase(updateTerritoryLost.rejected, (state, action) => {
         state.updating = false;
         state.error = action.payload as string;
+      })
+
+      // La carte du territoire est servie sous l'identifiant du territoire (cf. TerritoryMapper)
+      .addCase(saveTerritoryCard.fulfilled, (state, action) => {
+        updateTerritoryEverywhere(state, action.payload, (t) => {
+          t.territoryMapId = action.payload;
+          t.lastModifiedDate = format(new Date(), "yyyy-MM-dd");
+        });
       })
 
       // Seul le statut change : les attributions et le dernier parcours restent ceux du dernier retour

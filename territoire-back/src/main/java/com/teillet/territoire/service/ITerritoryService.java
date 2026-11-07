@@ -76,6 +76,16 @@ public interface ITerritoryService {
     Territory uploadTerritoryMap(UUID territoryId, MultipartFile file) throws IOException;
 
     /**
+     * Remplace l'image de la carte d'un territoire (carte importée ou carte physique générée).
+     * @param territoryId L'identifiant du territoire
+     * @param content L'image
+     * @param fileName Le nom du fichier, repris au téléchargement
+     * @param contentType Le type de l'image (image/png...)
+     * @return Le territoire modifié
+     */
+    Territory storeTerritoryMap(UUID territoryId, byte[] content, String fileName, String contentType);
+
+    /**
      * Retrieves a territory map image.
      * @param territoryId The ID of the territory
      * @return The territory with the map image

@@ -399,18 +399,21 @@ public class TerritoryService implements ITerritoryService {
 		log.info("Début : Upload de la carte du territoire {}", territoryId);
 
 		validateMapFile(file);
-		Territory territory = getTerritory(territoryId);
-
-		// Store the file data directly using getBytes()
-		territory.setTerritoryMap(file.getBytes());
-		territory.setTerritoryMapName(file.getOriginalFilename());
-		territory.setTerritoryMapContentType(file.getContentType());
-		territory.setLastModifiedDate(LocalDate.now());
-
-		Territory savedTerritory = territoryRepository.save(territory);
+		Territory savedTerritory = storeTerritoryMap(territoryId, file.getBytes(), file.getOriginalFilename(), file.getContentType());
 
 		log.info("Fin : Upload de la carte du territoire {}", territoryId);
 		return savedTerritory;
+	}
+
+	@Override
+	@Transactional
+	public Territory storeTerritoryMap(UUID territoryId, byte[] content, String fileName, String contentType) {
+		Territory territory = getTerritory(territoryId);
+		territory.setTerritoryMap(content);
+		territory.setTerritoryMapName(fileName);
+		territory.setTerritoryMapContentType(contentType);
+		territory.setLastModifiedDate(LocalDate.now());
+		return territoryRepository.save(territory);
 	}
 
 	/** Seules des images raster de taille raisonnable sont acceptées (pas de SVG/HTML, servis depuis la même origine que l'application). */

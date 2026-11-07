@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
@@ -12,7 +12,15 @@ import dynamic from "next/dynamic";
 import { BackLink, PageContainer } from "@/components/shared/page-layout";
 import { useAuth } from "@/hooks/use-auth";
 import TerritoryMapViewer from "@/components/territory/id/territory-map-viewer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { PhysicalCardDialog } from "@/components/territory/id/physical-card-dialog";
+import { canManageTerritoryCards } from "@/models/role";
 
 // Chargement dynamique de la carte (évite les erreurs SSR)
 const TerritoryIdMap = dynamic(
@@ -30,6 +38,9 @@ const TerritoryPage = () => {
   const { selectedTerritory } = useSelector(
     (state: RootState) => state.territories
   );
+  const user = useSelector((state: RootState) => state.auth.user);
+  // Changé à chaque carte physique enregistrée : l'image de la carte est rechargée
+  const [mapVersion, setMapVersion] = useState(0);
 
   // Redirection si non authentifié
   useEffect(() => {
@@ -55,6 +66,15 @@ const TerritoryPage = () => {
   if (!selectedTerritory) {
     return <p>Chargement du territoire...</p>;
   }
+
+  const cardActions = canManageTerritoryCards(user?.role) && (
+    <PhysicalCardDialog
+      territoryId={selectedTerritory.id}
+      territoryName={selectedTerritory.name}
+      hasCard={Boolean(selectedTerritory.territoryMapId)}
+      onSaved={() => setMapVersion((version) => version + 1)}
+    />
+  );
 
   return (
     <PageContainer>
@@ -84,12 +104,15 @@ const TerritoryPage = () => {
         {/* Carte du territoire (Image) */}
         {selectedTerritory.territoryMapId ? (
           <TerritoryMapViewer
+            key={mapVersion}
             territoryMapId={selectedTerritory.territoryMapId}
+            actions={cardActions}
           />
         ) : (
           <Card>
             <CardHeader>
               <CardTitle>Carte du territoire</CardTitle>
+              {cardActions && <CardAction>{cardActions}</CardAction>}
             </CardHeader>
             <CardContent className="flex justify-center">
               <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-md w-full">
