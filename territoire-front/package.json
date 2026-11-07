@@ -21,9 +21,9 @@
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.20.5",
     "@hookform/resolvers": "^7.0.2",
-    "@opentelemetry/api": "^1.10.0",
+    "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.223.0",
-    "@opentelemetry/instrumentation": "^0.300.0",
+    "@opentelemetry/instrumentation": "^0.223.0",
     "@opentelemetry/resources": "^2.12.0",
     "@opentelemetry/sdk-logs": "^0.223.0",
     "@opentelemetry/sdk-metrics": "^2.12.0",
