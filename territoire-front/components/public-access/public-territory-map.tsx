@@ -8,7 +8,6 @@ import {
   GeoJSON,
   MapContainer,
   Polyline,
-  TileLayer,
   useMap,
 } from "react-leaflet";
 import { geoJSON, LatLngBounds, latLngBounds } from "leaflet";
@@ -23,6 +22,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { UserPosition, useUserPosition } from "@/hooks/use-user-position";
 import { keepPageForOffline } from "@/lib/public-access-offline";
+import { IgnBaseLayer } from "@/components/map/ign-base-layer";
+import { PlanTheme } from "@/models/plan-theme";
 import {
   directionsLinks,
   distanceMeters,
@@ -32,6 +33,7 @@ import {
   nearestPointOnOutline,
   TravelMode,
 } from "@/lib/geo";
+import { MAP_MAX_ZOOM } from "@/lib/ign-plan";
 
 const TRAVEL_MODE_KEY = "itineraire-mode";
 
@@ -96,7 +98,14 @@ function FitToUserPosition({
  * de la personne si elle l'active (pour s'orienter sur place) et un itinéraire jusqu'au territoire.
  * Chargée uniquement côté navigateur (Leaflet n'existe pas côté serveur).
  */
-export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
+export default function PublicTerritoryMap({
+  geojson,
+  mapThemes,
+}: {
+  geojson: string;
+  /** Thèmes du Plan IGN du fond (réglés dans Paramètres > Cartes, reçus avec la page). */
+  mapThemes: readonly PlanTheme[];
+}) {
   const locate = useUserPosition();
   const [travelMode, setTravelMode] = useTravelMode();
   // La carte est chargée à part : ses fichiers (Leaflet) sont gardés pour l'ouvrir aussi sans réseau
@@ -167,14 +176,12 @@ export default function PublicTerritoryMap({ geojson }: { geojson: string }) {
       <MapContainer
         bounds={bounds}
         boundsOptions={{ padding: [20, 20] }}
+        maxZoom={MAP_MAX_ZOOM}
         scrollWheelZoom={false}
         style={{ height: "320px", width: "100%", zIndex: 0 }}
         className="rounded-md border"
       >
-        <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
+        <IgnBaseLayer themes={mapThemes} />
         <GeoJSON
           data={blocks}
           style={{ color: "#2563eb", weight: 1, fillOpacity: 0.15 }}

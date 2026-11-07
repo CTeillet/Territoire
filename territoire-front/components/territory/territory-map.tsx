@@ -19,13 +19,16 @@ import { Maximize2, Minimize2 } from "lucide-react";
 import { buildTerritoryPopup } from "@/components/territory/territory-popup";
 import { MAP_HEIGHT_CLASSES } from "@/components/shared/map-height";
 import { territoryStatusStyle } from "@/components/territory/territory-status";
+import { MAP_MAX_ZOOM } from "@/lib/ign-plan";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
   { ssr: false }
 );
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
+// Fond : le Plan IGN vectoriel, avec les thèmes réglés pour cette carte (Paramètres > Cartes)
+const MapBackground = dynamic(
+  () =>
+    import("@/components/map/ign-base-layer").then((mod) => mod.MapBackground),
   { ssr: false }
 );
 const GeoJSON = dynamic(
@@ -78,16 +81,14 @@ const TerritoryMap: React.FC<TerritoryCollectionProps> = ({
         <MapContainer
           center={center}
           zoom={15}
+          maxZoom={MAP_MAX_ZOOM}
           style={{ height: "100%", width: "100%", zIndex: 0 }}
         >
           <MapUpdater
             isSidebarOpen={sidebar.state === "expanded"}
             isExpanded={isExpanded}
           />
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-          />
+          <MapBackground view="TERRITORIES" />
           <GeoJSON
             key={selectionKey}
             onEachFeature={onEachFeature}

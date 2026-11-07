@@ -5,6 +5,7 @@ import com.teillet.territoire.dto.CreateTerritoryRequestDto;
 import com.teillet.territoire.dto.PersonAccessStatusDto;
 import com.teillet.territoire.dto.PublicAccessDto;
 import com.teillet.territoire.enums.AccessStatus;
+import com.teillet.territoire.enums.MapView;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.model.Assignment;
@@ -292,6 +293,7 @@ public class PersonAccessService implements IPersonAccessService {
 				.territories(territories)
 				.cities(territoryRequestService.getRequestableCities())
 				.pendingRequest(territoryRequestService.getPendingRequest(person.getId()))
+				.mapThemes(settingService.getMapThemes(MapView.PUBLIC))
 				.build();
 	}
 

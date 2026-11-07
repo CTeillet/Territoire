@@ -91,6 +91,46 @@ class SettingControllerIntegrationTest {
 	}
 
 	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void testGetMapThemes_ReadableByAllButSetByAdminsAndSupervisors() throws Exception {
+		mockMvc.perform(get("/api/settings/cartes"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.maps.CARD[0]").value("PLACES"))
+				.andExpect(jsonPath("$.maps.CARD[1]").value("BUILDINGS"))
+				.andExpect(jsonPath("$.maps.TERRITORIES").isArray());
+
+		mockMvc.perform(put("/api/settings/cartes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"maps\":{\"CARD\":[\"HOUSES\"]}}"))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(roles = "ADMIN")
+	void testUpdateMapThemes() throws Exception {
+		mockMvc.perform(put("/api/settings/cartes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"maps\":{\"PUBLIC\":[\"NUMBERS\",\"PLACES\"]}}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.maps.PUBLIC[0]").value("PLACES"))
+				.andExpect(jsonPath("$.maps.PUBLIC[1]").value("NUMBERS"))
+				.andExpect(jsonPath("$.maps.CARD[0]").value("PLACES"));
+
+		mockMvc.perform(get("/api/settings/cartes"))
+				.andExpect(jsonPath("$.maps.PUBLIC.length()").value(2));
+
+		// Thème inconnu : refusé, rien n'est changé
+		mockMvc.perform(put("/api/settings/cartes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"maps\":{\"PUBLIC\":[\"PISCINES\"]}}"))
+				.andExpect(status().isBadRequest());
+		mockMvc.perform(put("/api/settings/cartes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
 	@WithMockUser(roles = "SUPERVISEUR")
 	void testUpdateDurationSettings() throws Exception {
 		mockMvc.perform(put("/api/settings/durees")

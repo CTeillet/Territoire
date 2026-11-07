@@ -3,7 +3,9 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { PhysicalCardDialog } from "@/components/territory/id/physical-card-dialog";
-import { DEFAULT_PLAN_THEMES, renderIgnPlan } from "@/lib/ign-plan";
+import { renderIgnPlan } from "@/lib/ign-plan";
+import { setCachedMapThemes } from "@/lib/map-themes";
+import { DEFAULT_MAP_THEMES } from "@/models/map-view";
 import { Territory } from "@/models/territory";
 import {
   jsonResponse,
@@ -60,6 +62,7 @@ describe("Carte physique d'un territoire", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.mocked(renderIgnPlan).mockReset();
+    setCachedMapThemes(null);
     vi.mocked(renderIgnPlan).mockResolvedValue(plan);
     URL.createObjectURL = vi.fn(() => "blob:carte-physique");
     URL.revokeObjectURL = vi.fn();
@@ -79,7 +82,7 @@ describe("Carte physique d'un territoire", () => {
     expect(
       await screen.findByAltText("Carte physique du territoire R-12")
     ).toHaveAttribute("src", "blob:carte-physique");
-    expect(renderIgnPlan).toHaveBeenCalledWith(LAYOUT, DEFAULT_PLAN_THEMES);
+    expect(renderIgnPlan).toHaveBeenCalledWith(LAYOUT, DEFAULT_MAP_THEMES.CARD);
     expect(sentPlan(api, `${CARD_URL}/apercu?cadrage=NORMAL`)).toBeInstanceOf(
       Blob
     );
@@ -129,6 +132,34 @@ describe("Carte physique d'un territoire", () => {
       ])
     );
     expect(houses).toBeChecked();
+  });
+
+  it("propose les thèmes réglés pour la carte physique dans les paramètres", async () => {
+    mockApi(
+      routes({
+        "GET /api/settings/cartes": {
+          maps: { ...DEFAULT_MAP_THEMES, CARD: ["HOUSES", "NUMBERS"] },
+        },
+      })
+    );
+    renderWithStore(
+      <PhysicalCardDialog territoryId="t1" territoryName="R-12" hasCard />
+    );
+    // Réglages lus avec la page, avant l'ouverture de la fenêtre
+    await waitFor(() =>
+      expect(vi.mocked(renderIgnPlan)).not.toHaveBeenCalled()
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    await open();
+
+    await waitFor(() =>
+      expect(renderIgnPlan).toHaveBeenCalledWith(LAYOUT, ["HOUSES", "NUMBERS"])
+    );
+    expect(screen.getByRole("checkbox", { name: "Maisons" })).toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: "Noms de lieux et repères" })
+    ).not.toBeChecked();
   });
 
   it("explique pourquoi la carte ne peut pas être générée", async () => {

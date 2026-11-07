@@ -48,4 +48,8 @@ public class Setting {
     /** Durée en mois pendant laquelle un territoire rendu reste en attente avant d'être disponible. Null = 4 mois. */
     @Column(name = "pending_duration_months")
     private Integer pendingDurationMonths;
+
+    /** Thèmes du Plan IGN de chaque carte, en JSON ({"TERRITORIES": ["PLACES", ...]}). Null = thèmes par défaut. */
+    @Column(name = "map_themes", columnDefinition = "TEXT")
+    private String mapThemes;
 }

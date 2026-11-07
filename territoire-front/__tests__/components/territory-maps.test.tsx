@@ -68,6 +68,7 @@ vi.mock("react-leaflet", async () => {
       return <div data-testid="edit-map">{children}</div>;
     },
     TileLayer: () => null,
+    useMap: () => fakeMap,
     Pane: ({ children }: { children: React.ReactNode }) => (
       <div>{children}</div>
     ),
