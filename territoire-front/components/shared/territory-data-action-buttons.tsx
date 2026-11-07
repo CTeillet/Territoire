@@ -44,7 +44,7 @@ import ExtendConfirmationDialog from "@/components/territory/extend-confirmation
 import CancelAssignmentDialog from "@/components/territory/cancel-assignment-dialog";
 import MakeAvailableDialog from "@/components/territory/make-available-dialog";
 import { authFetch } from "@/utils/auth-fetch";
-import { canManageAssignments } from "@/models/role";
+import { canManageAssignments, canManageTerritoryCards } from "@/models/role";
 import { labelAfterAssignment } from "@/components/shared/assignment-label-file";
 
 interface TerritoryDataActionButtonsProps {
@@ -83,7 +83,7 @@ export function TerritoryDataActionButtons({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canManage = canManageAssignments(user?.role);
-  const canUploadMap = user?.role === "ADMIN" || user?.role === "SUPERVISEUR";
+  const canUploadMap = canManageTerritoryCards(user?.role);
   const showAssign = canManage && status === "AVAILABLE";
   const showReturn = canManage && (status === "ASSIGNED" || status === "LATE");
   // Sans attendre la fin de la durée d'attente (traitement de nuit)

@@ -3,6 +3,7 @@ package com.teillet.territoire.repository;
 import com.teillet.territoire.dto.AvailableTerritoryDto;
 import com.teillet.territoire.dto.LateTerritoryDto;
 import com.teillet.territoire.repository.projection.Bbox3857;
+import com.teillet.territoire.repository.projection.TerritoryCardRow;
 import com.teillet.territoire.repository.projection.TerritoryHullRow;
 import com.teillet.territoire.repository.projection.TerritoryStatisticsProjection;
 import com.teillet.territoire.model.Territory;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -217,6 +219,19 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
               AND t.city_id = :cityId
             """, nativeQuery = true)
     List<TerritoryHullRow> findAllProjected3857ByCityId(UUID cityId);
+
+    /** Nom, ville, contour (EPSG:3857) et nombre d'adresses à ne pas visiter d'un territoire, pour sa carte physique. */
+    @Query(value = """
+            SELECT
+                t.name AS name,
+                c.name AS cityName,
+                ST_AsBinary(ST_Transform(t.concave_hull, 3857)) AS hullWkb,
+                (SELECT COUNT(*) FROM address_not_to_do a WHERE a.territory_id = t.id) AS addressesNotToDo
+            FROM territory t
+            JOIN city c ON c.id = t.city_id
+            WHERE t.id = :id
+            """, nativeQuery = true)
+    Optional<TerritoryCardRow> findCardRow(@Param("id") UUID id);
 
     @Query(value = """
             SELECT

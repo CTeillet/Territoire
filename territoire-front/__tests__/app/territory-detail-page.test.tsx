@@ -154,6 +154,53 @@ describe("Page d'un territoire", () => {
     ).toBeInTheDocument();
   });
 
+  it("génère la carte physique d'un territoire sans carte puis l'affiche", async () => {
+    mockApi({
+      "GET /api/territoires/t1/carte-physique": {},
+      "POST /api/territoires/t1/carte-physique": new Response(null, {
+        status: 204,
+      }),
+      "GET /api/territoires/t1/carte": {},
+      "GET /api/territoires/t1": territory(),
+      "GET /api/villes": [TEST_CITY],
+      "GET /api/personnes": [],
+    });
+    renderWithStore(<TerritoryPage />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Générer la carte" })
+    );
+    await screen.findByAltText("Carte physique du territoire R-12");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Enregistrer la carte" })
+    );
+
+    expect(await screen.findByAltText("Carte du territoire")).toHaveAttribute(
+      "src",
+      "blob:carte"
+    );
+    expect(
+      screen.queryByText("Aucune carte n'a été téléchargée pour ce territoire.")
+    ).not.toBeInTheDocument();
+  });
+
+  it("ne propose la carte physique qu'aux administrateurs et superviseurs", async () => {
+    mockApi({
+      "GET /api/territoires/t1": territory({ territoryMapId: "t1" }),
+      "GET /api/territoires/t1/carte": {},
+      "GET /api/villes": [TEST_CITY],
+      "GET /api/personnes": [],
+    });
+    renderWithStore(<TerritoryPage />, "GESTIONNAIRE");
+
+    expect(
+      await screen.findByAltText("Carte du territoire")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Générer la carte" })
+    ).not.toBeInTheDocument();
+  });
+
   it("reste affichée pendant le chargement de tous les territoires (carte)", async () => {
     mockApi({
       "GET /api/territoires/t1": territory(),

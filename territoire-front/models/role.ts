@@ -20,6 +20,13 @@ export const canManageCampaigns = (role?: Role | null): boolean =>
 export const canManageAssignments = (role?: Role | null): boolean =>
   role === "ADMIN" || role === "SUPERVISEUR" || role === "GESTIONNAIRE";
 
+/**
+ * Carte d'un territoire : import d'une image et génération de la carte physique
+ * (cf. TerritoryController, TerritoryCardController).
+ */
+export const canManageTerritoryCards = (role?: Role | null): boolean =>
+  role === "ADMIN" || role === "SUPERVISEUR";
+
 /** Création, modification et suppression de personnes (cf. PersonController). */
 export const canManagePersons = (role?: Role | null): boolean =>
   role === "ADMIN" || role === "SUPERVISEUR";

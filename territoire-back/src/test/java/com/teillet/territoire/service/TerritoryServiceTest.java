@@ -327,6 +327,22 @@ class TerritoryServiceTest {
 	}
 
 	@Test
+	void testStoreTerritoryMap_ReplacesTheImage() {
+		territory.setTerritoryMap(new byte[]{9});
+		territory.setTerritoryMapName("scan.jpg");
+		territory.setTerritoryMapContentType("image/jpeg");
+		when(territoryRepository.findById(territoryId)).thenReturn(Optional.of(territory));
+		when(territoryRepository.save(any(Territory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		Territory updated = territoryService.storeTerritoryMap(territoryId, new byte[]{4, 5}, "carte-PVP7.png", "image/png");
+
+		assertArrayEquals(new byte[]{4, 5}, updated.getTerritoryMap());
+		assertEquals("carte-PVP7.png", updated.getTerritoryMapName());
+		assertEquals("image/png", updated.getTerritoryMapContentType());
+		assertEquals(LocalDate.now(), updated.getLastModifiedDate());
+	}
+
+	@Test
 	void testUploadTerritoryMap_RejectsSvg() {
 		MockMultipartFile file = new MockMultipartFile("file", "map.svg", "image/svg+xml", new byte[]{1});
 
