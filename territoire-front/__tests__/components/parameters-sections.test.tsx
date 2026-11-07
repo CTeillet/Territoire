@@ -115,6 +115,7 @@ describe("Page Paramètres", () => {
         "Utilisateurs",
         "Accès numériques",
         "Réglages",
+        "Cartes",
         "Imprimante",
         "Données",
       ],

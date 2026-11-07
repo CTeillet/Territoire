@@ -1,5 +1,6 @@
 package com.teillet.territoire.dto;
 
+import com.teillet.territoire.enums.PlanTheme;
 import com.teillet.territoire.enums.TerritoryType;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +22,8 @@ public class PublicAccessDto {
 	private List<PublicCityDto> cities;
 	/** Demande de nouveau territoire en attente (null s'il n'y en a pas). */
 	private PublicTerritoryRequestDto pendingRequest;
+	/** Thèmes du Plan IGN de la carte de la page (réglés dans Paramètres > Cartes). */
+	private List<PlanTheme> mapThemes;
 
 	@Data
 	@Builder

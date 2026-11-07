@@ -1,3 +1,5 @@
+import { PlanTheme } from "@/models/plan-theme";
+
 export type AccessStatus = "AUCUN" | "ACTIF" | "EXPIRE" | "REVOQUE";
 
 export const ACCESS_STATUS_LABELS: Record<AccessStatus, string> = {
@@ -69,6 +71,8 @@ export interface PublicAccess {
   /** Villes proposées pour une demande de nouveau territoire. */
   cities: PublicCity[];
   pendingRequest: PublicTerritoryRequest | null;
+  /** Thèmes du Plan IGN de la carte (réglés dans Paramètres > Cartes) ; absents d'une vue gardée avant eux. */
+  mapThemes?: PlanTheme[];
 }
 
 /** Longueur maximale du commentaire d'une demande (contrôlée aussi par l'API). */

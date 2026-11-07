@@ -2,6 +2,7 @@ package com.teillet.territoire.controller;
 
 import com.teillet.territoire.dto.AccessSettingsDto;
 import com.teillet.territoire.dto.DurationSettingsDto;
+import com.teillet.territoire.dto.MapThemeSettingsDto;
 import com.teillet.territoire.service.ISettingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -65,5 +66,17 @@ class SettingController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
     public ResponseEntity<DurationSettingsDto> updateDurationSettings(@Valid @RequestBody DurationSettingsDto durations) {
         return ResponseEntity.ok(settingService.updateDurationSettings(durations));
+    }
+
+    /** Lu par tous : chaque carte de l'application montre les thèmes du Plan IGN réglés pour elle. */
+    @GetMapping("/cartes")
+    public ResponseEntity<MapThemeSettingsDto> getMapThemes() {
+        return ResponseEntity.ok(settingService.getMapThemes());
+    }
+
+    @PutMapping("/cartes")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+    public ResponseEntity<MapThemeSettingsDto> updateMapThemes(@Valid @RequestBody MapThemeSettingsDto settings) {
+        return ResponseEntity.ok(settingService.updateMapThemes(settings));
     }
 }

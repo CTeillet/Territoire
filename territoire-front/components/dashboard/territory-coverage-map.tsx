@@ -13,13 +13,16 @@ import { fetchTerritoryCoverageMap } from "@/store/slices/territory-slice";
 import type { Feature, Geometry } from "geojson";
 import { TerritoryCoverageProperties } from "@/models/territory";
 import { geoJsonCenter } from "@/lib/geo";
+import { MAP_MAX_ZOOM } from "@/lib/ign-plan";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
   { ssr: false }
 );
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
+// Fond : le Plan IGN vectoriel, avec les thèmes réglés pour cette carte (Paramètres > Cartes)
+const MapBackground = dynamic(
+  () =>
+    import("@/components/map/ign-base-layer").then((mod) => mod.MapBackground),
   { ssr: false }
 );
 const GeoJSON = dynamic(
@@ -101,16 +104,14 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({
           <MapContainer
             center={center}
             zoom={15}
+            maxZoom={MAP_MAX_ZOOM}
             style={{ height: "100%", width: "100%", zIndex: 0 }}
           >
             <MapUpdater
               isSidebarOpen={sidebar.state === "expanded"}
               isExpanded={isExpanded}
             />
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap contributors"
-            />
+            <MapBackground view="DASHBOARD" />
             {territoryCoverageGeojson && (
               <GeoJSON
                 key={`territory-coverage-${startDate}-${endDate}`}

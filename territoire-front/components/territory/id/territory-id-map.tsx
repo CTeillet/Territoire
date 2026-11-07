@@ -7,7 +7,6 @@ import {
   LayersControl,
   MapContainer,
   Pane,
-  TileLayer,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { toast } from "sonner";
@@ -40,8 +39,10 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { authFetch } from "@/utils/auth-fetch";
 import MapUpdater from "@/components/territory/map-updater";
+import { MapBackground } from "@/components/map/ign-base-layer";
 import { useSidebar } from "@/components/ui/sidebar";
 import { City } from "@/models/city";
+import { MAP_MAX_ZOOM } from "@/lib/ign-plan";
 
 interface GeomanCreateEvent extends LeafletEvent {
   layer: Layer & { getLatLngs: () => LatLng[][] }; // Le layer est un polygone avec `getLatLngs()`
@@ -298,15 +299,13 @@ const TerritoryMap = ({
       whenReady={(event: LeafletEvent) => handleMapCreated(event.target as Map)}
       ref={mapRef}
       bounds={bounds}
+      maxZoom={MAP_MAX_ZOOM}
       style={{ zIndex: 0 }}
       className="h-[60svh] w-full overflow-hidden rounded-xl border shadow-sm md:h-[800px]"
     >
       <MapUpdater isSidebarOpen={sidebar.state === "expanded"} />{" "}
       {/* Ajout pour gérer la sidebar */}
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution="&copy; OpenStreetMap contributors"
-      />
+      <MapBackground view="TERRITORY" />
       <LayersControl position="topright">
         {/* Couches spécifiques à l'application */}
         <LayersControl.Overlay name="Territoire" checked>

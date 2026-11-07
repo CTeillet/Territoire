@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { StyleSpecification } from "maplibre-gl";
-import { DEFAULT_PLAN_THEMES, filterStyle, themeOf } from "@/lib/ign-plan";
+import { filterStyle, themeOf } from "@/lib/ign-plan";
+import { DEFAULT_MAP_THEMES } from "@/models/map-view";
 
 /** Couches réelles du style Plan IGN (identifiant et données). */
 const layer = (id: string, source?: string) =>
@@ -68,7 +69,9 @@ describe("Thèmes du plan IGN", () => {
       ],
     } as unknown as StyleSpecification;
 
-    const ids = filterStyle(style, DEFAULT_PLAN_THEMES).layers.map((l) => l.id);
+    const ids = filterStyle(style, DEFAULT_MAP_THEMES.CARD).layers.map(
+      (l) => l.id
+    );
 
     expect(ids).toEqual(["bckgrd", "bati surfacique mairie - Zoom 14"]);
   });

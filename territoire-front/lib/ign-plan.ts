@@ -1,10 +1,12 @@
 /**
- * Plan IGN d'une carte physique, dessiné dans le navigateur depuis les tuiles vectorielles de la Géoplateforme : on
- * y montre ou cache des thèmes (maisons, végétation…), ce que les tuiles images ne permettent pas, et les noms de rue
- * gardent leur taille quel que soit le cadrage. Le style est celui du Plan IGN, dont on retire les couches cachées.
+ * Plan IGN vectoriel, dessiné dans le navigateur depuis les tuiles de la Géoplateforme : fond des cartes de
+ * l'application (cf. components/map/ign-base-layer.tsx) et plan de la carte physique. On y montre ou cache des
+ * thèmes (maisons, végétation…), ce que les tuiles images ne permettent pas, et les noms de rue gardent leur taille
+ * quel que soit le zoom. Le style est celui du Plan IGN, dont on retire les couches des thèmes cachés.
  */
 import type { LayerSpecification, StyleSpecification } from "maplibre-gl";
 import type { CardMapLayout } from "@/models/card-map-layout";
+import type { PlanTheme } from "@/models/plan-theme";
 
 export const IGN_PLAN_STYLE_URL =
   "https://data.geopf.fr/annexes/ressources/vectorTiles/styles/PLAN.IGN/standard.json";
@@ -17,39 +19,15 @@ const RENDER_TIMEOUT_MS = 30_000;
 export const PLAN_ERROR =
   "Le plan IGN n'a pas pu être chargé en entier : réessayez dans un instant";
 
+/** Attribution du fond, affichée sur les cartes (licence ouverte Etalab). */
+export const IGN_ATTRIBUTION =
+  '&copy; <a href="https://www.ign.fr/">IGN</a> – Plan IGN';
+
 /**
- * Thèmes du plan qu'on peut montrer ou cacher. Les rues, leurs noms, l'eau et les voies ferrées restent toujours :
- * c'est ce qui sert à trouver le territoire.
+ * Zoom maximal des cartes Leaflet. Le fond IGN n'arrive qu'après la création de la carte : sans ce plafond, cadrer
+ * un seul point (le centre d'une ville, sur la fiche d'un territoire sans pâté) donnerait un zoom infini.
  */
-export const PLAN_THEMES = [
-  { id: "PLACES", label: "Noms de lieux et repères", shownByDefault: true },
-  {
-    id: "BUILDINGS",
-    label: "Bâtiments publics et commerciaux",
-    shownByDefault: true,
-  },
-  { id: "HOUSES", label: "Maisons", shownByDefault: false },
-  { id: "VEGETATION", label: "Végétation et parcs", shownByDefault: false },
-  {
-    id: "ZONES",
-    label: "Zones (écoles, parkings, activités)",
-    shownByDefault: false,
-  },
-  {
-    id: "LIMITS",
-    label: "Limites de commune, clôtures et murs",
-    shownByDefault: false,
-  },
-  { id: "RELIEF", label: "Relief", shownByDefault: false },
-  { id: "CADASTRE", label: "Cadastre", shownByDefault: false },
-  { id: "NUMBERS", label: "Numéros de rue", shownByDefault: false },
-] as const;
-
-export type PlanTheme = (typeof PLAN_THEMES)[number]["id"];
-
-export const DEFAULT_PLAN_THEMES: PlanTheme[] = PLAN_THEMES.filter(
-  (theme) => theme.shownByDefault
-).map((theme) => theme.id);
+export const MAP_MAX_ZOOM = 19;
 
 const VEGETATION_SOURCES = [
   "ocs_vegetation_surf",
@@ -110,7 +88,7 @@ export function filterStyle(
 let stylePromise: Promise<StyleSpecification> | null = null;
 
 /** Style Plan IGN, chargé une fois par page (et de nouveau après un échec). */
-function loadStyle(): Promise<StyleSpecification> {
+export function loadIgnStyle(): Promise<StyleSpecification> {
   stylePromise ??= fetch(IGN_PLAN_STYLE_URL)
     .then((response) => {
       if (!response.ok) throw new Error(PLAN_ERROR);
@@ -133,7 +111,7 @@ export async function renderIgnPlan(
 ): Promise<Blob> {
   const [{ default: maplibregl }, style] = await Promise.all([
     import("maplibre-gl"),
-    loadStyle(),
+    loadIgnStyle(),
   ]);
 
   const container = document.createElement("div");

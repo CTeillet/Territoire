@@ -1,22 +1,38 @@
 package com.teillet.territoire.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.AccessSettingsDto;
 import com.teillet.territoire.dto.DurationSettingsDto;
+import com.teillet.territoire.dto.MapThemeSettingsDto;
+import com.teillet.territoire.enums.MapView;
+import com.teillet.territoire.enums.PlanTheme;
 import com.teillet.territoire.model.Setting;
 import com.teillet.territoire.repository.SettingRepository;
 import com.teillet.territoire.service.ISettingService;
 import com.teillet.territoire.utils.MessageTemplateRenderer;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SettingService implements ISettingService {
+
+    /** Thèmes des cartes, gardés en JSON dans une colonne de la table des réglages. */
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final TypeReference<Map<MapView, List<PlanTheme>>> MAP_THEMES_TYPE = new TypeReference<>() {};
 
     public static final String DEFAULT_ASSIGNMENT_MESSAGE = """
             Bonjour {{ person.firstName }},
@@ -127,6 +143,57 @@ public class SettingService implements ISettingService {
         s.setPendingDurationMonths(durations.getPendingDurationMonths());
         settingRepository.save(s);
         return getDurationSettings();
+    }
+
+    @Override
+    public MapThemeSettingsDto getMapThemes() {
+        return MapThemeSettingsDto.builder().maps(readMapThemes(getSingleton())).build();
+    }
+
+    @Override
+    public List<PlanTheme> getMapThemes(MapView view) {
+        return readMapThemes(getSingleton()).get(view);
+    }
+
+    @Override
+    public MapThemeSettingsDto updateMapThemes(MapThemeSettingsDto settings) {
+        Setting s = getSingleton();
+        Map<MapView, List<PlanTheme>> themes = readMapThemes(s);
+        settings.getMaps().forEach((view, chosen) -> {
+            if (view != null) themes.put(view, ordered(chosen == null ? List.of() : chosen));
+        });
+        try {
+            s.setMapThemes(JSON.writeValueAsString(themes));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Thèmes des cartes impossibles à enregistrer", e);
+        }
+        settingRepository.save(s);
+        return MapThemeSettingsDto.builder().maps(themes).build();
+    }
+
+    /** Thèmes enregistrés, complétés des thèmes par défaut des cartes jamais réglées (ou d'un JSON illisible). */
+    private static Map<MapView, List<PlanTheme>> readMapThemes(Setting s) {
+        Map<MapView, List<PlanTheme>> stored = Map.of();
+        if (s.getMapThemes() != null) {
+            try {
+                stored = JSON.readValue(s.getMapThemes(), MAP_THEMES_TYPE);
+            } catch (JsonProcessingException e) {
+                log.warn("Thèmes des cartes illisibles, thèmes par défaut utilisés : {}", e.getMessage());
+            }
+        }
+        Map<MapView, List<PlanTheme>> themes = new EnumMap<>(MapView.class);
+        for (MapView view : MapView.values()) {
+            List<PlanTheme> saved = stored.get(view);
+            themes.put(view, saved != null ? ordered(saved) : ordered(view.defaultThemes()));
+        }
+        return themes;
+    }
+
+    /** Thèmes sans doublon, dans l'ordre de leur déclaration. */
+    private static List<PlanTheme> ordered(Collection<PlanTheme> themes) {
+        EnumSet<PlanTheme> set = EnumSet.noneOf(PlanTheme.class);
+        themes.stream().filter(Objects::nonNull).forEach(set::add);
+        return List.copyOf(set);
     }
 
     private static List<String> normalizeRecipients(List<String> recipients) {

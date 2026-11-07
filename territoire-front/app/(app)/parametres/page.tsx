@@ -16,6 +16,7 @@ import DataTab from "@/components/parameters/other-parameter/data-tab";
 import { LabelPrinterSection } from "@/components/parameters/other-parameter/label-printer-section";
 import { ParameterGroup } from "@/components/parameters/other-parameter/parameter-group";
 import AccessManagement from "@/components/parameters/access/access-management";
+import { MapThemesSection } from "@/components/parameters/map-settings/map-themes-section";
 import { useAppSelector } from "@/store/store";
 import { canSendAccess } from "@/lib/person-access-api";
 import { PageContainer, PageHeader } from "@/components/shared/page-layout";
@@ -40,7 +41,18 @@ const ParametersPage = () => {
         ]
       : []),
     ...(canManageSettings(role)
-      ? [{ value: "settings", label: "Réglages", content: <SettingsTab /> }]
+      ? [
+          { value: "settings", label: "Réglages", content: <SettingsTab /> },
+          {
+            value: "maps",
+            label: "Cartes",
+            content: (
+              <ParameterGroup title="Fond des cartes">
+                <MapThemesSection />
+              </ParameterGroup>
+            ),
+          },
+        ]
       : []),
     ...(canManageAssignments(role)
       ? [

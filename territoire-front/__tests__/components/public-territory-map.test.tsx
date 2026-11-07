@@ -3,6 +3,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { LatLngBounds } from "leaflet";
 import PublicTerritoryMap from "@/components/public-access/public-territory-map";
+import { DEFAULT_MAP_THEMES } from "@/models/map-view";
 
 const fitBounds = vi.fn();
 /** Coordonnées arrondies : les points calculés portent des erreurs d'arrondi flottant. */
@@ -65,6 +66,7 @@ describe("PublicTerritoryMap", () => {
   it("affiche le contour et les pâtés, avec un itinéraire vers le centre", () => {
     render(
       <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
         geojson={collection(
           square("BLOCK"),
           square("BLOCK"),
@@ -113,7 +115,12 @@ describe("PublicTerritoryMap", () => {
         ],
       },
     };
-    render(<PublicTerritoryMap geojson={collection(u)} />);
+    render(
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson={collection(u)}
+      />
+    );
 
     expect(screen.getByRole("link", { name: "Google Maps" })).toHaveAttribute(
       "href",
@@ -124,7 +131,10 @@ describe("PublicTerritoryMap", () => {
 
   it("propose la marche (sans Waze) et retient le choix", async () => {
     const { unmount } = render(
-      <PublicTerritoryMap geojson={collection(square("CONCAVE_HULL"))} />
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson={collection(square("CONCAVE_HULL"))}
+      />
     );
 
     await userEvent.click(screen.getByRole("button", { name: "À pied" }));
@@ -141,7 +151,12 @@ describe("PublicTerritoryMap", () => {
     ).not.toBeInTheDocument();
 
     unmount();
-    render(<PublicTerritoryMap geojson={collection(square("CONCAVE_HULL"))} />);
+    render(
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson={collection(square("CONCAVE_HULL"))}
+      />
+    );
     expect(screen.getByRole("button", { name: "À pied" })).toHaveAttribute(
       "aria-pressed",
       "true"
@@ -154,7 +169,12 @@ describe("PublicTerritoryMap", () => {
       .mockReturnValue(
         "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)"
       );
-    render(<PublicTerritoryMap geojson={collection(square("CONCAVE_HULL"))} />);
+    render(
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson={collection(square("CONCAVE_HULL"))}
+      />
+    );
 
     expect(screen.getByRole("link", { name: "Plans" })).toHaveAttribute(
       "href",
@@ -164,7 +184,12 @@ describe("PublicTerritoryMap", () => {
   });
 
   it("n'affiche pas Plans ailleurs", () => {
-    render(<PublicTerritoryMap geojson={collection(square("CONCAVE_HULL"))} />);
+    render(
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson={collection(square("CONCAVE_HULL"))}
+      />
+    );
 
     expect(
       screen.queryByRole("link", { name: "Plans" })
@@ -172,13 +197,23 @@ describe("PublicTerritoryMap", () => {
   });
 
   it("se cadre sur les pâtés quand il n'y a pas encore de contour", () => {
-    render(<PublicTerritoryMap geojson={collection(square("BLOCK"))} />);
+    render(
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson={collection(square("BLOCK"))}
+      />
+    );
 
     expect(screen.getByTestId("map")).toBeInTheDocument();
   });
 
   it("indique l'absence de carte pour un territoire sans géométrie", () => {
-    render(<PublicTerritoryMap geojson={collection()} />);
+    render(
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson={collection()}
+      />
+    );
 
     expect(
       screen.getByText("Pas encore de carte pour ce territoire.")
@@ -186,7 +221,12 @@ describe("PublicTerritoryMap", () => {
   });
 
   it("résiste à un GeoJSON illisible", () => {
-    render(<PublicTerritoryMap geojson="pas du json" />);
+    render(
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson="pas du json"
+      />
+    );
 
     expect(
       screen.getByText("Pas encore de carte pour ce territoire.")
@@ -212,7 +252,12 @@ describe("PublicTerritoryMap : ma position", () => {
     act(() => onSuccess({ coords: { latitude, longitude, accuracy } }));
 
   const renderMap = () =>
-    render(<PublicTerritoryMap geojson={collection(square("CONCAVE_HULL"))} />);
+    render(
+      <PublicTerritoryMap
+        mapThemes={DEFAULT_MAP_THEMES.PUBLIC}
+        geojson={collection(square("CONCAVE_HULL"))}
+      />
+    );
 
   beforeEach(() => {
     fitBounds.mockClear();

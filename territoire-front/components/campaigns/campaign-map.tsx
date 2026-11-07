@@ -16,13 +16,16 @@ import {
   fetchCampaignMap,
   clearCampaignMap,
 } from "@/store/slices/campaign-slice";
+import { MAP_MAX_ZOOM } from "@/lib/ign-plan";
 
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
   { ssr: false }
 );
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
+// Fond : le Plan IGN vectoriel, avec les thèmes réglés pour cette carte (Paramètres > Cartes)
+const MapBackground = dynamic(
+  () =>
+    import("@/components/map/ign-base-layer").then((mod) => mod.MapBackground),
   { ssr: false }
 );
 const GeoJSON = dynamic(
@@ -180,16 +183,14 @@ const CampaignMap: React.FC<CampaignMapProps> = ({
           <MapContainer
             center={center}
             zoom={15}
+            maxZoom={MAP_MAX_ZOOM}
             style={{ height: "100%", width: "100%", zIndex: 0 }}
           >
             <MapUpdater
               isSidebarOpen={sidebar.state === "expanded"}
               isExpanded={isExpanded}
             />
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap contributors"
-            />
+            <MapBackground view="CAMPAIGN" />
             {currentCampaignGeoJson && (
               <GeoJSON
                 key={`campaign-geojson-${colorBy}-${remainingTerritoryIds.length}`}

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import TerritoryRequestCard from "@/components/public-access/territory-request-card";
 import { PublicAccess, PublicTerritory } from "@/models/person-access";
+import { DEFAULT_MAP_THEMES } from "@/models/map-view";
 import { publicErrorMessage as errorFrom } from "@/lib/public-access-api";
 import {
   clearOfflineView,
@@ -158,7 +159,8 @@ export default function MyTerritoriesPage() {
     );
   }
 
-  const { firstName, territories, cities, pendingRequest } = state.data;
+  const { firstName, territories, cities, pendingRequest, mapThemes } =
+    state.data;
   const offline = state.offlineSince !== undefined;
 
   return (
@@ -213,7 +215,10 @@ export default function MyTerritoriesPage() {
               </p>
             )}
 
-            <PublicTerritoryMap geojson={territory.geojson} />
+            <PublicTerritoryMap
+              geojson={territory.geojson}
+              mapThemes={mapThemes ?? DEFAULT_MAP_THEMES.PUBLIC}
+            />
 
             <section className="space-y-2">
               <h2 className="flex items-center gap-2 font-semibold">

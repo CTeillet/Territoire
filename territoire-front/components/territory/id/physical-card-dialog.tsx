@@ -24,13 +24,10 @@ import {
 import { authFetch } from "@/utils/auth-fetch";
 import { apiErrorMessage } from "@/utils/api-error";
 import { downloadFile, safeFileName } from "@/lib/file-share";
-import {
-  DEFAULT_PLAN_THEMES,
-  PLAN_ERROR,
-  PLAN_THEMES,
-  PlanTheme,
-  renderIgnPlan,
-} from "@/lib/ign-plan";
+import { PLAN_ERROR, renderIgnPlan } from "@/lib/ign-plan";
+import { useMapThemes } from "@/lib/map-themes";
+import { DEFAULT_MAP_THEMES } from "@/models/map-view";
+import { orderedThemes, PLAN_THEMES, PlanTheme } from "@/models/plan-theme";
 import {
   CARD_FRAMING_LABELS,
   CARD_FRAMINGS,
@@ -72,7 +69,9 @@ export function PhysicalCardDialog({
   const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
   const [framing, setFraming] = useState<CardFraming>("NORMAL");
-  const [themes, setThemes] = useState<PlanTheme[]>(DEFAULT_PLAN_THEMES);
+  // Choix proposé à chaque ouverture : celui réglé dans Paramètres > Cartes
+  const cardThemes = useMapThemes("CARD");
+  const [themes, setThemes] = useState<PlanTheme[]>(DEFAULT_MAP_THEMES.CARD);
   const [saving, setSaving] = useState(false);
   // Une ouverture de la fenêtre = un nouvel aperçu : l'image d'une ouverture précédente a été libérée
   const [session, setSession] = useState(0);
@@ -139,15 +138,18 @@ export function PhysicalCardDialog({
   }, [open, framing, themes, territoryId, requestKey]);
 
   const handleOpenChange = (next: boolean) => {
-    if (next) setSession((value) => value + 1);
+    if (next) {
+      setSession((value) => value + 1);
+      setThemes(cardThemes ?? DEFAULT_MAP_THEMES.CARD);
+    }
     setOpen(next);
   };
 
   // Ordre des thèmes gardé : la clé de l'aperçu ne change pas pour un même choix
   const toggleTheme = (theme: PlanTheme, shown: boolean) =>
     setThemes((current) =>
-      PLAN_THEMES.map((t) => t.id).filter((id) =>
-        id === theme ? shown : current.includes(id)
+      orderedThemes(
+        shown ? [...current, theme] : current.filter((id) => id !== theme)
       )
     );
 

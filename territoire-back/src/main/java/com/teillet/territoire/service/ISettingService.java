@@ -2,6 +2,9 @@ package com.teillet.territoire.service;
 
 import com.teillet.territoire.dto.AccessSettingsDto;
 import com.teillet.territoire.dto.DurationSettingsDto;
+import com.teillet.territoire.dto.MapThemeSettingsDto;
+import com.teillet.territoire.enums.MapView;
+import com.teillet.territoire.enums.PlanTheme;
 
 import java.util.List;
 
@@ -30,4 +33,13 @@ public interface ISettingService {
     DurationSettingsDto getDurationSettings();
 
     DurationSettingsDto updateDurationSettings(DurationSettingsDto durations);
+
+    /** Thèmes du Plan IGN de chaque carte ; une carte jamais réglée a ses thèmes par défaut. */
+    MapThemeSettingsDto getMapThemes();
+
+    /** Thèmes d'une carte, dans l'ordre des thèmes. */
+    List<PlanTheme> getMapThemes(MapView view);
+
+    /** Remplace les thèmes des cartes données ; les autres gardent les leurs. */
+    MapThemeSettingsDto updateMapThemes(MapThemeSettingsDto settings);
 }
