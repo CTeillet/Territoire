@@ -2,14 +2,13 @@ package com.teillet.territoire.service.impl;
 
 import com.teillet.territoire.enums.CardFraming;
 import com.teillet.territoire.exception.NotFoundException;
-import com.teillet.territoire.record.TileImage;
+import com.teillet.territoire.record.CardMapLayout;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.repository.projection.TerritoryCardRow;
 import com.teillet.territoire.service.ITerritoryCardService;
 import com.teillet.territoire.service.ITerritoryService;
 import com.teillet.territoire.utils.MapMath;
 import com.teillet.territoire.utils.RenderUtils;
-import com.teillet.territoire.utils.WmtsClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
@@ -21,24 +20,29 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
 import java.awt.font.FontRenderContext;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 /**
  * Carte physique d'un territoire, dessinée sur le formulaire « Carte de territoire » du modèle GIMP : la ville après
- * « Lieu », le nom après « Territ. n° » et, au milieu, le plan IGN du quartier où le territoire ressort en vert.
+ * « Lieu », le nom après « Territ. n° » et, au milieu, le plan IGN du quartier où le territoire ressort en vert. Le
+ * plan est dessiné par le navigateur depuis les tuiles vectorielles IGN, avec les thèmes choisis (maisons,
+ * végétation…), sur l'emprise que donne {@link #mapLayout} : la carte le pose dans son cadre.
  */
 @Service
 @RequiredArgsConstructor
@@ -64,35 +68,53 @@ public class TerritoryCardService implements ITerritoryCardService {
 	/** Hauteur des majuscules des champs, comme sur le modèle. */
 	private static final double FIELD_CAP_HEIGHT = 18;
 
-	/** Vert des pâtés à travailler du modèle ; le remplissage laisse lire les noms de rue dessous. */
+	/**
+	 * Vert des pâtés à travailler du modèle, le remplissage laisse lire les noms de rue dessous.
+	 * Imprimé en noir et blanc, il donne un gris moyen, plus sombre que les jardins et les grandes routes du plan, et
+	 * le contour épais un gris foncé : le territoire ressort encore.
+	 */
 	static final Color GREEN = new Color(129, 182, 26);
-	private static final Color GREEN_FILL = new Color(129, 182, 26, 125);
+	private static final Color GREEN_FILL = new Color(129, 182, 26, 150);
 	private static final Color GREEN_OUTLINE = new Color(76, 120, 10);
+	private static final float OUTLINE_WIDTH = 3f;
 	static final Color RED = new Color(226, 1, 25);
 
 	// Pastilles de légende du modèle, dans un coin du plan
 	private static final double BADGE_HEIGHT = 24, BADGE_PADDING = 9, BADGE_GAP = 6, BADGE_MARGIN = 10;
 	private static final double BADGE_CAP_HEIGHT = 10;
 
-	/** Niveaux de zoom des tuiles : au-delà de 18, Plan IGN n'apporte plus rien ; en deçà de 12, on ne lit plus les rues. */
-	static final int MIN_ZOOM = 12, MAX_ZOOM = 18;
+	/**
+	 * Largeur maximale du plan où l'on lit les noms de rue (en mètres EPSG:3857, environ 1,3 km au sol) : le Plan IGN
+	 * vectoriel ne les écrit qu'à partir du zoom 15, soit 1 978 m dans les 828 pixels du cadre.
+	 */
+	public static final double MAX_READABLE_EXTENT = 1950;
+	/** Part du cadre que peut occuper un territoire dont on rogne les abords pour garder les noms de rue lisibles. */
+	private static final double MAX_SHARE = 0.9;
+	/** Plan reçu du navigateur : le cadre à 2 pixels par pixel du modèle, avec une large marge (et pas d'image géante). */
+	static final int MAX_PLAN_WIDTH = 4000, MAX_PLAN_HEIGHT = 2000;
 
 	private static final BufferedImage TEMPLATE = loadTemplate();
 
 	private final TerritoryRepository territoryRepository;
 	private final ITerritoryService territoryService;
-	private final WmtsClient wmtsClient;
 
 	@Override
-	public byte[] renderCard(UUID territoryId, CardFraming framing) {
-		return render(findCardRow(territoryId), framing);
+	public CardMapLayout mapLayout(UUID territoryId, CardFraming framing) {
+		Envelope extent = mapExtent(readWkb(findCardRow(territoryId).getHullWkb()).getEnvelopeInternal(), framing);
+		return new CardMapLayout(longitude(extent.getMinX()), latitude(extent.getMinY()),
+				longitude(extent.getMaxX()), latitude(extent.getMaxY()),
+				(int) MAP_FRAME.getWidth(), (int) MAP_FRAME.getHeight());
 	}
 
 	@Override
-	public void saveCard(UUID territoryId, CardFraming framing) {
-		// Tuiles téléchargées hors transaction : seul l'enregistrement en ouvre une
+	public byte[] renderCard(UUID territoryId, CardFraming framing, byte[] plan) {
+		return render(findCardRow(territoryId), framing, readPlan(plan));
+	}
+
+	@Override
+	public void saveCard(UUID territoryId, CardFraming framing, byte[] plan) {
 		TerritoryCardRow row = findCardRow(territoryId);
-		byte[] png = render(row, framing);
+		byte[] png = render(row, framing, readPlan(plan));
 		territoryService.storeTerritoryMap(territoryId, png, fileName(row.getName()), MediaType.IMAGE_PNG_VALUE);
 		log.info("Carte physique enregistrée pour le territoire {} ({} ko)", row.getName(), png.length / 1024);
 	}
@@ -107,7 +129,7 @@ public class TerritoryCardService implements ITerritoryCardService {
 		return row;
 	}
 
-	private byte[] render(TerritoryCardRow row, CardFraming framing) {
+	private byte[] render(TerritoryCardRow row, CardFraming framing, BufferedImage plan) {
 		Geometry hull = readWkb(row.getHullWkb());
 		boolean hasAddressesNotToDo = row.getAddressesNotToDo() != null && row.getAddressesNotToDo() > 0;
 
@@ -123,7 +145,7 @@ public class TerritoryCardService implements ITerritoryCardService {
 			g.scale(SCALE, SCALE);
 			g.drawImage(TEMPLATE, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT, null);
 
-			drawMap(g, hull, framing, hasAddressesNotToDo);
+			drawMap(g, hull, framing, plan, hasAddressesNotToDo);
 			drawField(g, row.getCityName(), CITY_X, CITY_END_X);
 			drawField(g, row.getName(), NAME_X, NAME_END_X);
 		} finally {
@@ -132,14 +154,9 @@ public class TerritoryCardService implements ITerritoryCardService {
 		return toPng(card);
 	}
 
-	private void drawMap(Graphics2D g, Geometry hull, CardFraming framing, boolean hasAddressesNotToDo) {
+	private void drawMap(Graphics2D g, Geometry hull, CardFraming framing, BufferedImage plan, boolean hasAddressesNotToDo) {
+		// Même emprise que celle donnée au navigateur pour dessiner le plan
 		Envelope extent = mapExtent(hull.getEnvelopeInternal(), framing);
-		TileImage tiles = wmtsClient.fetchTiles3857(extent, zoomFor(extent));
-		// Une tuile manquante laisserait un carré gris sur la carte imprimée
-		if (tiles.failedTiles() > 0) {
-			throw new IllegalStateException("Le plan IGN n'a pas pu être chargé en entier : réessayez dans un instant");
-		}
-
 		// Pixels du modèle par mètre : l'emprise a les proportions du cadre
 		double scale = MAP_FRAME.getWidth() / extent.getWidth();
 		Shape frame = new RoundRectangle2D.Double(MAP_FRAME.getX(), MAP_FRAME.getY(),
@@ -147,22 +164,13 @@ public class TerritoryCardService implements ITerritoryCardService {
 		Shape previousClip = g.getClip();
 		g.clip(frame);
 
-		Envelope mosaic = tiles.env3857();
-		double tileResolution = mosaic.getWidth() / tiles.pixelWidth();
-		AffineTransform tilesToFrame = AffineTransform.getTranslateInstance(
-				MAP_FRAME.getX() + (mosaic.getMinX() - extent.getMinX()) * scale,
-				MAP_FRAME.getY() + (extent.getMaxY() - mosaic.getMaxY()) * scale);
-		tilesToFrame.scale(tileResolution * scale, tileResolution * scale);
-		g.drawImage(tiles.img(), tilesToFrame, null);
+		g.drawImage(plan, (int) MAP_FRAME.getX(), (int) MAP_FRAME.getY(),
+				(int) MAP_FRAME.getWidth(), (int) MAP_FRAME.getHeight(), null);
 
 		Shape territory = RenderUtils.toShape(hull, scale,
 				MAP_FRAME.getX() - extent.getMinX() * scale,
 				MAP_FRAME.getY() + extent.getMaxY() * scale);
-		g.setColor(GREEN_FILL);
-		g.fill(territory);
-		g.setColor(GREEN_OUTLINE);
-		g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(territory);
+		drawTerritory(g, territory);
 
 		Corner legend = drawLegend(g, territory, hasAddressesNotToDo);
 		drawAttribution(g, legend == Corner.BOTTOM_LEFT);
@@ -174,28 +182,68 @@ public class TerritoryCardService implements ITerritoryCardService {
 		g.draw(frame);
 	}
 
+	/** Territoire en vert, cerné de vert foncé : il se distingue aussi imprimé en noir et blanc. */
+	private static void drawTerritory(Graphics2D g, Shape territory) {
+		g.setColor(GREEN_FILL);
+		g.fill(territory);
+		g.setColor(GREEN_OUTLINE);
+		g.setStroke(new BasicStroke(OUTLINE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+		g.draw(territory);
+	}
+
 	/**
 	 * Emprise du plan (EPSG:3857), aux proportions du cadre et centrée sur le territoire, qui en occupe la part
 	 * demandée par le cadrage. Un petit territoire prend la largeur minimale du cadrage : sans elle, une barre
-	 * d'immeubles remplirait le cadre au zoom maximal, avec un seul nom de rue, quel que soit le cadrage choisi.
+	 * d'immeubles remplirait le cadre au zoom maximal, avec un seul nom de rue, quel que soit le cadrage choisi. Un
+	 * grand territoire montre moins d'abords que demandé plutôt que de perdre ses noms de rue, tant qu'il tient dans
+	 * le cadre avec une marge.
 	 */
 	public static Envelope mapExtent(Envelope territory, CardFraming framing) {
 		double aspect = MAP_FRAME.getWidth() / MAP_FRAME.getHeight();
-		double width = Math.max(framing.minExtentMeters(),
-				Math.max(territory.getWidth(), territory.getHeight() * aspect) / framing.share());
+		// Largeur du plan que remplirait le territoire
+		double span = Math.max(territory.getWidth(), territory.getHeight() * aspect);
+		double width = Math.max(framing.minExtentMeters(), span / framing.share());
+		if (width > MAX_READABLE_EXTENT && span / MAX_SHARE <= MAX_READABLE_EXTENT) {
+			width = MAX_READABLE_EXTENT;
+		}
 		double height = width / aspect;
 		Coordinate center = territory.centre();
 		return new Envelope(center.x - width / 2, center.x + width / 2, center.y - height / 2, center.y + height / 2);
 	}
 
-	/**
-	 * Niveau de zoom dont les tuiles gardent à peu près leur taille sur le modèle (entre 0,7 et 1,4 fois) : imprimés,
-	 * les noms de rue ont la taille de ceux du modèle.
-	 */
-	public static int zoomFor(Envelope extent) {
-		double ideal = Math.log(2 * MapMath.ORIGIN_SHIFT * MAP_FRAME.getWidth() / (MapMath.TILE_SIZE * extent.getWidth()))
-				/ Math.log(2);
-		return Math.clamp(Math.round(ideal), MIN_ZOOM, MAX_ZOOM);
+	/** Longitude d'une abscisse EPSG:3857. */
+	static double longitude(double x) {
+		return x / MapMath.ORIGIN_SHIFT * 180;
+	}
+
+	/** Latitude d'une ordonnée EPSG:3857. */
+	static double latitude(double y) {
+		return Math.toDegrees(Math.atan(Math.sinh(y / MapMath.ORIGIN_SHIFT * Math.PI)));
+	}
+
+	/** Plan dessiné par le navigateur : une image, dont on vérifie la taille avant de la décoder. */
+	private static BufferedImage readPlan(byte[] plan) {
+		if (plan == null || plan.length == 0) {
+			throw new IllegalArgumentException("Le plan de la carte est manquant");
+		}
+		try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(plan))) {
+			Iterator<ImageReader> readers = input == null ? null : ImageIO.getImageReaders(input);
+			if (readers == null || !readers.hasNext()) {
+				throw new IllegalArgumentException("Le plan de la carte n'est pas une image");
+			}
+			ImageReader reader = readers.next();
+			try {
+				reader.setInput(input);
+				if (reader.getWidth(0) > MAX_PLAN_WIDTH || reader.getHeight(0) > MAX_PLAN_HEIGHT) {
+					throw new IllegalArgumentException("Le plan de la carte est trop grand");
+				}
+				return reader.read(0);
+			} finally {
+				reader.dispose();
+			}
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Le plan de la carte n'est pas une image lisible", e);
+		}
 	}
 
 	/** Pastilles de légende du modèle, dans le premier coin du plan qui ne cache pas le territoire. */

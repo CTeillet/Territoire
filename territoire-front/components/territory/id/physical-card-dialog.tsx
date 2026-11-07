@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -24,10 +25,18 @@ import { authFetch } from "@/utils/auth-fetch";
 import { apiErrorMessage } from "@/utils/api-error";
 import { downloadFile, safeFileName } from "@/lib/file-share";
 import {
+  DEFAULT_PLAN_THEMES,
+  PLAN_ERROR,
+  PLAN_THEMES,
+  PlanTheme,
+  renderIgnPlan,
+} from "@/lib/ign-plan";
+import {
   CARD_FRAMING_LABELS,
   CARD_FRAMINGS,
   CardFraming,
 } from "@/models/card-framing";
+import { CardMapLayout } from "@/models/card-map-layout";
 import { useAppDispatch } from "@/store/store";
 import { saveTerritoryCard } from "@/store/slices/territory-slice";
 
@@ -35,7 +44,7 @@ const PREVIEW_ERROR = "La carte n'a pas pu être générée. Réessayez plus tar
 
 type Preview =
   | { status: "loading" }
-  | { status: "ready"; url: string; blob: Blob }
+  | { status: "ready"; url: string; card: Blob; plan: Blob }
   | { status: "error"; message: string };
 
 interface PhysicalCardDialogProps {
@@ -49,8 +58,10 @@ interface PhysicalCardDialogProps {
 
 /**
  * Carte physique d'un territoire : le formulaire « Carte de territoire » rempli (lieu, numéro) avec le plan du
- * quartier où le territoire ressort en vert. Aperçu généré par le back, à télécharger ou à garder comme carte du
- * territoire pour l'imprimer depuis « Impression des cartes ».
+ * quartier, où le territoire ressort en vert cerné de vert foncé (lisible aussi imprimé en noir et blanc). Le plan est
+ * dessiné ici depuis les tuiles vectorielles IGN, avec les thèmes choisis (maisons, végétation…), puis le back compose
+ * la carte. Aperçu à télécharger ou à garder comme carte du territoire, pour l'imprimer depuis « Impression des
+ * cartes ».
  */
 export function PhysicalCardDialog({
   territoryId,
@@ -61,10 +72,11 @@ export function PhysicalCardDialog({
   const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
   const [framing, setFraming] = useState<CardFraming>("NORMAL");
+  const [themes, setThemes] = useState<PlanTheme[]>(DEFAULT_PLAN_THEMES);
   const [saving, setSaving] = useState(false);
   // Une ouverture de la fenêtre = un nouvel aperçu : l'image d'une ouverture précédente a été libérée
   const [session, setSession] = useState(0);
-  const requestKey = `${session}:${framing}`;
+  const requestKey = `${session}:${framing}:${themes.join(",")}`;
   const [result, setResult] = useState<{
     key: string;
     preview: Preview;
@@ -79,23 +91,42 @@ export function PhysicalCardDialog({
     const show = (next: Preview) => {
       if (!cancelled) setResult({ key: requestKey, preview: next });
     };
+    const fail = async (response: Response) =>
+      show({
+        status: "error",
+        message: await apiErrorMessage(response, PREVIEW_ERROR),
+      });
 
     (async () => {
       try {
-        const response = await authFetch(
-          `/api/territoires/${territoryId}/carte-physique?cadrage=${framing}`
+        const layoutResponse = await authFetch(
+          `/api/territoires/${territoryId}/carte-physique/emprise?cadrage=${framing}`
         );
-        if (!response.ok) {
-          show({
-            status: "error",
-            message: await apiErrorMessage(response, PREVIEW_ERROR),
-          });
+        if (!layoutResponse.ok) return fail(layoutResponse);
+        const layout: CardMapLayout = await layoutResponse.json();
+
+        let plan: Blob;
+        try {
+          plan = await renderIgnPlan(layout, themes);
+        } catch (error) {
+          // Tuile manquante, IGN injoignable ou WebGL absent : la cause reste lisible dans la console
+          console.error("Plan IGN non dessiné", error, (error as Error)?.cause);
+          show({ status: "error", message: PLAN_ERROR });
           return;
         }
-        const blob = await response.blob();
         if (cancelled) return;
-        url = URL.createObjectURL(blob);
-        show({ status: "ready", url, blob });
+
+        const body = new FormData();
+        body.append("plan", plan, "plan.png");
+        const response = await authFetch(
+          `/api/territoires/${territoryId}/carte-physique/apercu?cadrage=${framing}`,
+          { method: "POST", body }
+        );
+        if (!response.ok) return fail(response);
+        const card = await response.blob();
+        if (cancelled) return;
+        url = URL.createObjectURL(card);
+        show({ status: "ready", url, card, plan });
       } catch {
         show({ status: "error", message: PREVIEW_ERROR });
       }
@@ -105,27 +136,38 @@ export function PhysicalCardDialog({
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [open, framing, territoryId, requestKey]);
+  }, [open, framing, themes, territoryId, requestKey]);
 
   const handleOpenChange = (next: boolean) => {
     if (next) setSession((value) => value + 1);
     setOpen(next);
   };
 
+  // Ordre des thèmes gardé : la clé de l'aperçu ne change pas pour un même choix
+  const toggleTheme = (theme: PlanTheme, shown: boolean) =>
+    setThemes((current) =>
+      PLAN_THEMES.map((t) => t.id).filter((id) =>
+        id === theme ? shown : current.includes(id)
+      )
+    );
+
   const handleDownload = () => {
     if (preview.status !== "ready") return;
     downloadFile(
-      new File([preview.blob], safeFileName(`carte-${territoryName}`, "png"), {
+      new File([preview.card], safeFileName(`carte-${territoryName}`, "png"), {
         type: "image/png",
       })
     );
   };
 
-  // Le back régénère la carte avec le même cadrage : c'est celle de l'aperçu
+  // Le back compose la carte avec le plan de l'aperçu : c'est celle qu'on voit
   const handleSave = async () => {
+    if (preview.status !== "ready") return;
     setSaving(true);
     try {
-      await dispatch(saveTerritoryCard({ territoryId, framing })).unwrap();
+      await dispatch(
+        saveTerritoryCard({ territoryId, framing, plan: preview.plan })
+      ).unwrap();
       toast.success(
         "Carte enregistrée : elle s'imprime depuis « Impression des cartes »."
       );
@@ -150,9 +192,9 @@ export function PhysicalCardDialog({
         <DialogHeader>
           <DialogTitle>Carte physique</DialogTitle>
           <DialogDescription>
-            La carte de territoire à imprimer : la ville, le numéro du
-            territoire et le plan du quartier, où les pâtés à travailler
-            ressortent en vert.
+            La carte de territoire à imprimer, en couleur ou en noir et blanc :
+            la ville, le numéro du territoire et le plan du quartier, où les
+            pâtés à travailler ressortent en vert.
           </DialogDescription>
         </DialogHeader>
 
@@ -174,6 +216,25 @@ export function PhysicalCardDialog({
             </Button>
           ))}
         </div>
+
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">
+            Sur le plan, en plus des rues :
+          </legend>
+          <div className="grid gap-x-4 gap-y-2 sm:grid-cols-3">
+            {PLAN_THEMES.map((theme) => (
+              <label key={theme.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={themes.includes(theme.id)}
+                  onCheckedChange={(checked) =>
+                    toggleTheme(theme.id, checked === true)
+                  }
+                />
+                {theme.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         {/* Mêmes proportions que la carte : la fenêtre ne saute pas quand l'aperçu arrive */}
         <div className="relative aspect-[875/616] w-full overflow-hidden rounded-md border bg-muted/40">

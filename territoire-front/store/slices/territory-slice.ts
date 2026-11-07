@@ -454,12 +454,23 @@ export const updateTerritoryLost = createAsyncThunk(
 export const saveTerritoryCard = createAsyncThunk(
   "territories/saveTerritoryCard",
   async (
-    { territoryId, framing }: { territoryId: string; framing: CardFraming },
+    {
+      territoryId,
+      framing,
+      plan,
+    }: {
+      territoryId: string;
+      framing: CardFraming;
+      /** Plan IGN dessiné par le navigateur, celui de l'aperçu. */
+      plan: Blob;
+    },
     { rejectWithValue }
   ) => {
+    const body = new FormData();
+    body.append("plan", plan, "plan.png");
     const response = await authFetch(
       `${BASE_URL}/${territoryId}/carte-physique?cadrage=${framing}`,
-      { method: "POST" }
+      { method: "POST", body }
     );
 
     if (!response.ok) {

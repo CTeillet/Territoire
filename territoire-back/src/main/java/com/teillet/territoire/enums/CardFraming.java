@@ -6,9 +6,9 @@ package com.teillet.territoire.enums;
  * cadre : chaque cadrage a aussi une largeur minimale, pour qu'on voie assez de rues, et leurs noms, autour.
  */
 public enum CardFraming {
-    TIGHT(0.8, 500),     // Serré : environ 330 m au sol, zoom 18
-    NORMAL(0.6, 1000),   // Normal : environ 660 m au sol, zoom 17
-    WIDE(0.4, 2000);     // Large : environ 1,3 km au sol, zoom 16
+    TIGHT(0.8, 500),     // Serré : environ 330 m au sol
+    NORMAL(0.6, 1000),   // Normal : environ 660 m au sol
+    WIDE(0.4, 1950);     // Large : environ 1,3 km au sol, dernier zoom où le plan IGN écrit les noms de rue
 
     private final double share;
     private final double minExtentMeters;
@@ -25,7 +25,7 @@ public enum CardFraming {
 
     /**
      * Largeur minimale du plan, en mètres EPSG:3857 (les distances au sol en font les deux tiers autour de Paris).
-     * Elle double d'un cadrage au suivant : un niveau de zoom des tuiles de moins.
+     * Elle double à peu près d'un cadrage au suivant.
      */
     public double minExtentMeters() {
         return minExtentMeters;

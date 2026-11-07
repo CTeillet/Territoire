@@ -50,6 +50,11 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "t1" }),
 }));
 vi.mock("next/dynamic", () => import("../mocks/leaflet-dynamic"));
+// Plan de la carte physique dessiné par MapLibre (WebGL), absent de jsdom
+vi.mock("@/lib/ign-plan", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/ign-plan")>()),
+  renderIgnPlan: vi.fn(async () => new Blob(["plan"], { type: "image/png" })),
+}));
 
 const territory = (overrides: Partial<Territory> = {}): Territory => ({
   id: "t1",
@@ -156,7 +161,15 @@ describe("Page d'un territoire", () => {
 
   it("génère la carte physique d'un territoire sans carte puis l'affiche", async () => {
     mockApi({
-      "GET /api/territoires/t1/carte-physique": {},
+      "GET /api/territoires/t1/carte-physique/emprise": {
+        west: 2.35,
+        south: 48.69,
+        east: 2.37,
+        north: 48.7,
+        width: 828,
+        height: 376,
+      },
+      "POST /api/territoires/t1/carte-physique/apercu": {},
       "POST /api/territoires/t1/carte-physique": new Response(null, {
         status: 204,
       }),

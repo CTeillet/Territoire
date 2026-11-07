@@ -2,13 +2,10 @@ package com.teillet.territoire.service;
 
 import com.teillet.territoire.enums.CardFraming;
 import com.teillet.territoire.exception.NotFoundException;
-import com.teillet.territoire.record.TileImage;
+import com.teillet.territoire.record.CardMapLayout;
 import com.teillet.territoire.repository.TerritoryRepository;
 import com.teillet.territoire.repository.projection.TerritoryCardRow;
 import com.teillet.territoire.service.impl.TerritoryCardService;
-import com.teillet.territoire.utils.MapMath;
-import com.teillet.territoire.utils.WmtsClient;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.locationtech.jts.geom.Coordinate;
@@ -26,6 +23,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,34 +46,17 @@ class TerritoryCardServiceTest {
 	@Mock
 	private ITerritoryService territoryService;
 
-	@Mock
-	private WmtsClient wmtsClient;
-
 	@InjectMocks
 	private TerritoryCardService cardService;
 
 	private final GeometryFactory gf = new GeometryFactory();
 	private final UUID territoryId = UUID.randomUUID();
 
-	@BeforeEach
-	void blankTiles() {
-		// Plan tout blanc couvrant exactement l'emprise demandée : aucune requête vers l'IGN
-		lenient().when(wmtsClient.fetchTiles3857(any(Envelope.class), anyInt())).thenAnswer(invocation -> {
-			Envelope extent = invocation.getArgument(0);
-			BufferedImage white = new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB);
-			Graphics2D g = white.createGraphics();
-			g.setColor(Color.WHITE);
-			g.fillRect(0, 0, 256, 256);
-			g.dispose();
-			return new TileImage(white, new Envelope(extent), 256, 256);
-		});
-	}
-
 	@Test
 	void renderCard_UnknownTerritory_NotFound() {
 		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.empty());
 
-		assertThrows(NotFoundException.class, () -> cardService.renderCard(territoryId, CardFraming.NORMAL));
+		assertThrows(NotFoundException.class, () -> cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
 	}
 
 	@Test
@@ -83,16 +64,15 @@ class TerritoryCardServiceTest {
 		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", null, 0)));
 
 		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
-				() -> cardService.renderCard(territoryId, CardFraming.NORMAL));
+				() -> cardService.mapLayout(territoryId, CardFraming.NORMAL));
 		assertTrue(error.getMessage().contains("pâtés"));
-		verifyNoInteractions(wmtsClient);
 	}
 
 	@Test
 	void renderCard_FillsTheFormAndShowsTheTerritoryInGreen() throws IOException {
 		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray Vieille Poste", hullWkb(), 0)));
 
-		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL));
+		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
 
 		assertEquals(875 * SCALE, card.getWidth());
 		assertEquals(616 * SCALE, card.getHeight());
@@ -108,10 +88,22 @@ class TerritoryCardServiceTest {
 	}
 
 	@Test
+	void renderCard_PutsThePlanInTheFrame() throws IOException {
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+		Color blue = new Color(170, 213, 233);
+
+		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(blue)));
+
+		assertEquals(blue, planCorner(card));
+		// Hors du cadre : la marge blanche du formulaire
+		assertEquals(Color.WHITE, new Color(card.getRGB((FRAME.x + 30) * SCALE, 20 * SCALE)));
+	}
+
+	@Test
 	void renderCard_WithAddressesNotToDo_ShowsTheRedBadge() throws IOException {
 		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 3)));
 
-		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL));
+		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
 
 		assertTrue(count(card, FRAME, TerritoryCardServiceTest::isBadgeRed) > 500, "pastille « numéros à ne pas faire »");
 	}
@@ -121,31 +113,56 @@ class TerritoryCardServiceTest {
 		String longCity = "Saint-Rémy-lès-Chevreuse-sur-une-très-longue-ligne-de-texte";
 		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("1", longCity, hullWkb(), 0)));
 
-		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL));
+		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
 
 		// Texte rétréci : rien entre la fin du pointillé de « Lieu » et « Territ. n° » (vide sur le modèle)
 		assertEquals(0, countDark(card, new Rectangle(526, 85, 5, 21)));
 		assertTrue(countDark(card, new Rectangle(80, 85, 440, 22)) > 100, "ville écrite");
 	}
 
+	/** Imprimé en noir et blanc, le territoire reste plus sombre que les jardins du plan, et son contour plus encore. */
 	@Test
-	void renderCard_MissingTiles_RefusedRatherThanGreySquares() {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP33", "Paray", hullWkb(), 0)));
-		when(wmtsClient.fetchTiles3857(any(Envelope.class), anyInt())).thenAnswer(invocation -> new TileImage(
-				new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB), new Envelope(invocation.<Envelope>getArgument(0)), 256, 256, 1));
+	void renderCard_TerritoryStandsOutInBlackAndWhite() throws IOException {
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+		Color garden = new Color(223, 232, 213);
 
-		IllegalStateException error = assertThrows(IllegalStateException.class,
-				() -> cardService.saveCard(territoryId, CardFraming.NORMAL));
+		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(garden)));
 
-		assertTrue(error.getMessage().contains("réessayez"));
-		verifyNoInteractions(territoryService);
+		double plan = luminance(planCorner(card));
+		assertEquals(luminance(garden), plan, 1);
+		// Intérieur du territoire (166 × 83 pixels du modèle au centre du cadre), loin de son contour
+		Rectangle inside = new Rectangle((int) FRAME.getCenterX() - 50, (int) FRAME.getCenterY() - 20, 100, 40);
+		assertEquals(0, count(card, inside, c -> luminance(c) > plan - 30), "remplissage plus sombre que les jardins");
+		// Contour : bord gauche du territoire
+		Rectangle outline = new Rectangle((int) FRAME.getCenterX() - 84, (int) FRAME.getCenterY() - 10, 3, 20);
+		assertTrue(count(card, outline, c -> luminance(c) < 110) > 20, "contour foncé");
+	}
+
+	@Test
+	void renderCard_PlanThatIsNotAnImage_Rejected() {
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+				() -> cardService.renderCard(territoryId, CardFraming.NORMAL, "pas une image".getBytes()));
+
+		assertTrue(error.getMessage().contains("image"));
+	}
+
+	@Test
+	void renderCard_HugePlan_RejectedBeforeDecoding() {
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+				() -> cardService.renderCard(territoryId, CardFraming.NORMAL, png(5000, 100, Color.WHITE)));
+
+		assertTrue(error.getMessage().contains("trop grand"));
 	}
 
 	@Test
 	void saveCard_StoresThePngAsTheTerritoryMap() {
 		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP 7", "Paray", hullWkb(), 0)));
 
-		cardService.saveCard(territoryId, CardFraming.WIDE);
+		cardService.saveCard(territoryId, CardFraming.WIDE, plan(Color.WHITE));
 
 		ArgumentCaptor<byte[]> png = ArgumentCaptor.forClass(byte[].class);
 		verify(territoryService).storeTerritoryMap(eq(territoryId), png.capture(), eq("carte-PVP-7.png"), eq("image/png"));
@@ -153,8 +170,34 @@ class TerritoryCardServiceTest {
 	}
 
 	@Test
+	void saveCard_UnreadablePlan_NothingStored() {
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+
+		assertThrows(IllegalArgumentException.class, () -> cardService.saveCard(territoryId, CardFraming.NORMAL, new byte[0]));
+
+		verifyNoInteractions(territoryService);
+	}
+
+	/** Le navigateur dessine le plan sur cette emprise, que la carte reprend pour placer le territoire. */
+	@Test
+	void mapLayout_GivesTheExtentInDegreesAndTheFrameSize() {
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+
+		CardMapLayout layout = cardService.mapLayout(territoryId, CardFraming.NORMAL);
+
+		Envelope extent = TerritoryCardService.mapExtent(new Envelope(260_000, 260_200, 6_240_000, 6_240_100), CardFraming.NORMAL);
+		assertEquals(extent.getMinX() / 20037508.342789244 * 180, layout.west(), 1e-9);
+		assertEquals(extent.getMaxX() / 20037508.342789244 * 180, layout.east(), 1e-9);
+		// Vers 48,8° N, comme le carré de test
+		assertTrue(layout.south() > 48.7 && layout.south() < layout.north() && layout.north() < 48.9,
+				layout.south() + " / " + layout.north());
+		assertEquals(828, layout.width());
+		assertEquals(376, layout.height());
+	}
+
+	@Test
 	void mapExtent_HasTheFrameProportionsAndCentersTheTerritory() {
-		Envelope territory = new Envelope(1000, 2200, 5000, 5300);
+		Envelope territory = new Envelope(1000, 1900, 5000, 5200);
 
 		Envelope extent = TerritoryCardService.mapExtent(territory, CardFraming.NORMAL);
 
@@ -178,46 +221,53 @@ class TerritoryCardServiceTest {
 		assertEquals(0.6, 400 / normal, 1e-9);
 	}
 
+	/**
+	 * Une barre d'immeubles (PVP33, 156 × 28 m en EPSG:3857) remplissait le cadre quel que soit le cadrage, avec un
+	 * seul nom de rue : chaque cadrage a sa largeur minimale, qui double à peu près de l'un à l'autre.
+	 */
 	@Test
 	void mapExtent_TinyTerritoryKeepsItsNeighbourhood() {
-		Envelope tiny = new Envelope(0, 10, 0, 10);
+		Envelope strip = new Envelope(262_398, 262_554, 6_241_730, 6_241_758);
 
 		for (CardFraming framing : CardFraming.values()) {
-			assertEquals(framing.minExtentMeters(), TerritoryCardService.mapExtent(tiny, framing).getWidth(), 1e-9);
+			assertEquals(framing.minExtentMeters(), TerritoryCardService.mapExtent(strip, framing).getWidth(), 1e-9);
 		}
 	}
 
 	/**
-	 * Une barre d'immeubles (PVP33, 156 × 28 m en EPSG:3857) remplissait le cadre au zoom 18 quel que soit le cadrage,
-	 * avec un seul nom de rue : chaque cadrage doit montrer un quartier plus étendu, à un niveau de zoom de moins.
+	 * S103 (373 × 493 m en EPSG:3857) : le cadre étant large, le territoire imposerait 2,7 km de plan en large, où le
+	 * plan IGN n'écrit plus les noms de rue. Le plan s'arrête à la largeur lisible, le territoire y tenant encore.
 	 */
 	@Test
-	void mapExtent_SmallTerritory_EachFramingZoomsOut() {
-		Envelope strip = new Envelope(262_398, 262_554, 6_241_730, 6_241_758);
+	void mapExtent_LargeTerritory_KeepsReadableStreetNames() {
+		Envelope territory = new Envelope(262_000, 262_373, 6_240_000, 6_240_493);
 
-		int tight = TerritoryCardService.zoomFor(TerritoryCardService.mapExtent(strip, CardFraming.TIGHT));
-		int normal = TerritoryCardService.zoomFor(TerritoryCardService.mapExtent(strip, CardFraming.NORMAL));
-		int wide = TerritoryCardService.zoomFor(TerritoryCardService.mapExtent(strip, CardFraming.WIDE));
+		for (CardFraming framing : CardFraming.values()) {
+			Envelope extent = TerritoryCardService.mapExtent(territory, framing);
 
-		assertEquals(18, tight);
-		assertEquals(17, normal);
-		assertEquals(16, wide);
+			assertTrue(extent.getWidth() <= TerritoryCardService.MAX_READABLE_EXTENT, framing.name());
+			assertTrue(extent.contains(territory), framing.name());
+		}
+		assertEquals(TerritoryCardService.MAX_READABLE_EXTENT,
+				TerritoryCardService.mapExtent(territory, CardFraming.WIDE).getWidth(), 1e-9);
+	}
+
+	/** Les noms de rue du plan IGN vectoriel apparaissent au zoom 15 : 1 978 m de large dans les 828 pixels du cadre. */
+	@Test
+	void mapExtent_WidestReadablePlanIsAboveTheStreetNamesZoom() {
+		double zoom = Math.log(2 * 20037508.342789244 * FRAME.getWidth() / (512 * TerritoryCardService.MAX_READABLE_EXTENT))
+				/ Math.log(2);
+
+		assertTrue(zoom >= 15, "zoom " + zoom);
 	}
 
 	@Test
-	void zoomFor_KeepsTilesCloseToTheirSize() {
-		Envelope extent = new Envelope(0, 900, 0, 900 * FRAME.getHeight() / FRAME.getWidth());
+	void mapExtent_TooLargeForStreetNames_KeepsTheFraming() {
+		Envelope territory = new Envelope(0, 3000, 0, 500);
 
-		int zoom = TerritoryCardService.zoomFor(extent);
-
-		double tileScale = FRAME.getWidth() / (extent.getWidth() / MapMath.resolution(zoom));
-		assertTrue(tileScale > 0.7 && tileScale < 1.42, "échelle des tuiles " + tileScale);
-	}
-
-	@Test
-	void zoomFor_StaysWithinTheUsefulLevels() {
-		assertEquals(18, TerritoryCardService.zoomFor(new Envelope(0, 1, 0, 1)));
-		assertEquals(12, TerritoryCardService.zoomFor(new Envelope(0, 1_000_000, 0, 1_000_000)));
+		assertEquals(0.8, 3000 / TerritoryCardService.mapExtent(territory, CardFraming.TIGHT).getWidth(), 1e-9);
+		assertEquals(0.6, 3000 / TerritoryCardService.mapExtent(territory, CardFraming.NORMAL).getWidth(), 1e-9);
+		assertEquals(0.4, 3000 / TerritoryCardService.mapExtent(territory, CardFraming.WIDE).getWidth(), 1e-9);
 	}
 
 	@Test
@@ -253,6 +303,35 @@ class TerritoryCardServiceTest {
 			@Override
 			public Long getAddressesNotToDo() { return addressesNotToDo; }
 		};
+	}
+
+	/** Plan d'une seule couleur, tel que le navigateur l'envoie : le cadre à deux pixels par pixel du modèle. */
+	private static byte[] plan(Color color) {
+		return png(FRAME.width * SCALE, FRAME.height * SCALE, color);
+	}
+
+	private static byte[] png(int width, int height, Color color) {
+		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		Graphics2D g = image.createGraphics();
+		g.setColor(color);
+		g.fillRect(0, 0, width, height);
+		g.dispose();
+		try {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			ImageIO.write(image, "png", out);
+			return out.toByteArray();
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	/** Plan en haut à gauche du cadre, loin du territoire, de la légende et de la source. */
+	private static Color planCorner(BufferedImage card) {
+		return new Color(card.getRGB((FRAME.x + 30) * SCALE, (FRAME.y + 30) * SCALE));
+	}
+
+	private static double luminance(Color c) {
+		return 0.299 * c.getRed() + 0.587 * c.getGreen() + 0.114 * c.getBlue();
 	}
 
 	private static BufferedImage read(byte[] png) throws IOException {
