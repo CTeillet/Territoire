@@ -1,16 +1,25 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { TriangleAlert } from "lucide-react";
 import { authFetch } from "@/utils/auth-fetch";
 
 interface TerritoryMapViewerProps {
   territoryMapId: string;
+  /** Boutons à droite du titre (génération de la carte physique). */
+  actions?: React.ReactNode;
 }
 
 const TerritoryMapViewer: React.FC<TerritoryMapViewerProps> = ({
   territoryMapId,
+  actions,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -78,6 +87,7 @@ const TerritoryMapViewer: React.FC<TerritoryMapViewerProps> = ({
     <Card>
       <CardHeader>
         <CardTitle>Carte du territoire</CardTitle>
+        {actions && <CardAction>{actions}</CardAction>}
       </CardHeader>
       <CardContent className="flex justify-center">
         <div className="relative w-full h-[500px] border border-gray-200 rounded-md overflow-hidden">

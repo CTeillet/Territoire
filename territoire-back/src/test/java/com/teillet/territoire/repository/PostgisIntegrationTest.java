@@ -3,6 +3,7 @@ package com.teillet.territoire.repository;
 import com.teillet.territoire.enums.Role;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
+import com.teillet.territoire.model.AddressNotToDo;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.Block;
 import com.teillet.territoire.model.City;
@@ -10,6 +11,7 @@ import com.teillet.territoire.model.Person;
 import com.teillet.territoire.model.Territory;
 import com.teillet.territoire.model.User;
 import com.teillet.territoire.repository.projection.Bbox3857;
+import com.teillet.territoire.repository.projection.TerritoryCardRow;
 import com.teillet.territoire.repository.projection.TerritoryHullRow;
 import com.teillet.territoire.service.ITerritoryService;
 import org.junit.jupiter.api.AfterEach;
@@ -33,9 +35,11 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -70,12 +74,14 @@ class PostgisIntegrationTest {
 	@Autowired private AssignmentRepository assignmentRepository;
 	@Autowired private ITerritoryService territoryService;
 	@Autowired private UserRepository userRepository;
+	@Autowired private AddressNotToDoRepository addressNotToDoRepository;
 
 	private City rennes;
 
 	@AfterEach
 	void cleanUp() {
 		assignmentRepository.deleteAll();
+		addressNotToDoRepository.deleteAll();
 		blockRepository.deleteAll();
 		territoryRepository.deleteAll();
 		personRepository.deleteAll();
@@ -142,6 +148,28 @@ class PostgisIntegrationTest {
 		assertEquals(webMercatorY(RENNES_LAT), hull.getEnvelopeInternal().getMinY(), 1.0);
 		assertTrue(hull.contains(label), "L'étiquette doit être placée dans le territoire");
 		assertEquals(2, territoryRepository.findAllProjected3857().size());
+	}
+
+	@Test
+	void cardRowHasTheCityTheHullInWebMercatorAndTheAddressesNotToDo() throws ParseException {
+		Territory territory = territory("PVP7", rennes, multiPolygon(square(RENNES_LON, RENNES_LAT)));
+		Territory withoutBlocks = territory("Sans pâtés", rennes, null);
+		addressNotToDoRepository.save(AddressNotToDo.builder().street("Rue de Paris").number("3").territory(territory).build());
+		addressNotToDoRepository.save(AddressNotToDo.builder().street("Rue de Paris").number("5").territory(territory).build());
+
+		TerritoryCardRow row = territoryRepository.findCardRow(territory.getId()).orElseThrow();
+
+		assertEquals("PVP7", row.getName());
+		assertEquals("Rennes", row.getCityName());
+		assertEquals(2L, row.getAddressesNotToDo());
+		Geometry hull = new WKBReader().read(row.getHullWkb());
+		assertEquals(webMercatorX(RENNES_LON), hull.getEnvelopeInternal().getMinX(), 1.0);
+		assertEquals(webMercatorY(RENNES_LAT), hull.getEnvelopeInternal().getMinY(), 1.0);
+
+		TerritoryCardRow empty = territoryRepository.findCardRow(withoutBlocks.getId()).orElseThrow();
+		assertNull(empty.getHullWkb(), "Pas de contour tant qu'aucun pâté n'est dessiné");
+		assertEquals(0L, empty.getAddressesNotToDo());
+		assertTrue(territoryRepository.findCardRow(UUID.randomUUID()).isEmpty());
 	}
 
 	@Test
