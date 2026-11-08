@@ -50,7 +50,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 		"spring.datasource.driver-class-name=org.postgresql.Driver",
 		"spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
 		// Comme en production (src/main/resources/application.properties) : tables qualifiées (public.user fonctionne, user seul non)
-		"spring.jpa.properties.hibernate.default_schema=public"
+		"spring.jpa.properties.hibernate.default_schema=public",
+		// Pas de create-drop : le contexte reste en cache et n'est fermé qu'à la fin de la JVM, quand le conteneur est déjà
+		// arrêté ; la suppression du schéma y attendait une connexion 30 s, et Surefire finissait par tuer la JVM
+		"spring.jpa.hibernate.ddl-auto=create"
 })
 @Testcontainers(disabledWithoutDocker = true)
 class PostgisIntegrationTest {

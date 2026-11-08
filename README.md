@@ -66,6 +66,7 @@ Tests :
 cd territoire-back && ./mvnw test
 cd territoire-front && npm test
 ```
+La CI vérifie aussi des seuils de couverture : `./mvnw verify` (JaCoCo, 90 % des lignes et 70 % des branches, cf. `pom.xml`) et `npm run test:coverage` (Vitest, cf. `vitest.config.mts`).
 
 ## Déploiement
 La CI (`.github/workflows`) lance lint et tests. Sur master, le workflow `Build and Deploy` prend ensuite le relais :

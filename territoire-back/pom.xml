@@ -307,6 +307,34 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
+                    <!-- Seuils de couverture, vérifiés par ./mvnw verify (CI) : un ./mvnw test limité à quelques classes
+                         (-Dtest=...) n'y est pas soumis. Couverture au 8 novembre 2026 : 93 % des lignes, 74 % des branches -->
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
