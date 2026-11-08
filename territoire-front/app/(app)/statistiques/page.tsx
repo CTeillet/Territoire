@@ -41,9 +41,15 @@ const StatistiquesPage = () => {
     (state) => state.territories
   );
 
-  const [selectedPeriod, setSelectedPeriod] = useState<SchoolYearPeriod | null>(
+  // Période choisie dans la liste ; à défaut, l'année en cours (ou la première)
+  const [chosenPeriod, setSelectedPeriod] = useState<SchoolYearPeriod | null>(
     null
   );
+  const selectedPeriod =
+    chosenPeriod ??
+    schoolYearPeriods.find((p) => p.current) ??
+    schoolYearPeriods[0] ??
+    null;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -54,15 +60,6 @@ const StatistiquesPage = () => {
   useEffect(() => {
     dispatch(fetchSchoolYearPeriods());
   }, [dispatch]);
-
-  useEffect(() => {
-    if (schoolYearPeriods.length > 0 && !selectedPeriod) {
-      // Default to the current school year period or first one
-      const current =
-        schoolYearPeriods.find((p) => p.current) || schoolYearPeriods[0];
-      setSelectedPeriod(current);
-    }
-  }, [schoolYearPeriods, selectedPeriod]);
 
   if (!isAuthenticated) return null;
 
