@@ -110,7 +110,7 @@ export async function renderIgnPlan(
   shownThemes: readonly PlanTheme[]
 ): Promise<Blob> {
   const [{ default: maplibregl }, style] = await Promise.all([
-    import("maplibre-gl"),
+    import("@/lib/maplibre"),
     loadIgnStyle(),
   ]);
 
