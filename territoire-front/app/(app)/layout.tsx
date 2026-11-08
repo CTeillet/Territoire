@@ -3,6 +3,7 @@ import Image from "next/image";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { QuickSearch, QuickSearchButton } from "@/components/quick-search";
+import { WhatsAppStatusBanner } from "@/components/whatsapp-status-banner";
 
 /** Layout de l'application de gestion (sidebar). Les pages publiques (/m/...) n'en héritent pas. */
 export default function AppLayout({
@@ -27,6 +28,7 @@ export default function AppLayout({
           />
           <QuickSearchButton className="ml-auto md:hidden" />
         </header>
+        <WhatsAppStatusBanner />
         {children}
         <QuickSearch />
       </main>

@@ -17,7 +17,8 @@ import org.springframework.stereotype.Component;
  *     <li>photographie quotidienne des statuts (qui reflète donc l'état à jour) ;</li>
  *     <li>purge des refresh tokens expirés.</li>
  * </ol>
- * Chaque étape est isolée : l'échec de l'une n'empêche pas les suivantes.
+ * Chaque étape est isolée : l'échec de l'une n'empêche pas les suivantes. À la fin, le service de surveillance reçoit
+ * un signal de succès ou d'échec (cf. HealthcheckPing) : son absence signale un back arrêté.
  * <p>
  * Remarque : en cas de passage à plusieurs instances du backend, ajouter un verrou distribué (ex. ShedLock).
  */
@@ -29,22 +30,26 @@ public class NightlyJobs {
 	private final ITerritoryService territoryService;
 	private final ITerritoryStatusHistoryService territoryStatusHistoryService;
 	private final IRefreshTokenService refreshTokenService;
+	private final HealthcheckPing healthcheck;
 
 	@Scheduled(cron = "${territoire.nightly-jobs.cron:0 5 0 * * *}", zone = "Europe/Paris")
 	public void run() {
 		log.info("🌙 Début des traitements de nuit");
-		runStep("vérification des retards", assignmentService::checkOverdueAssignments);
-		runStep("libération des territoires en attente", territoryService::releasePendingTerritories);
-		runStep("historique quotidien des statuts", territoryStatusHistoryService::recordDailyStatistics);
-		runStep("purge des refresh tokens expirés", refreshTokenService::purgeExpired);
+		boolean ok = runStep("vérification des retards", assignmentService::checkOverdueAssignments);
+		ok &= runStep("libération des territoires en attente", territoryService::releasePendingTerritories);
+		ok &= runStep("historique quotidien des statuts", territoryStatusHistoryService::recordDailyStatistics);
+		ok &= runStep("purge des refresh tokens expirés", refreshTokenService::purgeExpired);
 		log.info("🌙 Fin des traitements de nuit");
+		healthcheck.report(ok);
 	}
 
-	private void runStep(String name, Runnable step) {
+	private boolean runStep(String name, Runnable step) {
 		try {
 			step.run();
+			return true;
 		} catch (Exception e) {
 			log.error("Échec du traitement de nuit « {} »", name, e);
+			return false;
 		}
 	}
 }

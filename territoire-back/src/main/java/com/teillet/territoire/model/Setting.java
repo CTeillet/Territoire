@@ -52,4 +52,15 @@ public class Setting {
     /** Thèmes du Plan IGN de chaque carte, en JSON ({"TERRITORIES": ["PLACES", ...]}). Null = thèmes par défaut. */
     @Column(name = "map_themes", columnDefinition = "TEXT")
     private String mapThemes;
+
+    /** Dernier message WhatsApp parti (tous messages confondus). Écrit par SettingRepository, jamais par save(). */
+    @Column(name = "whatsapp_last_success_at")
+    private java.time.Instant whatsappLastSuccessAt;
+
+    /** Dernier échec d'envoi WhatsApp et son motif : après le dernier succès, les messages ne partent plus. */
+    @Column(name = "whatsapp_last_failure_at")
+    private java.time.Instant whatsappLastFailureAt;
+
+    @Column(name = "whatsapp_last_failure", columnDefinition = "TEXT")
+    private String whatsappLastFailure;
 }

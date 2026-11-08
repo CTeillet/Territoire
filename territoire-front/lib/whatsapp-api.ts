@@ -1,5 +1,5 @@
 import { Person } from "@/models/person";
-import { WhatsAppTestResult } from "@/models/whatsapp-test";
+import { WhatsAppStatus, WhatsAppTestResult } from "@/models/whatsapp-test";
 import { apiRequest as request } from "@/utils/api-request";
 
 export const fetchPersonsForWhatsApp = () =>
@@ -14,4 +14,12 @@ export const sendWhatsAppTest = (personId: string, message: string) =>
     "/api/whatsapp/test",
     { method: "POST", body: JSON.stringify({ personId, message }) },
     "Échec du test d'envoi"
+  );
+
+/** Dernier succès et dernier échec des envois WhatsApp (ADMIN, SUPERVISEUR, GESTIONNAIRE). */
+export const fetchWhatsAppStatus = () =>
+  request<WhatsAppStatus>(
+    "/api/whatsapp/etat",
+    {},
+    "Impossible de lire l'état des envois WhatsApp"
   );

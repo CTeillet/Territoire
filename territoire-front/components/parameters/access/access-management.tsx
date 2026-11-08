@@ -70,6 +70,7 @@ import {
   ACCESS_STATUS_BADGE,
   formatDateTime,
 } from "@/components/person/person-access-card";
+import { LastSend } from "@/components/person/last-send";
 
 export type Filter =
   "ALL" | "WITH_TERRITORIES" | "NEVER_OPENED" | "NO_LINK" | "INACTIVE";
@@ -349,10 +350,8 @@ export default function AccessManagement() {
                   <TableCell className="tabular-nums">
                     {a.activeTerritories}
                   </TableCell>
-                  <TableCell
-                    className={cn(!a.lastSentAt && "text-muted-foreground")}
-                  >
-                    {formatDateTime(a.lastSentAt)}
+                  <TableCell>
+                    <LastSend access={a} />
                   </TableCell>
                   <TableCell
                     className={cn(!a.lastUsedAt && "text-muted-foreground")}

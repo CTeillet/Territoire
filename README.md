@@ -101,6 +101,19 @@ Le back envoie chaque lundi à 8 h (heure de Paris) la liste des territoires en 
 
 Tout autre serveur SMTP en STARTTLS sur le port 587 convient (Brevo, OVH…). L'horaire est réglé par `territoire.late-report.cron` dans `application.properties` (format cron Spring, `0 0 8 * * MON`).
 
+### Surveillance (WhatsApp et traitements de nuit)
+**Envois WhatsApp.** Chaque message (attribution, lien personnel, rappel, demande, test) est suivi. Quand un envoi échoue (session WAHA déconnectée, clé refusée...) :
+- un bandeau rouge l'annonce en haut de toutes les pages pour ADMIN, SUPERVISEUR et GESTIONNAIRE, avec le motif renvoyé par WAHA, jusqu'au prochain envoi réussi ;
+- les destinataires du récapitulatif des retards (Paramètres > Autres paramètres) reçoivent un e-mail, puis un second quand les envois reprennent (un seul par changement d'état) ;
+- un message d'attribution en échec apparaît dans Paramètres > Accès numériques et sur la fiche de la personne (« Échec le … »), pour le renvoyer.
+
+Après avoir reconnecté WAHA, Paramètres > Données > Outils avancés > Test WhatsApp vérifie l'envoi et fait disparaître le bandeau.
+
+**Traitements de nuit.** Comme la sauvegarde, les traitements de nuit (retards, territoires en attente, historique) peuvent prévenir [healthchecks.io](https://healthchecks.io) : un signal chaque nuit, ou un signal d'échec si une étape a échoué. Sans signal (back arrêté, VPS éteint), healthchecks.io envoie un e-mail.
+1. Créer un check (période 1 jour, délai de grâce 1 h).
+2. Ajouter son adresse dans l'environnement du VPS, à côté des autres secrets : `NIGHTLY_JOBS_HEALTHCHECK_URL=https://hc-ping.com/<uuid>`.
+3. `docker compose up -d territoire-back`. Le premier signal arrive la nuit suivante (vers 0 h 05).
+
 ### Intégrations (tuile Homepage)
 `GET /api/integrations/resume` renvoie le nombre de territoires par statut, sans aucune donnée personnelle :
 ```json

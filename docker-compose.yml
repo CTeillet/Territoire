@@ -74,6 +74,8 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      # Surveillance des traitements de nuit (healthchecks.io). Facultatif : sans elle, aucun signal
+      NIGHTLY_JOBS_HEALTHCHECK_URL: ${NIGHTLY_JOBS_HEALTHCHECK_URL:-}
     ports:
       - "127.0.0.1:8080:8080"
 
