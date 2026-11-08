@@ -14,14 +14,14 @@ import AssignmentRow, {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/store/store";
-import { fetchLatestAssignments } from "@/store/slices/territory-slice";
+import { fetchLatestAssignments } from "@/store/slices/territory-statistics-slice";
 import { compareByLatestMovement } from "@/models/assignment";
 
 export const AssignmentsTable: React.FC = () => {
   const dispatch = useAppDispatch();
   const isMobile = useIsMobile();
   const { latestAssignments, statisticsLoading, error } = useSelector(
-    (state: RootState) => state.territories
+    (state: RootState) => state.territoryStatistics
   );
 
   useEffect(() => {

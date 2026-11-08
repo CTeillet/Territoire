@@ -28,11 +28,11 @@ import {
 } from "@/components/ui/chart";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/store/store";
+import { fetchTerritories } from "@/store/slices/territory-slice";
 import {
-  fetchTerritories,
   fetchTerritoriesNotAssignedSince,
   fetchTerritoryStatusHistory,
-} from "@/store/slices/territory-slice";
+} from "@/store/slices/territory-statistics-slice";
 
 interface StatisticsChartProps {
   startDate?: string;
@@ -50,8 +50,10 @@ export const StatisticsChart: React.FC<StatisticsChartProps> = ({
     territoryStatusHistory,
     territoriesNotAssignedSince,
     statisticsLoading,
-    territoriesGeojson,
-  } = useSelector((state: RootState) => state.territories);
+  } = useSelector((state: RootState) => state.territoryStatistics);
+  const territoriesGeojson = useSelector(
+    (state: RootState) => state.territories.territoriesGeojson
+  );
 
   const totalTerritories = territoriesGeojson
     ? territoriesGeojson.features.length

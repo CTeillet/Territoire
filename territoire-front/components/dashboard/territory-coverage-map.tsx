@@ -9,7 +9,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import MapUpdater from "@/components/territory/map-updater";
 import { MAP_HEIGHT_CLASSES } from "@/components/shared/map-height";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { fetchTerritoryCoverageMap } from "@/store/slices/territory-slice";
+import { fetchTerritoryCoverageMap } from "@/store/slices/territory-statistics-slice";
 import type { Feature, Geometry } from "geojson";
 import { TerritoryCoverageProperties } from "@/models/territory";
 import { geoJsonCenter } from "@/lib/geo";
@@ -46,7 +46,7 @@ const TerritoryCoverageMap: React.FC<TerritoryCoverageMapProps> = ({
   const dispatch = useAppDispatch();
 
   const { territoryCoverageGeojson, loadingCoverageMap } = useAppSelector(
-    (state) => state.territories
+    (state) => state.territoryStatistics
   );
 
   useEffect(() => {

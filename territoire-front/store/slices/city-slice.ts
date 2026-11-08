@@ -1,7 +1,6 @@
 import { City } from "@/models/city";
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { authFetch } from "@/utils/auth-fetch";
-import { apiErrorMessage } from "@/utils/api-error";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createApiThunk, jsonBody, thunkApi } from "@/utils/thunk-request";
 
 // État initial du slice
 interface CityState {
@@ -18,80 +17,60 @@ const initialState: CityState = {
 const API_URL = "/api/villes";
 
 // ✅ Thunk pour récupérer les villes depuis le backend
-export const fetchCities = createAsyncThunk("cities/fetchCities", async () => {
-  const response = await authFetch(API_URL);
-  if (!response.ok) {
-    throw new Error("Erreur lors de la récupération des villes");
-  }
-  return response.json() as Promise<City[]>;
-});
-
-// ✅ Thunk pour ajouter une ville
-export const addCity = createAsyncThunk(
-  "cities/addCity",
-  async ({
-    name,
-    zipCode,
-    colorHex,
-  }: {
-    name: string;
-    zipCode: string;
-    colorHex?: string;
-  }) => {
-    const response = await authFetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name,
-        zipCode: zipCode,
-        colorHex: colorHex,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        await apiErrorMessage(response, "Erreur lors de l'ajout de la ville")
-      );
-    }
-
-    return response.json() as Promise<City>;
-  }
+export const fetchCities = createApiThunk(
+  "cities/fetchCities",
+  (_: void, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<City[]>(
+      API_URL,
+      "Erreur lors de la récupération des villes"
+    )
 );
 
-// ✅ Thunk pour supprimer une ville
-export const removeCity = createAsyncThunk(
+// ✅ Thunk pour ajouter une ville
+export const addCity = createApiThunk(
+  "cities/addCity",
+  (
+    {
+      name,
+      zipCode,
+      colorHex,
+    }: {
+      name: string;
+      zipCode: string;
+      colorHex?: string;
+    },
+    { rejectWithValue }
+  ) =>
+    thunkApi(rejectWithValue).json<City>(
+      API_URL,
+      "Erreur lors de l'ajout de la ville",
+      jsonBody("POST", { name, zipCode, colorHex })
+    )
+);
+
+// ✅ Thunk pour supprimer une ville (ex. refus d'une ville qui contient encore des territoires)
+export const removeCity = createApiThunk(
   "cities/removeCity",
-  async (id: string) => {
-    const response = await authFetch(`${API_URL}/${id}`, { method: "DELETE" });
-
-    if (!response.ok) {
-      // Ex. ville contenant encore des territoires : le serveur explique le refus
-      throw new Error(
-        await apiErrorMessage(
-          response,
-          "Erreur lors de la suppression de la ville"
-        )
-      );
-    }
-
-    return id;
-  }
+  async (id: string, { rejectWithValue }) =>
+    (await thunkApi(rejectWithValue).noContent(
+      `${API_URL}/${id}`,
+      "Erreur lors de la suppression de la ville",
+      { method: "DELETE" }
+    )) ?? id
 );
 
 // ✅ Thunk pour mettre à jour la couleur d'une ville
-export const updateCityColor = createAsyncThunk(
+export const updateCityColor = createApiThunk(
   "cities/updateCityColor",
-  async ({ id, colorHex }: { id: string; colorHex: string | null }) => {
-    const response = await authFetch(`${API_URL}/${id}/couleur`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ colorHex }),
-    });
-    if (!response.ok) {
-      throw new Error("Erreur lors de la mise à jour de la couleur");
-    }
-    return response.json() as Promise<City>;
-  }
+  (
+    { id, colorHex }: { id: string; colorHex: string | null },
+    { rejectWithValue }
+  ) =>
+    thunkApi(rejectWithValue).json<City>(
+      `${API_URL}/${id}/couleur`,
+      "Erreur lors de la mise à jour de la couleur",
+      jsonBody("PATCH", { colorHex })
+    )
 );
 
 const citySlice = createSlice({
@@ -114,8 +93,7 @@ const citySlice = createSlice({
       )
       .addCase(fetchCities.rejected, (state, action) => {
         state.loading = false;
-        state.error =
-          action.error.message ?? "Erreur lors du chargement des villes";
+        state.error = action.payload ?? "Erreur lors du chargement des villes";
       })
 
       // 📌 Gestion de l'ajout d'une ville

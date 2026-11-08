@@ -91,14 +91,11 @@ describe("campaign-slice : thunks et reducers", () => {
       "Erreur lors de la récupération des campagnes"
     );
 
+    // Réponse illisible : message de l'action, pas celui de l'exception
     authFetch.mockResolvedValueOnce(unreadable());
     await store.dispatch(fetchCampaigns());
-    expect(store.getState().campaigns.error).toBe("JSON invalide");
-
-    authFetch.mockResolvedValueOnce(unreadable("bizarre"));
-    await store.dispatch(fetchCampaigns());
     expect(store.getState().campaigns.error).toBe(
-      "Une erreur inconnue s'est produite"
+      "Erreur lors de la récupération des campagnes"
     );
   });
 
@@ -125,7 +122,9 @@ describe("campaign-slice : thunks et reducers", () => {
 
     authFetch.mockResolvedValueOnce(unreadable());
     await store.dispatch(fetchCampaign("c1"));
-    expect(store.getState().campaigns.error).toBe("JSON invalide");
+    expect(store.getState().campaigns.error).toBe(
+      "Erreur lors de la récupération de la campagne"
+    );
 
     const busy = newStore({ isFetchingCampaign: true });
     await busy.dispatch(fetchCampaign("c1"));
@@ -205,15 +204,14 @@ describe("campaign-slice : thunks et reducers", () => {
       expect(store.getState().campaigns.error).toBe(message);
       expect(toast.error).toHaveBeenLastCalledWith(message);
 
-      authFetch.mockResolvedValueOnce(unreadable("bizarre"));
-      await store.dispatch(thunk() as never);
-      expect(store.getState().campaigns.error).toBe(
-        "Une erreur inconnue s'est produite"
-      );
-
+      // Réponse illisible ou coupure réseau : message de l'action
       authFetch.mockResolvedValueOnce(unreadable());
       await store.dispatch(thunk() as never);
-      expect(store.getState().campaigns.error).toBe("JSON invalide");
+      expect(store.getState().campaigns.error).toBe(message);
+
+      authFetch.mockRejectedValueOnce(new Error("Failed to fetch"));
+      await store.dispatch(thunk() as never);
+      expect(store.getState().campaigns.error).toBe(message);
     }
   );
 
@@ -377,7 +375,7 @@ describe("campaign-slice : thunks et reducers", () => {
           exportCampaignStatistics({ campaignId: "c1", campaignName: "x" })
         )
       ).payload
-    ).toBe("téléchargement interrompu");
+    ).toBe("Erreur lors de l'exportation des statistiques");
 
     authFetch.mockResolvedValueOnce(unreadable("bizarre"));
     expect(
@@ -386,6 +384,6 @@ describe("campaign-slice : thunks et reducers", () => {
           exportCampaignStatistics({ campaignId: "c1", campaignName: "x" })
         )
       ).payload
-    ).toBe("Une erreur lors du téléchargement du fichier");
+    ).toBe("Erreur lors de l'exportation des statistiques");
   });
 });
