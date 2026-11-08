@@ -1,3 +1,13 @@
+# Services d'observabilité : relancés après un redémarrage du VPS ou de Docker, comme l'application, et journaux
+# Docker limités (sinon ils grossissent sans fin sur le disque du VPS)
+x-observabilite: &observabilite
+  restart: always
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "20m"
+      max-file: "3"
+
 services:
   postgis:
     # Version majeure figée : un serveur 18 refuse de démarrer sur les données d'un 17 (et PGDATA change en 18).
@@ -99,6 +109,7 @@ services:
 
   # Observabilité : versions figées et à monter volontairement (les montées majeures changent la config, ex. Tempo 3)
   collector:
+    <<: *observabilite
     image: otel/opentelemetry-collector-contrib:0.164.0
     volumes:
       - ./config/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
@@ -106,6 +117,7 @@ services:
     # y accèdent par le réseau Docker interne.
 
   grafana:
+    <<: *observabilite
     image: grafana/grafana:13.3.0
     ports:
       - "127.0.0.1:4000:3000"
@@ -124,6 +136,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASS}
 
   tempo:
+    <<: *observabilite
     image: grafana/tempo:3.1.1
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
@@ -132,6 +145,7 @@ services:
     # Pas de port publié : Grafana et le collector y accèdent par le réseau Docker interne
 
   prometheus:
+    <<: *observabilite
     image: prom/prometheus:v3.15.1
     command:
       - --config.file=/etc/prometheus.yaml
@@ -145,6 +159,7 @@ services:
     # Pas de port publié (accès via Grafana)
 
   loki:
+    <<: *observabilite
     image: grafana/loki:3.7.9
     # Pas de port publié (accès via Grafana)
     command: -config.file=/etc/loki-config.yaml
@@ -154,6 +169,7 @@ services:
       - loki_data:/loki
 
   postgres-exporter:
+    <<: *observabilite
     image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
     environment:
       DATA_SOURCE_URI: "postgis:5432/territoire?sslmode=disable"
