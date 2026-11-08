@@ -1,5 +1,8 @@
 package com.teillet.territoire.service;
 
+import org.mockito.ArgumentCaptor;
+import com.teillet.territoire.repository.TerritoryMapVersionRepository;
+import com.teillet.territoire.model.TerritoryMapVersion;
 import com.teillet.territoire.dto.AverageAssignmentDurationDto;
 import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.dto.SchoolYearPeriodDto;
@@ -63,6 +66,9 @@ class TerritoryServiceTest {
 	@Mock
 	private ISettingService settingService;
 
+	@Mock
+	private TerritoryMapVersionRepository mapVersionRepository;
+
 	private TerritoryService territoryService;
 
 	private City city;
@@ -78,7 +84,8 @@ class TerritoryServiceTest {
 				campaignService,
 				cityService,
 				reminderRepository,
-				settingService
+				settingService,
+				mapVersionRepository
 		);
 		lenient().when(settingService.getDurationSettings()).thenReturn(new DurationSettingsDto(4, 4));
 
@@ -255,6 +262,7 @@ class TerritoryServiceTest {
 		verify(campaignService, times(1)).deleteTerrritoryFromAllCampaign(territory);
 		verify(blockRepository, times(1)).deleteBlockByTerritory_Id(territoryId);
 		verify(assignmentRepository, times(1)).deleteByTerritory_Id(territoryId);
+		verify(mapVersionRepository).deleteByTerritoryId(territoryId);
 		verify(territoryRepository, times(1)).deleteById(territoryId);
 	}
 
@@ -340,6 +348,25 @@ class TerritoryServiceTest {
 		assertEquals("carte-PVP7.png", updated.getTerritoryMapName());
 		assertEquals("image/png", updated.getTerritoryMapContentType());
 		assertEquals(LocalDate.now(), updated.getLastModifiedDate());
+
+		// L'ancienne carte est gardée dans les cartes précédentes
+		ArgumentCaptor<TerritoryMapVersion> version = ArgumentCaptor.forClass(TerritoryMapVersion.class);
+		verify(mapVersionRepository).save(version.capture());
+		assertArrayEquals(new byte[]{9}, version.getValue().getContent());
+		assertEquals("scan.jpg", version.getValue().getFileName());
+		assertEquals("image/jpeg", version.getValue().getContentType());
+		assertSame(territory, version.getValue().getTerritory());
+		assertNotNull(version.getValue().getReplacedAt());
+	}
+
+	@Test
+	void testStoreTerritoryMap_FirstCardHasNothingToKeep() {
+		when(territoryRepository.findById(territoryId)).thenReturn(Optional.of(territory));
+		when(territoryRepository.save(any(Territory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		territoryService.storeTerritoryMap(territoryId, new byte[]{4, 5}, "carte.png", "image/png");
+
+		verify(mapVersionRepository, never()).save(any());
 	}
 
 	@Test
