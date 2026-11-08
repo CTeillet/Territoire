@@ -84,6 +84,27 @@ Les secrets (`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, …) sont fournis par l'envi
 
 Le workflow `Trivy` analyse les images du back, du front et de la sauvegarde à chaque modification et chaque lundi. Il échoue sur une faille critique corrigeable ; les failles hautes et critiques apparaissent dans l'onglet Security > Code scanning du dépôt.
 
+### Connexion SSH du déploiement
+Le workflow se connecte au VPS avec une clé SSH dédiée (secret `VPS_SSH_KEY`) et vérifie l'empreinte de la clé du serveur (`VPS_SSH_FINGERPRINT`) : un serveur qui se ferait passer pour le VPS est refusé. Le mot de passe (`VPS_SSH_PASSWORD`) ne sert plus que pendant la mise en place.
+
+**Mise en place (une fois)**
+1. Sur ton poste, créer la clé (sans phrase de passe : la CI ne peut pas la saisir) :
+   ```bash
+   ssh-keygen -t ed25519 -C "github-actions-territoire" -N "" -f territoire-deploy
+   ```
+2. Sur le VPS, avec l'utilisateur du déploiement (`VPS_SSH_ID`), autoriser la clé publique et relever l'empreinte de la clé que le serveur présente à la CI (ECDSA, sinon RSA, sinon Ed25519 : l'ordre de préférence du client SSH de la CI) :
+   ```bash
+   mkdir -p ~/.ssh && chmod 700 ~/.ssh
+   echo "<contenu de territoire-deploy.pub>" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+   for type in ecdsa rsa ed25519; do
+     f=/etc/ssh/ssh_host_${type}_key.pub
+     [ -f "$f" ] && { ssh-keygen -l -f "$f" | cut -d ' ' -f 2; break; }
+   done   # SHA256:…
+   ```
+3. Dans GitHub (Settings > Secrets and variables > Actions) : `VPS_SSH_KEY` = contenu complet de `territoire-deploy` (clé privée, de `-----BEGIN` à `-----END`), `VPS_SSH_FINGERPRINT` = l'empreinte `SHA256:…`. Ranger la clé privée dans le gestionnaire de mots de passe, puis la supprimer du poste.
+4. Supprimer le secret `VPS_SSH_PASSWORD` (tant qu'il existe, la CI essaie d'abord le mot de passe), puis lancer le workflow `Build and Deploy` à la main (onglet Actions) : il se connecte par la clé seule. En cas d'échec (« host key fingerprint mismatch » : mauvaise empreinte ; « unable to authenticate » : clé publique absente de `authorized_keys`), recréer le secret le temps de corriger.
+5. Facultatif, une fois que **ta propre connexion** au VPS (terminal, tunnel IntelliJ) passe aussi par une clé : refuser les mots de passe sur le VPS (`PasswordAuthentication no` dans `/etc/ssh/sshd_config.d/50-cle-seule.conf`, puis `sudo systemctl reload ssh`). Garder une session ouverte pendant le test : une erreur ici bloque l'accès au VPS.
+
 ### E-mails (récapitulatif des retards)
 Le back envoie chaque lundi à 8 h (heure de Paris) la liste des territoires en retard. Sans serveur SMTP, rien n'est envoyé et Paramètres > Autres paramètres le signale.
 
