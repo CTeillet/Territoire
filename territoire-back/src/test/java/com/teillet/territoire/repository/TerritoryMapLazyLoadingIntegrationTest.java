@@ -1,6 +1,6 @@
 package com.teillet.territoire.repository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.TerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
@@ -125,13 +125,8 @@ class TerritoryMapLazyLoadingIntegrationTest {
 
 	@Test
 	void territoryJsonHasNeitherTheMapNorHibernateInternals() {
-		String json = transaction.execute(status -> {
-			try {
-				return objectMapper.writeValueAsString(territoryRepository.findById(territoryId).orElseThrow());
-			} catch (IOException e) {
-				throw new IllegalStateException(e);
-			}
-		});
+		String json = transaction.execute(status ->
+				objectMapper.writeValueAsString(territoryRepository.findById(territoryId).orElseThrow()));
 
 		assertTrue(json.contains("\"territoryMapName\":\"carte.png\""), json);
 		assertFalse(json.contains("\"territoryMap\""), json);

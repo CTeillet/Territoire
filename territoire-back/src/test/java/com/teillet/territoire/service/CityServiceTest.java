@@ -1,6 +1,6 @@
 package com.teillet.territoire.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.repository.CityRepository;
 import com.teillet.territoire.service.impl.CityService;
