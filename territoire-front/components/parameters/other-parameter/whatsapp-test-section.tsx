@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { Person, personToString } from "@/models/person";
 import { WhatsAppTestResult } from "@/models/whatsapp-test";
 import { fetchPersonsForWhatsApp, sendWhatsAppTest } from "@/lib/whatsapp-api";
+import { toneText } from "@/components/shared/tones";
+import { cn } from "@/lib/utils";
 
 export const DEFAULT_TEST_MESSAGE =
   "Message de test envoyé depuis Territoire : l'envoi WhatsApp fonctionne.";
@@ -161,9 +163,10 @@ export function WhatsAppTestSection({
       {result && (
         <p
           role="status"
-          className={
-            result.sent ? "text-sm text-green-700" : "text-sm text-destructive"
-          }
+          className={cn(
+            "text-sm",
+            result.sent ? toneText.success : toneText.danger
+          )}
         >
           {result.sent
             ? `Envoyé à ${result.recipient} (${result.phoneNumber}).`

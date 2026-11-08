@@ -48,7 +48,7 @@ function NavUser() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <SidebarMenuButton className="flex items-center gap-3 p-3 rounded-lg w-full hover:bg-gray-200">
+          <SidebarMenuButton className="flex items-center gap-3 p-3 rounded-lg w-full hover:bg-sidebar">
             <Avatar className="h-10 w-10 rounded-lg">
               <AvatarFallback className="rounded-lg">
                 {user.username.charAt(0).toUpperCase()}
@@ -57,11 +57,11 @@ function NavUser() {
 
             <div className="flex flex-col flex-1 text-left text-sm">
               <span className="truncate font-semibold">{user.username}</span>
-              <span className="truncate text-xs text-gray-500">
+              <span className="truncate text-xs text-muted-foreground">
                 {user.email}
               </span>
             </div>
-            <ChevronsUpDown className="size-4 text-gray-500" />
+            <ChevronsUpDown className="size-4 text-muted-foreground" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48 rounded-lg">

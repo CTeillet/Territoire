@@ -81,7 +81,7 @@ const PersonList: React.FC<PersonListProps> = ({ persons }) => {
         <div key={letter} className="space-y-4">
           <h2
             id={`letter-${letter}`}
-            className="border-b border-gray-300 pb-2 text-xl font-semibold"
+            className="border-b border-border pb-2 text-xl font-semibold"
           >
             {letter}
           </h2>
@@ -100,7 +100,7 @@ const PersonList: React.FC<PersonListProps> = ({ persons }) => {
             <a
               key={letter}
               href={`#letter-${letter}`}
-              className="rounded-md border bg-white px-2.5 py-1 text-sm font-medium hover:bg-gray-100"
+              className="rounded-md border bg-white px-2.5 py-1 text-sm font-medium hover:bg-muted"
             >
               {letter}
             </a>

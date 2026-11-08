@@ -121,7 +121,7 @@ const TerritoryHeader = ({
               className="w-full"
             />
           ) : (
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 break-words">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground break-words">
               {name}
             </h1>
           )}
@@ -199,7 +199,7 @@ const TerritoryHeader = ({
       </div>
 
       {/* Ville modifiable */}
-      <div className="text-gray-700 flex items-center mb-2">
+      <div className="text-foreground flex items-center mb-2">
         <MapPinIcon
           aria-hidden="true"
           className="mr-2 h-4 w-4 shrink-0 text-muted-foreground"
@@ -226,14 +226,14 @@ const TerritoryHeader = ({
       </div>
 
       {/* Statut */}
-      <p className="text-gray-700 flex items-center mb-2">
+      <p className="text-foreground flex items-center mb-2">
         <span className="font-semibold">Statut :</span>
         <TerritoryStatusBadge status={status} className="ml-2" />
         {lost && <LostBadge className="ml-2" />}
       </p>
 
       {/* Type */}
-      <div className="text-gray-700 flex items-center mb-2">
+      <div className="text-foreground flex items-center mb-2">
         <span className="font-semibold">Type :</span>
         {isEditing ? (
           <Select
@@ -271,7 +271,7 @@ const TerritoryHeader = ({
             className="w-full"
           />
         ) : (
-          <p className="text-gray-700">{note || "Aucune note"}</p>
+          <p className="text-foreground">{note || "Aucune note"}</p>
         )}
       </div>
 

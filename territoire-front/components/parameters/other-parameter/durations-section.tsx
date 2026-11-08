@@ -121,7 +121,7 @@ export function DurationsSection({
         </div>
       </div>
       {invalid && saved !== null && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-destructive">
           Chaque durée doit être un nombre entier de mois entre {MIN_MONTHS} et{" "}
           {MAX_MONTHS}.
         </p>

@@ -35,6 +35,8 @@ import {
   fetchPendingTerritoryRequestCount,
   TERRITORY_REQUESTS_CHANGED,
 } from "@/lib/territory-request-api";
+import { toneMark } from "@/components/shared/tones";
+import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -76,13 +78,16 @@ export function AppSidebar() {
           href={item.url}
           onClick={() => setOpenMobile(false)}
           className={`flex items-center space-x-3 p-3 rounded-lg transition-colors duration-200
-                        ${isItemActive(item.url) ? "bg-gray-400 text-primary font-bold shadow-sm" : "hover:bg-gray-200"}`}
+                        ${isItemActive(item.url) ? "bg-sidebar-active text-primary font-bold shadow-sm" : "hover:bg-sidebar-accent"}`}
         >
           <item.icon className="h-5 w-5" />
           <span className="text-base">{item.title}</span>
           {item.url === "/demandes" && pendingRequests > 0 && (
             <span
-              className="ml-auto rounded-full bg-blue-600 px-2 text-xs font-semibold text-white"
+              className={cn(
+                "ml-auto rounded-full px-2 text-xs font-semibold text-white",
+                toneMark.info
+              )}
               aria-label={`${pendingRequests} en attente`}
             >
               {pendingRequests}
@@ -96,7 +101,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       {/* Utilisation de flex pour positionner NavUser en bas */}
-      <SidebarContent className="bg-gray-300 flex flex-col h-full justify-between">
+      <SidebarContent className="bg-sidebar flex flex-col h-full justify-between">
         <SidebarGroup className="mt-8">
           <SidebarGroupLabel className="flex justify-center mb-6">
             <Image
@@ -117,11 +122,11 @@ export function AppSidebar() {
                       setOpenMobile(false);
                       openQuickSearch();
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg border border-gray-400 bg-gray-200 p-3 text-left text-gray-700 transition-colors duration-200 hover:bg-gray-100"
+                    className="flex w-full items-center gap-3 rounded-lg border border-sidebar-border bg-sidebar-accent p-3 text-left text-foreground transition-colors duration-200 hover:bg-muted"
                   >
                     <Search aria-hidden="true" className="h-5 w-5" />
                     <span className="text-base">Rechercher</span>
-                    <kbd className="ml-auto rounded border border-gray-400 bg-white px-1.5 font-sans text-xs text-gray-600">
+                    <kbd className="ml-auto rounded border border-sidebar-border bg-background px-1.5 font-sans text-xs text-muted-foreground">
                       {shortcut}
                     </kbd>
                   </button>
@@ -136,7 +141,7 @@ export function AppSidebar() {
                 <button
                   onClick={() => setTerritoryExpanded(!territoryExpanded)}
                   className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors duration-200
-                                        ${isTerritoryActive ? "bg-gray-400 text-primary font-bold shadow-sm" : "hover:bg-gray-200"}`}
+                                        ${isTerritoryActive ? "bg-sidebar-active text-primary font-bold shadow-sm" : "hover:bg-sidebar-accent"}`}
                 >
                   <div className="flex items-center space-x-3">
                     <Building className="h-5 w-5" />
@@ -152,7 +157,7 @@ export function AppSidebar() {
 
               {/* Territory sub-items */}
               {territoryExpanded && (
-                <div className="ml-6 border-l-2 border-gray-400 pl-2">
+                <div className="ml-6 border-l-2 border-sidebar-border pl-2">
                   {territoryItems.map(renderMenuItem)}
                 </div>
               )}
@@ -167,7 +172,7 @@ export function AppSidebar() {
 
         {/* Afficher le footer uniquement si l'utilisateur est connecté */}
         {isClient && user && (
-          <SidebarFooter className="p-3 bg-gray-200 border-t">
+          <SidebarFooter className="p-3 bg-sidebar-accent border-t">
             <NavUser />
           </SidebarFooter>
         )}

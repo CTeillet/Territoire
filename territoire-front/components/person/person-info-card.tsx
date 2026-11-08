@@ -16,20 +16,21 @@ const PersonInfoCard = ({ person }: PersonInfoCardProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="mb-3">
-              <strong className="text-gray-700">Prénom :</strong>{" "}
+              <strong className="text-foreground">Prénom :</strong>{" "}
               {person.firstName}
             </p>
             <p className="mb-3">
-              <strong className="text-gray-700">Nom :</strong> {person.lastName}
+              <strong className="text-foreground">Nom :</strong>{" "}
+              {person.lastName}
             </p>
           </div>
           <div>
             <p className="mb-3">
-              <strong className="text-gray-700">Email :</strong>{" "}
+              <strong className="text-foreground">Email :</strong>{" "}
               {person.email || "N/A"}
             </p>
             <p className="mb-3">
-              <strong className="text-gray-700">Téléphone :</strong>{" "}
+              <strong className="text-foreground">Téléphone :</strong>{" "}
               {person.phoneNumber
                 ? formatPhoneNumber(person.phoneNumber)
                 : "N/A"}

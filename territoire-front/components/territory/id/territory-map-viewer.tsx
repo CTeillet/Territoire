@@ -90,19 +90,19 @@ const TerritoryMapViewer: React.FC<TerritoryMapViewerProps> = ({
         {actions && <CardAction>{actions}</CardAction>}
       </CardHeader>
       <CardContent className="flex justify-center">
-        <div className="relative w-full h-[500px] border border-gray-200 rounded-md overflow-hidden">
+        <div className="relative w-full h-[500px] border border-border rounded-md overflow-hidden">
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
           )}
           {hasError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-4 text-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-4 text-center">
               <TriangleAlert
                 aria-hidden="true"
                 className="mb-2 h-6 w-6 text-destructive"
               />
-              <p className="text-gray-700">
+              <p className="text-foreground">
                 Impossible de charger l&apos;image. Veuillez réessayer plus
                 tard.
               </p>

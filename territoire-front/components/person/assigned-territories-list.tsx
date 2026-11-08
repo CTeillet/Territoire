@@ -39,7 +39,7 @@ const AssignedTerritoriesList = ({
             ))}
           </ul>
         ) : (
-          <p className="text-center py-4 text-gray-500">
+          <p className="text-center py-4 text-muted-foreground">
             Aucun territoire assigné
           </p>
         )}
