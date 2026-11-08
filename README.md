@@ -238,6 +238,41 @@ rm -rf restauration
 ```
 Si la restauration échoue, la base vide peut être supprimée et `territoire_avant_restauration` renommée en `territoire`. Une fois l'application vérifiée, `territoire_avant_restauration` peut être supprimée (`DROP DATABASE`).
 
+### Rôles PostgreSQL
+Le back et postgres-exporter se connectent avec des rôles dédiés plutôt qu'avec `admin`, le superutilisateur propriétaire des tables :
+- `territoire_app` (back) lit et écrit les données, sans pouvoir créer, modifier ou supprimer une table, ni lire les fichiers du serveur ou y lancer des commandes : une faille de l'application ne donne pas la main sur la base entière. Les migrations Flyway passent toujours par `admin` (`SPRING_FLYWAY_USER`), et les tables qu'elles créent sont ouvertes d'office à `territoire_app`.
+- `postgres_exporter` ne lit que les statistiques du serveur (rôle `pg_monitor`).
+- `admin` reste utilisé par les migrations, la sauvegarde et les accès à la main.
+
+Tant que ces rôles ne sont pas en place (variables ci-dessous absentes), tout passe par `admin`, comme avant. Le script `config/postgres/roles.sql` ne touche à aucune donnée ni à aucune table : seulement des rôles et des droits. `DatabaseRolesIntegrationTest` le vérifie en CI sur une copie du schéma de production.
+
+**Mise en place (une fois, depuis `~/territoire`)**
+1. Sauvegarde à jour : `docker compose run --rm db-backup run`.
+2. Créer les rôles avec deux mots de passe neufs, à ranger dans le gestionnaire de mots de passe :
+   ```bash
+   MOT_DE_PASSE_APP=$(openssl rand -hex 24)
+   MOT_DE_PASSE_EXPORTER=$(openssl rand -hex 24)
+   docker compose exec -T postgis psql -U admin -d territoire -v ON_ERROR_STOP=1      -v mot_de_passe_app="$MOT_DE_PASSE_APP" -v mot_de_passe_exporter="$MOT_DE_PASSE_EXPORTER" < config/postgres/roles.sql
+   echo "$MOT_DE_PASSE_APP $MOT_DE_PASSE_EXPORTER"
+   ```
+3. Dans l'environnement du VPS, à côté des autres secrets :
+   ```bash
+   DB_ADMIN_PASSWORD=…            # mot de passe d'admin : la valeur actuelle de SPRING_DATASOURCE_PASSWORD
+   SPRING_DATASOURCE_USERNAME=territoire_app
+   SPRING_DATASOURCE_PASSWORD=…   # MOT_DE_PASSE_APP
+   PG_EXPORTER_USER=postgres_exporter
+   PG_EXPORTER_PASSWORD=…         # MOT_DE_PASSE_EXPORTER
+   ```
+4. Recréer les services concernés, puis vérifier le back, les connexions et la sauvegarde :
+   ```bash
+   docker compose up -d territoire-back postgres-exporter db-backup
+   docker compose ps territoire-back   # healthy
+   docker compose exec postgis psql -U admin -d territoire      -c "SELECT usename, count(*) FROM pg_stat_activity WHERE datname = 'territoire' GROUP BY usename"
+   docker compose run --rm db-backup run
+   ```
+
+Retour arrière : remettre `SPRING_DATASOURCE_PASSWORD` au mot de passe d'admin, retirer `SPRING_DATASOURCE_USERNAME`, `DB_ADMIN_PASSWORD` et `PG_EXPORTER_*`, puis relancer le même `docker compose up -d`. Les rôles peuvent rester en place.
+
 ### Montée de version de PostGIS
 L'image `postgis/postgis` est figée dans `docker-compose.yml`. Une montée mineure (ex. `17-3.5` → `17-3.6`) recrée le conteneur au déploiement sur les données en place, mais deux étapes restent à faire à la main :
 - les extensions PostGIS gardent leur ancienne version tant qu'elles ne sont pas mises à jour : `SELECT postgis_full_version();` affiche « need upgrade » ;

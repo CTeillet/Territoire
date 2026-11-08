@@ -34,8 +34,9 @@ services:
       PGHOST: postgis
       PGUSER: admin
       PGDATABASE: territoire
-      # Mot de passe déjà utilisé par le back pour le même utilisateur admin
-      PGPASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      # Mot de passe d'admin : DB_ADMIN_PASSWORD, ou à défaut celui du back tant qu'il se connecte en admin
+      # (README > Rôles PostgreSQL)
+      PGPASSWORD: ${DB_ADMIN_PASSWORD:-${SPRING_DATASOURCE_PASSWORD}}
       RCLONE_CONFIG: /config/rclone/rclone.conf
       BACKUP_REMOTE: ${BACKUP_REMOTE:-}
       BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
@@ -61,7 +62,12 @@ services:
     depends_on:
       - postgis
     environment:
+      # Rôle de la base (README > Rôles PostgreSQL) : territoire_app, sans droit sur le schéma ; admin tant qu'il n'est
+      # pas créé. Les migrations Flyway passent toujours par admin, le propriétaire des tables.
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-admin}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_FLYWAY_USER: admin
+      SPRING_FLYWAY_PASSWORD: ${DB_ADMIN_PASSWORD:-${SPRING_DATASOURCE_PASSWORD}}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       WAHA_API_KEY_PLAIN_TEXT: ${WAHA_API_KEY_PLAIN_TEXT}
       # Clé des liens personnels (/m/...). Facultative : sans elle, dérivée de JWT_SECRET_KEY (changer la clé JWT invaliderait alors les liens)
@@ -157,8 +163,9 @@ services:
     image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
     environment:
       DATA_SOURCE_URI: "postgis:5432/territoire?sslmode=disable"
-      DATA_SOURCE_USER: "admin"
-      DATA_SOURCE_PASS: ${PG_ADMIN_PASSWORD}
+      # Rôle postgres_exporter (statistiques seulement, README > Rôles PostgreSQL) ; admin tant qu'il n'est pas créé
+      DATA_SOURCE_USER: ${PG_EXPORTER_USER:-admin}
+      DATA_SOURCE_PASS: ${PG_EXPORTER_PASSWORD:-${PG_ADMIN_PASSWORD}}
     # Pas de port publié (scrappé par Prometheus sur le réseau interne)
 
 volumes:
