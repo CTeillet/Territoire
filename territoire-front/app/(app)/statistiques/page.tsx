@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { fetchSchoolYearPeriods } from "@/store/slices/territory-slice";
+import { fetchSchoolYearPeriods } from "@/store/slices/territory-statistics-slice";
 import { StatisticsOverview } from "@/components/dashboard/statistics-overview";
 import { AverageAssignmentDurationChart } from "@/components/dashboard/average-assignment-duration-chart";
 import { TerritoryDistributionChart } from "@/components/dashboard/territory-distribution-chart";
@@ -38,7 +38,7 @@ const StatistiquesPage = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { schoolYearPeriods, statisticsLoading } = useAppSelector(
-    (state) => state.territories
+    (state) => state.territoryStatistics
   );
 
   // Période choisie dans la liste ; à défaut, l'année en cours (ou la première)

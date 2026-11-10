@@ -57,11 +57,11 @@ describe("city slice", () => {
         { ...initialState, loading: true },
         {
           type: fetchCities.rejected.type,
-          error: { message: "Network error" },
+          payload: "Erreur lors de la récupération des villes",
         }
       );
       expect(state.loading).toBe(false);
-      expect(state.error).toBe("Network error");
+      expect(state.error).toBe("Erreur lors de la récupération des villes");
     });
 
     it("should handle addCity.fulfilled", () => {
