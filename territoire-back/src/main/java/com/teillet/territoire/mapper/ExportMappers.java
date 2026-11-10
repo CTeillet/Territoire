@@ -85,7 +85,7 @@ public class ExportMappers {
 				.toList();
 
 		// Territoire archivé : au registre seulement les années où il a servi
-		if (t.getArchivedAt() != null && filtered.isEmpty()) return null;
+		if (t.getArchivedAt() != null && assignments.isEmpty()) return null;
 
 		TerritoryExportDto dto = new TerritoryExportDto();
 		dto.setName(t.getName());
