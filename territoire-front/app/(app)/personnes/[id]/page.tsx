@@ -57,17 +57,17 @@ const PersonDetail = () => {
     }
   }, [dispatch, persons.length]);
 
-  // Mise à jour du formulaire quand la personne est trouvée
-  useEffect(() => {
-    if (person) {
-      setFormData({
-        firstName: person.firstName,
-        lastName: person.lastName,
-        email: person.email || undefined,
-        phoneNumber: person.phoneNumber || "",
-      });
-    }
-  }, [person]);
+  // Formulaire rempli quand la personne est trouvée ou mise à jour (pendant le rendu, sans effet)
+  const [formPerson, setFormPerson] = useState<typeof person>(undefined);
+  if (person && person !== formPerson) {
+    setFormPerson(person);
+    setFormData({
+      firstName: person.firstName,
+      lastName: person.lastName,
+      email: person.email || undefined,
+      phoneNumber: person.phoneNumber || "",
+    });
+  }
 
   // Affichage temporaire pour éviter un écran blanc avant la redirection
   if (!isAuthenticated) {

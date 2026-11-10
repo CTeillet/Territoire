@@ -79,10 +79,20 @@ const TerritoryMap = ({
   const dispatch = useAppDispatch();
   const sidebar = useSidebar();
 
-  const [geoJsonData, setGeoJsonData] = useState<FeatureCollection<
-    Polygon | MultiPolygon,
-    PolygonProperties
-  > | null>(null);
+  // Contour et pâtés du territoire, lus dans son GeoJSON
+  const geojson = territory.geojson;
+  const geoJsonData = useMemo(() => {
+    if (!geojson) return null;
+    try {
+      return JSON.parse(geojson) as FeatureCollection<
+        Polygon | MultiPolygon,
+        PolygonProperties
+      >;
+    } catch (error) {
+      console.error("❌ Erreur lors de la conversion de `geojson` :", error);
+      return null;
+    }
+  }, [geojson]);
 
   const cityCenter: LatLngBoundsExpression = useMemo(() => {
     return [
@@ -111,13 +121,16 @@ const TerritoryMap = ({
     ];
   };
 
-  const [blockFeatures, setBlockFeatures] = useState<FeatureCollection>({
-    type: "FeatureCollection",
-    features:
-      geoJsonData?.features?.filter(
-        (feature) => feature.properties.type === "BLOCK"
-      ) || [],
-  });
+  const blockFeatures = useMemo<FeatureCollection>(
+    () => ({
+      type: "FeatureCollection",
+      features:
+        geoJsonData?.features?.filter(
+          (feature) => feature.properties?.type === "BLOCK"
+        ) ?? [],
+    }),
+    [geoJsonData]
+  );
 
   const [geoJsonKey, setGeoJsonKey] = useState(0);
 
@@ -172,38 +185,10 @@ const TerritoryMap = ({
   }, [cityCenter, concaveHullCoords]);
 
   useEffect(() => {
-    if (territory?.geojson) {
-      try {
-        const parsedGeoJson = JSON.parse(
-          territory.geojson
-        ) as FeatureCollection<Polygon, PolygonProperties>;
-        setGeoJsonData(parsedGeoJson);
-      } catch (error) {
-        console.error("❌ Erreur lors de la conversion de `geojson` :", error);
-      }
-    }
-  }, [territory.geojson]);
-
-  useEffect(() => {
     if (mapRef.current) {
       mapRef.current.fitBounds(bounds);
     }
   }, [territory.geojson, bounds, concaveHullCoords.length]);
-
-  useEffect(() => {
-    const testJson: FeatureCollection = JSON.parse(
-      territory.geojson as string
-    ) as FeatureCollection<Polygon, PolygonProperties>;
-
-    if (testJson) {
-      setBlockFeatures({
-        type: "FeatureCollection",
-        features: testJson.features.filter(
-          (feature) => feature.properties?.type === "BLOCK"
-        ),
-      });
-    }
-  }, [territory.geojson]);
 
   const handleMapCreated = (map: Map) => {
     mapRef.current = map;

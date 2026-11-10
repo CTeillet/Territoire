@@ -8,13 +8,6 @@ import eslintConfigPrettier from "eslint-config-prettier";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTypescript,
-  {
-    rules: {
-      // setState appelé dans un useEffect : 13 composants existants, à restructurer un par un
-      // (état dérivé calculé au rendu, chargement déclenché par l'événement). Signalé sans bloquer la CI.
-      "react-hooks/set-state-in-effect": "warn",
-    },
-  },
   globalIgnores([
     ".next/**",
     "out/**",
