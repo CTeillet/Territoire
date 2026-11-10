@@ -29,6 +29,9 @@ class NightlyJobsTest {
 	@Mock
 	private IRefreshTokenService refreshTokenService;
 
+	@Mock
+	private HealthcheckPing healthcheck;
+
 	@InjectMocks
 	private NightlyJobs nightlyJobs;
 
@@ -36,11 +39,13 @@ class NightlyJobsTest {
 	void runsStepsInOrder() {
 		nightlyJobs.run();
 
-		InOrder order = inOrder(assignmentService, territoryService, territoryStatusHistoryService, refreshTokenService);
+		InOrder order = inOrder(assignmentService, territoryService, territoryStatusHistoryService, refreshTokenService,
+				healthcheck);
 		order.verify(assignmentService).checkOverdueAssignments();
 		order.verify(territoryService).releasePendingTerritories();
 		order.verify(territoryStatusHistoryService).recordDailyStatistics();
 		order.verify(refreshTokenService).purgeExpired();
+		order.verify(healthcheck).report(true);
 	}
 
 	@Test
@@ -52,5 +57,7 @@ class NightlyJobsTest {
 
 		verify(territoryStatusHistoryService).recordDailyStatistics();
 		verify(refreshTokenService).purgeExpired();
+		// Le service de surveillance est prévenu de l'échec
+		verify(healthcheck).report(false);
 	}
 }

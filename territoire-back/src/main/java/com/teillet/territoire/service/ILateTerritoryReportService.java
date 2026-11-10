@@ -24,4 +24,10 @@ public interface ILateTerritoryReportService {
 
 	/** Envoi planifié : se contente de le journaliser tant que le serveur SMTP ou les destinataires manquent. */
 	void sendWeeklyReport();
+
+	/**
+	 * Alerte en texte brut aux destinataires du récapitulatif (ex. envois WhatsApp en échec) ; rien sans serveur SMTP
+	 * ni destinataire. Un échec d'envoi est journalisé, jamais relancé.
+	 */
+	void notifyRecipients(String subject, String text);
 }

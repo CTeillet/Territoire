@@ -20,6 +20,9 @@ export interface PersonAccessStatus {
   createdAt: string | null;
   lastUsedAt: string | null;
   lastSentAt: string | null;
+  /** Échec du dernier message d'attribution ; plus récent que lastSentAt : le message n'est pas parti. */
+  lastSendFailedAt?: string | null;
+  lastSendError?: string | null;
   activeTerritories: number;
 }
 

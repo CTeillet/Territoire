@@ -21,6 +21,10 @@ vi.mock("@/components/quick-search", () => ({
   QuickSearch: () => null,
   QuickSearchButton: () => null,
 }));
+// Bandeau WhatsApp testé à part (il lit le rôle dans le store)
+vi.mock("@/components/whatsapp-status-banner", () => ({
+  WhatsAppStatusBanner: () => null,
+}));
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
   useRouter: () => ({ push: vi.fn() }),

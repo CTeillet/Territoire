@@ -34,6 +34,7 @@ import {
   sendPersonAccess,
   updatePersonAccessExpiration,
 } from "@/lib/person-access-api";
+import { LastSend } from "@/components/person/last-send";
 
 export const ACCESS_STATUS_BADGE: Record<
   AccessStatus,
@@ -137,7 +138,9 @@ export default function PersonAccessCard({ personId }: { personId: string }) {
             </div>
             <div>
               <dt className="text-muted-foreground">Dernier envoi</dt>
-              <dd>{formatDateTime(access.lastSentAt)}</dd>
+              <dd>
+                <LastSend access={access} />
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Dernière ouverture</dt>

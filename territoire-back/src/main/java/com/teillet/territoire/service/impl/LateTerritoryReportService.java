@@ -120,6 +120,29 @@ public class LateTerritoryReportService implements ILateTerritoryReportService {
 	}
 
 	@Override
+	public void notifyRecipients(String subject, String text) {
+		List<String> recipients = settingService.getLateReportRecipients();
+		if (!isMailConfigured() || recipients.isEmpty()) {
+			log.info("Alerte « {} » non envoyée : pas de serveur SMTP ou pas de destinataire", subject);
+			return;
+		}
+		try {
+			MimeMessage message = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+			if (StringUtils.hasText(from)) {
+				helper.setFrom(from, "Territoire");
+			}
+			helper.setTo(recipients.toArray(String[]::new));
+			helper.setSubject("Territoire : " + subject);
+			helper.setText(text + (appUrl.isEmpty() ? "" : "\n\n" + appUrl), false);
+			mailSender.send(message);
+			log.info("Alerte « {} » envoyée à {} destinataire(s)", subject, recipients.size());
+		} catch (MessagingException | UnsupportedEncodingException | MailException e) {
+			log.error("Échec de l'envoi de l'alerte « {} » à {}", subject, recipients, e);
+		}
+	}
+
+	@Override
 	public void sendWeeklyReport() {
 		if (!isMailConfigured()) {
 			log.info("Récapitulatif des retards non envoyé : aucun serveur SMTP configuré");
