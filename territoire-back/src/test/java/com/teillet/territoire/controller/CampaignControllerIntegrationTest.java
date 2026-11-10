@@ -1,6 +1,6 @@
 package com.teillet.territoire.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.CampaignDto;
 import com.teillet.territoire.dto.SimplifiedTerritoryDto;
 import com.teillet.territoire.enums.TerritoryStatus;

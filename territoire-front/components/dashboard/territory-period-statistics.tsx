@@ -16,7 +16,7 @@ import {
   CityData,
 } from "@/models/chart-data";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { fetchTerritoryPeriodStatistics } from "@/store/slices/territory-slice";
+import { fetchTerritoryPeriodStatistics } from "@/store/slices/territory-statistics-slice";
 import { StatisticsCharts } from "@/components/campaigns/statistics/statistics-charts";
 import { StatisticsTable } from "@/components/campaigns/statistics/statistics-table";
 import { CityStatisticsTable } from "@/components/campaigns/statistics/city-statistics-table";
@@ -39,7 +39,7 @@ export function TerritoryPeriodStatistics({
     periodStatistics: statistics,
     statisticsLoading: loading,
     error,
-  } = useAppSelector((state) => state.territories);
+  } = useAppSelector((state) => state.territoryStatistics);
 
   useEffect(() => {
     dispatch(

@@ -8,18 +8,8 @@ import territoryReducer, {
   deleteAddressNotToVisit,
   deleteTerritory,
   extendTerritory,
-  fetchAssignmentsInPeriod,
-  fetchAverageAssignmentDurationByMonth,
-  fetchLatestAssignments,
-  fetchOverallAverageAssignmentDuration,
-  fetchSchoolYearPeriods,
   fetchTerritories,
-  fetchTerritoriesNotAssignedSince,
   fetchTerritoryById,
-  fetchTerritoryCoverageMap,
-  fetchTerritoryDistributionByCity,
-  fetchTerritoryPeriodStatistics,
-  fetchTerritoryStatusHistory,
   makeTerritoryAvailable,
   modifyAddressNotToVisit,
   returnTerritory,
@@ -136,149 +126,6 @@ describe("territory-slice : thunks et reducers", () => {
     authFetch = vi.spyOn(authFetchModule, "authFetch");
   });
 
-  describe("statistiques (requêtes GET avec période facultative)", () => {
-    const period = { startDate: "2025-09-01", endDate: "2026-08-31" };
-    const query = "?startDate=2025-09-01&endDate=2026-08-31";
-
-    it.each([
-      [
-        "fetchTerritoryStatusHistory",
-        fetchTerritoryStatusHistory,
-        "/api/territoires/statistiques",
-        [{ date: "2026-01-01" }],
-        (s: State) => s.territoryStatusHistory,
-      ],
-      [
-        "fetchTerritoriesNotAssignedSince",
-        fetchTerritoriesNotAssignedSince,
-        "/api/territoires/statistiques/non-assignes-depuis",
-        7,
-        (s: State) => s.territoriesNotAssignedSince,
-      ],
-      [
-        "fetchAverageAssignmentDurationByMonth",
-        fetchAverageAssignmentDurationByMonth,
-        "/api/territoires/statistiques/duree-moyenne-attribution/par-mois",
-        [{ period: "2026-01", averageDuration: 30 }],
-        (s: State) => s.averageAssignmentDurationByMonth,
-      ],
-      [
-        "fetchOverallAverageAssignmentDuration",
-        fetchOverallAverageAssignmentDuration,
-        "/api/territoires/statistiques/duree-moyenne-attribution/globale",
-        42.5,
-        (s: State) => s.overallAverageAssignmentDuration,
-      ],
-      [
-        "fetchTerritoryDistributionByCity",
-        fetchTerritoryDistributionByCity,
-        "/api/territoires/statistiques/distribution-par-ville",
-        [{ cityName: "Rennes", territoryCount: 3, percentage: 100 }],
-        (s: State) => s.territoryDistributionByCity,
-      ],
-      [
-        "fetchTerritoryPeriodStatistics",
-        fetchTerritoryPeriodStatistics,
-        "/api/territoires/statistiques/resume-periode",
-        { totalTerritories: 3 },
-        (s: State) => s.periodStatistics,
-      ],
-      [
-        "fetchTerritoryCoverageMap",
-        fetchTerritoryCoverageMap,
-        "/api/territoires/statistiques/carte-couverture",
-        { type: "FeatureCollection", features: [] },
-        (s: State) => s.territoryCoverageGeojson,
-      ],
-      [
-        "fetchAssignmentsInPeriod",
-        fetchAssignmentsInPeriod,
-        "/api/attributions/periode",
-        [assignment()],
-        (s: State) => s.periodAssignments,
-      ],
-    ] as const)(
-      "%s : succès, filtre de période et erreurs",
-      async (_name, thunk, url, payload, select) => {
-        const store = newStore();
-
-        authFetch.mockResolvedValueOnce(ok(payload));
-        await store.dispatch(thunk(period) as never);
-        expect(authFetch).toHaveBeenLastCalledWith(url + query);
-        expect(select(store.getState().territories)).toEqual(payload);
-        expect(store.getState().territories.error).toBeNull();
-
-        // Sans période : pas de paramètres
-        authFetch.mockResolvedValueOnce(ok(payload));
-        await store.dispatch(thunk(undefined) as never);
-        expect(authFetch).toHaveBeenLastCalledWith(url);
-
-        // Réponse en erreur : message dédié
-        authFetch.mockResolvedValueOnce(failing());
-        await store.dispatch(thunk(undefined) as never);
-        expect(store.getState().territories.error).toMatch(
-          /Erreur lors de la récupération/
-        );
-
-        // Erreur réseau : message de l'exception
-        authFetch.mockRejectedValueOnce(new Error("réseau coupé"));
-        await store.dispatch(thunk(undefined) as never);
-        expect(store.getState().territories.error).toBe("réseau coupé");
-
-        // Erreur inconnue
-        authFetch.mockRejectedValueOnce("bizarre");
-        await store.dispatch(thunk(undefined) as never);
-        expect(store.getState().territories.error).toBe(
-          "Une erreur inconnue s'est produite"
-        );
-      }
-    );
-
-    it.each([
-      [
-        "fetchLatestAssignments",
-        fetchLatestAssignments,
-        "/api/attributions/dernieres",
-        [assignment()],
-        (s: State) => s.latestAssignments,
-      ],
-      [
-        "fetchSchoolYearPeriods",
-        fetchSchoolYearPeriods,
-        "/api/territoires/statistiques/periodes",
-        [{ startYear: 2025 }],
-        (s: State) => s.schoolYearPeriods,
-      ],
-    ] as const)(
-      "%s : succès et erreurs",
-      async (_name, thunk, url, payload, select) => {
-        const store = newStore();
-
-        authFetch.mockResolvedValueOnce(ok(payload));
-        await store.dispatch(thunk() as never);
-        expect(authFetch).toHaveBeenLastCalledWith(url);
-        expect(select(store.getState().territories)).toEqual(payload);
-
-        authFetch.mockResolvedValueOnce(failing());
-        await store.dispatch(thunk() as never);
-        expect(store.getState().territories.error).toMatch(
-          /Erreur lors de la récupération/
-        );
-        expect(store.getState().territories.statisticsLoading).toBe(false);
-
-        authFetch.mockRejectedValueOnce(new Error("réseau coupé"));
-        await store.dispatch(thunk() as never);
-        expect(store.getState().territories.error).toBe("réseau coupé");
-
-        authFetch.mockRejectedValueOnce(42);
-        await store.dispatch(thunk() as never);
-        expect(store.getState().territories.error).toBe(
-          "Une erreur inconnue s'est produite"
-        );
-      }
-    );
-  });
-
   describe("chargement des territoires", () => {
     it("fetchTerritories : succès puis erreurs", async () => {
       const store = newStore();
@@ -302,7 +149,10 @@ describe("territory-slice : thunks et reducers", () => {
         },
       } as unknown as Response);
       await store.dispatch(fetchTerritories());
-      expect(store.getState().territories.error).toBe("JSON invalide");
+      // Réponse illisible : message de l'action, pas celui de l'exception
+      expect(store.getState().territories.error).toBe(
+        "Erreur lors de la récupération des territoires (GeoJSON)"
+      );
     });
 
     it("fetchTerritoryById : sélectionne le territoire ou signale l'erreur", async () => {
@@ -327,7 +177,7 @@ describe("territory-slice : thunks et reducers", () => {
       } as unknown as Response);
       await store.dispatch(fetchTerritoryById("t1"));
       expect(store.getState().territories.error).toBe(
-        "Une erreur inconnue s'est produite"
+        "Erreur lors de la récupération du territoire"
       );
     });
 
@@ -369,7 +219,9 @@ describe("territory-slice : thunks et reducers", () => {
         },
       } as unknown as Response);
       await store.dispatch(addTerritory({ name: "R-14", cityId: "c1" }));
-      expect(store.getState().territories.error).toBe("JSON invalide");
+      expect(store.getState().territories.error).toBe(
+        "Erreur lors de l'ajout du territoire"
+      );
     });
 
     it("updateTerritory : met à jour le territoire sélectionné", async () => {
@@ -402,7 +254,9 @@ describe("territory-slice : thunks et reducers", () => {
         },
       } as unknown as Response);
       await store.dispatch(updateTerritory({ id: "t1", dto: {} as never }));
-      expect(store.getState().territories.error).toBe("JSON invalide");
+      expect(store.getState().territories.error).toBe(
+        "Erreur lors de la mise à jour du territoire"
+      );
     });
 
     it("updateTerritoryLost : signale le territoire perdu puis le retire des perdus", async () => {
@@ -549,7 +403,9 @@ describe("territory-slice : thunks et reducers", () => {
       await store.dispatch(
         assignTerritory({ territoryId: "t1", personId: "p1" })
       );
-      expect(store.getState().territories.error).toBe("JSON invalide");
+      expect(store.getState().territories.error).toBe(
+        "Erreur lors de l'assignation du territoire"
+      );
     });
 
     it("returnTerritory et cancelAssignment : remontent le message du serveur en cas d'erreur", async () => {
@@ -859,17 +715,26 @@ describe("territory-slice : thunks et reducers", () => {
 
     it("returnTerritory, cancelAssignment, extendTerritory : réponse illisible", async () => {
       const store = newStore();
-      for (const thunk of [
-        returnTerritory("t1"),
-        cancelAssignment("t1"),
-        extendTerritory({ territoryId: "t1" }),
-        updateAssignmentDates({
-          assignmentId: "as1",
-          assignmentDate: "2026-01-01",
-          dueDate: "2026-05-01",
-          returnDate: null,
-        }),
-      ]) {
+      for (const [thunk, message] of [
+        [returnTerritory("t1"), "Erreur lors du retour du territoire"],
+        [
+          cancelAssignment("t1"),
+          "Erreur lors de l'annulation de l'assignation",
+        ],
+        [
+          extendTerritory({ territoryId: "t1" }),
+          "Erreur lors de la prolongation du territoire",
+        ],
+        [
+          updateAssignmentDates({
+            assignmentId: "as1",
+            assignmentDate: "2026-01-01",
+            dueDate: "2026-05-01",
+            returnDate: null,
+          }),
+          "Erreur lors de la modification des dates d'attribution",
+        ],
+      ] as const) {
         authFetch.mockResolvedValueOnce({
           ok: true,
           json: async () => {
@@ -877,9 +742,7 @@ describe("territory-slice : thunks et reducers", () => {
           },
         } as unknown as Response);
         await store.dispatch(thunk as never);
-        expect(store.getState().territories.error).toBe(
-          "Une erreur inconnue s'est produite"
-        );
+        expect(store.getState().territories.error).toBe(message);
       }
     });
 
@@ -1256,7 +1119,7 @@ describe("territory-slice : thunks et reducers", () => {
       [
         "addAddressNotToVisit",
         () => addAddressNotToVisit({ territoryId: "t1", address }),
-        "Erreur lors de l'ajout de l'adresse : Erreur serveur",
+        "Erreur lors de l'ajout de l'adresse",
       ],
       [
         "modifyAddressNotToVisit",
@@ -1266,15 +1129,15 @@ describe("territory-slice : thunks et reducers", () => {
             addressId: "a1",
             address,
           }),
-        "Erreur lors de la modification de l'adresse : Erreur serveur",
+        "Erreur lors de la modification de l'adresse",
       ],
       [
         "deleteAddressNotToVisit",
         () => deleteAddressNotToVisit({ territoryId: "t1", addressId: "a1" }),
-        "Erreur lors de la suppression de l'adresse : Erreur serveur",
+        "Erreur lors de la suppression de l'adresse",
       ],
     ])(
-      "%s : signale les erreurs HTTP, réseau et inconnues",
+      "%s : signale les erreurs HTTP, le motif de l'API et les coupures réseau",
       async (_name, thunk, message) => {
         const store = newStore({ selectedTerritory: territory() });
 
@@ -1283,15 +1146,15 @@ describe("territory-slice : thunks et reducers", () => {
         expect(store.getState().territories.error).toBe(message);
         expect(store.getState().territories.updating).toBe(false);
 
-        authFetch.mockRejectedValueOnce(new Error("réseau coupé"));
+        // Motif renvoyé par l'API (GlobalExceptionHandler)
+        authFetch.mockResolvedValueOnce(refused(400, "Numéro déjà présent"));
         await store.dispatch(thunk() as never);
-        expect(store.getState().territories.error).toBe("réseau coupé");
+        expect(store.getState().territories.error).toBe("Numéro déjà présent");
 
-        authFetch.mockRejectedValueOnce(null);
+        // Coupure réseau : message de l'action, pas celui de l'exception
+        authFetch.mockRejectedValueOnce(new Error("Failed to fetch"));
         await store.dispatch(thunk() as never);
-        expect(store.getState().territories.error).toBe(
-          "Une erreur inconnue s'est produite"
-        );
+        expect(store.getState().territories.error).toBe(message);
       }
     );
   });

@@ -32,16 +32,14 @@ const ListCity = ({ cities }: { cities: City[] }) => {
   const handleRemoveCity = async (id: string) => {
     const result = await dispatch(removeCity(id));
     if (removeCity.rejected.match(result)) {
-      toast.error(result.error.message ?? "Erreur lors de la suppression");
+      toast.error(result.payload ?? "Erreur lors de la suppression");
     }
   };
 
   const handleColorChange = async (id: string, colorHex: string) => {
     const result = await dispatch(updateCityColor({ id, colorHex }));
     if (updateCityColor.rejected.match(result)) {
-      toast.error(
-        result.error.message ?? "Erreur lors du changement de couleur"
-      );
+      toast.error(result.payload ?? "Erreur lors du changement de couleur");
     }
   };
 

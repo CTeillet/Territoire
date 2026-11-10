@@ -1,12 +1,13 @@
 package com.teillet.territoire.utils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Point;
 
-import java.io.IOException;
+import tools.jackson.core.JacksonException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,10 +17,9 @@ class GeometryDeserializerTest {
 
 	@BeforeEach
 	void setUp() {
-		objectMapper = new ObjectMapper();
 		SimpleModule module = new SimpleModule();
 		module.addDeserializer(Point.class, new GeometryDeserializer());
-		objectMapper.registerModule(module);
+		objectMapper = JsonMapper.builder().addModule(module).build();
 	}
 
 	@Test
@@ -43,8 +43,8 @@ class GeometryDeserializerTest {
 	}
 
 	@Test
-	void testDeserializeInvalidFormatThrowsIOException() {
+	void testDeserializeInvalidFormatThrowsJacksonException() {
 		String json = "{\"unknown\": 123}";
-		assertThrows(IOException.class, () -> objectMapper.readValue(json, Point.class));
+		assertThrows(JacksonException.class, () -> objectMapper.readValue(json, Point.class));
 	}
 }

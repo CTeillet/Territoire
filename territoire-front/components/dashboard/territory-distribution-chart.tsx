@@ -11,7 +11,7 @@ import {
 import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/store/store";
-import { fetchTerritoryDistributionByCity } from "@/store/slices/territory-slice";
+import { fetchTerritoryDistributionByCity } from "@/store/slices/territory-statistics-slice";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TerritoryDistribution {
@@ -53,7 +53,7 @@ export const TerritoryDistributionChart: React.FC<
   const dispatch = useAppDispatch();
   const isMobile = useIsMobile();
   const { territoryDistributionByCity, statisticsLoading, error } = useSelector(
-    (state: RootState) => state.territories
+    (state: RootState) => state.territoryStatistics
   );
 
   useEffect(() => {

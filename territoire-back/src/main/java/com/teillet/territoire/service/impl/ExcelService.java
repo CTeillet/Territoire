@@ -3,6 +3,7 @@ package com.teillet.territoire.service.impl;
 import com.teillet.territoire.designPattern.ExcelGenerator;
 import com.teillet.territoire.dto.exportExcel.CityExportDto;
 import com.teillet.territoire.enums.TerritoryStatus;
+import com.teillet.territoire.mapper.ExportMappers;
 import com.teillet.territoire.model.Assignment;
 import com.teillet.territoire.model.City;
 import com.teillet.territoire.model.Person;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
@@ -35,6 +37,8 @@ import static com.teillet.territoire.mapper.ExportMappers.toExportDtos;
 @Slf4j
 @RequiredArgsConstructor
 public class ExcelService implements IExcelService {
+	private static final List<DateTimeFormatter> IMPORT_DATE_FORMATS = List.of(
+			DateTimeFormatter.ISO_LOCAL_DATE, ExportMappers.DATE_FORMATTER);
 
 	private final PersonService personService;
 	private final TerritoryRepository territoryRepository;
@@ -158,13 +162,18 @@ public class ExcelService implements IExcelService {
 		}
 	}
 
+	/** Date AAAA-MM-JJ (cellule date d'Excel) ou JJ/MM/AAAA (texte, comme l'écrit l'export) : un export se réimporte. */
 	private LocalDate parseDate(String value, String terrId, String label) {
-		try {
-			return LocalDate.parse(value == null ? "" : value.trim());
-		} catch (DateTimeParseException e) {
-			throw new IllegalArgumentException("Date de %s invalide pour le territoire %s : \"%s\" (format attendu : AAAA-MM-JJ)"
-					.formatted(label, terrId, value));
+		String text = value == null ? "" : value.trim();
+		for (DateTimeFormatter format : IMPORT_DATE_FORMATS) {
+			try {
+				return LocalDate.parse(text, format);
+			} catch (DateTimeParseException e) {
+				// format suivant
+			}
 		}
+		throw new IllegalArgumentException("Date de %s invalide pour le territoire %s : \"%s\" (format attendu : JJ/MM/AAAA ou AAAA-MM-JJ)"
+				.formatted(label, terrId, value));
 	}
 
 	private String normalize(String input) {

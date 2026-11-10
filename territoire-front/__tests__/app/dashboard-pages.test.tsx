@@ -315,7 +315,7 @@ describe("Page des statistiques", () => {
   it("indique le chargement des périodes et redirige sans utilisateur connecté", async () => {
     mockApi({ ...routes, "GET /api/territoires/statistiques/periodes": [] });
     const { unmount } = renderWithStore(<StatistiquesPage />, "ADMIN", {
-      territories: { statisticsLoading: true },
+      territoryStatistics: { statisticsLoading: true },
     });
     expect(
       screen.getByText("Chargement des statistiques...")
@@ -427,7 +427,7 @@ describe("Carte de couverture", () => {
   it("affiche le chargement et le centre par défaut", () => {
     mockApi({});
     renderWithStore(<TerritoryCoverageMap />, "ADMIN", {
-      territories: { loadingCoverageMap: true },
+      territoryStatistics: { loadingCoverageMap: true },
     });
 
     expect(screen.getByText("Chargement de la carte...")).toBeInTheDocument();
@@ -455,7 +455,7 @@ describe("Carte de couverture", () => {
 
     await waitFor(() =>
       expect(
-        store.getState().territories.territoryCoverageGeojson
+        store.getState().territoryStatistics.territoryCoverageGeojson
       ).not.toBeNull()
     );
     expect(
