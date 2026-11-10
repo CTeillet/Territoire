@@ -16,6 +16,7 @@ import {
   canManageSettings,
 } from "@/models/role";
 import { ArchivesSection } from "@/components/parameters/other-parameter/archives-section";
+import { AuditLogSection } from "@/components/shared/audit-log";
 
 /** Onglet « Données » : exports, imports et outils rarement utiles, selon ce que le serveur permet au rôle. */
 export default function DataTab() {
@@ -48,6 +49,14 @@ export default function DataTab() {
               <ContactsPhoneSection showTitle={false} />
             </ParameterItem>
           )}
+        </ParameterGroup>
+      )}
+
+      {canManageSettings(role) && (
+        <ParameterGroup title="Journal">
+          <ParameterItem title="Journal des actions">
+            <AuditLogSection />
+          </ParameterItem>
         </ParameterGroup>
       )}
 

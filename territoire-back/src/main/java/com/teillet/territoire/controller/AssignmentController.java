@@ -1,5 +1,7 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.service.impl.AuditService;
+import com.teillet.territoire.enums.AuditAction;
 import com.teillet.territoire.dto.AssignmentDto;
 import com.teillet.territoire.dto.UpdateAssignmentDatesDto;
 import com.teillet.territoire.service.IAssignmentService;
@@ -20,6 +22,7 @@ import java.util.UUID;
 @Slf4j
 public class AssignmentController {
 	private final IAssignmentService assignmentService;
+	private final AuditService audit;
 
 	@GetMapping("/dernieres")
 	public List<AssignmentDto> getLastAssignments() {
@@ -49,6 +52,9 @@ public class AssignmentController {
 		log.info("Requête reçue : PUT /api/attributions/{} : {}", assignmentId, dates);
 
 		AssignmentDto result = assignmentService.updateAssignmentDates(assignmentId, dates);
+		audit.assignment(AuditAction.DATES_MODIFIEES, result, "Attribuée le " + result.getAssignmentDate()
+				+ ", à rendre le " + result.getDueDate()
+				+ (result.getReturnDate() != null ? ", rendue le " + result.getReturnDate() : ""));
 
 		log.info("Dates de l'attribution {} modifiées, statut du territoire : {}", assignmentId, result.getTerritory().getStatus());
 		return result;

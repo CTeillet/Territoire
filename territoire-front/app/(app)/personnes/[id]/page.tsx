@@ -17,6 +17,7 @@ import {
   PageContainer,
   PageHeader,
 } from "@/components/shared/page-layout";
+import { AuditLogCard } from "@/components/shared/audit-log";
 
 const PersonDetail = () => {
   const { id } = useParams();
@@ -152,6 +153,7 @@ const PersonDetail = () => {
       )}
 
       {!editing && person.id && <PersonAccessCard personId={person.id} />}
+      {!editing && person.id && <AuditLogCard personId={person.id} />}
 
       {updating && (
         <p role="status" className="text-center text-muted-foreground">
