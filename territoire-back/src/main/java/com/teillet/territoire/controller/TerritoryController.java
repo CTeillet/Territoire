@@ -1,5 +1,7 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.service.impl.AuditService;
+import com.teillet.territoire.enums.AuditAction;
 import com.teillet.territoire.dto.ArchivedTerritoryDto;
 import com.teillet.territoire.dto.*;
 import com.teillet.territoire.exception.NotFoundException;
@@ -39,6 +41,7 @@ class TerritoryController {
 	private final IAssignmentService assignmentService;
 	private final IAddressNotToDoService addressNotToDoService;
 	private final ICityService cityService;
+	private final AuditService audit;
 
 	@GetMapping("/geojson")
 	public String getAllTerritories() throws IOException {
@@ -60,6 +63,7 @@ class TerritoryController {
 		log.info("Début : Création du territoire : {}", addTerritoryDto.getName());
 		Territory territory = TerritoryMapper.fromDto(addTerritoryDto, cityService);
 		Territory createdTerritory = territoryService.saveTerritory(territory);
+		audit.territory(AuditAction.TERRITOIRE_CREE, createdTerritory.getId(), null);
 		log.info("Fin : Création du territoire");
 		return createdTerritory;
 	}
@@ -87,6 +91,7 @@ class TerritoryController {
 		log.info("Début : Modification du territoire, id {} : {}", territoryId, updateDto);
 		log.info("Appel au service updateTerritory");
 		TerritoryDto updatedTerritory = territoryService.updateTerritory(territoryId, updateDto);
+		audit.territory(AuditAction.TERRITOIRE_MODIFIE, territoryId, null);
 		log.info("Fin : Modification du territoire");
 		return updatedTerritory;
 	}
@@ -94,8 +99,10 @@ class TerritoryController {
 	@DeleteMapping("{territoryId}")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public void deleteTerritory(@PathVariable UUID territoryId) {
+		String name = audit.territoryName(territoryId);
 		log.info("Début : Suppression Territoire : {}", territoryId);
 		territoryService.deleteTerritory(territoryId);
+		audit.territory(AuditAction.TERRITOIRE_SUPPRIME, territoryId, name, null);
 		log.info("Fin : Suppression Territoire");
 	}
 
@@ -104,13 +111,17 @@ class TerritoryController {
 	public AssignmentDto assignTerritory(
 			@PathVariable UUID territoryId,
 			@PathVariable UUID personId) {
-		return assignmentService.assignTerritory(territoryId, personId);
+		AssignmentDto assignment = assignmentService.assignTerritory(territoryId, personId);
+		audit.assignment(AuditAction.ATTRIBUTION, assignment, "À rendre le " + assignment.getDueDate());
+		return assignment;
 	}
 
 	@PostMapping("/{territoryId}/retour")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR') or hasRole('GESTIONNAIRE')")
 	public AssignmentDto returnTerritory(@PathVariable UUID territoryId) {
-		return assignmentService.returnTerritory(territoryId);
+		AssignmentDto assignment = assignmentService.returnTerritory(territoryId);
+		audit.assignment(AuditAction.RETOUR, assignment, null);
+		return assignment;
 	}
 
 	@PostMapping("/{territoryId}/annuler-assignation")
@@ -118,6 +129,7 @@ class TerritoryController {
 	public AssignmentDto cancelAssignment(@PathVariable UUID territoryId) {
 		log.info("Début : Annulation de l'assignation du territoire {}", territoryId);
 		AssignmentDto result = assignmentService.cancelAssignment(territoryId);
+		audit.assignment(AuditAction.ANNULATION, result, null);
 		log.info("Fin : Annulation de l'assignation du territoire {}", territoryId);
 		return result;
 	}
@@ -128,11 +140,11 @@ class TerritoryController {
 		@PathVariable UUID territoryId,
 		@RequestParam(required = false) LocalDate dueDate) {
 
-		if (dueDate != null) {
-			return assignmentService.extendTerritory(territoryId, dueDate);
-		} else {
-			return assignmentService.extendTerritory(territoryId);
-		}
+		AssignmentDto assignment = dueDate != null
+				? assignmentService.extendTerritory(territoryId, dueDate)
+				: assignmentService.extendTerritory(territoryId);
+		audit.assignment(AuditAction.PROLONGATION, assignment, "Nouvelle échéance : " + assignment.getDueDate());
+		return assignment;
 	}
 
 	/** Territoire en attente rendu disponible sans attendre la fin de la durée d'attente des paramètres. */
@@ -141,6 +153,7 @@ class TerritoryController {
 	public TerritoryDto makeTerritoryAvailable(@PathVariable UUID territoryId) throws IOException {
 		log.info("Début : Remise à disposition du territoire {}", territoryId);
 		TerritoryDto territory = territoryService.makeAvailable(territoryId);
+		audit.territory(AuditAction.TERRITOIRE_REMIS_DISPONIBLE, territoryId, null);
 		log.info("Fin : Remise à disposition du territoire {}", territoryId);
 		return territory;
 	}
@@ -152,6 +165,7 @@ class TerritoryController {
 		String action = dto.getLost() ? "signalé perdu" : "retiré des perdus";
 		log.info("Début : Territoire {} {}", territoryId, action);
 		TerritoryDto territory = territoryService.updateLost(territoryId, dto.getLost());
+		audit.territory(dto.getLost() ? AuditAction.TERRITOIRE_PERDU : AuditAction.TERRITOIRE_RETROUVE, territoryId, null);
 		log.info("Fin : Territoire {} {}", territoryId, action);
 		return territory;
 	}
@@ -179,6 +193,7 @@ class TerritoryController {
 	public ResponseEntity<Void> archiveTerritory(@PathVariable UUID territoryId) {
 		log.info("Archivage du territoire {}", territoryId);
 		territoryService.archiveTerritory(territoryId);
+		audit.territory(AuditAction.TERRITOIRE_ARCHIVE, territoryId, null);
 		return ResponseEntity.noContent().build();
 	}
 
@@ -187,6 +202,7 @@ class TerritoryController {
 	public ResponseEntity<Void> restoreTerritory(@PathVariable UUID territoryId) {
 		log.info("Restauration du territoire {}", territoryId);
 		territoryService.restoreTerritory(territoryId);
+		audit.territory(AuditAction.TERRITOIRE_RESTAURE, territoryId, null);
 		return ResponseEntity.noContent().build();
 	}
 
@@ -330,6 +346,7 @@ class TerritoryController {
 
 		try {
 			territoryService.uploadTerritoryMap(territoryId, file);
+			audit.territory(AuditAction.CARTE_REMPLACEE, territoryId, "Carte importée : " + file.getOriginalFilename());
 			log.info("Fin : Upload de la carte du territoire {}", territoryId);
 			return ResponseEntity.ok("Carte du territoire téléchargée avec succès");
 		} catch (NotFoundException | IllegalArgumentException e) {

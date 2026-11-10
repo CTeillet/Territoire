@@ -23,6 +23,7 @@ import { PhysicalCardDialog } from "@/components/territory/id/physical-card-dial
 import { CardHistoryDialog } from "@/components/territory/id/card-history-dialog";
 import { canManageTerritoryCards } from "@/models/role";
 import { Notice } from "@/components/shared/notice";
+import { AuditLogCard } from "@/components/shared/audit-log";
 
 // Chargement dynamique de la carte (évite les erreurs SSR)
 const TerritoryIdMap = dynamic(
@@ -149,6 +150,9 @@ const TerritoryPage = () => {
 
         {/* Liste des attributions */}
         <AssignmentsList assignments={selectedTerritory.assignments || []} />
+
+        {/* Qui a attribué, rendu, modifié... (ADMIN, SUPERVISEUR) */}
+        <AuditLogCard territoryId={selectedTerritory.id} />
       </div>
     </PageContainer>
   );

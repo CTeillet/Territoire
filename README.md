@@ -18,6 +18,7 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 - Étiquettes d'attribution : une Brother P-touch Cube (PT-P300BT, PT-P710BT) reliée en Bluetooth imprime à chaque attribution une étiquette « Prénom N. / À rendre le JJ/MM/AAAA », à coller sur la carte. Elle se règle par appareil, cf. [Imprimante d'étiquettes](#imprimante-détiquettes-brother-p-touch) ; la fiche d'un territoire permet de réimprimer l'étiquette de l'attribution en cours. Sur iPhone, l'app TMS (`territoire-ios`) imprime directement sur la PT-P710BT ; dans Safari, l'étiquette est un fichier `.lbx` à ouvrir dans l'application Brother P-touch Design&Print 2.
 - Territoires perdus : un territoire dont la carte papier a disparu se signale « perdu » depuis ses actions (liste ou fiche), quel que soit son statut. La page d'impression les propose à la réimpression ; une fois les cartes imprimées, on les retire des perdus (ADMIN, SUPERVISEUR, GESTIONNAIRE).
 - Export / import Excel, export PNG de la carte de tous les territoires, adresses à ne pas visiter.
+- Journal des actions (ADMIN, SUPERVISEUR) : qui a attribué, rendu, prolongé, annulé, modifié un territoire, une personne ou un compte, et quand (table `audit_event`). Il s'affiche sur la fiche de chaque territoire et de chaque personne, et dans Paramètres > Données > Journal, avec une recherche. Un retour fait depuis un lien personnel y figure comme « Lien personnel » ; le nom d'une personne anonymisée en disparaît aussi.
 - Archivage plutôt que suppression : un territoire ou une personne qui a un historique d'attributions ne se supprime pas, il s'archive (fiche du territoire > « Archiver », fiche de la personne > « Marquer comme partie »). Il disparaît des listes, des cartes, des statistiques et des choix d'attribution ; son historique reste (registre S-13 des années où il a servi, historique des personnes). Paramètres > Données > Archives les restaure, et l'administrateur peut y anonymiser une personne partie (nom remplacé, coordonnées, lien et commentaires effacés, irréversible).
 - Rôles et droits d'accès :
   - **ADMIN** : accès total.
@@ -333,7 +334,6 @@ En local, la base de `docker-compose-mini.yml` se met à jour de la même façon
 
 ## Évolutions envisagées
 - Relances automatiques avant échéance et en cas de retard.
-- Journal d'audit (auteur des actions).
 
 ## Licence
 MIT, voir [LICENSE](LICENSE).

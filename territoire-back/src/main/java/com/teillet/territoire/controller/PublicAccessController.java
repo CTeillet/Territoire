@@ -1,5 +1,7 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.service.impl.AuditService;
+import com.teillet.territoire.enums.AuditAction;
 import com.teillet.territoire.dto.CreateTerritoryRequestDto;
 import com.teillet.territoire.dto.PublicAccessDto;
 import com.teillet.territoire.exception.NotFoundException;
@@ -29,6 +31,7 @@ public class PublicAccessController {
 
 	private final IPersonAccessService personAccessService;
 	private final LoginAttemptService attemptService;
+	private final AuditService audit;
 
 	@GetMapping
 	public ResponseEntity<PublicAccessDto> getAccess(@PathVariable String token, HttpServletRequest request) {
@@ -38,7 +41,10 @@ public class PublicAccessController {
 	@PostMapping("/territoires/{territoryId}/retour")
 	public ResponseEntity<PublicAccessDto> returnTerritory(@PathVariable String token, @PathVariable UUID territoryId,
 	                                                       HttpServletRequest request) {
-		return guarded(request, () -> personAccessService.returnTerritory(token, territoryId));
+		ResponseEntity<PublicAccessDto> response = guarded(request, () -> personAccessService.returnTerritory(token, territoryId));
+		audit.record(AuditService.PUBLIC_LINK_ACTOR, AuditAction.RETOUR_PAR_LIEN, territoryId, audit.territoryName(territoryId),
+				null, null, "Rendu par la personne depuis son lien personnel");
+		return response;
 	}
 
 	@PostMapping("/demandes")

@@ -1,5 +1,7 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.service.impl.AuditService;
+import com.teillet.territoire.enums.AuditAction;
 import com.teillet.territoire.dto.TerritoryMapVersionDto;
 import com.teillet.territoire.model.TerritoryMapVersion;
 import com.teillet.territoire.service.ITerritoryCardHistoryService;
@@ -31,6 +33,7 @@ import java.util.UUID;
 @Slf4j
 class TerritoryCardHistoryController {
 	private final ITerritoryCardHistoryService historyService;
+	private final AuditService audit;
 
 	@GetMapping
 	public List<TerritoryMapVersionDto> list(@PathVariable UUID territoryId) {
@@ -58,6 +61,7 @@ class TerritoryCardHistoryController {
 	public ResponseEntity<Void> restore(@PathVariable UUID territoryId, @PathVariable UUID versionId) {
 		log.info("Remise de la carte précédente {} du territoire {}", versionId, territoryId);
 		historyService.restore(territoryId, versionId);
+		audit.territory(AuditAction.CARTE_REMISE, territoryId, "Carte précédente remise");
 		return ResponseEntity.noContent().build();
 	}
 }
