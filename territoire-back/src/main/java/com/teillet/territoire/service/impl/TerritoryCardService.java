@@ -24,6 +24,7 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
 import java.awt.font.FontRenderContext;
+import java.awt.geom.Area;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
@@ -32,6 +33,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -40,7 +42,8 @@ import java.util.UUID;
 
 /**
  * Carte physique d'un territoire, dessinée sur le formulaire « Carte de territoire » du modèle GIMP : la ville après
- * « Lieu », le nom après « Territ. n° » et, au milieu, le plan IGN du quartier où le territoire ressort en vert. Le
+ * « Lieu », le nom après « Territ. n° » et, au milieu, le plan IGN du quartier où chaque pâté du territoire ressort
+ * en vert, les rues qui les séparent restant visibles. Le
  * plan est dessiné par le navigateur depuis les tuiles vectorielles IGN, avec les thèmes choisis (maisons,
  * végétation…), sur l'emprise que donne {@link #mapLayout} : la carte le pose dans son cadre.
  */
@@ -100,7 +103,7 @@ public class TerritoryCardService implements ITerritoryCardService {
 
 	@Override
 	public CardMapLayout mapLayout(UUID territoryId, CardFraming framing) {
-		Envelope extent = mapExtent(readWkb(findCardRow(territoryId).getHullWkb()).getEnvelopeInternal(), framing);
+		Envelope extent = mapExtent(readWkb(findCardRow(territoryId).getBlocksWkb()).getEnvelopeInternal(), framing);
 		return new CardMapLayout(longitude(extent.getMinX()), latitude(extent.getMinY()),
 				longitude(extent.getMaxX()), latitude(extent.getMaxY()),
 				(int) MAP_FRAME.getWidth(), (int) MAP_FRAME.getHeight());
@@ -122,7 +125,7 @@ public class TerritoryCardService implements ITerritoryCardService {
 	private TerritoryCardRow findCardRow(UUID territoryId) {
 		TerritoryCardRow row = territoryRepository.findCardRow(territoryId)
 				.orElseThrow(() -> new NotFoundException("Territoire non trouvé"));
-		if (row.getHullWkb() == null) {
+		if (row.getBlocksWkb() == null) {
 			throw new IllegalArgumentException(
 					"Ce territoire n'a pas encore de pâtés : dessinez-les sur sa carte avant de générer la carte physique");
 		}
@@ -130,7 +133,7 @@ public class TerritoryCardService implements ITerritoryCardService {
 	}
 
 	private byte[] render(TerritoryCardRow row, CardFraming framing, BufferedImage plan) {
-		Geometry hull = readWkb(row.getHullWkb());
+		Geometry blocks = readWkb(row.getBlocksWkb());
 		boolean hasAddressesNotToDo = row.getAddressesNotToDo() != null && row.getAddressesNotToDo() > 0;
 
 		BufferedImage card = new BufferedImage(TEMPLATE_WIDTH * SCALE, TEMPLATE_HEIGHT * SCALE, BufferedImage.TYPE_INT_RGB);
@@ -145,7 +148,7 @@ public class TerritoryCardService implements ITerritoryCardService {
 			g.scale(SCALE, SCALE);
 			g.drawImage(TEMPLATE, 0, 0, TEMPLATE_WIDTH, TEMPLATE_HEIGHT, null);
 
-			drawMap(g, hull, framing, plan, hasAddressesNotToDo);
+			drawMap(g, blocks, framing, plan, hasAddressesNotToDo);
 			drawField(g, row.getCityName(), CITY_X, CITY_END_X);
 			drawField(g, row.getName(), NAME_X, NAME_END_X);
 		} finally {
@@ -154,9 +157,9 @@ public class TerritoryCardService implements ITerritoryCardService {
 		return toPng(card);
 	}
 
-	private void drawMap(Graphics2D g, Geometry hull, CardFraming framing, BufferedImage plan, boolean hasAddressesNotToDo) {
+	private void drawMap(Graphics2D g, Geometry blocks, CardFraming framing, BufferedImage plan, boolean hasAddressesNotToDo) {
 		// Même emprise que celle donnée au navigateur pour dessiner le plan
-		Envelope extent = mapExtent(hull.getEnvelopeInternal(), framing);
+		Envelope extent = mapExtent(blocks.getEnvelopeInternal(), framing);
 		// Pixels du modèle par mètre : l'emprise a les proportions du cadre
 		double scale = MAP_FRAME.getWidth() / extent.getWidth();
 		Shape frame = new RoundRectangle2D.Double(MAP_FRAME.getX(), MAP_FRAME.getY(),
@@ -167,10 +170,13 @@ public class TerritoryCardService implements ITerritoryCardService {
 		g.drawImage(plan, (int) MAP_FRAME.getX(), (int) MAP_FRAME.getY(),
 				(int) MAP_FRAME.getWidth(), (int) MAP_FRAME.getHeight(), null);
 
-		Shape territory = RenderUtils.toShape(hull, scale,
-				MAP_FRAME.getX() - extent.getMinX() * scale,
-				MAP_FRAME.getY() + extent.getMaxY() * scale);
-		drawTerritory(g, territory);
+		double ox = MAP_FRAME.getX() - extent.getMinX() * scale;
+		double oy = MAP_FRAME.getY() + extent.getMaxY() * scale;
+		List<Shape> blockShapes = new ArrayList<>();
+		for (int i = 0; i < blocks.getNumGeometries(); i++) {
+			blockShapes.add(RenderUtils.toShape(blocks.getGeometryN(i), scale, ox, oy));
+		}
+		Shape territory = drawBlocks(g, blockShapes);
 
 		Corner legend = drawLegend(g, territory, hasAddressesNotToDo);
 		drawAttribution(g, legend == Corner.BOTTOM_LEFT);
@@ -182,13 +188,20 @@ public class TerritoryCardService implements ITerritoryCardService {
 		g.draw(frame);
 	}
 
-	/** Territoire en vert, cerné de vert foncé : il se distingue aussi imprimé en noir et blanc. */
-	private static void drawTerritory(Graphics2D g, Shape territory) {
+	/**
+	 * Chaque pâté en vert, cerné de vert foncé : ils se distinguent aussi imprimés en noir et blanc. Le vert est posé
+	 * d'un seul tenant, pour que deux pâtés qui se chevauchent ne fassent pas une tache plus sombre. Renvoie la surface
+	 * couverte.
+	 */
+	private static Shape drawBlocks(Graphics2D g, List<Shape> blocks) {
+		Area territory = new Area();
+		blocks.forEach(block -> territory.add(new Area(block)));
 		g.setColor(GREEN_FILL);
 		g.fill(territory);
 		g.setColor(GREEN_OUTLINE);
 		g.setStroke(new BasicStroke(OUTLINE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-		g.draw(territory);
+		blocks.forEach(g::draw);
+		return territory;
 	}
 
 	/**
@@ -331,7 +344,7 @@ public class TerritoryCardService implements ITerritoryCardService {
 		try {
 			return new WKBReader().read(wkb);
 		} catch (ParseException e) {
-			throw new IllegalStateException("Contour du territoire illisible", e);
+			throw new IllegalStateException("Pâtés du territoire illisibles", e);
 		}
 	}
 

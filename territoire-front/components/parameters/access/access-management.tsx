@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Clock,
@@ -154,17 +154,19 @@ export default function AccessManagement() {
   const [sending, setSending] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setAccesses(await fetchAllAccesses());
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }, []);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    fetchAllAccesses()
+      .then((list) => {
+        if (!cancelled) setAccesses(list);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) toast.error(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const counts = useMemo(
     () =>

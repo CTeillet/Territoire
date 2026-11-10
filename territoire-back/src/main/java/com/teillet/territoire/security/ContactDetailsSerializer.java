@@ -1,14 +1,13 @@
 package com.teillet.territoire.security;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.ValueSerializer;
+import tools.jackson.databind.SerializationContext;
 import com.teillet.territoire.enums.Role;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.io.IOException;
 import java.util.Set;
 
 /**
@@ -16,12 +15,12 @@ import java.util.Set;
  * des territoires ou gèrent les personnes. Un UTILISATEUR ne reçoit que les noms, quelle que soit la réponse
  * (liste des personnes, attributions d'un territoire...).
  */
-public class ContactDetailsSerializer extends JsonSerializer<String> {
+public class ContactDetailsSerializer extends ValueSerializer<String> {
 	private static final Set<String> ALLOWED_AUTHORITIES = Set.of(
 			Role.ADMIN.getAuthority(), Role.SUPERVISEUR.getAuthority(), Role.GESTIONNAIRE.getAuthority());
 
 	@Override
-	public void serialize(String value, JsonGenerator generator, SerializerProvider serializers) throws IOException {
+	public void serialize(String value, JsonGenerator generator, SerializationContext serializers) {
 		if (canSeeContactDetails()) {
 			generator.writeString(value);
 		} else {

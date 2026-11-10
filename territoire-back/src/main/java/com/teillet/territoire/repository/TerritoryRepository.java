@@ -278,12 +278,16 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
             """, nativeQuery = true)
     List<TerritoryHullRow> findAllProjected3857ByCityId(UUID cityId);
 
-    /** Nom, ville, contour (EPSG:3857) et nombre d'adresses à ne pas visiter d'un territoire, pour sa carte physique. */
+    /**
+     * Nom, ville, pâtés (EPSG:3857) et nombre d'adresses à ne pas visiter d'un territoire, pour sa carte physique. Les
+     * pâtés restent séparés : leur contour commun (concave_hull) recouvrirait les rues qui les séparent.
+     */
     @Query(value = """
             SELECT
                 t.name AS name,
                 c.name AS cityName,
-                ST_AsBinary(ST_Transform(t.concave_hull, 3857)) AS hullWkb,
+                (SELECT ST_AsBinary(ST_Transform(ST_Collect(b.block), 3857))
+                 FROM block b WHERE b.territory_id = t.id) AS blocksWkb,
                 (SELECT COUNT(*) FROM address_not_to_do a WHERE a.territory_id = t.id) AS addressesNotToDo
             FROM territory t
             JOIN city c ON c.id = t.city_id

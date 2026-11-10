@@ -1,6 +1,6 @@
 package com.teillet.territoire.model;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import com.teillet.territoire.security.ContactDetailsSerializer;
 import jakarta.persistence.*;
 import lombok.*;

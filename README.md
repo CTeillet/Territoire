@@ -69,6 +69,7 @@ Tests :
 cd territoire-back && ./mvnw test
 cd territoire-front && npm test
 ```
+La CI vérifie aussi des seuils de couverture : `./mvnw verify` (JaCoCo, 90 % des lignes et 70 % des branches, cf. `pom.xml`) et `npm run test:coverage` (Vitest, cf. `vitest.config.mts`).
 
 ## Déploiement
 La CI (`.github/workflows`) lance lint et tests. Sur master, le workflow `Build and Deploy` prend ensuite le relais :
@@ -86,6 +87,27 @@ docker compose up -d territoire-back
 Les secrets (`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, …) sont fournis par l'environnement du VPS.
 
 Le workflow `Trivy` analyse les images du back, du front et de la sauvegarde à chaque modification et chaque lundi. Il échoue sur une faille critique corrigeable ; les failles hautes et critiques apparaissent dans l'onglet Security > Code scanning du dépôt.
+
+### Connexion SSH du déploiement
+Le workflow se connecte au VPS avec une clé SSH dédiée (secret `VPS_SSH_KEY`) et vérifie l'empreinte de la clé du serveur (`VPS_SSH_FINGERPRINT`) : un serveur qui se ferait passer pour le VPS est refusé. Le mot de passe (`VPS_SSH_PASSWORD`) ne sert plus que pendant la mise en place.
+
+**Mise en place (une fois)**
+1. Sur ton poste, créer la clé (sans phrase de passe : la CI ne peut pas la saisir) :
+   ```bash
+   ssh-keygen -t ed25519 -C "github-actions-territoire" -N "" -f territoire-deploy
+   ```
+2. Sur le VPS, avec l'utilisateur du déploiement (`VPS_SSH_ID`), autoriser la clé publique et relever l'empreinte de la clé que le serveur présente à la CI (ECDSA, sinon RSA, sinon Ed25519 : l'ordre de préférence du client SSH de la CI) :
+   ```bash
+   mkdir -p ~/.ssh && chmod 700 ~/.ssh
+   echo "<contenu de territoire-deploy.pub>" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+   for type in ecdsa rsa ed25519; do
+     f=/etc/ssh/ssh_host_${type}_key.pub
+     [ -f "$f" ] && { ssh-keygen -l -f "$f" | cut -d ' ' -f 2; break; }
+   done   # SHA256:…
+   ```
+3. Dans GitHub (Settings > Secrets and variables > Actions) : `VPS_SSH_KEY` = contenu complet de `territoire-deploy` (clé privée, de `-----BEGIN` à `-----END`), `VPS_SSH_FINGERPRINT` = l'empreinte `SHA256:…`. Ranger la clé privée dans le gestionnaire de mots de passe, puis la supprimer du poste.
+4. Supprimer le secret `VPS_SSH_PASSWORD` (tant qu'il existe, la CI essaie d'abord le mot de passe), puis lancer le workflow `Build and Deploy` à la main (onglet Actions) : il se connecte par la clé seule. En cas d'échec (« host key fingerprint mismatch » : mauvaise empreinte ; « unable to authenticate » : clé publique absente de `authorized_keys`), recréer le secret le temps de corriger.
+5. Facultatif, une fois que **ta propre connexion** au VPS (terminal, tunnel IntelliJ) passe aussi par une clé : refuser les mots de passe sur le VPS (`PasswordAuthentication no` dans `/etc/ssh/sshd_config.d/50-cle-seule.conf`, puis `sudo systemctl reload ssh`). Garder une session ouverte pendant le test : une erreur ici bloque l'accès au VPS.
 
 ### E-mails (récapitulatif des retards)
 Le back envoie chaque lundi à 8 h (heure de Paris) la liste des territoires en retard. Sans serveur SMTP, rien n'est envoyé et Paramètres > Autres paramètres le signale.
@@ -253,6 +275,41 @@ docker compose up -d
 rm -rf restauration
 ```
 Si la restauration échoue, la base vide peut être supprimée et `territoire_avant_restauration` renommée en `territoire`. Une fois l'application vérifiée, `territoire_avant_restauration` peut être supprimée (`DROP DATABASE`).
+
+### Rôles PostgreSQL
+Le back et postgres-exporter se connectent avec des rôles dédiés plutôt qu'avec `admin`, le superutilisateur propriétaire des tables :
+- `territoire_app` (back) lit et écrit les données, sans pouvoir créer, modifier ou supprimer une table, ni lire les fichiers du serveur ou y lancer des commandes : une faille de l'application ne donne pas la main sur la base entière. Les migrations Flyway passent toujours par `admin` (`SPRING_FLYWAY_USER`), et les tables qu'elles créent sont ouvertes d'office à `territoire_app`.
+- `postgres_exporter` ne lit que les statistiques du serveur (rôle `pg_monitor`).
+- `admin` reste utilisé par les migrations, la sauvegarde et les accès à la main.
+
+Tant que ces rôles ne sont pas en place (variables ci-dessous absentes), tout passe par `admin`, comme avant. Le script `config/postgres/roles.sql` ne touche à aucune donnée ni à aucune table : seulement des rôles et des droits. `DatabaseRolesIntegrationTest` le vérifie en CI sur une copie du schéma de production.
+
+**Mise en place (une fois, depuis `~/territoire`)**
+1. Sauvegarde à jour : `docker compose run --rm db-backup run`.
+2. Créer les rôles avec deux mots de passe neufs, à ranger dans le gestionnaire de mots de passe :
+   ```bash
+   MOT_DE_PASSE_APP=$(openssl rand -hex 24)
+   MOT_DE_PASSE_EXPORTER=$(openssl rand -hex 24)
+   docker compose exec -T postgis psql -U admin -d territoire -v ON_ERROR_STOP=1      -v mot_de_passe_app="$MOT_DE_PASSE_APP" -v mot_de_passe_exporter="$MOT_DE_PASSE_EXPORTER" < config/postgres/roles.sql
+   echo "$MOT_DE_PASSE_APP $MOT_DE_PASSE_EXPORTER"
+   ```
+3. Dans l'environnement du VPS, à côté des autres secrets :
+   ```bash
+   DB_ADMIN_PASSWORD=…            # mot de passe d'admin : la valeur actuelle de SPRING_DATASOURCE_PASSWORD
+   SPRING_DATASOURCE_USERNAME=territoire_app
+   SPRING_DATASOURCE_PASSWORD=…   # MOT_DE_PASSE_APP
+   PG_EXPORTER_USER=postgres_exporter
+   PG_EXPORTER_PASSWORD=…         # MOT_DE_PASSE_EXPORTER
+   ```
+4. Recréer les services concernés, puis vérifier le back, les connexions et la sauvegarde :
+   ```bash
+   docker compose up -d territoire-back postgres-exporter db-backup
+   docker compose ps territoire-back   # healthy
+   docker compose exec postgis psql -U admin -d territoire      -c "SELECT usename, count(*) FROM pg_stat_activity WHERE datname = 'territoire' GROUP BY usename"
+   docker compose run --rm db-backup run
+   ```
+
+Retour arrière : remettre `SPRING_DATASOURCE_PASSWORD` au mot de passe d'admin, retirer `SPRING_DATASOURCE_USERNAME`, `DB_ADMIN_PASSWORD` et `PG_EXPORTER_*`, puis relancer le même `docker compose up -d`. Les rôles peuvent rester en place.
 
 ### Montée de version de PostGIS
 L'image `postgis/postgis` est figée dans `docker-compose.yml`. Une montée mineure (ex. `17-3.5` → `17-3.6`) recrée le conteneur au déploiement sur les données en place, mais deux étapes restent à faire à la main :

@@ -23,7 +23,7 @@ import { RootState, useAppDispatch } from "@/store/store";
 import {
   fetchAverageAssignmentDurationByMonth,
   fetchOverallAverageAssignmentDuration,
-} from "@/store/slices/territory-slice";
+} from "@/store/slices/territory-statistics-slice";
 
 interface AverageAssignmentDurationChartProps {
   startDate?: string;
@@ -39,7 +39,7 @@ export const AverageAssignmentDurationChart: React.FC<
     overallAverageAssignmentDuration,
     statisticsLoading,
     error,
-  } = useSelector((state: RootState) => state.territories);
+  } = useSelector((state: RootState) => state.territoryStatistics);
 
   useEffect(() => {
     dispatch(

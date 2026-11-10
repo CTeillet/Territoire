@@ -24,14 +24,12 @@ export const StatisticsOverview: React.FC<StatisticsOverviewProps> = ({
   );
   const [territoriesNotAssigned, setTerritoriesNotAssigned] =
     useState<number>(0);
-  const [totalTerritories, setTotalTerritories] = useState<number>(0);
+  const totalTerritories = territories?.features.length ?? 0;
   const [publishersCount, setPublishersCount] = useState<number>(0);
 
   useEffect(() => {
     if (!territories) {
       dispatch(fetchTerritories());
-    } else {
-      setTotalTerritories(territories.features.length);
     }
   }, [dispatch, territories]);
 

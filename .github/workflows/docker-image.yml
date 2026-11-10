@@ -110,12 +110,17 @@ jobs:
         with:
           ref: ${{ needs.version.outputs.sha }}
 
+      # Connexion SSH (README > Déploiement > Connexion SSH du déploiement) : par clé (VPS_SSH_KEY), avec vérification
+      # de la clé du serveur (VPS_SSH_FINGERPRINT). VPS_SSH_PASSWORD ne sert que tant que la clé n'est pas en place :
+      # supprimer ce secret une fois le déploiement par clé vérifié.
       # Dossier d'attente vidé à chaque fois ; deploy/deploy.sh en met le contenu en place
       - name: Copy Compose, Config and Deploy Script to VPS
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_SSH_ID }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
           password: ${{ secrets.VPS_SSH_PASSWORD }}
           source: "docker-compose.yml,config,deploy/deploy.sh"
           target: "/home/${{ secrets.VPS_SSH_ID }}/territoire/.deploy"
@@ -126,6 +131,8 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_SSH_ID }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
           password: ${{ secrets.VPS_SSH_PASSWORD }}
           command_timeout: 15m
           script: |

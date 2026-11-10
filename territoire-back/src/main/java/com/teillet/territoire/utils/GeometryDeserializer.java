@@ -1,19 +1,17 @@
 package com.teillet.territoire.utils;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.JsonNode;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 
-import java.io.IOException;
-
-public class GeometryDeserializer extends JsonDeserializer<Point> {
+public class GeometryDeserializer extends ValueDeserializer<Point> {
 	@Override
-	public Point deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
-		JsonNode node = jsonParser.getCodec().readTree(jsonParser);
+	public Point deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) {
+		JsonNode node = deserializationContext.readTree(jsonParser);
 
 		// Vérifie si l'objet contient un tableau "coordinates"
 		if (node.has("coordinates") && node.get("coordinates").isArray()) {
@@ -28,6 +26,6 @@ public class GeometryDeserializer extends JsonDeserializer<Point> {
 			return new GeometryFactory().createPoint(new Coordinate(longitude, latitude));
 		}
 
-		throw new IOException("Format JSON invalide pour la désérialisation d'un Point");
+		return deserializationContext.reportInputMismatch(Point.class, "Format JSON invalide pour la désérialisation d'un Point");
 	}
 }
