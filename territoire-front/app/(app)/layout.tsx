@@ -3,6 +3,7 @@ import Image from "next/image";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { QuickSearch, QuickSearchButton } from "@/components/quick-search";
+import { ClientOnly } from "@/components/shared/client-only";
 import { WhatsAppStatusBanner } from "@/components/whatsapp-status-banner";
 
 /** Layout de l'application de gestion (sidebar). Les pages publiques (/m/...) n'en héritent pas. */
@@ -29,7 +30,9 @@ export default function AppLayout({
           <QuickSearchButton className="ml-auto md:hidden" />
         </header>
         <WhatsAppStatusBanner />
-        {children}
+        {/* Les pages dépendent de la session, inconnue du serveur : rendues seulement dans le navigateur, sinon
+            l'hydratation échoue (ex. onglets des paramètres selon le rôle, pages masquées hors connexion) */}
+        <ClientOnly>{children}</ClientOnly>
         <QuickSearch />
       </main>
     </SidebarProvider>
