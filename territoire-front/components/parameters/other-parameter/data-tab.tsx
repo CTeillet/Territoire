@@ -15,6 +15,7 @@ import {
   canManagePersons,
   canManageSettings,
 } from "@/models/role";
+import { ArchivesSection } from "@/components/parameters/other-parameter/archives-section";
 
 /** Onglet « Données » : exports, imports et outils rarement utiles, selon ce que le serveur permet au rôle. */
 export default function DataTab() {
@@ -47,6 +48,14 @@ export default function DataTab() {
               <ContactsPhoneSection showTitle={false} />
             </ParameterItem>
           )}
+        </ParameterGroup>
+      )}
+
+      {canManagePersons(role) && (
+        <ParameterGroup title="Archives">
+          <ParameterItem title="Territoires archivés et personnes parties">
+            <ArchivesSection />
+          </ParameterItem>
         </ParameterGroup>
       )}
 

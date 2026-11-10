@@ -23,6 +23,8 @@ export interface Territory {
   note?: string | null;
   /** Carte papier perdue : le territoire est proposé à la réimpression (page « Impression des cartes »). */
   lost?: boolean;
+  /** Archivé (date ISO) : hors des listes, des cartes et des statistiques ; son historique reste. */
+  archivedAt?: string | null;
   lastVisitedOn: string;
   assignedOn: string;
   waitedFor: string;

@@ -18,6 +18,8 @@ public interface TerritoryRequestRepository extends JpaRepository<TerritoryReque
 
 	List<TerritoryRequest> findAllByOrderByCreatedAtDesc();
 
+	List<TerritoryRequest> findByPerson_Id(UUID personId);
+
 	long countByStatus(TerritoryRequestStatus status);
 
 	long countByPerson_IdAndCreatedAtAfter(UUID personId, Instant after);

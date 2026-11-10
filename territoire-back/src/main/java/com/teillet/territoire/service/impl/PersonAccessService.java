@@ -97,7 +97,8 @@ public class PersonAccessService implements IPersonAccessService {
 				.collect(Collectors.toMap(access -> access.getPerson().getId(), Function.identity()));
 		Map<UUID, Long> runningCounts = assignmentRepository.countRunningAssignmentsByPerson().stream()
 				.collect(Collectors.toMap(row -> (UUID) row[0], row -> ((Number) row[1]).longValue()));
-		return personRepository.findAll().stream()
+		// Personnes présentes : une personne partie n'a plus de lien à gérer
+		return personRepository.findByArchivedAtIsNull().stream()
 				.map(person -> toStatus(person, accesses.get(person.getId()),
 						runningCounts.getOrDefault(person.getId(), 0L).intValue()))
 				.sorted(Comparator.comparing(PersonAccessStatusDto::getPersonName, String.CASE_INSENSITIVE_ORDER))

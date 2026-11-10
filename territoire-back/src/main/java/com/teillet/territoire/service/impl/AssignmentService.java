@@ -57,7 +57,7 @@ public class AssignmentService implements IAssignmentService {
 		Person person = personService.getPerson(personId);
 		// @Version sur Territory : si deux attributions simultanées modifient le même territoire, la seconde est refusée (409)
 		Territory territory = territoryService.getTerritory(territoryId);
-		if (territory.getStatus() != TerritoryStatus.AVAILABLE) {
+		if (territory.getStatus() != TerritoryStatus.AVAILABLE || territory.getArchivedAt() != null) {
 			throw new IllegalStateException("Ce territoire n'est pas disponible");
 		}
 

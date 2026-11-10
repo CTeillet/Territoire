@@ -56,6 +56,34 @@ class PersonController {
 		return modifiedPerson;
 	}
 
+	/** Personnes parties (archivées), pour les restaurer ou les anonymiser. */
+	@GetMapping("/archives")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public List<Person> getArchivedPersons() {
+		return personService.getArchivedPersons();
+	}
+
+	@PostMapping("/{id}/archiver")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public Person archivePerson(@PathVariable UUID id) {
+		log.info("Archivage de la personne {}", id);
+		return personService.archivePerson(id);
+	}
+
+	@PostMapping("/{id}/restaurer")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public Person restorePerson(@PathVariable UUID id) {
+		log.info("Restauration de la personne {}", id);
+		return personService.restorePerson(id);
+	}
+
+	@PostMapping("/{id}/anonymiser")
+	@PreAuthorize("hasRole('ADMIN')")
+	public Person anonymizePerson(@PathVariable UUID id) {
+		log.info("Anonymisation de la personne {}", id);
+		return personService.anonymizePerson(id);
+	}
+
 	@GetMapping("/{id}/territoires")
 	public List<AssignmentDto> getTerritoriesByPerson(@PathVariable UUID id) {
 		log.info("Début : Récupération des territoires assignés à la personne avec l'ID: {}", id);

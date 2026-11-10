@@ -166,7 +166,7 @@ class PersonAccessServiceTest {
 		Person other = Person.builder().id(UUID.randomUUID()).firstName("anne").lastName("martin").build();
 		when(accessRepository.findAll()).thenReturn(List.of(access(false, null)));
 		when(assignmentRepository.countRunningAssignmentsByPerson()).thenReturn(List.<Object[]>of(new Object[]{person.getId(), 2L}));
-		when(personRepository.findAll()).thenReturn(List.of(person, other));
+		when(personRepository.findByArchivedAtIsNull()).thenReturn(List.of(person, other));
 
 		List<PersonAccessStatusDto> statuses = service.getAllStatuses();
 

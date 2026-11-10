@@ -41,6 +41,7 @@ import {
 import { useRouter } from "next/navigation";
 import { TerritoryStatusBadge } from "@/components/territory/territory-status-badge";
 import { LostBadge } from "@/components/territory/lost-badge";
+import { ArchiveTerritoryButton } from "@/components/territory/id/archive-territory-button";
 
 interface TerritoryHeaderProps {
   territoryId: string;
@@ -52,6 +53,8 @@ interface TerritoryHeaderProps {
   note?: string | null;
   territoryMapId?: string;
   lost?: boolean;
+  /** Le territoire a un historique d'attributions : il s'archive au lieu d'être supprimé. */
+  hasHistory?: boolean;
 }
 
 const TerritoryHeader = ({
@@ -64,6 +67,7 @@ const TerritoryHeader = ({
   territoryId,
   territoryMapId,
   lost = false,
+  hasHistory = false,
 }: TerritoryHeaderProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -159,37 +163,47 @@ const TerritoryHeader = ({
                   <PencilIcon aria-hidden="true" />
                   Modifier
                 </Button>
-                <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive-outline"
-                      aria-label="Supprimer le territoire"
-                    >
-                      <TrashIcon aria-hidden="true" />
-                      Supprimer
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Supprimer ce territoire ?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action est irréversible. Le territoire sera
-                        définitivement supprimé.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        variant="destructive"
-                        onClick={handleDelete}
+                {hasHistory ? (
+                  <ArchiveTerritoryButton
+                    territoryId={territoryId}
+                    territoryName={name}
+                  />
+                ) : (
+                  <AlertDialog
+                    open={isDialogOpen}
+                    onOpenChange={setIsDialogOpen}
+                  >
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive-outline"
+                        aria-label="Supprimer le territoire"
                       >
+                        <TrashIcon aria-hidden="true" />
                         Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Supprimer ce territoire ?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Ce territoire n&apos;a jamais été attribué : il sera
+                          définitivement supprimé.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          variant="destructive"
+                          onClick={handleDelete}
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </>
             )}
           </div>
