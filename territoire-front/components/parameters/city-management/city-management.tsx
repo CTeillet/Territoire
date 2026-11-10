@@ -26,8 +26,10 @@ const CityManager: React.FC = () => {
       <FormAddCity />
 
       {/* Affichage des erreurs et chargement */}
-      {loading && <p className="text-gray-500">Chargement des villes...</p>}
-      {error && <p className="text-red-500">Erreur : {error}</p>}
+      {loading && (
+        <p className="text-muted-foreground">Chargement des villes...</p>
+      )}
+      {error && <p className="text-destructive">Erreur : {error}</p>}
 
       {/* Table des villes avec mise en avant */}
       <ListCity cities={cities} />

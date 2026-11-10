@@ -309,7 +309,7 @@ export function DataTable<TValue>({
     <div className="w-full">
       <div className="flex flex-wrap items-center justify-end mb-4 gap-2">
         <p
-          className="mr-auto text-sm text-gray-600"
+          className="mr-auto text-sm text-muted-foreground"
           aria-live="polite"
           data-testid="territory-count"
         >
@@ -322,7 +322,7 @@ export function DataTable<TValue>({
             variant="ghost"
             size="sm"
             onClick={() => table.resetColumnFilters()}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="flex items-center gap-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
           >
             <FilterX className="h-4 w-4" />
             <span>Réinitialiser les filtres</span>
@@ -345,14 +345,14 @@ export function DataTable<TValue>({
         <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table className="w-full border-collapse">
             {/* En-tête de la table */}
-            <TableHeader className="bg-gray-100">
+            <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
                       // Même graisse que les en-têtes triables (boutons) : « Actions » ne détonne plus en capitales
-                      className="px-4 py-3 text-center font-medium text-gray-700"
+                      className="px-4 py-3 text-center font-medium text-foreground"
                     >
                       {header.isPlaceholder
                         ? null
@@ -372,12 +372,12 @@ export function DataTable<TValue>({
                 table.getRowModel().rows.map((row) => (
                   <TableRow
                     key={row.id}
-                    className="odd:bg-gray-50 hover:bg-gray-100 transition"
+                    className="odd:bg-muted/40 hover:bg-muted transition"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className="px-4 py-3 text-center text-gray-700"
+                        className="px-4 py-3 text-center text-foreground"
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
@@ -391,7 +391,7 @@ export function DataTable<TValue>({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-24 text-center text-gray-500"
+                    className="h-24 text-center text-muted-foreground"
                   >
                     Aucun résultat.
                   </TableCell>
@@ -461,7 +461,7 @@ function MobileRows({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg bg-gray-100 text-gray-700">
+      <div className="rounded-lg bg-muted text-foreground">
         <button
           type="button"
           aria-expanded={showOptions}
@@ -472,7 +472,9 @@ function MobileRows({
           <SlidersHorizontal aria-hidden="true" className="h-4 w-4 shrink-0" />
           <span className="shrink-0 font-medium">Trier et filtrer</span>
           {summary && (
-            <span className="min-w-0 truncate text-gray-500">{summary}</span>
+            <span className="min-w-0 truncate text-muted-foreground">
+              {summary}
+            </span>
           )}
           <ChevronDown
             aria-hidden="true"
@@ -507,10 +509,10 @@ function MobileRows({
           return (
             <div
               key={row.id}
-              className="rounded-lg border bg-white p-3 text-gray-700 shadow-sm"
+              className="rounded-lg border bg-white p-3 text-foreground shadow-sm"
             >
               {title && (
-                <h3 className="mb-2 font-semibold text-gray-900">
+                <h3 className="mb-2 font-semibold text-foreground">
                   {flexRender(title.column.columnDef.cell, title.getContext())}
                 </h3>
               )}
@@ -522,7 +524,7 @@ function MobileRows({
                   )
                   .map((cell) => (
                     <React.Fragment key={cell.id}>
-                      <dt className="text-gray-500">
+                      <dt className="text-muted-foreground">
                         {columnLabel(cell.column)}
                       </dt>
                       <dd className="min-w-0 justify-self-start break-words">
@@ -546,7 +548,9 @@ function MobileRows({
           );
         })
       ) : (
-        <p className="py-8 text-center text-gray-500">Aucun résultat.</p>
+        <p className="py-8 text-center text-muted-foreground">
+          Aucun résultat.
+        </p>
       )}
     </div>
   );

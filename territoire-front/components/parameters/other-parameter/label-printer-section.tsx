@@ -21,6 +21,8 @@ import {
 import { downloadFile } from "@/lib/file-share";
 import { LBX_HELP } from "@/components/shared/assignment-label-file";
 import { openNativePrinterSettings } from "@/lib/native-app";
+import { toneText } from "@/components/shared/tones";
+import { cn } from "@/lib/utils";
 
 // Hauteur imprimable d'un ruban de 12 mm, et ses marges non imprimées (85 points de large en tout)
 const PREVIEW_HEIGHT = 64;
@@ -182,7 +184,7 @@ export function LabelPrinterSection({
       )}
 
       {!ios && !supported && (
-        <p className="text-sm text-orange-700">
+        <p className={cn("text-sm", toneText.warning)}>
           {UNSUPPORTED_MESSAGE} Sur iPhone et iPad, l&apos;étiquette se
           télécharge en fichier pour l&apos;application Brother Design&amp;Print
           2.

@@ -57,7 +57,7 @@ export const ExportExcelButton = ({ showTitle = true }: Props) => {
           value={year}
           onChange={(e) => setYear(parseInt(e.target.value || "0", 10))}
         />
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-muted-foreground">
           {year} - {year + 1}
         </span>
       </div>

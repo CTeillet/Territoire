@@ -51,7 +51,7 @@ export const AssignmentsTable: React.FC = () => {
         <div className="max-h-[450px] overflow-auto pb-2">
           <Table className="rounded-sm w-full text-center">
             <TableCaption></TableCaption>
-            <TableHeader className="sticky top-0 bg-background z-10">
+            <TableHeader className="sticky top-0 z-10">
               <TableRow>
                 <TableCell className="text-center">#</TableCell>
                 <TableCell className="text-center">Statut</TableCell>

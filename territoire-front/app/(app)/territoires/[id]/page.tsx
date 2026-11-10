@@ -115,7 +115,7 @@ const TerritoryPage = () => {
               {cardActions && <CardAction>{cardActions}</CardAction>}
             </CardHeader>
             <CardContent className="flex justify-center">
-              <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-md w-full">
+              <div className="p-8 text-center text-muted-foreground border border-border rounded-md w-full">
                 <p>Aucune carte n&apos;a été téléchargée pour ce territoire.</p>
               </div>
             </CardContent>

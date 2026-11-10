@@ -9,6 +9,8 @@ import { Person, personToString } from "@/models/person";
 import { formatPhoneNumber } from "@/components/utils";
 import { matchPhones, parseVCards, VCardContact } from "@/lib/vcard";
 import { fetchPersonsForPhones, savePersonPhone } from "@/lib/person-phone-api";
+import { toneText } from "@/components/shared/tones";
+import { cn } from "@/lib/utils";
 
 const plural = (count: number, word: string) =>
   `${count} ${word}${count > 1 ? "s" : ""}`;
@@ -221,14 +223,18 @@ export function ContactsPhoneSection({
                               : `Ajout : ${formatPhoneNumber(phoneNumber)}`}
                           </span>
                           {person.phoneNumber && (
-                            <span className="block text-xs text-amber-600">
+                            <span
+                              className={cn("block text-xs", toneText.warning)}
+                            >
                               {reformat
                                 ? "Mise au format international (même numéro)"
                                 : "Remplace le numéro actuel"}
                             </span>
                           )}
                           {ambiguous && (
-                            <span className="block text-xs text-amber-600">
+                            <span
+                              className={cn("block text-xs", toneText.warning)}
+                            >
                               Plusieurs numéros ou homonymes : à vérifier
                             </span>
                           )}

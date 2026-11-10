@@ -361,8 +361,8 @@ export default function CampaignDetailPage() {
             </CardHeader>
             <CardContent>
               {campaign.territories.length === 0 ? (
-                <div className="flex justify-center items-center h-40 bg-gray-50 rounded-lg">
-                  <p className="text-lg text-gray-500">
+                <div className="flex justify-center items-center h-40 bg-muted/50 rounded-lg">
+                  <p className="text-lg text-muted-foreground">
                     Aucun territoire dans cette campagne
                   </p>
                 </div>
@@ -410,8 +410,8 @@ export default function CampaignDetailPage() {
                         {/* Téléphone : pas de zone qui défile dans la page */}
                         <div className="md:max-h-60 md:overflow-auto">
                           <Table>
-                            <TableHeader className="sticky top-0 bg-white z-10">
-                              <TableRow className="border-b-2 border-gray-200">
+                            <TableHeader className="sticky top-0 z-10">
+                              <TableRow className="border-b-2 border-border">
                                 {!campaign.closed && (
                                   <TableHead className="w-12 py-3"></TableHead>
                                 )}
@@ -446,7 +446,7 @@ export default function CampaignDetailPage() {
                                   return (
                                     <TableRow
                                       key={territory.territoryId}
-                                      className="hover:bg-gray-50"
+                                      className="hover:bg-muted/50"
                                     >
                                       {!campaign.closed && (
                                         <TableCell className="py-3">

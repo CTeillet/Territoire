@@ -401,7 +401,7 @@ export function TerritoryDataActionButtons({
       {loading ? (
         <p>Chargement des personnes...</p>
       ) : error ? (
-        <p className="text-red-500">Erreur : {error}</p>
+        <p className="text-destructive">Erreur : {error}</p>
       ) : (
         <AssignTerritoryDialog
           isOpen={isDialogOpen}

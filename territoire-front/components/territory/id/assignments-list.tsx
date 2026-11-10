@@ -30,7 +30,9 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
     <div className="rounded-xl border bg-card p-4 shadow-sm md:p-6">
       <h2 className="mb-4 leading-none font-semibold">Historique</h2>
       {sortedAssignments.length === 0 ? (
-        <p className="text-gray-500">Pas d&#39;historique pour ce territoire</p>
+        <p className="text-muted-foreground">
+          Pas d&#39;historique pour ce territoire
+        </p>
       ) : (
         <ul>
           {sortedAssignments.map((assignment) => (
@@ -39,7 +41,7 @@ const AssignmentsList = ({ assignments }: { assignments: Assignment[] }) => {
                 <div>
                   <strong>{assignmentHolder(assignment)}</strong>
                   <br />
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {new Date(assignment.assignmentDate).toLocaleDateString()} →{" "}
                     {assignment.returnDate
                       ? new Date(assignment.returnDate).toLocaleDateString()

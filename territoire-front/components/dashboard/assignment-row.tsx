@@ -42,7 +42,7 @@ const AssignmentRow: React.FC<Assignment> = (assignment: Assignment) => (
 export const AssignmentCard: React.FC<Assignment> = (
   assignment: Assignment
 ) => (
-  <li className="rounded-xl border bg-card p-3 text-sm text-gray-700 shadow-sm">
+  <li className="rounded-xl border bg-card p-3 text-sm text-foreground shadow-sm">
     <div className="mb-1 flex items-center justify-between gap-2">
       <TerritoryNameLink
         id={assignment.territory.territoryId}
@@ -50,19 +50,19 @@ export const AssignmentCard: React.FC<Assignment> = (
       />
       <AssignmentStatusBadge assignment={assignment} />
     </div>
-    <p className="font-medium text-gray-900">{holder(assignment)}</p>
+    <p className="font-medium text-foreground">{holder(assignment)}</p>
     <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1">
-      <dt className="text-gray-500">Attribué le</dt>
+      <dt className="text-muted-foreground">Attribué le</dt>
       <dd>{assignment.assignmentDate}</dd>
       {assignment.dueDate !== null && (
         <>
-          <dt className="text-gray-500">À rendre le</dt>
+          <dt className="text-muted-foreground">À rendre le</dt>
           <dd>{assignment.dueDate}</dd>
         </>
       )}
       {assignment.returnDate !== null && (
         <>
-          <dt className="text-gray-500">Rendu le</dt>
+          <dt className="text-muted-foreground">Rendu le</dt>
           <dd>{assignment.returnDate}</dd>
         </>
       )}

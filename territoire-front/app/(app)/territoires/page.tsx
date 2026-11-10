@@ -144,7 +144,7 @@ const TerritoryPage = () => {
               <div
                 role="group"
                 aria-label="Rechercher par"
-                className="inline-flex rounded-md border bg-white p-0.5"
+                className="inline-flex rounded-md border bg-background p-0.5"
               >
                 {SEARCH_MODES.map(({ mode, label }) => (
                   <button
@@ -155,8 +155,8 @@ const TerritoryPage = () => {
                     className={cn(
                       "min-h-9 rounded px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                       searchMode === mode
-                        ? "bg-gray-900 text-white"
-                        : "text-gray-700 hover:bg-gray-100"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted"
                     )}
                   >
                     {label}

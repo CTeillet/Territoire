@@ -138,7 +138,7 @@ function SectionHeader({
         </div>
         <div>
           <h2 className="text-lg font-semibold leading-tight">{title}</h2>
-          <p className="text-sm text-gray-600">{description}</p>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
       {action}
@@ -307,7 +307,7 @@ export default function AccessManagement() {
         <Card className="gap-0 overflow-hidden py-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableRow>
                 <TableHead className="pl-4">Personne</TableHead>
                 <TableHead>État</TableHead>
                 <TableHead>En cours</TableHead>

@@ -22,7 +22,11 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
+      // En-tête sur fond gris clair, le même pour tous les tableaux de l'application
+      className={cn(
+        "bg-muted [&_tr]:border-b [&_tr]:hover:bg-transparent",
+        className
+      )}
       {...props}
     />
   );

@@ -36,14 +36,13 @@ import {
   readOfflineView,
   saveOfflineView,
 } from "@/lib/public-access-offline";
+import { Notice } from "@/components/shared/notice";
 
 const PublicTerritoryMap = dynamic(
   () => import("@/components/public-access/public-territory-map"),
   {
     ssr: false,
-    loading: () => (
-      <div className="h-80 rounded-md bg-gray-200 animate-pulse" />
-    ),
+    loading: () => <div className="h-80 rounded-md bg-muted animate-pulse" />,
   }
 );
 
@@ -188,9 +187,10 @@ export default function MyTerritoriesPage() {
       </header>
 
       {offline && (
-        <div
+        <Notice
+          tone="warning"
           role="status"
-          className="flex flex-wrap items-center gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+          className="flex flex-wrap items-center gap-3"
         >
           <WifiOff aria-hidden="true" className="h-5 w-5 shrink-0" />
           <p className="min-w-0 flex-1">
@@ -201,7 +201,7 @@ export default function MyTerritoriesPage() {
             <RefreshCw aria-hidden="true" className="h-4 w-4" />
             Réessayer
           </Button>
-        </div>
+        </Notice>
       )}
 
       {territories.map((territory) => (
@@ -223,9 +223,9 @@ export default function MyTerritoriesPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {territory.note && (
-              <p className="rounded-md bg-yellow-50 p-3 text-sm whitespace-pre-line">
+              <Notice tone="warning" className="whitespace-pre-line">
                 {territory.note}
-              </p>
+              </Notice>
             )}
 
             <PublicTerritoryMap

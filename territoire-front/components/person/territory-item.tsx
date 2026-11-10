@@ -4,6 +4,7 @@ import { Assignment } from "@/models/assignment";
 import { Button } from "@/components/ui/button";
 import { TerritoryNameLink } from "@/components/territory/territory-name-link";
 import { AssignmentStatusBadge } from "@/components/shared/assignment-status-badge";
+import { toneSurface } from "@/components/shared/tones";
 
 interface TerritoryItemProps {
   assignment: Assignment;
@@ -16,10 +17,10 @@ const TerritoryItem = ({ assignment }: TerritoryItemProps) => {
   return (
     <li
       // Attribution en cours : liseré vert, comme son badge
-      className={`flex flex-wrap items-center gap-3 rounded-md p-3 ${isCurrentAssignment ? "border-l-4 border-green-500 bg-green-50" : "bg-gray-50"}`}
+      className={`flex flex-wrap items-center gap-3 rounded-md p-3 ${isCurrentAssignment ? `border-l-4 ${toneSurface.success}` : "bg-muted/50"}`}
     >
       <div className="min-w-0 flex-1">
-        <div className="font-medium text-gray-800">
+        <div className="font-medium text-foreground">
           <strong>Territoire :</strong>{" "}
           {territoryId ? (
             <TerritoryNameLink id={territoryId} name={name} />
@@ -30,13 +31,13 @@ const TerritoryItem = ({ assignment }: TerritoryItemProps) => {
             <AssignmentStatusBadge assignment={assignment} className="ml-2" />
           )}
         </div>
-        <div className="text-sm text-gray-600 mt-1">
+        <div className="text-sm text-muted-foreground mt-1">
           <span>
             Assigné le :{" "}
             {new Date(assignment.assignmentDate).toLocaleDateString()}
           </span>
           {assignment.returnDate && (
-            <span className="ml-2 pl-2 border-l border-gray-300">
+            <span className="ml-2 pl-2 border-l border-border">
               {" "}
               {assignment.returnedVia === "PROLONGATION"
                 ? "Prolongé le"

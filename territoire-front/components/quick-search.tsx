@@ -180,12 +180,12 @@ export function QuickSearch() {
       />
       <CommandList className="max-h-[60vh]">
         {loading && nothing ? (
-          <p className="flex items-center justify-center gap-2 py-6 text-sm text-gray-600">
+          <p className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
             <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
             Chargement…
           </p>
         ) : nothing ? (
-          <p className="py-6 text-center text-sm text-gray-600">
+          <p className="py-6 text-center text-sm text-muted-foreground">
             Aucun résultat
           </p>
         ) : null}
@@ -264,7 +264,7 @@ export function QuickSearchButton({ className }: { className?: string }) {
       onClick={openQuickSearch}
       aria-label="Recherche rapide"
       className={cn(
-        "flex size-11 items-center justify-center rounded-md text-gray-700 outline-none hover:bg-gray-300 focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "flex size-11 items-center justify-center rounded-md text-foreground outline-none hover:bg-sidebar focus-visible:ring-[3px] focus-visible:ring-ring/50",
         className
       )}
     >

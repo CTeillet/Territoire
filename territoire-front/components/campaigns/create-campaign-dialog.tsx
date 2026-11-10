@@ -201,7 +201,7 @@ export function CreateCampaignDialog({
                 Utiliser les territoires restants d&apos;une campagne précédente
                 (optionnel)
               </Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Sélectionnez une campagne précédente pour utiliser ses
                 territoires restants dans cette nouvelle campagne.
               </p>

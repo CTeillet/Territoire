@@ -28,6 +28,7 @@ import {
   fetchTerritories,
 } from "@/store/slices/territory-slice";
 import { fetchAssignedTerritories } from "@/store/slices/person-slice";
+import { Notice } from "@/components/shared/notice";
 
 /** Suggestions affichées d'abord ; les suivantes sur demande. */
 const FIRST_SUGGESTIONS = 8;
@@ -157,10 +158,10 @@ export function AssignTerritoryToPersonDialog({
           </DialogHeader>
 
           {running > 0 && (
-            <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+            <Notice tone="warning">
               {person.firstName} a déjà {running}{" "}
               {running > 1 ? "territoires" : "territoire"} en cours.
-            </p>
+            </Notice>
           )}
 
           <div className="grid grid-cols-2 gap-2">
