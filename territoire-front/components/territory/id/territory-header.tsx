@@ -41,6 +41,7 @@ import {
 import { useRouter } from "next/navigation";
 import { TerritoryStatusBadge } from "@/components/territory/territory-status-badge";
 import { LostBadge } from "@/components/territory/lost-badge";
+import { ArchiveTerritoryButton } from "@/components/territory/id/archive-territory-button";
 
 interface TerritoryHeaderProps {
   territoryId: string;
@@ -52,6 +53,8 @@ interface TerritoryHeaderProps {
   note?: string | null;
   territoryMapId?: string;
   lost?: boolean;
+  /** Le territoire a un historique d'attributions : il s'archive au lieu d'être supprimé. */
+  hasHistory?: boolean;
 }
 
 const TerritoryHeader = ({
@@ -64,6 +67,7 @@ const TerritoryHeader = ({
   territoryId,
   territoryMapId,
   lost = false,
+  hasHistory = false,
 }: TerritoryHeaderProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -121,7 +125,7 @@ const TerritoryHeader = ({
               className="w-full"
             />
           ) : (
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 break-words">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground break-words">
               {name}
             </h1>
           )}
@@ -159,37 +163,47 @@ const TerritoryHeader = ({
                   <PencilIcon aria-hidden="true" />
                   Modifier
                 </Button>
-                <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive-outline"
-                      aria-label="Supprimer le territoire"
-                    >
-                      <TrashIcon aria-hidden="true" />
-                      Supprimer
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Supprimer ce territoire ?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action est irréversible. Le territoire sera
-                        définitivement supprimé.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        variant="destructive"
-                        onClick={handleDelete}
+                {hasHistory ? (
+                  <ArchiveTerritoryButton
+                    territoryId={territoryId}
+                    territoryName={name}
+                  />
+                ) : (
+                  <AlertDialog
+                    open={isDialogOpen}
+                    onOpenChange={setIsDialogOpen}
+                  >
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive-outline"
+                        aria-label="Supprimer le territoire"
                       >
+                        <TrashIcon aria-hidden="true" />
                         Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Supprimer ce territoire ?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Ce territoire n&apos;a jamais été attribué : il sera
+                          définitivement supprimé.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          variant="destructive"
+                          onClick={handleDelete}
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </>
             )}
           </div>
@@ -199,7 +213,7 @@ const TerritoryHeader = ({
       </div>
 
       {/* Ville modifiable */}
-      <div className="text-gray-700 flex items-center mb-2">
+      <div className="text-foreground flex items-center mb-2">
         <MapPinIcon
           aria-hidden="true"
           className="mr-2 h-4 w-4 shrink-0 text-muted-foreground"
@@ -226,14 +240,14 @@ const TerritoryHeader = ({
       </div>
 
       {/* Statut */}
-      <p className="text-gray-700 flex items-center mb-2">
+      <p className="text-foreground flex items-center mb-2">
         <span className="font-semibold">Statut :</span>
         <TerritoryStatusBadge status={status} className="ml-2" />
         {lost && <LostBadge className="ml-2" />}
       </p>
 
       {/* Type */}
-      <div className="text-gray-700 flex items-center mb-2">
+      <div className="text-foreground flex items-center mb-2">
         <span className="font-semibold">Type :</span>
         {isEditing ? (
           <Select
@@ -271,7 +285,7 @@ const TerritoryHeader = ({
             className="w-full"
           />
         ) : (
-          <p className="text-gray-700">{note || "Aucune note"}</p>
+          <p className="text-foreground">{note || "Aucune note"}</p>
         )}
       </div>
 

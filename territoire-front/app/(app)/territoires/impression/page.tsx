@@ -32,6 +32,8 @@ import {
 } from "@/store/slices/territory-slice";
 import { filterBySearch } from "@/lib/search";
 import { PageContainer, PageHeader } from "@/components/shared/page-layout";
+import { toneBorder, toneMark } from "@/components/shared/tones";
+import { Notice } from "@/components/shared/notice";
 
 // À l'impression, seules les feuilles (rendues dans <body> par un portail) sont visibles, en A4 paysage sans marge
 const PRINT_CSS = `
@@ -222,7 +224,7 @@ export default function TerritoryPrintPage() {
           · {plural(sheetCount, "feuille A4", "feuilles A4")}
         </p>
         {errorCount > 0 && (
-          <p className="text-red-600">
+          <p className="text-destructive">
             {errorCount > 1
               ? `${errorCount} cartes n'ont pas pu être chargées.`
               : "1 carte n'a pas pu être chargée."}
@@ -252,11 +254,13 @@ export default function TerritoryPrintPage() {
         {/* En deux colonnes, la sélection reste à l'écran pendant qu'on fait défiler l'aperçu */}
         <div className="space-y-3 rounded-md border bg-white p-4 lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100svh-3rem)] lg:flex-col">
           {lostTerritories.length > 0 && (
-            <section
+            <Notice
+              tone="warning"
+              role="region"
               aria-label="Territoires perdus"
-              className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3"
+              className="space-y-2"
             >
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+              <h2 className="flex items-center gap-2 font-semibold">
                 <TriangleAlert className="h-4 w-4 shrink-0" />
                 {plural(
                   lostTerritories.length,
@@ -277,7 +281,7 @@ export default function TerritoryPrintPage() {
               >
                 Sélectionner les territoires perdus
               </Button>
-            </section>
+            </Notice>
           )}
           <Input
             placeholder="Rechercher un territoire"
@@ -337,9 +341,9 @@ export default function TerritoryPrintPage() {
                           className={cn(
                             "flex h-10 items-center gap-2 rounded-md border px-2 text-sm",
                             t.hasMap
-                              ? "cursor-pointer hover:bg-gray-50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-gray-100"
-                              : "border-dashed text-gray-400",
-                            t.lost && "border-amber-400"
+                              ? "cursor-pointer hover:bg-muted/50 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-muted"
+                              : "border-dashed text-muted-foreground",
+                            t.lost && toneBorder.warning
                           )}
                         >
                           <Checkbox
@@ -356,7 +360,10 @@ export default function TerritoryPrintPage() {
                           {t.lost && (
                             <span
                               aria-hidden="true"
-                              className="ml-auto size-2 shrink-0 rounded-full bg-amber-500"
+                              className={cn(
+                                "ml-auto size-2 shrink-0 rounded-full",
+                                toneMark.warning
+                              )}
                             />
                           )}
                           {t.lost && <span className="sr-only">perdu</span>}
@@ -380,14 +387,14 @@ export default function TerritoryPrintPage() {
             <span className="flex items-center gap-1.5">
               <span
                 aria-hidden="true"
-                className="size-2 rounded-full bg-amber-500"
+                className={cn("size-2 rounded-full", toneMark.warning)}
               />
               Perdu
             </span>
             <span className="flex items-center gap-1.5">
               <span
                 aria-hidden="true"
-                className="h-3 w-4 rounded-sm border border-dashed border-gray-400"
+                className="h-3 w-4 rounded-sm border border-dashed border-muted-foreground"
               />
               Sans carte
             </span>
@@ -398,7 +405,10 @@ export default function TerritoryPrintPage() {
           {!isMobile && printBar}
 
           {selectedLost.length > 0 && canManageAssignments(user?.role) && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
+            <Notice
+              tone="warning"
+              className="flex flex-wrap items-center justify-between gap-3"
+            >
               <p>
                 {selectedLost.length > 1
                   ? `${selectedLost.length} territoires perdus sélectionnés : une fois leurs cartes imprimées, retirez-les des perdus.`
@@ -412,7 +422,7 @@ export default function TerritoryPrintPage() {
               >
                 Retirer des perdus
               </Button>
-            </div>
+            </Notice>
           )}
 
           {cards.length === 0 ? (

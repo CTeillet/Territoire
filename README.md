@@ -12,11 +12,14 @@ L'application permet d'attribuer, suivre et organiser la distribution de territo
 - Espace « mes territoires » : chaque personne reçoit un lien personnel (`/m/<jeton>`) pour consulter ses territoires en cours (carte, adresses à ne pas visiter) et les rendre elle-même. Envoi par WhatsApp, automatique à l'attribution si activé ; gestion (renvoi, régénération, révocation, expiration) dans Paramètres > Accès numériques et sur la fiche de chaque personne. Coexiste avec les cartes papier.
 - Campagnes, statistiques, historique quotidien des statuts.
 - Impression des cartes de territoires (Territoire > Impression des cartes) : on choisit les territoires (recherche, ville) et leurs cartes s'impriment par 4 sur des feuilles A4 en paysage, à découper en quarts. Les marges blanches des cartes numérisées sont retirées.
-- Carte physique d'un territoire (fiche du territoire > Carte du territoire > « Générer la carte », ADMIN et SUPERVISEUR) : l'application remplit le formulaire « Carte de territoire » (S-12-F) avec la ville après « Lieu », le nom du territoire après « Territ. n° » et, au milieu, le plan IGN du quartier où les pâtés à travailler ressortent en vert, cernés de vert foncé : ils ressortent aussi imprimés en noir et blanc. Le plan est dessiné par le navigateur (MapLibre, `territoire-front/lib/ign-plan.ts`) depuis les tuiles vectorielles du Plan IGN, sur l'emprise que donne le back (`GET /api/territoires/{id}/carte-physique/emprise`), puis envoyé au back qui compose la carte (`POST …/carte-physique/apercu` pour l'aperçu, `POST …/carte-physique` pour l'enregistrer). Des cases choisissent les thèmes du plan (cf. « Fond des cartes » ci-dessous) ; elles partent du choix réglé pour la carte physique. Trois cadrages selon les rues à montrer autour : serré, normal et large, avec au moins 330 m, 660 m et 1,3 km de large au sol, pour qu'un petit territoire (une barre d'immeubles) montre les noms des rues voisines ; le plan ne dépasse pas 1,3 km tant que le territoire y tient, le Plan IGN n'écrivant plus les noms de rue au-delà. Si le plan IGN ne se charge pas en entier, la fenêtre propose de réessayer ; la pastille « Numéros à ne pas faire : voir au dos » s'ajoute quand le territoire a des adresses à ne pas visiter. La carte se télécharge en PNG ou remplace la carte du territoire, celle qu'imprime la page Impression des cartes. Le fond du formulaire est `territoire-back/src/main/resources/cards/fond-carte-territoire.png` (calque « Fond » du modèle GIMP, 875 × 616 px), les positions des champs et du plan sont dans `TerritoryCardService`.
+- Carte physique d'un territoire (fiche du territoire > Carte du territoire > « Générer la carte », ADMIN et SUPERVISEUR) : l'application remplit le formulaire « Carte de territoire » (S-12-F) avec la ville après « Lieu », le nom du territoire après « Territ. n° » et, au milieu, le plan IGN du quartier où les pâtés à travailler ressortent en vert, cernés de vert foncé : ils ressortent aussi imprimés en noir et blanc. Le plan est dessiné par le navigateur (MapLibre, `territoire-front/lib/ign-plan.ts`) depuis les tuiles vectorielles du Plan IGN, sur l'emprise que donne le back (`GET /api/territoires/{id}/carte-physique/emprise`), puis envoyé au back qui compose la carte (`POST …/carte-physique/apercu` pour l'aperçu, `POST …/carte-physique` pour l'enregistrer). Des cases choisissent les thèmes du plan (cf. « Fond des cartes » ci-dessous) ; elles partent du choix réglé pour la carte physique. Trois cadrages selon les rues à montrer autour : serré, normal et large, avec au moins 330 m, 660 m et 1,3 km de large au sol, pour qu'un petit territoire (une barre d'immeubles) montre les noms des rues voisines ; le plan ne dépasse pas 1,3 km tant que le territoire y tient, le Plan IGN n'écrivant plus les noms de rue au-delà. Si le plan IGN ne se charge pas en entier, la fenêtre propose de réessayer ; la pastille « Numéros à ne pas faire : voir au dos » s'ajoute quand le territoire a des adresses à ne pas visiter. La carte se télécharge en PNG ou remplace la carte du territoire, celle qu'imprime la page Impression des cartes ; la carte remplacée n'est pas perdue (cf. Cartes précédentes). Le fond du formulaire est `territoire-back/src/main/resources/cards/fond-carte-territoire.png` (calque « Fond » du modèle GIMP, 875 × 616 px), les positions des champs et du plan sont dans `TerritoryCardService`.
+- Cartes précédentes (fiche du territoire > Carte du territoire, ADMIN et SUPERVISEUR) : chaque carte remplacée, par une carte physique générée ou une carte importée, est gardée (table `territory_map_version`). On peut la revoir et la remettre ; la carte actuelle rejoint alors à son tour les cartes précédentes.
 - Fond des cartes : toutes les cartes (Territoires, fiche d'un territoire, campagnes, tableau de bord, lien personnel) ont pour fond le Plan IGN vectoriel, dessiné par MapLibre sous les couches Leaflet (`territoire-front/components/map/ign-base-layer.tsx`) ; sans WebGL ou si le plan IGN ne répond pas, elles gardent le fond OpenStreetMap. Paramètres > Cartes (ADMIN et SUPERVISEUR) règle, carte par carte, les thèmes montrés en plus des rues, de leurs noms, de l'eau et des voies ferrées : noms de lieux et repères, bâtiments publics et commerciaux, maisons, végétation et parcs, zones (écoles, parkings, activités), limites de commune et clôtures, relief, cadastre, numéros de rue. Par défaut, tout sauf le relief et le cadastre à l'écran, et seulement les repères sur la carte physique. Le réglage est gardé en JSON dans `setting.map_themes` (null = valeurs par défaut) ; la page du lien personnel reçoit ses thèmes avec ses données.
 - Étiquettes d'attribution : une Brother P-touch Cube (PT-P300BT, PT-P710BT) reliée en Bluetooth imprime à chaque attribution une étiquette « Prénom N. / À rendre le JJ/MM/AAAA », à coller sur la carte. Elle se règle par appareil, cf. [Imprimante d'étiquettes](#imprimante-détiquettes-brother-p-touch) ; la fiche d'un territoire permet de réimprimer l'étiquette de l'attribution en cours. Sur iPhone, l'app TMS (`territoire-ios`) imprime directement sur la PT-P710BT ; dans Safari, l'étiquette est un fichier `.lbx` à ouvrir dans l'application Brother P-touch Design&Print 2.
 - Territoires perdus : un territoire dont la carte papier a disparu se signale « perdu » depuis ses actions (liste ou fiche), quel que soit son statut. La page d'impression les propose à la réimpression ; une fois les cartes imprimées, on les retire des perdus (ADMIN, SUPERVISEUR, GESTIONNAIRE).
 - Export / import Excel, export PNG de la carte de tous les territoires, adresses à ne pas visiter.
+- Journal des actions (ADMIN, SUPERVISEUR) : qui a attribué, rendu, prolongé, annulé, modifié un territoire, une personne ou un compte, et quand (table `audit_event`). Il s'affiche sur la fiche de chaque territoire et de chaque personne, et dans Paramètres > Données > Journal, avec une recherche. Un retour fait depuis un lien personnel y figure comme « Lien personnel » ; le nom d'une personne anonymisée en disparaît aussi.
+- Archivage plutôt que suppression : un territoire ou une personne qui a un historique d'attributions ne se supprime pas, il s'archive (fiche du territoire > « Archiver », fiche de la personne > « Marquer comme partie »). Il disparaît des listes, des cartes, des statistiques et des choix d'attribution ; son historique reste (registre S-13 des années où il a servi, historique des personnes). Paramètres > Données > Archives les restaure, et l'administrateur peut y anonymiser une personne partie (nom remplacé, coordonnées, lien et commentaires effacés, irréversible).
 - Rôles et droits d'accès :
   - **ADMIN** : accès total.
   - **SUPERVISEUR** : modification des territoires et des personnes, attribution et retour.
@@ -66,6 +69,7 @@ Tests :
 cd territoire-back && ./mvnw test
 cd territoire-front && npm test
 ```
+La CI vérifie aussi des seuils de couverture : `./mvnw verify` (JaCoCo, 90 % des lignes et 70 % des branches, cf. `pom.xml`) et `npm run test:coverage` (Vitest, cf. `vitest.config.mts`).
 
 ## Déploiement
 La CI (`.github/workflows`) lance lint et tests. Sur master, le workflow `Build and Deploy` prend ensuite le relais :
@@ -84,6 +88,27 @@ Les secrets (`POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, …) sont fournis par l'envi
 
 Le workflow `Trivy` analyse les images du back, du front et de la sauvegarde à chaque modification et chaque lundi. Il échoue sur une faille critique corrigeable ; les failles hautes et critiques apparaissent dans l'onglet Security > Code scanning du dépôt.
 
+### Connexion SSH du déploiement
+Le workflow se connecte au VPS avec une clé SSH dédiée (secret `VPS_SSH_KEY`) et vérifie l'empreinte de la clé du serveur (`VPS_SSH_FINGERPRINT`) : un serveur qui se ferait passer pour le VPS est refusé. Le mot de passe (`VPS_SSH_PASSWORD`) ne sert plus que pendant la mise en place.
+
+**Mise en place (une fois)**
+1. Sur ton poste, créer la clé (sans phrase de passe : la CI ne peut pas la saisir) :
+   ```bash
+   ssh-keygen -t ed25519 -C "github-actions-territoire" -N "" -f territoire-deploy
+   ```
+2. Sur le VPS, avec l'utilisateur du déploiement (`VPS_SSH_ID`), autoriser la clé publique et relever l'empreinte de la clé que le serveur présente à la CI (ECDSA, sinon RSA, sinon Ed25519 : l'ordre de préférence du client SSH de la CI) :
+   ```bash
+   mkdir -p ~/.ssh && chmod 700 ~/.ssh
+   echo "<contenu de territoire-deploy.pub>" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+   for type in ecdsa rsa ed25519; do
+     f=/etc/ssh/ssh_host_${type}_key.pub
+     [ -f "$f" ] && { ssh-keygen -l -f "$f" | cut -d ' ' -f 2; break; }
+   done   # SHA256:…
+   ```
+3. Dans GitHub (Settings > Secrets and variables > Actions) : `VPS_SSH_KEY` = contenu complet de `territoire-deploy` (clé privée, de `-----BEGIN` à `-----END`), `VPS_SSH_FINGERPRINT` = l'empreinte `SHA256:…`. Ranger la clé privée dans le gestionnaire de mots de passe, puis la supprimer du poste.
+4. Supprimer le secret `VPS_SSH_PASSWORD` (tant qu'il existe, la CI essaie d'abord le mot de passe), puis lancer le workflow `Build and Deploy` à la main (onglet Actions) : il se connecte par la clé seule. En cas d'échec (« host key fingerprint mismatch » : mauvaise empreinte ; « unable to authenticate » : clé publique absente de `authorized_keys`), recréer le secret le temps de corriger.
+5. Facultatif, une fois que **ta propre connexion** au VPS (terminal, tunnel IntelliJ) passe aussi par une clé : refuser les mots de passe sur le VPS (`PasswordAuthentication no` dans `/etc/ssh/sshd_config.d/50-cle-seule.conf`, puis `sudo systemctl reload ssh`). Garder une session ouverte pendant le test : une erreur ici bloque l'accès au VPS.
+
 ### E-mails (récapitulatif des retards)
 Le back envoie chaque lundi à 8 h (heure de Paris) la liste des territoires en retard. Sans serveur SMTP, rien n'est envoyé et Paramètres > Autres paramètres le signale.
 
@@ -100,6 +125,19 @@ Le back envoie chaque lundi à 8 h (heure de Paris) la liste des territoires en 
 3. Après le déploiement (`docker compose up -d territoire-back`), dans Paramètres > Autres paramètres : saisir les destinataires, « Enregistrer », puis « Envoyer maintenant » pour vérifier la réception.
 
 Tout autre serveur SMTP en STARTTLS sur le port 587 convient (Brevo, OVH…). L'horaire est réglé par `territoire.late-report.cron` dans `application.properties` (format cron Spring, `0 0 8 * * MON`).
+
+### Surveillance (WhatsApp et traitements de nuit)
+**Envois WhatsApp.** Chaque message (attribution, lien personnel, rappel, demande, test) est suivi. Quand un envoi échoue (session WAHA déconnectée, clé refusée...) :
+- un bandeau rouge l'annonce en haut de toutes les pages pour ADMIN, SUPERVISEUR et GESTIONNAIRE, avec le motif renvoyé par WAHA, jusqu'au prochain envoi réussi ;
+- les destinataires du récapitulatif des retards (Paramètres > Autres paramètres) reçoivent un e-mail, puis un second quand les envois reprennent (un seul par changement d'état) ;
+- un message d'attribution en échec apparaît dans Paramètres > Accès numériques et sur la fiche de la personne (« Échec le … »), pour le renvoyer.
+
+Après avoir reconnecté WAHA, Paramètres > Données > Outils avancés > Test WhatsApp vérifie l'envoi et fait disparaître le bandeau.
+
+**Traitements de nuit.** Comme la sauvegarde, les traitements de nuit (retards, territoires en attente, historique) peuvent prévenir [healthchecks.io](https://healthchecks.io) : un signal chaque nuit, ou un signal d'échec si une étape a échoué. Sans signal (back arrêté, VPS éteint), healthchecks.io envoie un e-mail.
+1. Créer un check (période 1 jour, délai de grâce 1 h).
+2. Ajouter son adresse dans l'environnement du VPS, à côté des autres secrets : `NIGHTLY_JOBS_HEALTHCHECK_URL=https://hc-ping.com/<uuid>`.
+3. `docker compose up -d territoire-back`. Le premier signal arrive la nuit suivante (vers 0 h 05).
 
 ### Intégrations (tuile Homepage)
 `GET /api/integrations/resume` renvoie le nombre de territoires par statut, sans aucune donnée personnelle :
@@ -238,6 +276,41 @@ rm -rf restauration
 ```
 Si la restauration échoue, la base vide peut être supprimée et `territoire_avant_restauration` renommée en `territoire`. Une fois l'application vérifiée, `territoire_avant_restauration` peut être supprimée (`DROP DATABASE`).
 
+### Rôles PostgreSQL
+Le back et postgres-exporter se connectent avec des rôles dédiés plutôt qu'avec `admin`, le superutilisateur propriétaire des tables :
+- `territoire_app` (back) lit et écrit les données, sans pouvoir créer, modifier ou supprimer une table, ni lire les fichiers du serveur ou y lancer des commandes : une faille de l'application ne donne pas la main sur la base entière. Les migrations Flyway passent toujours par `admin` (`SPRING_FLYWAY_USER`), et les tables qu'elles créent sont ouvertes d'office à `territoire_app`.
+- `postgres_exporter` ne lit que les statistiques du serveur (rôle `pg_monitor`).
+- `admin` reste utilisé par les migrations, la sauvegarde et les accès à la main.
+
+Tant que ces rôles ne sont pas en place (variables ci-dessous absentes), tout passe par `admin`, comme avant. Le script `config/postgres/roles.sql` ne touche à aucune donnée ni à aucune table : seulement des rôles et des droits. `DatabaseRolesIntegrationTest` le vérifie en CI sur une copie du schéma de production.
+
+**Mise en place (une fois, depuis `~/territoire`)**
+1. Sauvegarde à jour : `docker compose run --rm db-backup run`.
+2. Créer les rôles avec deux mots de passe neufs, à ranger dans le gestionnaire de mots de passe :
+   ```bash
+   MOT_DE_PASSE_APP=$(openssl rand -hex 24)
+   MOT_DE_PASSE_EXPORTER=$(openssl rand -hex 24)
+   docker compose exec -T postgis psql -U admin -d territoire -v ON_ERROR_STOP=1      -v mot_de_passe_app="$MOT_DE_PASSE_APP" -v mot_de_passe_exporter="$MOT_DE_PASSE_EXPORTER" < config/postgres/roles.sql
+   echo "$MOT_DE_PASSE_APP $MOT_DE_PASSE_EXPORTER"
+   ```
+3. Dans l'environnement du VPS, à côté des autres secrets :
+   ```bash
+   DB_ADMIN_PASSWORD=…            # mot de passe d'admin : la valeur actuelle de SPRING_DATASOURCE_PASSWORD
+   SPRING_DATASOURCE_USERNAME=territoire_app
+   SPRING_DATASOURCE_PASSWORD=…   # MOT_DE_PASSE_APP
+   PG_EXPORTER_USER=postgres_exporter
+   PG_EXPORTER_PASSWORD=…         # MOT_DE_PASSE_EXPORTER
+   ```
+4. Recréer les services concernés, puis vérifier le back, les connexions et la sauvegarde :
+   ```bash
+   docker compose up -d territoire-back postgres-exporter db-backup
+   docker compose ps territoire-back   # healthy
+   docker compose exec postgis psql -U admin -d territoire      -c "SELECT usename, count(*) FROM pg_stat_activity WHERE datname = 'territoire' GROUP BY usename"
+   docker compose run --rm db-backup run
+   ```
+
+Retour arrière : remettre `SPRING_DATASOURCE_PASSWORD` au mot de passe d'admin, retirer `SPRING_DATASOURCE_USERNAME`, `DB_ADMIN_PASSWORD` et `PG_EXPORTER_*`, puis relancer le même `docker compose up -d`. Les rôles peuvent rester en place.
+
 ### Montée de version de PostGIS
 L'image `postgis/postgis` est figée dans `docker-compose.yml`. Une montée mineure (ex. `17-3.5` → `17-3.6`) recrée le conteneur au déploiement sur les données en place, mais deux étapes restent à faire à la main :
 - les extensions PostGIS gardent leur ancienne version tant qu'elles ne sont pas mises à jour : `SELECT postgis_full_version();` affiche « need upgrade » ;
@@ -261,8 +334,6 @@ En local, la base de `docker-compose-mini.yml` se met à jour de la même façon
 
 ## Évolutions envisagées
 - Relances automatiques avant échéance et en cas de retard.
-- Journal d'audit (auteur des actions).
-- Archivage plutôt que suppression des territoires.
 
 ## Licence
 MIT, voir [LICENSE](LICENSE).

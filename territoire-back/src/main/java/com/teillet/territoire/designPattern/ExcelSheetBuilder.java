@@ -6,7 +6,6 @@ import com.teillet.territoire.dto.exportExcel.TerritoryExportDto;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 
-import java.util.Comparator;
 import java.util.List;
 
 public class ExcelSheetBuilder {
@@ -51,24 +50,36 @@ public class ExcelSheetBuilder {
 
 		boolean isBlue = false;
 		for (TerritoryExportDto territory : territories) {
-			Row territoryRow = sheet.createRow(rowNum++);
-			Row dateRow = sheet.createRow(rowNum++);
-
 			CellStyle fillStyle = isBlue ? blueFillStyle : centeredStyle;
 			isBlue = !isBlue;
 
-			createTerritoryCells(territoryRow, dateRow, territory, fillStyle);
+			// Quatre attributions par ligne, comme sur le registre papier : au-delà, le territoire continue sur une
+			// nouvelle ligne (sans répéter la date du dernier parcours)
+			List<AssignmentExportDto> assignments = territory.getAssignments();
+			int lines = Math.max(1, (assignments.size() + MAX_ASSIGNMENTS - 1) / MAX_ASSIGNMENTS);
+			for (int line = 0; line < lines; line++) {
+				Row territoryRow = sheet.createRow(rowNum++);
+				Row dateRow = sheet.createRow(rowNum++);
+				List<AssignmentExportDto> lineAssignments = assignments.subList(
+						Math.min(line * MAX_ASSIGNMENTS, assignments.size()),
+						Math.min((line + 1) * MAX_ASSIGNMENTS, assignments.size()));
+				createTerritoryCells(territoryRow, dateRow, territory.getName(),
+						line == 0 ? territory.getLastReturnedOn() : "", lineAssignments, fillStyle);
+			}
 		}
 		return this;
 	}
 
-	private void createTerritoryCells(Row territoryRow, Row dateRow, TerritoryExportDto territory, CellStyle fillStyle) {
-		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), TERRITORY_NAME_COL, TERRITORY_NAME_COL, territory.getName(), fillStyle);
+	/**
+	 * Une ligne du territoire : son nom, la date du dernier parcours et jusqu'à quatre attributions, dans l'ordre reçu
+	 * (chronologique, cf. ExportMappers : les dates sont du texte JJ/MM/AAAA, qu'un tri alphabétique mélangerait).
+	 */
+	private void createTerritoryCells(Row territoryRow, Row dateRow, String territoryName, String lastVisitDate,
+	                                  List<AssignmentExportDto> assignments, CellStyle fillStyle) {
+		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), TERRITORY_NAME_COL, TERRITORY_NAME_COL, territoryName, fillStyle);
 		// Toujours afficher la dernière date de rendu (ou "nouveau" s'il n'y en a jamais eu), même si le territoire est actuellement attribué.
-		String lastVisitDate = territory.getLastReturnedOn();
 		createMergedCell(territoryRow.getRowNum(), dateRow.getRowNum(), LAST_MODIFIED_DATE_COL, LAST_MODIFIED_DATE_COL, lastVisitDate, fillStyle);
 
-		List<AssignmentExportDto> assignments = territory.getAssignments().stream().sorted(Comparator.comparing(AssignmentExportDto::getAssignmentDate)).toList();
 		for (int i = 0; i < MAX_ASSIGNMENTS; i++) {
 			int colStart = ASSIGNMENT_START_COL + (i * 2);
 			if (i < assignments.size()) {

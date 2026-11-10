@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Clock,
@@ -70,6 +70,7 @@ import {
   ACCESS_STATUS_BADGE,
   formatDateTime,
 } from "@/components/person/person-access-card";
+import { LastSend } from "@/components/person/last-send";
 
 export type Filter =
   "ALL" | "WITH_TERRITORIES" | "NEVER_OPENED" | "NO_LINK" | "INACTIVE";
@@ -138,7 +139,7 @@ function SectionHeader({
         </div>
         <div>
           <h2 className="text-lg font-semibold leading-tight">{title}</h2>
-          <p className="text-sm text-gray-600">{description}</p>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
       {action}
@@ -153,17 +154,19 @@ export default function AccessManagement() {
   const [sending, setSending] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setAccesses(await fetchAllAccesses());
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }, []);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    fetchAllAccesses()
+      .then((list) => {
+        if (!cancelled) setAccesses(list);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) toast.error(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const counts = useMemo(
     () =>
@@ -305,7 +308,7 @@ export default function AccessManagement() {
         <Card className="gap-0 overflow-hidden py-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableRow>
                 <TableHead className="pl-4">Personne</TableHead>
                 <TableHead>État</TableHead>
                 <TableHead>En cours</TableHead>
@@ -349,10 +352,8 @@ export default function AccessManagement() {
                   <TableCell className="tabular-nums">
                     {a.activeTerritories}
                   </TableCell>
-                  <TableCell
-                    className={cn(!a.lastSentAt && "text-muted-foreground")}
-                  >
-                    {formatDateTime(a.lastSentAt)}
+                  <TableCell>
+                    <LastSend access={a} />
                   </TableCell>
                   <TableCell
                     className={cn(!a.lastUsedAt && "text-muted-foreground")}

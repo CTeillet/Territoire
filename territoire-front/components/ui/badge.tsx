@@ -2,6 +2,7 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { Slot } from "radix-ui";
+import { toneBadge } from "@/components/shared/tones";
 
 const badgeVariants = cva(
   "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3",
@@ -19,11 +20,11 @@ const badgeVariants = cva(
         link: "text-primary underline-offset-4 [a&]:hover:underline",
         // Badges d'état de l'application : fond pâle et texte foncé, lisibles (contraste AA) et identiques partout.
         // Vert : en cours ou fait ; bleu : en attente ; ambre : à surveiller ; rouge : bloquant ; gris : terminé, sans objet.
-        neutral: "border-gray-200 bg-gray-100 text-gray-700",
-        info: "border-sky-200 bg-sky-100 text-sky-800",
-        success: "border-green-200 bg-green-100 text-green-800",
-        warning: "border-amber-200 bg-amber-100 text-amber-800",
-        danger: "border-red-200 bg-red-100 text-red-800",
+        neutral: toneBadge.neutral,
+        info: toneBadge.info,
+        success: toneBadge.success,
+        warning: toneBadge.warning,
+        danger: toneBadge.danger,
       },
     },
     defaultVariants: {

@@ -25,7 +25,7 @@ export function StatisticsTable({
     <TableWrapper title="Détails par type de territoire">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-100">
+          <TableRow>
             <TableHead className="border p-3 text-left">
               Type de territoire
             </TableHead>

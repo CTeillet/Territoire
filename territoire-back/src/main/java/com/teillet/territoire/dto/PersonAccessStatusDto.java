@@ -21,5 +21,8 @@ public class PersonAccessStatusDto {
 	private Instant createdAt;
 	private Instant lastUsedAt;
 	private Instant lastSentAt;
+	/** Échec du dernier message d'attribution (après lastSentAt : le message n'est pas arrivé). */
+	private Instant lastSendFailedAt;
+	private String lastSendError;
 	private int activeTerritories;
 }

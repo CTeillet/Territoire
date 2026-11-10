@@ -20,7 +20,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PhysicalCardDialog } from "@/components/territory/id/physical-card-dialog";
+import { CardHistoryDialog } from "@/components/territory/id/card-history-dialog";
 import { canManageTerritoryCards } from "@/models/role";
+import { Notice } from "@/components/shared/notice";
+import { AuditLogCard } from "@/components/shared/audit-log";
 
 // Chargement dynamique de la carte (évite les erreurs SSR)
 const TerritoryIdMap = dynamic(
@@ -68,12 +71,21 @@ const TerritoryPage = () => {
   }
 
   const cardActions = canManageTerritoryCards(user?.role) && (
-    <PhysicalCardDialog
-      territoryId={selectedTerritory.id}
-      territoryName={selectedTerritory.name}
-      hasCard={Boolean(selectedTerritory.territoryMapId)}
-      onSaved={() => setMapVersion((version) => version + 1)}
-    />
+    <div className="flex flex-wrap gap-2">
+      <PhysicalCardDialog
+        territoryId={selectedTerritory.id}
+        territoryName={selectedTerritory.name}
+        hasCard={Boolean(selectedTerritory.territoryMapId)}
+        onSaved={() => setMapVersion((version) => version + 1)}
+      />
+      {selectedTerritory.territoryMapId && (
+        <CardHistoryDialog
+          territoryId={selectedTerritory.id}
+          territoryName={selectedTerritory.name}
+          onRestored={() => setMapVersion((version) => version + 1)}
+        />
+      )}
+    </div>
   );
 
   return (
@@ -81,6 +93,16 @@ const TerritoryPage = () => {
       {/* Une seule colonne pour tous les blocs de la fiche, carte comprise */}
       <div className="mx-auto max-w-5xl space-y-6">
         <BackLink href="/territoires" label="Retour aux territoires" />
+
+        {selectedTerritory.archivedAt && (
+          <Notice tone="warning" role="status">
+            Territoire archivé le{" "}
+            {new Date(selectedTerritory.archivedAt).toLocaleDateString("fr-FR")}{" "}
+            : il n&apos;apparaît plus dans les listes, les cartes ni les
+            statistiques. Il se restaure depuis Paramètres &gt; Données &gt;
+            Archives.
+          </Notice>
+        )}
 
         {/* Header du territoire */}
         <TerritoryHeader
@@ -93,6 +115,7 @@ const TerritoryPage = () => {
           territoryId={selectedTerritory.id}
           territoryMapId={selectedTerritory.territoryMapId}
           lost={selectedTerritory.lost}
+          hasHistory={(selectedTerritory.assignments?.length ?? 0) > 0}
         />
 
         {/* Carte du territoire (GeoJSON) */}
@@ -115,7 +138,7 @@ const TerritoryPage = () => {
               {cardActions && <CardAction>{cardActions}</CardAction>}
             </CardHeader>
             <CardContent className="flex justify-center">
-              <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-md w-full">
+              <div className="p-8 text-center text-muted-foreground border border-border rounded-md w-full">
                 <p>Aucune carte n&apos;a été téléchargée pour ce territoire.</p>
               </div>
             </CardContent>
@@ -127,6 +150,9 @@ const TerritoryPage = () => {
 
         {/* Liste des attributions */}
         <AssignmentsList assignments={selectedTerritory.assignments || []} />
+
+        {/* Qui a attribué, rendu, modifié... (ADMIN, SUPERVISEUR) */}
+        <AuditLogCard territoryId={selectedTerritory.id} />
       </div>
     </PageContainer>
   );

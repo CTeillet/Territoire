@@ -1,5 +1,9 @@
 package com.teillet.territoire.service.impl;
 
+import com.teillet.territoire.dto.ArchivedTerritoryDto;
+import java.time.Instant;
+import com.teillet.territoire.repository.TerritoryMapVersionRepository;
+import com.teillet.territoire.model.TerritoryMapVersion;
 import com.teillet.territoire.dto.*;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
@@ -44,6 +48,7 @@ public class TerritoryService implements ITerritoryService {
 	private final ICityService cityService;
 	private final TerritoryReminderRepository reminderRepository;
 	private final ISettingService settingService;
+	private final TerritoryMapVersionRepository mapVersionRepository;
 
 	public TerritoryService(
 		TerritoryRepository territoryRepository,
@@ -52,7 +57,8 @@ public class TerritoryService implements ITerritoryService {
 		@Lazy ICampaignService campaignService,
 		ICityService cityService,
 		TerritoryReminderRepository reminderRepository,
-		ISettingService settingService
+		ISettingService settingService,
+		TerritoryMapVersionRepository mapVersionRepository
 	) {
 		this.territoryRepository = territoryRepository;
 		this.blockRepository = blockRepository;
@@ -61,11 +67,12 @@ public class TerritoryService implements ITerritoryService {
 		this.cityService = cityService;
 		this.reminderRepository = reminderRepository;
 		this.settingService = settingService;
+		this.mapVersionRepository = mapVersionRepository;
 	}
 
 	@Override
 	public List<Territory> getAllTerritories() {
-		return territoryRepository.findAll();
+		return territoryRepository.findByArchivedAtIsNull();
 	}
 
 	@Override
@@ -105,7 +112,7 @@ public class TerritoryService implements ITerritoryService {
 		LocalDate thresholdDate = LocalDate.now().minusMonths(settingService.getDurationSettings().getPendingDurationMonths());
 		int released = 0;
 
-		for (Territory territory : territoryRepository.findByStatus(TerritoryStatus.PENDING)) {
+		for (Territory territory : territoryRepository.findByStatusAndArchivedAtIsNull(TerritoryStatus.PENDING)) {
 			try {
 				Optional<LocalDate> lastReturnDate = territory.getAssignments().stream()
 						.map(Assignment::getReturnDate)
@@ -223,6 +230,11 @@ public class TerritoryService implements ITerritoryService {
 	@Transactional
 	public void deleteTerritory(UUID territoryId) {
 		Territory territory = getTerritory(territoryId);
+		// L'historique des attributions ne doit jamais partir avec le territoire : seul un territoire sans historique
+		// (créé par erreur) se supprime, les autres s'archivent
+		if (assignmentRepository.existsByTerritory_Id(territoryId)) {
+			throw new IllegalStateException("Ce territoire a un historique d'attributions : archivez-le plutôt que de le supprimer");
+		}
 
 		// Les rappels envoyés sont conservés, seul leur lien avec ce territoire est retiré (sinon la clé étrangère bloque la suppression)
 		reminderRepository.findByTerritories_Id(territoryId).forEach(reminder -> {
@@ -233,12 +245,39 @@ public class TerritoryService implements ITerritoryService {
 		// Remove territory from all campaigns
 		campaignService.deleteTerrritoryFromAllCampaign(territory);
 
+		mapVersionRepository.deleteByTerritoryId(territoryId);
 		log.info("Suppression des pâtés appartenant au territoire {}", territoryId);
 		blockRepository.deleteBlockByTerritory_Id(territoryId);
 		log.info("Suppression des attributions appartenant au territoire {}", territoryId);
 		assignmentRepository.deleteByTerritory_Id(territoryId);
 		log.info("Suppression du territoire {}", territoryId);
 		territoryRepository.deleteById(territoryId);
+	}
+
+	@Override
+	@Transactional
+	public void archiveTerritory(UUID territoryId) {
+		Territory territory = getTerritory(territoryId);
+		if (territory.getStatus() == TerritoryStatus.ASSIGNED || territory.getStatus() == TerritoryStatus.LATE) {
+			throw new IllegalStateException("Ce territoire est attribué : rendez-le ou annulez l'attribution avant de l'archiver");
+		}
+		territory.setArchivedAt(Instant.now());
+		territoryRepository.save(territory);
+		log.info("Territoire {} archivé", territory.getName());
+	}
+
+	@Override
+	@Transactional
+	public void restoreTerritory(UUID territoryId) {
+		if (territoryRepository.restoreArchived(territoryId) == 0) {
+			throw new NotFoundException("Territoire archivé non trouvé");
+		}
+		log.info("Territoire {} restauré", territoryId);
+	}
+
+	@Override
+	public List<ArchivedTerritoryDto> getArchivedTerritories() {
+		return territoryRepository.findArchived();
 	}
 
 	@Override
@@ -265,7 +304,7 @@ public class TerritoryService implements ITerritoryService {
 
 	@Override
 	public String getTerritoryCoverageGeoJson(LocalDate startDate, LocalDate endDate) throws IOException {
-		List<Territory> territories = territoryRepository.findAll();
+		List<Territory> territories = territoryRepository.findByArchivedAtIsNull();
 		Set<UUID> notAssignedTerritoryIds = new HashSet<>(territoryRepository.findTerritoryIdsNotAssignedBetween(startDate, endDate));
 		return GeoJsonUtils.convertToGeoJSONCoverage(territories, notAssignedTerritoryIds);
 	}
@@ -409,6 +448,17 @@ public class TerritoryService implements ITerritoryService {
 	@Transactional
 	public Territory storeTerritoryMap(UUID territoryId, byte[] content, String fileName, String contentType) {
 		Territory territory = getTerritory(territoryId);
+		// La carte remplacée est gardée dans les cartes précédentes : elle peut être revue ou remise
+		byte[] current = territory.getTerritoryMap();
+		if (current != null && current.length > 0) {
+			mapVersionRepository.save(TerritoryMapVersion.builder()
+					.territory(territory)
+					.content(current)
+					.fileName(territory.getTerritoryMapName())
+					.contentType(territory.getTerritoryMapContentType())
+					.replacedAt(Instant.now())
+					.build());
+		}
 		territory.setTerritoryMap(content);
 		territory.setTerritoryMapName(fileName);
 		territory.setTerritoryMapContentType(contentType);

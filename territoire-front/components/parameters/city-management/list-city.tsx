@@ -32,16 +32,14 @@ const ListCity = ({ cities }: { cities: City[] }) => {
   const handleRemoveCity = async (id: string) => {
     const result = await dispatch(removeCity(id));
     if (removeCity.rejected.match(result)) {
-      toast.error(result.error.message ?? "Erreur lors de la suppression");
+      toast.error(result.payload ?? "Erreur lors de la suppression");
     }
   };
 
   const handleColorChange = async (id: string, colorHex: string) => {
     const result = await dispatch(updateCityColor({ id, colorHex }));
     if (updateCityColor.rejected.match(result)) {
-      toast.error(
-        result.error.message ?? "Erreur lors du changement de couleur"
-      );
+      toast.error(result.payload ?? "Erreur lors du changement de couleur");
     }
   };
 
@@ -86,7 +84,7 @@ const ListCity = ({ cities }: { cities: City[] }) => {
                     onClick={() => handleRemoveCity(city.id)}
                     aria-label={`Supprimer ${city.name}`}
                   >
-                    <Trash2 className="w-5 h-5 text-red-500 hover:text-red-700" />
+                    <Trash2 className="w-5 h-5 text-destructive hover:text-destructive/80" />
                   </Button>
                 </TableCell>
               </TableRow>

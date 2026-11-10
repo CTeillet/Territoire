@@ -1,9 +1,8 @@
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { authFetch } from "@/utils/auth-fetch";
-import { apiErrorMessage } from "@/utils/api-error";
 import { Role } from "@/models/role";
 import { User } from "@/models/user";
 import { RegisterRequest } from "@/models/registerRequest";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createApiThunk, jsonBody, thunkApi } from "@/utils/thunk-request";
 
 const BASE_URL = "/api/utilisateurs";
 
@@ -24,97 +23,63 @@ const initialState: UserState = {
 
 // 🔹 Thunks pour interagir avec l'API
 // Récupération des utilisateurs
-export const fetchUsersThunk = createAsyncThunk<
-  User[],
-  void,
-  { rejectValue: string }
->("users/fetchUsers", async (_, { rejectWithValue }) => {
-  const response = await authFetch(BASE_URL);
-  if (!response.ok)
-    return rejectWithValue("Erreur lors du chargement des utilisateurs");
-  return response.json();
-});
+export const fetchUsersThunk = createApiThunk(
+  "users/fetchUsers",
+  (_: void, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<User[]>(
+      BASE_URL,
+      "Erreur lors du chargement des utilisateurs"
+    )
+);
 
 // Création d'un utilisateur
-export const createUserThunk = createAsyncThunk<
-  User,
-  RegisterRequest,
-  { rejectValue: string }
->("users/createUser", async (user, { rejectWithValue }) => {
-  const response = await authFetch("/api/utilisateurs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(user),
-  });
+export const createUserThunk = createApiThunk(
+  "users/createUser",
+  (user: RegisterRequest, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<User>(
+      BASE_URL,
+      "Erreur lors de la création de l'utilisateur",
+      jsonBody("POST", user)
+    )
+);
 
-  if (!response.ok)
-    return rejectWithValue(
-      await apiErrorMessage(
-        response,
-        "Erreur lors de la création de l'utilisateur"
-      )
+// Mise à jour du rôle d'un utilisateur (le serveur refuse de rétrograder le dernier administrateur)
+export const updateUserRoleThunk = createApiThunk(
+  "users/updateUserRole",
+  ({ id, role }: { id: string; role: Role }, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<User>(
+      `${BASE_URL}/${id}/role`,
+      "Erreur lors de la mise à jour du rôle",
+      jsonBody("PUT", { role })
+    )
+);
+
+// Réinitialisation du mot de passe d'un utilisateur (le serveur révoque ses sessions)
+export const resetUserPasswordThunk = createApiThunk(
+  "users/resetUserPassword",
+  async (
+    { id, password }: { id: string; password: string },
+    { rejectWithValue }
+  ) => {
+    const failure = await thunkApi(rejectWithValue).noContent(
+      `${BASE_URL}/${id}/mot-de-passe`,
+      "Erreur lors de la réinitialisation du mot de passe",
+      jsonBody("PUT", { password })
     );
-  return response.json();
-});
+    if (failure) return failure;
+  }
+);
 
-// Mise à jour du rôle d’un utilisateur
-export const updateUserRoleThunk = createAsyncThunk<
-  User,
-  { id: string; role: Role },
-  { rejectValue: string }
->("users/updateUserRole", async ({ id, role }, { rejectWithValue }) => {
-  const response = await authFetch(`${BASE_URL}/${id}/role`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ role }),
-  });
-
-  // Le serveur refuse de rétrograder le dernier administrateur : on remonte son motif
-  if (!response.ok)
-    return rejectWithValue(
-      await apiErrorMessage(response, "Erreur lors de la mise à jour du rôle")
-    );
-  return response.json();
-});
-
-// Réinitialisation du mot de passe d’un utilisateur (le serveur révoque ses sessions)
-export const resetUserPasswordThunk = createAsyncThunk<
-  void,
-  { id: string; password: string },
-  { rejectValue: string }
->("users/resetUserPassword", async ({ id, password }, { rejectWithValue }) => {
-  const response = await authFetch(`${BASE_URL}/${id}/mot-de-passe`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
-
-  if (!response.ok)
-    return rejectWithValue(
-      await apiErrorMessage(
-        response,
-        "Erreur lors de la réinitialisation du mot de passe"
-      )
-    );
-});
-
-// Suppression d’un utilisateur
-export const deleteUserThunk = createAsyncThunk<
-  string,
-  string,
-  { rejectValue: string }
->("users/deleteUser", async (id, { rejectWithValue }) => {
-  const response = await authFetch(`${BASE_URL}/${id}`, { method: "DELETE" });
-
-  if (!response.ok)
-    return rejectWithValue(
-      await apiErrorMessage(
-        response,
-        "Erreur lors de la suppression de l'utilisateur"
-      )
-    );
-  return id; // Retourne l'ID supprimé
-});
+// Suppression d'un utilisateur
+export const deleteUserThunk = createApiThunk(
+  "users/deleteUser",
+  async (id: string, { rejectWithValue }) =>
+    (await thunkApi(rejectWithValue).noContent(
+      `${BASE_URL}/${id}`,
+      "Erreur lors de la suppression de l'utilisateur",
+      { method: "DELETE" }
+    )) ?? id
+);
 
 // 🔹 Slice Redux
 const userSlice = createSlice({

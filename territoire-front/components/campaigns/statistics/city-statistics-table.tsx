@@ -24,7 +24,7 @@ export function CityStatisticsTable({ statistics }: CityStatisticsTableProps) {
     <TableWrapper title="Détails par ville">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-100">
+          <TableRow>
             <TableHead className="border p-3 text-left">Ville</TableHead>
             <TableHead className="border p-3 text-center">Total</TableHead>
             <TableHead className="border p-3 text-center">Utilisés</TableHead>

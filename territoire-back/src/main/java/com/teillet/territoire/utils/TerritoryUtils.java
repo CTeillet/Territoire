@@ -6,6 +6,7 @@ import com.teillet.territoire.model.Territory;
 
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Optional;
 
 public class TerritoryUtils {
 
@@ -14,14 +15,17 @@ public class TerritoryUtils {
 
 	/** Date du dernier retour. Une prolongation n'en est pas un : la personne garde le territoire. */
 	public static String getLastVisitedOn(Territory territory) {
+		return getLastVisitDate(territory).map(LocalDate::toString).orElse(NOUVEAU);
+	}
+
+	/** Date du dernier retour, vide si le territoire n'a jamais été rendu (prolongations exclues). */
+	public static Optional<LocalDate> getLastVisitDate(Territory territory) {
 		return territory.getAssignments()
 				.stream()
 				.filter(assignment -> assignment.getReturnedVia() != ReturnSource.PROLONGATION)
 				.map(Assignment::getReturnDate)
 				.filter(Objects::nonNull)
-				.max(LocalDate::compareTo)
-				.map(LocalDate::toString)
-				.orElse(NOUVEAU);
+				.max(LocalDate::compareTo);
 	}
 
 	public static String getAssignedTo(Territory territory) {

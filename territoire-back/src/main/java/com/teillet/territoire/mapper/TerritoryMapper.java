@@ -26,6 +26,7 @@ public class TerritoryMapper {
 		territoryDto.setAssignments(territory.getAssignments().stream().map(AssignmentMapper::toDto).toList());
 		territoryDto.setNote(territory.getNote());
 		territoryDto.setLost(territory.isLost());
+		territoryDto.setArchivedAt(territory.getArchivedAt() != null ? territory.getArchivedAt().toString() : null);
 		territoryDto.setGeojson(convertToGeoJSON(territory.getBlocks(), territory.getConcaveHull()));
 		territoryDto.setLastVisitedOn(TerritoryUtils.getLastVisitedOn(territory));
 		territoryDto.setAssignedTo(TerritoryUtils.getAssignedTo(territory));

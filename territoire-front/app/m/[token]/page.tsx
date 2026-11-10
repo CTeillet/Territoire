@@ -36,14 +36,13 @@ import {
   readOfflineView,
   saveOfflineView,
 } from "@/lib/public-access-offline";
+import { Notice } from "@/components/shared/notice";
 
 const PublicTerritoryMap = dynamic(
   () => import("@/components/public-access/public-territory-map"),
   {
     ssr: false,
-    loading: () => (
-      <div className="h-80 rounded-md bg-gray-200 animate-pulse" />
-    ),
+    loading: () => <div className="h-80 rounded-md bg-muted animate-pulse" />,
   }
 );
 
@@ -83,42 +82,55 @@ export default function MyTerritoriesPage() {
     [token]
   );
 
-  const showOffline = useCallback(() => {
+  /** Vue gardée sur l'appareil, faute de réseau. */
+  const offlineState = useCallback((): LoadState => {
     const view = readOfflineView(token);
-    setState(
-      view
-        ? { kind: "ready", data: view.data, offlineSince: view.savedAt }
-        : { kind: "error", message: NO_NETWORK }
-    );
+    return view
+      ? { kind: "ready", data: view.data, offlineSince: view.savedAt }
+      : { kind: "error", message: NO_NETWORK };
   }, [token]);
 
-  const load = useCallback(async () => {
+  /** État de la page d'après l'API, ou la vue gardée sans réseau. */
+  const fetchState = useCallback(async (): Promise<LoadState> => {
     try {
       const res = await fetch(
         `/api/public/acces/${encodeURIComponent(token)}`,
         { cache: "no-store" }
       );
       if (res.ok) {
-        showFresh(await res.json());
+        const data = (await res.json()) as PublicAccess;
+        saveOfflineView(token, data);
         keepPageForOffline();
-      } else if (isOfflineResponse(res)) {
-        showOffline();
-      } else {
-        // Lien révoqué ou expiré : plus rien ne doit rester consultable sur l'appareil
-        if (res.status === 404) clearOfflineView(token);
-        setState({ kind: "error", message: await errorFrom(res) });
+        return { kind: "ready", data };
       }
+      if (isOfflineResponse(res)) return offlineState();
+      // Lien révoqué ou expiré : plus rien ne doit rester consultable sur l'appareil
+      if (res.status === 404) clearOfflineView(token);
+      return { kind: "error", message: await errorFrom(res) };
     } catch {
-      showOffline();
+      return offlineState();
     }
-  }, [token, showFresh, showOffline]);
+  }, [token, offlineState]);
+
+  const load = () => {
+    fetchState().then(setState);
+  };
 
   useEffect(() => {
-    load();
+    let active = true;
+    const update = () => {
+      fetchState().then((next) => {
+        if (active) setState(next);
+      });
+    };
+    update();
     // Le réseau revient : la vue se met à jour d'elle-même
-    window.addEventListener("online", load);
-    return () => window.removeEventListener("online", load);
-  }, [load]);
+    window.addEventListener("online", update);
+    return () => {
+      active = false;
+      window.removeEventListener("online", update);
+    };
+  }, [fetchState]);
 
   const returnTerritory = async (territory: PublicTerritory) => {
     try {
@@ -175,9 +187,10 @@ export default function MyTerritoriesPage() {
       </header>
 
       {offline && (
-        <div
+        <Notice
+          tone="warning"
           role="status"
-          className="flex flex-wrap items-center gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+          className="flex flex-wrap items-center gap-3"
         >
           <WifiOff aria-hidden="true" className="h-5 w-5 shrink-0" />
           <p className="min-w-0 flex-1">
@@ -188,7 +201,7 @@ export default function MyTerritoriesPage() {
             <RefreshCw aria-hidden="true" className="h-4 w-4" />
             Réessayer
           </Button>
-        </div>
+        </Notice>
       )}
 
       {territories.map((territory) => (
@@ -210,9 +223,9 @@ export default function MyTerritoriesPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {territory.note && (
-              <p className="rounded-md bg-yellow-50 p-3 text-sm whitespace-pre-line">
+              <Notice tone="warning" className="whitespace-pre-line">
                 {territory.note}
-              </p>
+              </Notice>
             )}
 
             <PublicTerritoryMap

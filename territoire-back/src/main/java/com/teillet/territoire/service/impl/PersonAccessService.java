@@ -97,7 +97,8 @@ public class PersonAccessService implements IPersonAccessService {
 				.collect(Collectors.toMap(access -> access.getPerson().getId(), Function.identity()));
 		Map<UUID, Long> runningCounts = assignmentRepository.countRunningAssignmentsByPerson().stream()
 				.collect(Collectors.toMap(row -> (UUID) row[0], row -> ((Number) row[1]).longValue()));
-		return personRepository.findAll().stream()
+		// Personnes présentes : une personne partie n'a plus de lien à gérer
+		return personRepository.findByArchivedAtIsNull().stream()
 				.map(person -> toStatus(person, accesses.get(person.getId()),
 						runningCounts.getOrDefault(person.getId(), 0L).intValue()))
 				.sorted(Comparator.comparing(PersonAccessStatusDto::getPersonName, String.CASE_INSENSITIVE_ORDER))
@@ -171,6 +172,8 @@ public class PersonAccessService implements IPersonAccessService {
 		wahaClient.sendMessage(person.getPhoneNumber(), message);
 
 		access.setLastSentAt(clock.instant());
+		access.setLastSendFailedAt(null);
+		access.setLastSendError(null);
 		log.info("Lien personnel envoyé par WhatsApp à la personne {}", personId);
 		return toStatus(person, accessRepository.save(access), countRunning(personId));
 	}
@@ -210,8 +213,18 @@ public class PersonAccessService implements IPersonAccessService {
 			data.put("territory", territoryData);
 			data.put("link", linkOf(access));
 
-			wahaClient.sendMessage(person.getPhoneNumber(), templateRenderer.render(settings.getAssignmentMessage(), data));
+			try {
+				wahaClient.sendMessage(person.getPhoneNumber(), templateRenderer.render(settings.getAssignmentMessage(), data));
+			} catch (RuntimeException e) {
+				// Envoi en tâche de fond : l'échec est gardé pour être vu dans les accès numériques
+				access.setLastSendFailedAt(clock.instant());
+				access.setLastSendError(WhatsAppMonitor.shorten(MonitoredWahaClient.reasonOf(e)));
+				accessRepository.save(access);
+				throw e;
+			}
 			access.setLastSentAt(clock.instant());
+			access.setLastSendFailedAt(null);
+			access.setLastSendError(null);
 			accessRepository.save(access);
 			log.info("Message d'attribution envoyé pour le territoire {} à la personne {}", territory.getName(), person.getId());
 		} catch (RuntimeException e) {
@@ -367,6 +380,8 @@ public class PersonAccessService implements IPersonAccessService {
 				.createdAt(access != null ? access.getCreatedAt() : null)
 				.lastUsedAt(access != null ? access.getLastUsedAt() : null)
 				.lastSentAt(access != null ? access.getLastSentAt() : null)
+				.lastSendFailedAt(access != null ? access.getLastSendFailedAt() : null)
+				.lastSendError(access != null ? access.getLastSendError() : null)
 				.activeTerritories(activeTerritories)
 				.build();
 	}

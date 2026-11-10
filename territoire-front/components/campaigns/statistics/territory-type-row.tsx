@@ -21,7 +21,7 @@ export function TerritoryTypeRow({
   isTotal = false,
 }: TerritoryTypeRowProps) {
   return (
-    <TableRow className={isTotal ? "bg-gray-50 font-semibold" : ""}>
+    <TableRow className={isTotal ? "bg-muted/50 font-semibold" : ""}>
       <TableCell className="border p-3 font-medium">{typeName}</TableCell>
       <TableCell className="border p-3 text-center">{totalCount}</TableCell>
       <TableCell className="border p-3 text-center">{usedCount}</TableCell>

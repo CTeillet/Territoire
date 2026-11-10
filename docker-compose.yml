@@ -1,3 +1,13 @@
+# Services d'observabilité : relancés après un redémarrage du VPS ou de Docker, comme l'application, et journaux
+# Docker limités (sinon ils grossissent sans fin sur le disque du VPS)
+x-observabilite: &observabilite
+  restart: always
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "20m"
+      max-file: "3"
+
 services:
   postgis:
     # Version majeure figée : un serveur 18 refuse de démarrer sur les données d'un 17 (et PGDATA change en 18).
@@ -34,8 +44,9 @@ services:
       PGHOST: postgis
       PGUSER: admin
       PGDATABASE: territoire
-      # Mot de passe déjà utilisé par le back pour le même utilisateur admin
-      PGPASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      # Mot de passe d'admin : DB_ADMIN_PASSWORD, ou à défaut celui du back tant qu'il se connecte en admin
+      # (README > Rôles PostgreSQL)
+      PGPASSWORD: ${DB_ADMIN_PASSWORD:-${SPRING_DATASOURCE_PASSWORD}}
       RCLONE_CONFIG: /config/rclone/rclone.conf
       BACKUP_REMOTE: ${BACKUP_REMOTE:-}
       BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
@@ -61,7 +72,12 @@ services:
     depends_on:
       - postgis
     environment:
+      # Rôle de la base (README > Rôles PostgreSQL) : territoire_app, sans droit sur le schéma ; admin tant qu'il n'est
+      # pas créé. Les migrations Flyway passent toujours par admin, le propriétaire des tables.
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-admin}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_FLYWAY_USER: admin
+      SPRING_FLYWAY_PASSWORD: ${DB_ADMIN_PASSWORD:-${SPRING_DATASOURCE_PASSWORD}}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       WAHA_API_KEY_PLAIN_TEXT: ${WAHA_API_KEY_PLAIN_TEXT}
       # Clé des liens personnels (/m/...). Facultative : sans elle, dérivée de JWT_SECRET_KEY (changer la clé JWT invaliderait alors les liens)
@@ -74,6 +90,8 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      # Surveillance des traitements de nuit (healthchecks.io). Facultatif : sans elle, aucun signal
+      NIGHTLY_JOBS_HEALTHCHECK_URL: ${NIGHTLY_JOBS_HEALTHCHECK_URL:-}
     ports:
       - "127.0.0.1:8080:8080"
 
@@ -99,6 +117,7 @@ services:
 
   # Observabilité : versions figées et à monter volontairement (les montées majeures changent la config, ex. Tempo 3)
   collector:
+    <<: *observabilite
     image: otel/opentelemetry-collector-contrib:0.164.0
     volumes:
       - ./config/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
@@ -106,6 +125,7 @@ services:
     # y accèdent par le réseau Docker interne.
 
   grafana:
+    <<: *observabilite
     image: grafana/grafana:13.3.0
     ports:
       - "127.0.0.1:4000:3000"
@@ -124,6 +144,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASS}
 
   tempo:
+    <<: *observabilite
     image: grafana/tempo:3.1.1
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
@@ -132,6 +153,7 @@ services:
     # Pas de port publié : Grafana et le collector y accèdent par le réseau Docker interne
 
   prometheus:
+    <<: *observabilite
     image: prom/prometheus:v3.15.1
     command:
       - --config.file=/etc/prometheus.yaml
@@ -145,6 +167,7 @@ services:
     # Pas de port publié (accès via Grafana)
 
   loki:
+    <<: *observabilite
     image: grafana/loki:3.7.9
     # Pas de port publié (accès via Grafana)
     command: -config.file=/etc/loki-config.yaml
@@ -154,11 +177,13 @@ services:
       - loki_data:/loki
 
   postgres-exporter:
+    <<: *observabilite
     image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
     environment:
       DATA_SOURCE_URI: "postgis:5432/territoire?sslmode=disable"
-      DATA_SOURCE_USER: "admin"
-      DATA_SOURCE_PASS: ${PG_ADMIN_PASSWORD}
+      # Rôle postgres_exporter (statistiques seulement, README > Rôles PostgreSQL) ; admin tant qu'il n'est pas créé
+      DATA_SOURCE_USER: ${PG_EXPORTER_USER:-admin}
+      DATA_SOURCE_PASS: ${PG_EXPORTER_PASSWORD:-${PG_ADMIN_PASSWORD}}
     # Pas de port publié (scrappé par Prometheus sur le réseau interne)
 
 volumes:

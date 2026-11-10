@@ -854,6 +854,10 @@ describe("DataTab", () => {
       "Imports",
       "Fichier Excel",
       "Numéros de téléphone",
+      "Journal",
+      "Journal des actions",
+      "Archives",
+      "Territoires archivés et personnes parties",
       "Vérifications de nuit",
       "Test WhatsApp",
     ]);
@@ -869,6 +873,10 @@ describe("DataTab", () => {
       "Carte des territoires (PNG)",
       "Imports",
       "Numéros de téléphone",
+      "Journal",
+      "Journal des actions",
+      "Archives",
+      "Territoires archivés et personnes parties",
       "Vérifications de nuit",
     ]);
   });

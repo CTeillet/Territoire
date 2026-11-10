@@ -11,6 +11,8 @@ import {
   saveLateReportRecipients,
   sendLateReportNow,
 } from "@/lib/late-report-api";
+import { toneText } from "@/components/shared/tones";
+import { cn } from "@/lib/utils";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -107,7 +109,7 @@ export function LateReportSection({
         Envoyé chaque lundi à 8 h à ces adresses ; vide, rien n&apos;est envoyé.
       </p>
       {!loading && !mailConfigured && (
-        <p role="alert" className="text-sm text-amber-700">
+        <p role="alert" className={cn("text-sm", toneText.warning)}>
           Aucun serveur d&apos;envoi n&apos;est configuré : renseigner
           MAIL_HOST, MAIL_USERNAME et MAIL_PASSWORD sur le serveur. Rien ne sera
           envoyé d&apos;ici là.

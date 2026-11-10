@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useIsClient } from "@/hooks/use-is-client";
 import "leaflet/dist/leaflet.css";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
@@ -58,7 +59,7 @@ const TerritoryPage = () => {
   const router = useRouter();
 
   // Empêche le SSR pour éviter l'erreur d'hydration
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useIsClient();
   const user = useSelector((state: RootState) => state.auth.user);
   const [search, setSearch] = useState(() =>
     typeof window === "undefined" ? "" : readStoredSearch()
@@ -67,10 +68,6 @@ const TerritoryPage = () => {
   const [visibleIds, setVisibleIds] = useState<string[] | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>("territoire");
   const [address, setAddress] = useState<AddressSelection | null>(null);
-
-  useEffect(() => {
-    setIsClient(true); // On attend le chargement côté client
-  }, []);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
@@ -147,7 +144,7 @@ const TerritoryPage = () => {
               <div
                 role="group"
                 aria-label="Rechercher par"
-                className="inline-flex rounded-md border bg-white p-0.5"
+                className="inline-flex rounded-md border bg-background p-0.5"
               >
                 {SEARCH_MODES.map(({ mode, label }) => (
                   <button
@@ -158,8 +155,8 @@ const TerritoryPage = () => {
                     className={cn(
                       "min-h-9 rounded px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                       searchMode === mode
-                        ? "bg-gray-900 text-white"
-                        : "text-gray-700 hover:bg-gray-100"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted"
                     )}
                   >
                     {label}

@@ -1,6 +1,6 @@
 package com.teillet.territoire.model;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import com.teillet.territoire.security.ContactDetailsSerializer;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,4 +30,13 @@ public class Person {
 	@ToString.Exclude
 	@JsonSerialize(using = ContactDetailsSerializer.class)
 	private String email;
+
+	/**
+	 * Personne partie (déménagement...) : absente des listes et des choix d'attribution, son historique reste. Remplace
+	 * la suppression, refusée pour une personne qui a un historique.
+	 */
+	private java.time.Instant archivedAt;
+
+	/** Nom remplacé et coordonnées effacées (après archivage) : l'historique reste compté, sans la nommer. */
+	private java.time.Instant anonymizedAt;
 }

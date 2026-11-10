@@ -18,6 +18,7 @@ import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -94,6 +95,20 @@ class WhatsAppTestIntegrationTest {
 				.andExpect(jsonPath("$.error").value("Le message ne peut pas être vide"));
 
 		verifyNoInteractions(wahaClient);
+	}
+
+	@Test
+	@WithMockUser(roles = "GESTIONNAIRE")
+	void etatDesEnvois_lisiblePourCeuxQuiAttribuent() throws Exception {
+		mockMvc.perform(get("/api/whatsapp/etat"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.failing").isBoolean());
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
+	void etatDesEnvois_interditEnConsultation() throws Exception {
+		mockMvc.perform(get("/api/whatsapp/etat")).andExpect(status().isForbidden());
 	}
 
 	@Test

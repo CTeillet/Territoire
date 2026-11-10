@@ -1,5 +1,7 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.service.impl.AuditService;
+import com.teillet.territoire.enums.AuditAction;
 import com.teillet.territoire.enums.CardFraming;
 import com.teillet.territoire.record.CardMapLayout;
 import com.teillet.territoire.service.ITerritoryCardService;
@@ -26,6 +28,7 @@ import java.util.UUID;
 @Slf4j
 class TerritoryCardController {
 	private final ITerritoryCardService cardService;
+	private final AuditService audit;
 
 	/** Emprise du plan à dessiner pour ce cadrage. */
 	@GetMapping("/emprise")
@@ -56,6 +59,7 @@ class TerritoryCardController {
 										 @RequestParam("plan") MultipartFile plan) throws IOException {
 		log.info("Enregistrement de la carte physique du territoire {} (cadrage {})", territoryId, cadrage);
 		cardService.saveCard(territoryId, cadrage, plan.getBytes());
+		audit.territory(AuditAction.CARTE_REMPLACEE, territoryId, "Carte physique générée (cadrage " + cadrage + ")");
 		return ResponseEntity.noContent().build();
 	}
 }

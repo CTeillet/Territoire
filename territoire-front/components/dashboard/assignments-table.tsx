@@ -14,14 +14,14 @@ import AssignmentRow, {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSelector } from "react-redux";
 import { RootState, useAppDispatch } from "@/store/store";
-import { fetchLatestAssignments } from "@/store/slices/territory-slice";
+import { fetchLatestAssignments } from "@/store/slices/territory-statistics-slice";
 import { compareByLatestMovement } from "@/models/assignment";
 
 export const AssignmentsTable: React.FC = () => {
   const dispatch = useAppDispatch();
   const isMobile = useIsMobile();
   const { latestAssignments, statisticsLoading, error } = useSelector(
-    (state: RootState) => state.territories
+    (state: RootState) => state.territoryStatistics
   );
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export const AssignmentsTable: React.FC = () => {
         <div className="max-h-[450px] overflow-auto pb-2">
           <Table className="rounded-sm w-full text-center">
             <TableCaption></TableCaption>
-            <TableHeader className="sticky top-0 bg-background z-10">
+            <TableHeader className="sticky top-0 z-10">
               <TableRow>
                 <TableCell className="text-center">#</TableCell>
                 <TableCell className="text-center">Statut</TableCell>

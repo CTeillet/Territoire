@@ -44,6 +44,7 @@ import {
   cancelTerritoryRequest,
   requestNewTerritory,
 } from "@/lib/public-access-api";
+import { toneSurface } from "@/components/shared/tones";
 
 /** Valeur du choix « peu importe » (Radix Select n'accepte pas de valeur vide). */
 const ANY_CITY = "peu-importe";
@@ -102,7 +103,7 @@ function PendingRequest({
   };
 
   return (
-    <Card className="border-blue-200 bg-blue-50">
+    <Card className={toneSurface.info}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Hourglass className="h-5 w-5" />

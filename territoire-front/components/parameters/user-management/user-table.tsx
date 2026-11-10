@@ -132,9 +132,9 @@ const UserTable = ({ users, loading, onUpdateRole, ...actions }: Props) => {
   }
 
   return (
-    <Table className="w-full border border-gray-200 rounded-sm shadow-sm mb-5">
+    <Table className="w-full border border-border rounded-sm shadow-sm mb-5">
       <TableHeader>
-        <TableRow className="bg-gray-100">
+        <TableRow>
           <TableHead className="text-left px-4 py-2">Nom</TableHead>
           <TableHead className="text-left px-4 py-2">Email</TableHead>
           <TableHead className="text-left px-4 py-2">Rôle</TableHead>
@@ -152,7 +152,7 @@ const UserTable = ({ users, loading, onUpdateRole, ...actions }: Props) => {
           sortedUsers.map((user) => (
             <TableRow
               key={user.id}
-              className="hover:bg-gray-50 transition duration-200 border-b last:border-b-0"
+              className="hover:bg-muted/50 transition duration-200 border-b last:border-b-0"
             >
               <TableCell className="px-4 py-3">{user.username}</TableCell>
               <TableCell className="px-4 py-3">{user.email}</TableCell>

@@ -46,6 +46,8 @@ import {
 } from "lucide-react";
 // Noms comparés sans casse, accents, espaces ni tirets (« Jean-Pierre » = « jean pierre »)
 import { normalizeSearchText } from "@/lib/search";
+import { textLink, toneText } from "@/components/shared/tones";
+import { cn } from "@/lib/utils";
 
 // Territoires en retard d'une même personne
 type Group = {
@@ -502,7 +504,7 @@ export default function LateTerritoriesPage() {
                     onClick={() => toggleGroup(g.personId)}
                     aria-expanded={!!openGroups[g.personId]}
                     aria-controls={`group-${g.personId}`}
-                    className="flex min-w-48 flex-1 items-center gap-3 rounded-md p-1 text-left outline-none hover:bg-gray-50 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="flex min-w-48 flex-1 items-center gap-3 rounded-md p-1 text-left outline-none hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     <ChevronDown
                       aria-hidden="true"
@@ -522,7 +524,7 @@ export default function LateTerritoriesPage() {
                           : "N/A"}
                       </span>
                       {isFullyReminded(g) && (
-                        <span className="block text-sm text-green-700">
+                        <span className={cn("block text-sm", toneText.success)}>
                           Tout est déjà rappelé
                         </span>
                       )}
@@ -604,7 +606,10 @@ export default function LateTerritoriesPage() {
                     {g.hasProfile && (
                       <Link
                         href={`/personnes/${g.personId}`}
-                        className="flex items-center gap-1 border-t py-3 text-sm font-medium text-blue-700 underline-offset-4 hover:underline"
+                        className={cn(
+                          "flex items-center gap-1 border-t py-3 text-sm",
+                          textLink
+                        )}
                       >
                         Voir la fiche de la personne
                         <ChevronRight aria-hidden="true" className="h-4 w-4" />

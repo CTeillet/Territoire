@@ -166,7 +166,7 @@ class PersonAccessServiceTest {
 		Person other = Person.builder().id(UUID.randomUUID()).firstName("anne").lastName("martin").build();
 		when(accessRepository.findAll()).thenReturn(List.of(access(false, null)));
 		when(assignmentRepository.countRunningAssignmentsByPerson()).thenReturn(List.<Object[]>of(new Object[]{person.getId(), 2L}));
-		when(personRepository.findAll()).thenReturn(List.of(person, other));
+		when(personRepository.findByArchivedAtIsNull()).thenReturn(List.of(person, other));
 
 		List<PersonAccessStatusDto> statuses = service.getAllStatuses();
 
@@ -278,15 +278,21 @@ class PersonAccessServiceTest {
 	}
 
 	@Test
-	void notifyAssignment_WhatsAppFailure_IsSwallowed() {
+	void notifyAssignment_WhatsAppFailure_IsKeptOnTheAccess() {
 		enableNotification();
 		Assignment assignment = runningAssignment();
+		PersonAccess active = access(false, null);
 		when(assignmentRepository.findById(assignment.getId())).thenReturn(Optional.of(assignment));
-		when(accessRepository.findByPerson_Id(person.getId())).thenReturn(Optional.of(access(false, null)));
-		doThrow(new RuntimeException("WAHA indisponible")).when(wahaClient).sendMessage(anyString(), anyString());
+		when(accessRepository.findByPerson_Id(person.getId())).thenReturn(Optional.of(active));
+		doThrow(new RuntimeException("Erreur lors de l'envoi du message à WAHA", new java.io.IOException("WAHA error: 422")))
+				.when(wahaClient).sendMessage(anyString(), anyString());
 
 		assertDoesNotThrow(() -> service.notifyAssignment(assignment.getId()));
-		verify(accessRepository, never()).save(any());
+		// Échec visible dans les accès numériques ; le dernier envoi réussi ne change pas
+		verify(accessRepository).save(active);
+		assertEquals(CLOCK.instant(), active.getLastSendFailedAt());
+		assertEquals("WAHA error: 422", active.getLastSendError());
+		assertNull(active.getLastSentAt());
 	}
 
 	@Test
@@ -300,6 +306,23 @@ class PersonAccessServiceTest {
 		service.notifyAssignment(assignment.getId());
 
 		verify(wahaClient).sendMessage("+33600000000", "R-12 https://tms.example/m/" + tokens.generate(person.getId(), 4));
+		assertEquals(CLOCK.instant(), active.getLastSentAt());
+	}
+
+	@Test
+	void notifyAssignment_Success_ClearsAPreviousFailure() {
+		enableNotification();
+		Assignment assignment = runningAssignment();
+		PersonAccess active = access(false, null);
+		active.setLastSendFailedAt(CLOCK.instant().minusSeconds(3600));
+		active.setLastSendError("WAHA error: 422");
+		when(assignmentRepository.findById(assignment.getId())).thenReturn(Optional.of(assignment));
+		when(accessRepository.findByPerson_Id(person.getId())).thenReturn(Optional.of(active));
+
+		service.notifyAssignment(assignment.getId());
+
+		assertNull(active.getLastSendFailedAt());
+		assertNull(active.getLastSendError());
 		assertEquals(CLOCK.instant(), active.getLastSentAt());
 	}
 

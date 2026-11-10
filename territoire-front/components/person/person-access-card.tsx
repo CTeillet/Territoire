@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Copy, KeyRound, RefreshCw, Send, ShieldOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +34,7 @@ import {
   sendPersonAccess,
   updatePersonAccessExpiration,
 } from "@/lib/person-access-api";
+import { LastSend } from "@/components/person/last-send";
 
 export const ACCESS_STATUS_BADGE: Record<
   AccessStatus,
@@ -62,21 +63,22 @@ export default function PersonAccessCard({ personId }: { personId: string }) {
   const [busy, setBusy] = useState(false);
   const [expiresAt, setExpiresAt] = useState("");
 
-  const load = useCallback(async () => {
-    try {
-      const status = await fetchPersonAccess(personId);
-      setAccess(status);
-      setExpiresAt(status.expiresAt ?? "");
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }, [personId]);
-
   useEffect(() => {
-    if (canSendAccess(role)) {
-      load();
-    }
-  }, [load, role]);
+    if (!canSendAccess(role)) return;
+    let cancelled = false;
+    fetchPersonAccess(personId)
+      .then((status) => {
+        if (cancelled) return;
+        setAccess(status);
+        setExpiresAt(status.expiresAt ?? "");
+      })
+      .catch((e: Error) => {
+        if (!cancelled) toast.error(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [personId, role]);
 
   if (!canSendAccess(role)) return null;
 
@@ -136,7 +138,9 @@ export default function PersonAccessCard({ personId }: { personId: string }) {
             </div>
             <div>
               <dt className="text-muted-foreground">Dernier envoi</dt>
-              <dd>{formatDateTime(access.lastSentAt)}</dd>
+              <dd>
+                <LastSend access={access} />
+              </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Dernière ouverture</dt>

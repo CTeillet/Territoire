@@ -1,7 +1,7 @@
 package com.teillet.territoire.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.AccessSettingsDto;
 import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.TerritoryStatus;
@@ -193,7 +193,7 @@ class PersonAccessIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("ACTIF"))
 				.andReturn().getResponse().getContentAsString();
-		String link = objectMapper.readTree(body).get("link").asText();
+		String link = objectMapper.readTree(body).get("link").asString();
 		assertTrue(link.startsWith("http://localhost:40000/m/"));
 
 		mockMvc.perform(post("/api/personnes/{id}/acces/envoyer", person.getId()))
@@ -231,8 +231,8 @@ class PersonAccessIntegrationTest {
 				.andExpect(status().isOk())
 				.andReturn().getResponse().getContentAsString();
 		JsonNode first = objectMapper.readTree(body).get(0);
-		assertEquals("ACTIF", first.get("status").asText());
-		assertEquals("Jean Dupont", first.get("personName").asText());
+		assertEquals("ACTIF", first.get("status").asString());
+		assertEquals("Jean Dupont", first.get("personName").asString());
 		assertEquals(1, first.get("activeTerritories").asInt());
 	}
 

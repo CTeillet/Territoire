@@ -34,6 +34,8 @@ import {
   TravelMode,
 } from "@/lib/geo";
 import { MAP_MAX_ZOOM } from "@/lib/ign-plan";
+import { toneText } from "@/components/shared/tones";
+import { cn } from "@/lib/utils";
 
 const TRAVEL_MODE_KEY = "itineraire-mode";
 
@@ -253,7 +255,7 @@ export default function PublicTerritoryMap({
         </div>
       )}
       {locate.error && (
-        <p className="text-sm text-amber-700" role="status">
+        <p className={cn("text-sm", toneText.warning)} role="status">
           {locate.error}
         </p>
       )}

@@ -6,6 +6,10 @@ export interface Person {
   lastName: string;
   email?: string;
   phoneNumber?: string;
+  /** Personne partie (archivée) : absente des listes, son historique reste. */
+  archivedAt?: string | null;
+  /** Nom remplacé et coordonnées effacées (après archivage). */
+  anonymizedAt?: string | null;
 }
 
 /** Ordre alphabétique : par nom, puis par prénom. */

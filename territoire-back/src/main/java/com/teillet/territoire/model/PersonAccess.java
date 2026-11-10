@@ -44,4 +44,8 @@ public class PersonAccess {
 	private Instant lastUsedAt;
 
 	private Instant lastSentAt;
+	/** Échec du dernier message d'attribution (envoyé en tâche de fond) ; effacé au prochain envoi réussi. */
+	private Instant lastSendFailedAt;
+	@Column(columnDefinition = "TEXT")
+	private String lastSendError;
 }

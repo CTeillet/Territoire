@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -70,21 +70,28 @@ export default function TerritoryRequestsPage() {
     }
   }, [isAuthenticated, router]);
 
-  const load = useCallback(async () => {
-    try {
-      setRequests(await fetchTerritoryRequests(withHistory));
-    } catch (e) {
-      setRequests([]);
-      toast.error((e as Error).message);
-    }
-  }, [withHistory]);
+  // Incrémenté pour recharger la liste après une action
+  const [reloads, setReloads] = useState(0);
 
   useEffect(() => {
-    if (isAuthenticated && allowed) load();
-  }, [isAuthenticated, allowed, load]);
+    if (!isAuthenticated || !allowed) return;
+    let cancelled = false;
+    fetchTerritoryRequests(withHistory)
+      .then((list) => {
+        if (!cancelled) setRequests(list);
+      })
+      .catch((e: Error) => {
+        if (cancelled) return;
+        setRequests([]);
+        toast.error(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, allowed, withHistory, reloads]);
 
   const refresh = () => {
-    load();
+    setReloads((count) => count + 1);
     notifyTerritoryRequestsChanged();
   };
 

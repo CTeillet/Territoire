@@ -218,11 +218,6 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({
                       {...field}
                       placeholder="Prénom"
                       disabled={isDisabled}
-                      className={
-                        isDisabled
-                          ? "opacity-50 cursor-not-allowed bg-gray-200"
-                          : ""
-                      }
                     />
                   </FormControl>
                   <FormDescription>
@@ -239,16 +234,7 @@ const AssignTerritoryDialog: React.FC<AssignTerritoryDialogProps> = ({
                 <FormItem>
                   <FormLabel>Nom</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Nom"
-                      disabled={isDisabled}
-                      className={
-                        isDisabled
-                          ? "opacity-50 cursor-not-allowed bg-gray-200"
-                          : ""
-                      }
-                    />
+                    <Input {...field} placeholder="Nom" disabled={isDisabled} />
                   </FormControl>
                   <FormDescription>
                     Requis si aucune personne n’est sélectionnée

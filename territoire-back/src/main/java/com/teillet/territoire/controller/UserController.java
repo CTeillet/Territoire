@@ -1,5 +1,7 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.service.impl.AuditService;
+import com.teillet.territoire.enums.AuditAction;
 import com.teillet.territoire.dto.RegisterRequest;
 import com.teillet.territoire.dto.ResetPasswordRequest;
 import com.teillet.territoire.model.User;
@@ -22,6 +24,7 @@ import java.util.UUID;
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 	private final IUserService userService;
+	private final AuditService audit;
 
 	@GetMapping
 	public ResponseEntity<List<User>> getAllUsers() {
@@ -37,6 +40,7 @@ public class UserController {
 		}
 
 		User user = userService.registerUser(request);
+		audit.account(AuditAction.UTILISATEUR_CREE, user.getEmail() + " (" + user.getRole() + ")");
 
 		return ResponseEntity.ok(user);
 	}
@@ -51,6 +55,7 @@ public class UserController {
 		}
 
 		userService.updateUserRole(id, newRole);
+		audit.account(AuditAction.ROLE_MODIFIE, audit.accountEmail(id) + " : " + newRole);
 		return ResponseEntity.ok(Map.of("message", "Rôle mis à jour avec succès"));
 	}
 
@@ -58,6 +63,7 @@ public class UserController {
 	@PutMapping("/{id}/mot-de-passe")
 	public ResponseEntity<?> resetPassword(@PathVariable UUID id, @Valid @RequestBody ResetPasswordRequest request) {
 		userService.resetPassword(id, request.getPassword());
+		audit.account(AuditAction.MOT_DE_PASSE_REINITIALISE, audit.accountEmail(id));
 		log.info("🔑 Mot de passe réinitialisé pour l'utilisateur {}", id);
 		return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès"));
 	}
@@ -65,7 +71,9 @@ public class UserController {
 	// 🔹 Supprimer un utilisateur
 	@DeleteMapping("/{id}")
 	public ResponseEntity<?> deleteUser(@PathVariable UUID id) {
+		String email = audit.accountEmail(id);
 		userService.deleteUser(id);
+		audit.account(AuditAction.UTILISATEUR_SUPPRIME, email);
 		return ResponseEntity.ok(Map.of("message", "Utilisateur supprimé avec succès"));
 	}
 }

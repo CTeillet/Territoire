@@ -1,4 +1,3 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { Campaign, CampaignMap } from "@/models/campaign";
 import { authFetch } from "@/utils/auth-fetch";
 import { apiErrorMessage } from "@/utils/api-error";
@@ -6,6 +5,8 @@ import { SimplifiedTerritory } from "@/models/territory";
 import { CampaignStatistics } from "@/models/campaign-statistics";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
+import { createSlice } from "@reduxjs/toolkit";
+import { createApiThunk, jsonBody, thunkApi } from "@/utils/thunk-request";
 
 const BASE_URL = "/api/campagnes";
 
@@ -44,306 +45,151 @@ const initialState: CampaignState = {
 };
 
 // Thunk pour récupérer toutes les campagnes
-export const fetchCampaigns = createAsyncThunk(
+export const fetchCampaigns = createApiThunk(
   "campaigns/fetchCampaigns",
-  async (_, { rejectWithValue }) => {
-    const response = await authFetch(BASE_URL);
-
-    if (!response.ok) {
-      return rejectWithValue("Erreur lors de la récupération des campagnes");
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  },
+  (_: void, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<Campaign[]>(
+      BASE_URL,
+      "Erreur lors de la récupération des campagnes"
+    ),
   {
-    condition: (_, { getState }) => {
-      const state = getState() as { campaigns: CampaignState };
-      if (state.campaigns.isFetchingCampaigns) {
-        return false;
-      }
-      return true;
-    },
+    condition: (_, { getState }) =>
+      !(getState() as { campaigns: CampaignState }).campaigns
+        .isFetchingCampaigns,
   }
 );
 
 // Thunk pour récupérer une campagne spécifique
-export const fetchCampaign = createAsyncThunk(
+export const fetchCampaign = createApiThunk(
   "campaigns/fetchCampaign",
-  async (campaignId: string, { rejectWithValue }) => {
-    const response = await authFetch(`${BASE_URL}/${campaignId}`);
-
-    if (!response.ok) {
-      return rejectWithValue("Erreur lors de la récupération de la campagne");
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  },
+  (campaignId: string, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<Campaign>(
+      `${BASE_URL}/${campaignId}`,
+      "Erreur lors de la récupération de la campagne"
+    ),
   {
-    condition: (_, { getState }) => {
-      const state = getState() as { campaigns: CampaignState };
-      if (state.campaigns.isFetchingCampaign) {
-        return false;
-      }
-      return true;
-    },
+    condition: (_, { getState }) =>
+      !(getState() as { campaigns: CampaignState }).campaigns
+        .isFetchingCampaign,
   }
 );
 
 // Thunk pour créer une campagne
-export const createCampaign = createAsyncThunk(
+export const createCampaign = createApiThunk(
   "campaigns/createCampaign",
-  async (newCampaign: Partial<Campaign>, { rejectWithValue }) => {
-    const response = await authFetch(BASE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newCampaign),
-    });
-
-    if (!response.ok) {
-      return rejectWithValue(
-        await apiErrorMessage(response, "Échec de la création de la campagne")
-      );
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  }
+  (newCampaign: Partial<Campaign>, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<Campaign>(
+      BASE_URL,
+      "Échec de la création de la campagne",
+      jsonBody("POST", newCampaign)
+    )
 );
 
 // Thunk pour créer une campagne avec les territoires restants d'une campagne précédente
-export const createCampaignWithRemainingTerritories = createAsyncThunk(
+export const createCampaignWithRemainingTerritories = createApiThunk(
   "campaigns/createCampaignWithRemainingTerritories",
-  async (
+  (
     {
       previousCampaignId,
       newCampaign,
     }: { previousCampaignId: string; newCampaign: Partial<Campaign> },
     { rejectWithValue }
-  ) => {
-    const response = await authFetch(
+  ) =>
+    thunkApi(rejectWithValue).json<Campaign>(
       `${BASE_URL}/avec-territoires-restants/${previousCampaignId}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newCampaign),
-      }
-    );
-
-    if (!response.ok) {
-      return rejectWithValue(
-        await apiErrorMessage(
-          response,
-          "Échec de la création de la campagne avec territoires restants"
-        )
-      );
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  }
+      "Échec de la création de la campagne avec territoires restants",
+      jsonBody("POST", newCampaign)
+    )
 );
 
 // Thunk pour mettre à jour les territoires restants d'une campagne
-export const updateRemainingTerritories = createAsyncThunk(
+export const updateRemainingTerritories = createApiThunk(
   "campaigns/updateRemainingTerritories",
-  async (
+  (
     {
       campaignId,
       territories,
     }: { campaignId: string; territories: SimplifiedTerritory[] },
     { rejectWithValue }
-  ) => {
-    const response = await authFetch(
+  ) =>
+    thunkApi(rejectWithValue).json<Campaign>(
       `${BASE_URL}/${campaignId}/territoires-restants`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(territories),
-      }
-    );
-
-    if (!response.ok) {
-      return rejectWithValue(
-        await apiErrorMessage(
-          response,
-          "Échec de la mise à jour des territoires restants"
-        )
-      );
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  }
+      "Échec de la mise à jour des territoires restants",
+      jsonBody("PUT", territories)
+    )
 );
 
 // Thunk pour clôturer une campagne
-export const closeCampaign = createAsyncThunk(
+export const closeCampaign = createApiThunk(
   "campaigns/closeCampaign",
-  async (campaignId: string, { rejectWithValue }) => {
-    const response = await authFetch(`${BASE_URL}/${campaignId}/fermer`, {
-      method: "PUT",
-    });
-
-    if (!response.ok) {
-      return rejectWithValue(
-        await apiErrorMessage(response, "Échec de la clôture de la campagne")
-      );
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  }
+  (campaignId: string, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<Campaign>(
+      `${BASE_URL}/${campaignId}/fermer`,
+      "Échec de la clôture de la campagne",
+      { method: "PUT" }
+    )
 );
 
 // Thunk pour supprimer une campagne
-export const deleteCampaign = createAsyncThunk(
+export const deleteCampaign = createApiThunk(
   "campaigns/deleteCampaign",
-  async (campaignId: string, { rejectWithValue }) => {
-    const response = await authFetch(`${BASE_URL}/${campaignId}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      return rejectWithValue(
-        await apiErrorMessage(
-          response,
-          "Échec de la suppression de la campagne"
-        )
-      );
-    }
-
-    return campaignId;
-  }
+  async (campaignId: string, { rejectWithValue }) =>
+    (await thunkApi(rejectWithValue).noContent(
+      `${BASE_URL}/${campaignId}`,
+      "Échec de la suppression de la campagne",
+      { method: "DELETE" }
+    )) ?? campaignId
 );
 
 // Thunk pour récupérer les statistiques d'une campagne
-export const fetchCampaignStatistics = createAsyncThunk(
+export const fetchCampaignStatistics = createApiThunk(
   "campaigns/fetchCampaignStatistics",
-  async (campaignId: string, { rejectWithValue }) => {
-    const response = await authFetch(`${BASE_URL}/${campaignId}/statistiques`);
-
-    if (!response.ok) {
-      return rejectWithValue(
-        "Erreur lors de la récupération des statistiques de la campagne"
-      );
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  },
+  (campaignId: string, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<CampaignStatistics>(
+      `${BASE_URL}/${campaignId}/statistiques`,
+      "Erreur lors de la récupération des statistiques de la campagne"
+    ),
   {
-    condition: (_, { getState }) => {
-      const state = getState() as { campaigns: CampaignState };
-      return !state.campaigns.loadingStatistics;
-    },
+    condition: (_, { getState }) =>
+      !(getState() as { campaigns: CampaignState }).campaigns.loadingStatistics,
   }
 );
 
 // Thunk pour récupérer le GeoJSON de la campagne pour la carte
-export const fetchCampaignMap = createAsyncThunk(
+export const fetchCampaignMap = createApiThunk(
   "campaigns/fetchCampaignMap",
-  async (campaignId: string, { rejectWithValue }) => {
-    const response = await authFetch(`${BASE_URL}/${campaignId}/geojson`);
-
-    if (!response.ok) {
-      return rejectWithValue(
-        "Erreur lors de la récupération du GeoJSON de la campagne"
-      );
-    }
-
-    try {
-      return (await response.json()) as CampaignMap;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  },
+  (campaignId: string, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<CampaignMap>(
+      `${BASE_URL}/${campaignId}/geojson`,
+      "Erreur lors de la récupération du GeoJSON de la campagne"
+    ),
   {
-    condition: (_, { getState }) => {
-      const state = getState() as { campaigns: CampaignState };
-      return !state.campaigns.loadingMap;
-    },
+    condition: (_, { getState }) =>
+      !(getState() as { campaigns: CampaignState }).campaigns.loadingMap,
   }
 );
 
 // Thunk pour exporter les statistiques d'une campagne en Excel
-export const exportCampaignStatistics = createAsyncThunk(
+export const exportCampaignStatistics = createApiThunk(
   "campaigns/exportCampaignStatistics",
   async (
     { campaignId, campaignName }: { campaignId: string; campaignName: string },
     { rejectWithValue }
   ) => {
-    const response = await authFetch(`${BASE_URL}/${campaignId}/export/excel`);
-
-    if (!response.ok) {
-      return rejectWithValue("Erreur lors de l'exportation des statistiques");
-    }
-
+    const message = "Erreur lors de l'exportation des statistiques";
     try {
+      const response = await authFetch(
+        `${BASE_URL}/${campaignId}/export/excel`
+      );
+      if (!response.ok) {
+        return rejectWithValue(await apiErrorMessage(response, message));
+      }
       const blob = await response.blob();
       const fileName = `Statistiques_Campagne_${campaignName.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`;
       saveAs(blob, fileName);
       return campaignId;
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur lors du téléchargement du fichier"
-      );
+    } catch {
+      return rejectWithValue(message);
     }
   }
 );

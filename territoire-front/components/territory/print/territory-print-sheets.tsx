@@ -37,7 +37,7 @@ export function TerritoryPrintSheets({
           key={index}
           className={cn(
             // 4 % de la largeur d'un quart de feuille : environ 6 mm, hors des marges non imprimables
-            "flex min-h-0 min-w-0 items-center justify-center border-dashed border-gray-400 p-[4%]",
+            "flex min-h-0 min-w-0 items-center justify-center border-dashed border-muted-foreground p-[4%]",
             index % 2 === 0 && "border-r",
             index < 2 && "border-b"
           )}
@@ -63,8 +63,8 @@ function PrintCardContent({ card }: { card: PrintCard }) {
     );
   }
   return (
-    <div className="text-center text-gray-500">
-      <p className="font-semibold text-gray-700">{card.name}</p>
+    <div className="text-center text-muted-foreground">
+      <p className="font-semibold text-foreground">{card.name}</p>
       <p className="text-sm">
         {card.map.status === "loading"
           ? "Chargement de la carte…"

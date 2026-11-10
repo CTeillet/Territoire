@@ -71,6 +71,43 @@ class LateTerritoryReportServiceTest {
 	}
 
 	@Test
+	void notifyRecipientsSendsAPlainTextAlert() throws Exception {
+		LateTerritoryReportService service = configuredService();
+		when(settingService.getLateReportRecipients()).thenReturn(RECIPIENTS);
+		when(mailSender.createMimeMessage()).thenReturn(newMessage());
+
+		service.notifyRecipients("Les messages WhatsApp ne partent plus", "Session WAHA déconnectée");
+
+		MimeMessage message = sentMessage();
+		assertThat(message.getSubject()).isEqualTo("Territoire : Les messages WhatsApp ne partent plus");
+		assertThat(message.getAllRecipients()).hasSize(2);
+		assertThat(message.getContent().toString()).contains("Session WAHA déconnectée").contains("http://localhost:40000");
+	}
+
+	@Test
+	void notifyRecipientsDoesNothingWithoutMailOrRecipients() {
+		LateTerritoryReportService withoutMail = service(null, "");
+		withoutMail.notifyRecipients("Sujet", "Texte");
+
+		LateTerritoryReportService withoutRecipients = configuredService();
+		when(settingService.getLateReportRecipients()).thenReturn(List.of());
+		withoutRecipients.notifyRecipients("Sujet", "Texte");
+
+		verify(mailSender, never()).send(any(MimeMessage.class));
+	}
+
+	@Test
+	void notifyRecipientsNeverThrows() {
+		LateTerritoryReportService service = configuredService();
+		when(settingService.getLateReportRecipients()).thenReturn(RECIPIENTS);
+		when(mailSender.createMimeMessage()).thenReturn(newMessage());
+		doThrow(new org.springframework.mail.MailSendException("SMTP refusé")).when(mailSender).send(any(MimeMessage.class));
+
+		org.assertj.core.api.Assertions.assertThatCode(() -> service.notifyRecipients("Sujet", "Texte"))
+				.doesNotThrowAnyException();
+	}
+
+	@Test
 	void sendsTheLateTerritoriesToEveryRecipient() throws Exception {
 		LateTerritoryReportService service = configuredService();
 		when(settingService.getLateReportRecipients()).thenReturn(RECIPIENTS);
