@@ -1,5 +1,8 @@
 package com.teillet.territoire.service.impl;
 
+import java.time.Instant;
+import com.teillet.territoire.repository.TerritoryMapVersionRepository;
+import com.teillet.territoire.model.TerritoryMapVersion;
 import com.teillet.territoire.dto.*;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
@@ -44,6 +47,7 @@ public class TerritoryService implements ITerritoryService {
 	private final ICityService cityService;
 	private final TerritoryReminderRepository reminderRepository;
 	private final ISettingService settingService;
+	private final TerritoryMapVersionRepository mapVersionRepository;
 
 	public TerritoryService(
 		TerritoryRepository territoryRepository,
@@ -52,7 +56,8 @@ public class TerritoryService implements ITerritoryService {
 		@Lazy ICampaignService campaignService,
 		ICityService cityService,
 		TerritoryReminderRepository reminderRepository,
-		ISettingService settingService
+		ISettingService settingService,
+		TerritoryMapVersionRepository mapVersionRepository
 	) {
 		this.territoryRepository = territoryRepository;
 		this.blockRepository = blockRepository;
@@ -61,6 +66,7 @@ public class TerritoryService implements ITerritoryService {
 		this.cityService = cityService;
 		this.reminderRepository = reminderRepository;
 		this.settingService = settingService;
+		this.mapVersionRepository = mapVersionRepository;
 	}
 
 	@Override
@@ -233,6 +239,7 @@ public class TerritoryService implements ITerritoryService {
 		// Remove territory from all campaigns
 		campaignService.deleteTerrritoryFromAllCampaign(territory);
 
+		mapVersionRepository.deleteByTerritoryId(territoryId);
 		log.info("Suppression des pâtés appartenant au territoire {}", territoryId);
 		blockRepository.deleteBlockByTerritory_Id(territoryId);
 		log.info("Suppression des attributions appartenant au territoire {}", territoryId);
@@ -409,6 +416,17 @@ public class TerritoryService implements ITerritoryService {
 	@Transactional
 	public Territory storeTerritoryMap(UUID territoryId, byte[] content, String fileName, String contentType) {
 		Territory territory = getTerritory(territoryId);
+		// La carte remplacée est gardée dans les cartes précédentes : elle peut être revue ou remise
+		byte[] current = territory.getTerritoryMap();
+		if (current != null && current.length > 0) {
+			mapVersionRepository.save(TerritoryMapVersion.builder()
+					.territory(territory)
+					.content(current)
+					.fileName(territory.getTerritoryMapName())
+					.contentType(territory.getTerritoryMapContentType())
+					.replacedAt(Instant.now())
+					.build());
+		}
 		territory.setTerritoryMap(content);
 		territory.setTerritoryMapName(fileName);
 		territory.setTerritoryMapContentType(contentType);

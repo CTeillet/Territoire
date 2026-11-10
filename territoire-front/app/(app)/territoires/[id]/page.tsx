@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PhysicalCardDialog } from "@/components/territory/id/physical-card-dialog";
+import { CardHistoryDialog } from "@/components/territory/id/card-history-dialog";
 import { canManageTerritoryCards } from "@/models/role";
 
 // Chargement dynamique de la carte (évite les erreurs SSR)
@@ -68,12 +69,21 @@ const TerritoryPage = () => {
   }
 
   const cardActions = canManageTerritoryCards(user?.role) && (
-    <PhysicalCardDialog
-      territoryId={selectedTerritory.id}
-      territoryName={selectedTerritory.name}
-      hasCard={Boolean(selectedTerritory.territoryMapId)}
-      onSaved={() => setMapVersion((version) => version + 1)}
-    />
+    <div className="flex flex-wrap gap-2">
+      <PhysicalCardDialog
+        territoryId={selectedTerritory.id}
+        territoryName={selectedTerritory.name}
+        hasCard={Boolean(selectedTerritory.territoryMapId)}
+        onSaved={() => setMapVersion((version) => version + 1)}
+      />
+      {selectedTerritory.territoryMapId && (
+        <CardHistoryDialog
+          territoryId={selectedTerritory.id}
+          territoryName={selectedTerritory.name}
+          onRestored={() => setMapVersion((version) => version + 1)}
+        />
+      )}
+    </div>
   );
 
   return (
