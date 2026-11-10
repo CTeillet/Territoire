@@ -10,9 +10,12 @@ import java.awt.geom.Path2D;
 public final class RenderUtils {
     private RenderUtils() {}
 
-    /** Polygon/MultiPolygon -> Java2D Path in pixel space */
+    /**
+     * Polygon/MultiPolygon -> Java2D Path in pixel space. Pair-impair : les trous restent vides quel que soit le sens
+     * de leurs anneaux, que la base ne garantit pas.
+     */
     public static Shape toShape(Geometry g, double scale, double ox, double oy) {
-        Path2D.Double path = new Path2D.Double();
+        Path2D.Double path = new Path2D.Double(Path2D.WIND_EVEN_ODD);
         for (int gi = 0; gi < g.getNumGeometries(); gi++) {
             Polygon p = (Polygon) g.getGeometryN(gi);
             appendRing(path, p.getExteriorRing(), scale, ox, oy);

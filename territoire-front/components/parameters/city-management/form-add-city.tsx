@@ -53,7 +53,7 @@ const FormAddCity: React.FC = () => {
     const result = await dispatch(addCity(values));
     if (addCity.rejected.match(result)) {
       // On garde la saisie pour pouvoir corriger et réessayer
-      toast.error(result.error.message ?? "Erreur lors de l'ajout de la ville");
+      toast.error(result.payload ?? "Erreur lors de l'ajout de la ville");
       return;
     }
     form.reset();

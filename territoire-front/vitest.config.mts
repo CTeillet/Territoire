@@ -15,6 +15,14 @@ export default defineConfig({
       // Compte aussi les fichiers non importés par les tests (sinon la couverture affichée est surévaluée)
       include: ["{app,components,hooks,lib,store,utils}/**/*.{ts,tsx}"],
       reporter: ["text", "json", "html", "lcov"],
+      // Seuils vérifiés par npm run test:coverage (CI). Couverture au 8 novembre 2026 : 95 % des instructions,
+      // 88 % des branches, 96 % des fonctions et des lignes
+      thresholds: {
+        statements: 92,
+        branches: 85,
+        functions: 92,
+        lines: 93,
+      },
       exclude: [
         "components/ui/**",
         "node_modules/**",

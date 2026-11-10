@@ -493,7 +493,7 @@ describe("Carte d'édition d'un territoire", () => {
     holder.remove();
   });
 
-  it("signale un GeoJSON illisible", () => {
+  it("signale un GeoJSON illisible et affiche la carte sans pâtés", () => {
     expect(() =>
       renderWithStore(
         <TerritoryIdMap
@@ -501,7 +501,7 @@ describe("Carte d'édition d'un territoire", () => {
           city={TEST_CITY}
         />
       )
-    ).toThrow();
+    ).not.toThrow();
     expect(console.error).toHaveBeenCalledWith(
       "❌ Erreur lors de la conversion de `geojson` :",
       expect.any(SyntaxError)

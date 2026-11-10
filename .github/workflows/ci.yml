@@ -103,8 +103,9 @@ jobs:
       - name: Grant Execute Permission for Maven Wrapper
         run: chmod +x mvnw
 
+      # verify : tests, rapport JaCoCo et seuils de couverture (cf. pom.xml)
       - name: Run Backend Tests with JaCoCo Coverage
-        run: ./mvnw clean test
+        run: ./mvnw clean verify
 
       - name: Upload Backend JaCoCo Coverage Report
         uses: actions/upload-artifact@v7

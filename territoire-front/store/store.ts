@@ -4,6 +4,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import personReducer from "./slices/person-slice";
 import territoryReducer from "./slices/territory-slice";
+import territoryStatisticsReducer from "./slices/territory-statistics-slice";
 import userReducer from "./slices/user-slice";
 import cityReducer from "./slices/city-slice";
 import campaignReducer from "./slices/campaign-slice";
@@ -14,6 +15,7 @@ export const store = configureStore({
   reducer: {
     persons: personReducer,
     territories: territoryReducer,
+    territoryStatistics: territoryStatisticsReducer,
     auth: authReducer,
     users: userReducer,
     cities: cityReducer,

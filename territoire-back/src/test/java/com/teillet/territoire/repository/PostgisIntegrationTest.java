@@ -21,6 +21,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,7 +52,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 		"spring.datasource.driver-class-name=org.postgresql.Driver",
 		"spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
 		// Comme en production (src/main/resources/application.properties) : tables qualifiées (public.user fonctionne, user seul non)
-		"spring.jpa.properties.hibernate.default_schema=public"
+		"spring.jpa.properties.hibernate.default_schema=public",
+		// Pas de create-drop : le contexte reste en cache et n'est fermé qu'à la fin de la JVM, quand le conteneur est déjà
+		// arrêté ; la suppression du schéma y attendait une connexion 30 s, et Surefire finissait par tuer la JVM
+		"spring.jpa.hibernate.ddl-auto=create"
 })
 @Testcontainers(disabledWithoutDocker = true)
 class PostgisIntegrationTest {
@@ -150,9 +155,19 @@ class PostgisIntegrationTest {
 		assertEquals(2, territoryRepository.findAllProjected3857().size());
 	}
 
+	/**
+	 * La carte physique montre chaque pâté, pas leur contour commun : celui-ci, élargi de 7 m puis rétréci de 8 m,
+	 * recouvre les rues de moins de 14 m qui les séparent.
+	 */
 	@Test
-	void cardRowHasTheCityTheHullInWebMercatorAndTheAddressesNotToDo() throws ParseException {
-		Territory territory = territory("PVP7", rennes, multiPolygon(square(RENNES_LON, RENNES_LAT)));
+	void cardRowHasTheCityEachBlockInWebMercatorAndTheAddressesNotToDo() throws ParseException {
+		Territory territory = territory("PVP7", rennes, null);
+		Polygon west = square(RENNES_LON, RENNES_LAT);
+		// Rue d'environ 7 m entre les deux pâtés
+		Polygon east = square(RENNES_LON + SIDE + 0.0001, RENNES_LAT);
+		blockRepository.save(Block.builder().block(west).territory(territory).build());
+		blockRepository.save(Block.builder().block(east).territory(territory).build());
+		territoryService.updateConcaveHull(territory.getId());
 		Territory withoutBlocks = territory("Sans pâtés", rennes, null);
 		addressNotToDoRepository.save(AddressNotToDo.builder().street("Rue de Paris").number("3").territory(territory).build());
 		addressNotToDoRepository.save(AddressNotToDo.builder().street("Rue de Paris").number("5").territory(territory).build());
@@ -162,12 +177,19 @@ class PostgisIntegrationTest {
 		assertEquals("PVP7", row.getName());
 		assertEquals("Rennes", row.getCityName());
 		assertEquals(2L, row.getAddressesNotToDo());
-		Geometry hull = new WKBReader().read(row.getHullWkb());
-		assertEquals(webMercatorX(RENNES_LON), hull.getEnvelopeInternal().getMinX(), 1.0);
-		assertEquals(webMercatorY(RENNES_LAT), hull.getEnvelopeInternal().getMinY(), 1.0);
+		Geometry blocks = new WKBReader().read(row.getBlocksWkb());
+		assertEquals(2, blocks.getNumGeometries(), "Un polygone par pâté");
+		assertEquals(webMercatorX(RENNES_LON), blocks.getEnvelopeInternal().getMinX(), 1.0);
+		assertEquals(webMercatorY(RENNES_LAT), blocks.getEnvelopeInternal().getMinY(), 1.0);
+		Point street = geometryFactory.createPoint(new Coordinate(
+				webMercatorX(RENNES_LON + SIDE + 0.00005), webMercatorY(RENNES_LAT + SIDE / 2)));
+		assertFalse(blocks.intersects(street), "La rue entre les pâtés reste découverte");
+		MultiPolygon hull = territoryRepository.findById(territory.getId()).orElseThrow().getConcaveHull();
+		assertTrue(hull.contains(geometryFactory.createPoint(new Coordinate(RENNES_LON + SIDE + 0.00005, RENNES_LAT + SIDE / 2))),
+				"Le contour commun, lui, recouvre la rue");
 
 		TerritoryCardRow empty = territoryRepository.findCardRow(withoutBlocks.getId()).orElseThrow();
-		assertNull(empty.getHullWkb(), "Pas de contour tant qu'aucun pâté n'est dessiné");
+		assertNull(empty.getBlocksWkb(), "Rien à dessiner tant qu'aucun pâté n'est dessiné");
 		assertEquals(0L, empty.getAddressesNotToDo());
 		assertTrue(territoryRepository.findCardRow(UUID.randomUUID()).isEmpty());
 	}

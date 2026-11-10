@@ -1,6 +1,6 @@
 package com.teillet.territoire.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.AddAddressNotToDoDto;
 import com.teillet.territoire.dto.AddTerritoryDto;
 import com.teillet.territoire.dto.UpdateTerritoryDto;

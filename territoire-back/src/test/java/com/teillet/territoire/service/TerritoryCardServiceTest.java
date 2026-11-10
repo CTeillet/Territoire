@@ -70,7 +70,7 @@ class TerritoryCardServiceTest {
 
 	@Test
 	void renderCard_FillsTheFormAndShowsTheTerritoryInGreen() throws IOException {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray Vieille Poste", hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray Vieille Poste", blocksWkb(), 0)));
 
 		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
 
@@ -89,7 +89,7 @@ class TerritoryCardServiceTest {
 
 	@Test
 	void renderCard_PutsThePlanInTheFrame() throws IOException {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocksWkb(), 0)));
 		Color blue = new Color(170, 213, 233);
 
 		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(blue)));
@@ -101,7 +101,7 @@ class TerritoryCardServiceTest {
 
 	@Test
 	void renderCard_WithAddressesNotToDo_ShowsTheRedBadge() throws IOException {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 3)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocksWkb(), 3)));
 
 		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
 
@@ -111,7 +111,7 @@ class TerritoryCardServiceTest {
 	@Test
 	void renderCard_LongCityName_StaysOnTheDottedLine() throws IOException {
 		String longCity = "Saint-Rémy-lès-Chevreuse-sur-une-très-longue-ligne-de-texte";
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("1", longCity, hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("1", longCity, blocksWkb(), 0)));
 
 		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
 
@@ -123,7 +123,7 @@ class TerritoryCardServiceTest {
 	/** Imprimé en noir et blanc, le territoire reste plus sombre que les jardins du plan, et son contour plus encore. */
 	@Test
 	void renderCard_TerritoryStandsOutInBlackAndWhite() throws IOException {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocksWkb(), 0)));
 		Color garden = new Color(223, 232, 213);
 
 		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(garden)));
@@ -138,9 +138,46 @@ class TerritoryCardServiceTest {
 		assertTrue(count(card, outline, c -> luminance(c) < 110) > 20, "contour foncé");
 	}
 
+	/**
+	 * Le contour commun des pâtés (concave_hull) recouvrait les rues qui les séparent : chaque pâté est dessiné seul,
+	 * cerné de son contour, et la rue entre eux reste celle du plan.
+	 */
+	@Test
+	void renderCard_EachBlockIsDrawn_TheStreetBetweenStaysVisible() throws IOException {
+		// Deux pâtés séparés par une rue de 20 m, soit 16,6 pixels du modèle centrés dans le cadre
+		byte[] blocks = blocksWkb(block(260_000, 260_090), block(260_110, 260_200));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocks, 0)));
+
+		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
+
+		int cx = (int) FRAME.getCenterX(), cy = (int) FRAME.getCenterY();
+		Rectangle street = new Rectangle(cx - 3, cy - 20, 6, 40);
+		assertEquals(0, count(card, street, c -> !c.equals(Color.WHITE)), "rue laissée blanche");
+		for (int x : new int[]{cx - 45, cx + 45}) {
+			Color inside = new Color(card.getRGB(x * SCALE, cy * SCALE));
+			assertTrue(inside.getGreen() > inside.getRed() && inside.getRed() > inside.getBlue(), "pâté vert : " + inside);
+		}
+		// Contours foncés des deux pâtés, de part et d'autre de la rue
+		assertTrue(count(card, new Rectangle(cx - 9, cy - 10, 2, 20), c -> luminance(c) < 110) > 20, "contour du pâté ouest");
+		assertTrue(count(card, new Rectangle(cx + 7, cy - 10, 2, 20), c -> luminance(c) < 110) > 20, "contour du pâté est");
+	}
+
+	/** Deux pâtés qui se chevauchent n'assombrissent pas le vert : on ne voit que leurs contours. */
+	@Test
+	void renderCard_OverlappingBlocks_SameGreen() throws IOException {
+		// Chevauchement de 40 m au centre du cadre
+		byte[] blocks = blocksWkb(block(260_000, 260_120), block(260_080, 260_200));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocks, 0)));
+
+		BufferedImage card = read(cardService.renderCard(territoryId, CardFraming.NORMAL, plan(Color.WHITE)));
+
+		int cx = (int) FRAME.getCenterX(), cy = (int) FRAME.getCenterY();
+		assertEquals(new Color(card.getRGB((cx - 50) * SCALE, cy * SCALE)), new Color(card.getRGB(cx * SCALE, cy * SCALE)));
+	}
+
 	@Test
 	void renderCard_PlanThatIsNotAnImage_Rejected() {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocksWkb(), 0)));
 
 		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
 				() -> cardService.renderCard(territoryId, CardFraming.NORMAL, "pas une image".getBytes()));
@@ -150,7 +187,7 @@ class TerritoryCardServiceTest {
 
 	@Test
 	void renderCard_HugePlan_RejectedBeforeDecoding() {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocksWkb(), 0)));
 
 		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
 				() -> cardService.renderCard(territoryId, CardFraming.NORMAL, png(5000, 100, Color.WHITE)));
@@ -160,7 +197,7 @@ class TerritoryCardServiceTest {
 
 	@Test
 	void saveCard_StoresThePngAsTheTerritoryMap() {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP 7", "Paray", hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP 7", "Paray", blocksWkb(), 0)));
 
 		cardService.saveCard(territoryId, CardFraming.WIDE, plan(Color.WHITE));
 
@@ -171,7 +208,7 @@ class TerritoryCardServiceTest {
 
 	@Test
 	void saveCard_UnreadablePlan_NothingStored() {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocksWkb(), 0)));
 
 		assertThrows(IllegalArgumentException.class, () -> cardService.saveCard(territoryId, CardFraming.NORMAL, new byte[0]));
 
@@ -181,7 +218,7 @@ class TerritoryCardServiceTest {
 	/** Le navigateur dessine le plan sur cette emprise, que la carte reprend pour placer le territoire. */
 	@Test
 	void mapLayout_GivesTheExtentInDegreesAndTheFrameSize() {
-		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", hullWkb(), 0)));
+		when(territoryRepository.findCardRow(territoryId)).thenReturn(Optional.of(row("PVP7", "Paray", blocksWkb(), 0)));
 
 		CardMapLayout layout = cardService.mapLayout(territoryId, CardFraming.NORMAL);
 
@@ -279,27 +316,36 @@ class TerritoryCardServiceTest {
 
 	// ------------------------------------------------------------------
 
-	/** Carré de 200 × 100 m (EPSG:3857), comme le contour renvoyé par la base. */
-	private byte[] hullWkb() {
-		Polygon square = gf.createPolygon(new Coordinate[]{
-				new Coordinate(260_000, 6_240_000),
-				new Coordinate(260_200, 6_240_000),
-				new Coordinate(260_200, 6_240_100),
-				new Coordinate(260_000, 6_240_100),
-				new Coordinate(260_000, 6_240_000)
-		});
-		MultiPolygon hull = gf.createMultiPolygon(new Polygon[]{square});
-		return new WKBWriter().write(hull);
+	/** Un pâté de 200 × 100 m (EPSG:3857). */
+	private byte[] blocksWkb() {
+		return blocksWkb(block(260_000, 260_200));
 	}
 
-	private static TerritoryCardRow row(String name, String city, byte[] hullWkb, long addressesNotToDo) {
+	/** Pâtés réunis sans être fusionnés, comme les renvoie la base. */
+	private byte[] blocksWkb(Polygon... blocks) {
+		MultiPolygon collection = gf.createMultiPolygon(blocks);
+		return new WKBWriter().write(collection);
+	}
+
+	/** Pâté de 100 m de haut, de minX à maxX (EPSG:3857). */
+	private Polygon block(double minX, double maxX) {
+		return gf.createPolygon(new Coordinate[]{
+				new Coordinate(minX, 6_240_000),
+				new Coordinate(maxX, 6_240_000),
+				new Coordinate(maxX, 6_240_100),
+				new Coordinate(minX, 6_240_100),
+				new Coordinate(minX, 6_240_000)
+		});
+	}
+
+	private static TerritoryCardRow row(String name, String city, byte[] blocksWkb, long addressesNotToDo) {
 		return new TerritoryCardRow() {
 			@Override
 			public String getName() { return name; }
 			@Override
 			public String getCityName() { return city; }
 			@Override
-			public byte[] getHullWkb() { return hullWkb; }
+			public byte[] getBlocksWkb() { return blocksWkb; }
 			@Override
 			public Long getAddressesNotToDo() { return addressesNotToDo; }
 		};
