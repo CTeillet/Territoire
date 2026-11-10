@@ -49,11 +49,17 @@ export default function AssignFromRequestDialog({
   const [selected, setSelected] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
+  // Autre demande : la liste et le choix repartent de zéro (pendant le rendu, sans effet)
+  const [shownRequest, setShownRequest] = useState(request);
+  if (request !== shownRequest) {
+    setShownRequest(request);
+    setTerritories(null);
+    setSelected("");
+  }
+
   useEffect(() => {
     if (!request) return;
     let cancelled = false;
-    setTerritories(null);
-    setSelected("");
     fetchAvailableTerritories(request.id)
       .then((list) => {
         if (cancelled) return;

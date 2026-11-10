@@ -1,8 +1,8 @@
 package com.teillet.territoire.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.AccessSettingsDto;
 import com.teillet.territoire.dto.DurationSettingsDto;
 import com.teillet.territoire.dto.MapThemeSettingsDto;
@@ -164,7 +164,7 @@ public class SettingService implements ISettingService {
         });
         try {
             s.setMapThemes(JSON.writeValueAsString(themes));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Thèmes des cartes impossibles à enregistrer", e);
         }
         settingRepository.save(s);
@@ -177,7 +177,7 @@ public class SettingService implements ISettingService {
         if (s.getMapThemes() != null) {
             try {
                 stored = JSON.readValue(s.getMapThemes(), MAP_THEMES_TYPE);
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 log.warn("Thèmes des cartes illisibles, thèmes par défaut utilisés : {}", e.getMessage());
             }
         }

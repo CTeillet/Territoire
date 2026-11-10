@@ -7,6 +7,7 @@ import authReducer from "@/store/slices/auth-slice";
 import cityReducer from "@/store/slices/city-slice";
 import personReducer from "@/store/slices/person-slice";
 import territoryReducer from "@/store/slices/territory-slice";
+import territoryStatisticsReducer from "@/store/slices/territory-statistics-slice";
 import userReducer from "@/store/slices/user-slice";
 import campaignReducer from "@/store/slices/campaign-slice";
 import reminderReducer from "@/store/slices/reminder-slice";
@@ -44,6 +45,7 @@ const reducers = {
   cities: cityReducer,
   persons: personReducer,
   territories: territoryReducer,
+  territoryStatistics: territoryStatisticsReducer,
   users: userReducer,
   campaigns: campaignReducer,
   reminders: reminderReducer,

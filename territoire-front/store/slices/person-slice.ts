@@ -1,8 +1,7 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { Person } from "@/models/person";
-import { authFetch } from "@/utils/auth-fetch";
-import { apiErrorMessage } from "@/utils/api-error";
 import { Assignment } from "@/models/assignment";
+import { createSlice } from "@reduxjs/toolkit";
+import { createApiThunk, jsonBody, thunkApi } from "@/utils/thunk-request";
 
 const BASE_URL = "/api/personnes";
 
@@ -30,148 +29,64 @@ const initialState: PersonState = {
   loadingAssignedTerritories: false,
 };
 
-// 🔹 Thunk pour récupérer les personnes
-export const fetchPersons = createAsyncThunk(
+// 🔹 Thunk pour récupérer les personnes (une seule requête à la fois)
+export const fetchPersons = createApiThunk(
   "persons/fetchPersons",
-  async (_, { rejectWithValue }) => {
-    const response = await authFetch(BASE_URL);
-
-    // 🔹 Retourner immédiatement `rejectWithValue` au lieu de `throw`
-    if (!response.ok) {
-      return rejectWithValue("Erreur lors de la récupération des personnes");
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  },
+  (_: void, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<Person[]>(
+      BASE_URL,
+      "Erreur lors de la récupération des personnes"
+    ),
   {
-    // Check if a fetch is already in progress before dispatching the pending action
-    condition: (_, { getState }) => {
-      const state = getState() as { persons: PersonState };
-      if (state.persons.isFetchingPersons) {
-        return false; // Skip this thunk execution
-      }
-      return true; // Proceed with the thunk execution
-    },
+    condition: (_, { getState }) =>
+      !(getState() as { persons: PersonState }).persons.isFetchingPersons,
   }
 );
 
-// 🔹 Thunk pour créer une personne
-export const createPerson = createAsyncThunk<
-  Person,
-  Person | { firstName: string; lastName: string }
->(
+// 🔹 Thunk pour créer une personne (motif du serveur en cas de refus, ex. « Le nom est requis »)
+export const createPerson = createApiThunk(
   "persons/createPerson",
-  async (
+  (
     newPerson: Person | { firstName: string; lastName: string },
     { rejectWithValue }
-  ) => {
-    const response = await authFetch(BASE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newPerson),
-    });
-
-    // 🔹 Vérifie si la requête à échouer et retourne immédiatement `rejectWithValue`
-    if (!response.ok) {
-      // Motif du serveur (ex. « Le nom est requis »)
-      return rejectWithValue(
-        await apiErrorMessage(
-          response,
-          "Échec de l'ajout de la personne. Veuillez réessayer."
-        )
-      );
-    }
-
-    try {
-      return await response.json(); // Retourne la personne créée
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  }
+  ) =>
+    thunkApi(rejectWithValue).json<Person>(
+      BASE_URL,
+      "Échec de l'ajout de la personne. Veuillez réessayer.",
+      jsonBody("POST", newPerson)
+    )
 );
 
-// 🔹 Thunk pour supprimer une personne
-export const deletePerson = createAsyncThunk(
+// 🔹 Thunk pour supprimer une personne (refusé par le serveur si elle est dans l'historique)
+export const deletePerson = createApiThunk(
   "persons/deletePerson",
-  async (id: string, { rejectWithValue }) => {
-    const response = await authFetch(`${BASE_URL}/${id}`, { method: "DELETE" });
-
-    // 🔹 Vérifie si la requête a échoué et retourne immédiatement `rejectWithValue`
-    // (avec le motif du serveur, ex. personne présente dans l'historique)
-    if (!response.ok) {
-      return rejectWithValue(
-        await apiErrorMessage(response, "Échec de la suppression")
-      );
-    }
-
-    return id; // ✅ Retourne l'ID si la suppression a réussi
-  }
+  async (id: string, { rejectWithValue }) =>
+    (await thunkApi(rejectWithValue).noContent(
+      `${BASE_URL}/${id}`,
+      "Échec de la suppression",
+      { method: "DELETE" }
+    )) ?? id
 );
 
 // 🔹 Thunk pour modifier une personne
-export const updatePerson = createAsyncThunk(
+export const updatePerson = createApiThunk(
   "persons/updatePerson",
-  async (updatedPerson: Person, { rejectWithValue }) => {
-    const response = await authFetch(`${BASE_URL}/${updatedPerson.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedPerson),
-    });
-
-    // 🔹 Vérifie si la requête à échouer et retourne immédiatement `rejectWithValue`
-    if (!response.ok) {
-      return rejectWithValue(
-        await apiErrorMessage(response, "Échec de la mise à jour")
-      );
-    }
-
-    try {
-      return await response.json(); // Retourne la personne mise à jour
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  }
+  (updatedPerson: Person, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<Person>(
+      `${BASE_URL}/${updatedPerson.id}`,
+      "Échec de la mise à jour",
+      jsonBody("PUT", updatedPerson)
+    )
 );
 
 // 🔹 Thunk pour récupérer les territoires assignés à une personne
-export const fetchAssignedTerritories = createAsyncThunk(
+export const fetchAssignedTerritories = createApiThunk(
   "persons/fetchAssignedTerritories",
-  async (personId: string, { rejectWithValue }) => {
-    const response = await authFetch(`${BASE_URL}/${personId}/territoires`);
-
-    // 🔹 Vérifie si la requête a échoué et retourne immédiatement `rejectWithValue`
-    if (!response.ok) {
-      return rejectWithValue(
-        "Erreur lors de la récupération des territoires assignés"
-      );
-    }
-
-    try {
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  }
+  (personId: string, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<Assignment[]>(
+      `${BASE_URL}/${personId}/territoires`,
+      "Erreur lors de la récupération des territoires assignés"
+    )
 );
 
 const personSlice = createSlice({

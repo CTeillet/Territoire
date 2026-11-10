@@ -1,6 +1,6 @@
 package com.teillet.territoire.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.dto.BlockDto;
 import com.teillet.territoire.model.Block;
 import com.teillet.territoire.service.IBlockService;

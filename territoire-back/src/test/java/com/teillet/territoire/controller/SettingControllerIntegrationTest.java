@@ -1,6 +1,6 @@
 package com.teillet.territoire.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.model.Setting;
 import com.teillet.territoire.repository.SettingRepository;
 import org.junit.jupiter.api.AfterEach;

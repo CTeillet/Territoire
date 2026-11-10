@@ -87,7 +87,7 @@ describe("cas d'erreur des petits slices", () => {
         "Erreur lors de la récupération des territoires assignés",
       ],
     ])(
-      "%s : erreur HTTP, réponse illisible et erreur inconnue",
+      "%s : erreur HTTP, réponse illisible et coupure réseau",
       async (_name, thunk, message) => {
         const s = store();
 
@@ -96,15 +96,16 @@ describe("cas d'erreur des petits slices", () => {
           ((await s.dispatch(thunk() as never)) as { payload: unknown }).payload
         ).toBe(message);
 
+        // Réponse illisible ou coupure réseau : message de l'action, pas celui de l'exception
         authFetch.mockResolvedValueOnce(unreadable(new Error("JSON invalide")));
         expect(
           ((await s.dispatch(thunk() as never)) as { payload: unknown }).payload
-        ).toBe("JSON invalide");
+        ).toBe(message);
 
-        authFetch.mockResolvedValueOnce(unreadable("bizarre"));
+        authFetch.mockRejectedValueOnce(new Error("Failed to fetch"));
         expect(
           ((await s.dispatch(thunk() as never)) as { payload: unknown }).payload
-        ).toBe("Une erreur inconnue s'est produite");
+        ).toBe(message);
       }
     );
 
@@ -161,19 +162,16 @@ describe("cas d'erreur des petits slices", () => {
   });
 
   describe("reminder-slice", () => {
-    it("fetchReminders : erreur HTTP, réseau et inconnue", async () => {
+    it("fetchReminders : erreur HTTP et coupure réseau", async () => {
       const s = store();
       authFetch.mockResolvedValueOnce(failing());
       expect((await s.dispatch(fetchReminders())).payload).toBe(
         "Erreur lors de la récupération des rappels"
       );
 
-      authFetch.mockRejectedValueOnce(new Error("réseau coupé"));
-      expect((await s.dispatch(fetchReminders())).payload).toBe("réseau coupé");
-
-      authFetch.mockRejectedValueOnce("bizarre");
+      authFetch.mockRejectedValueOnce(new Error("Failed to fetch"));
       expect((await s.dispatch(fetchReminders())).payload).toBe(
-        "Une erreur inconnue s'est produite"
+        "Erreur lors de la récupération des rappels"
       );
     });
 
@@ -189,19 +187,19 @@ describe("cas d'erreur des petits slices", () => {
       );
 
       expect(authFetch).toHaveBeenLastCalledWith(
-        "/api/territory-reminders?territoryIds=t1&personId=p1&notes=%C3%A0%20rappeler%20%26%20relancer",
+        "/api/territory-reminders?territoryIds=t1&personId=p1&notes=%C3%A0+rappeler+%26+relancer",
         { method: "POST" }
       );
     });
 
     it.each([
       [
-        "message JSON (message)",
+        "JSON avec « message » (pas le format de l'API)",
         failing(
           { "content-type": "application/json" },
           { message: "Déjà rappelé" }
         ),
-        "Déjà rappelé",
+        "Impossible d'enregistrer le rappel",
       ],
       [
         "message JSON (error)",
@@ -214,20 +212,20 @@ describe("cas d'erreur des petits slices", () => {
       [
         "JSON sans message",
         failing({ "content-type": "application/json" }, {}),
-        "Failed to send reminder",
+        "Impossible d'enregistrer le rappel",
       ],
       [
         "texte brut",
         failing({ "content-type": "text/plain" }, null, "Erreur texte"),
-        "Erreur texte",
+        "Impossible d'enregistrer le rappel",
       ],
       [
         "texte vide",
         failing({ "content-type": "text/plain" }, null, ""),
-        "Failed to send reminder",
+        "Impossible d'enregistrer le rappel",
       ],
     ])(
-      "createReminder : remonte le %s du serveur",
+      "createReminder : réponse en erreur (%s)",
       async (_name, response, message) => {
         authFetch.mockResolvedValueOnce(response);
 
@@ -253,7 +251,7 @@ describe("cas d'erreur des petits slices", () => {
             createReminder({ territoryId: "t1", personId: "p1" })
           )
         ).payload
-      ).toBe("Failed to send reminder");
+      ).toBe("Impossible d'enregistrer le rappel");
 
       authFetch.mockRejectedValueOnce("bizarre");
       expect(
@@ -262,7 +260,7 @@ describe("cas d'erreur des petits slices", () => {
             createReminder({ territoryId: "t1", personId: "p1" })
           )
         ).payload
-      ).toBe("Impossible d'envoyer le rappel");
+      ).toBe("Impossible d'enregistrer le rappel");
     });
   });
 
@@ -328,10 +326,10 @@ describe("cas d'erreur des petits slices", () => {
       authFetch.mockResolvedValueOnce(failing());
 
       const result = (await store().dispatch(thunk() as never)) as {
-        error: { message: string };
+        payload: unknown;
       };
 
-      expect(result.error.message).toBe(message);
+      expect(result.payload).toBe(message);
     });
   });
 });

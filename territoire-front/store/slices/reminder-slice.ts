@@ -1,6 +1,6 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { TerritoryReminder } from "@/models/territory-reminder";
-import { authFetch } from "@/utils/auth-fetch";
+import { createSlice } from "@reduxjs/toolkit";
+import { createApiThunk, thunkApi, withQuery } from "@/utils/thunk-request";
 
 // Define the state interface
 interface ReminderState {
@@ -18,32 +18,20 @@ const initialState: ReminderState = {
 
 const BASE_URL = `/api/territory-reminders`;
 
-// Async thunk for fetching all reminders
-export const fetchReminders = createAsyncThunk<TerritoryReminder[]>(
+// Récupère tous les rappels
+export const fetchReminders = createApiThunk(
   "reminders/fetchAll",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await authFetch(BASE_URL);
-
-      if (!response.ok) {
-        return rejectWithValue("Erreur lors de la récupération des rappels");
-      }
-
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Une erreur inconnue s'est produite"
-      );
-    }
-  }
+  (_: void, { rejectWithValue }) =>
+    thunkApi(rejectWithValue).json<TerritoryReminder[]>(
+      BASE_URL,
+      "Erreur lors de la récupération des rappels"
+    )
 );
 
-// Async thunk for creating a reminder
-export const createReminder = createAsyncThunk(
+// Enregistre un rappel pour un territoire en retard
+export const createReminder = createApiThunk(
   "reminders/create",
-  async (
+  (
     {
       territoryId,
       personId,
@@ -54,47 +42,14 @@ export const createReminder = createAsyncThunk(
       notes?: string;
     },
     { rejectWithValue }
-  ) => {
-    try {
-      let url = `${BASE_URL}?territoryIds=${territoryId}&personId=${personId}`;
-      if (notes) {
-        url += `&notes=${encodeURIComponent(notes)}`;
-      }
-
-      const response = await authFetch(url, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        let message = "Failed to send reminder";
-        try {
-          const contentType = response.headers.get("content-type") || "";
-          if (contentType.includes("application/json")) {
-            const errorData = await response.json();
-            message =
-              (errorData && (errorData.message || errorData.error)) || message;
-          } else {
-            const text = await response.text();
-            message = text || message;
-          }
-        } catch {
-          // ignore parsing errors and keep default message
-        }
-        throw new Error(message);
-      }
-
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(
-        error instanceof Error
-          ? error.message
-          : "Impossible d'envoyer le rappel"
-      );
-    }
-  }
+  ) =>
+    thunkApi(rejectWithValue).json<TerritoryReminder>(
+      withQuery(BASE_URL, { territoryIds: territoryId, personId, notes }),
+      "Impossible d'enregistrer le rappel",
+      { method: "POST" }
+    )
 );
 
-// Create the slice
 const reminderSlice = createSlice({
   name: "reminders",
   initialState,

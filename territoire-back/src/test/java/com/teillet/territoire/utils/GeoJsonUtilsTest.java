@@ -1,7 +1,7 @@
 package com.teillet.territoire.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.enums.ReturnSource;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.enums.TerritoryType;
@@ -52,29 +52,29 @@ class GeoJsonUtilsTest {
 
 		JsonNode root = parse(GeoJsonUtils.convertToGeoJSON(List.of(territory)));
 
-		assertEquals("FeatureCollection", root.path("type").asText());
+		assertEquals("FeatureCollection", root.path("type").asString());
 		assertEquals(1, root.path("features").size());
 
 		JsonNode feature = root.path("features").get(0);
-		assertEquals("Feature", feature.path("type").asText());
+		assertEquals("Feature", feature.path("type").asString());
 		assertMultiPolygonSquare(feature.path("geometry"));
 
 		JsonNode properties = feature.path("properties");
 		assertEquals(Set.of("id", "name", "status", "city", "lastVisitedOn", "assignedTo", "assignedOn", "waitedFor", "type", "assignments", "lost"),
 				propertyNames(properties));
-		assertEquals(territory.getId().toString(), properties.path("id").asText());
-		assertEquals("Territoire 1", properties.path("name").asText());
-		assertEquals("ASSIGNED", properties.path("status").asText());
-		assertEquals("Rennes", properties.path("city").asText());
-		assertEquals("HOUSE", properties.path("type").asText());
-		assertEquals(TerritoryUtils.NOUVEAU, properties.path("lastVisitedOn").asText());
-		assertEquals("Jean Dupont", properties.path("assignedTo").asText());
-		assertEquals("2026-01-02", properties.path("assignedOn").asText());
-		assertEquals("2026-03-04", properties.path("waitedFor").asText());
+		assertEquals(territory.getId().toString(), properties.path("id").asString());
+		assertEquals("Territoire 1", properties.path("name").asString());
+		assertEquals("ASSIGNED", properties.path("status").asString());
+		assertEquals("Rennes", properties.path("city").asString());
+		assertEquals("HOUSE", properties.path("type").asString());
+		assertEquals(TerritoryUtils.NOUVEAU, properties.path("lastVisitedOn").asString());
+		assertEquals("Jean Dupont", properties.path("assignedTo").asString());
+		assertEquals("2026-01-02", properties.path("assignedOn").asString());
+		assertEquals("2026-03-04", properties.path("waitedFor").asString());
 		// Les attributions sont encodées par leur toString() : le front ne s'en sert pas, on vérifie juste la forme.
 		assertTrue(properties.path("assignments").isArray());
 		assertEquals(1, properties.path("assignments").size());
-		assertTrue(properties.path("assignments").get(0).isTextual());
+		assertTrue(properties.path("assignments").get(0).isString());
 	}
 
 	@Test
@@ -87,11 +87,11 @@ class GeoJsonUtilsTest {
 		JsonNode properties = parse(GeoJsonUtils.convertToGeoJSON(List.of(territory)))
 				.path("features").get(0).path("properties");
 
-		assertEquals("2026-02-15", properties.path("lastVisitedOn").asText());
-		assertEquals(TerritoryUtils.NA, properties.path("assignedTo").asText());
-		assertEquals(TerritoryUtils.NA, properties.path("assignedOn").asText());
-		assertEquals(TerritoryUtils.NA, properties.path("waitedFor").asText());
-		assertEquals("BUILDING", properties.path("type").asText());
+		assertEquals("2026-02-15", properties.path("lastVisitedOn").asString());
+		assertEquals(TerritoryUtils.NA, properties.path("assignedTo").asString());
+		assertEquals(TerritoryUtils.NA, properties.path("assignedOn").asString());
+		assertEquals(TerritoryUtils.NA, properties.path("waitedFor").asString());
+		assertEquals("BUILDING", properties.path("type").asString());
 		assertEquals(2, properties.path("assignments").size());
 	}
 
@@ -114,9 +114,9 @@ class GeoJsonUtilsTest {
 		JsonNode properties = parse(GeoJsonUtils.convertToGeoJSON(List.of(territory)))
 				.path("features").get(0).path("properties");
 
-		assertEquals("2025-10-01", properties.path("lastVisitedOn").asText());
-		assertEquals("2026-02-15", properties.path("assignedOn").asText());
-		assertEquals("2026-06-15", properties.path("waitedFor").asText());
+		assertEquals("2025-10-01", properties.path("lastVisitedOn").asString());
+		assertEquals("2026-02-15", properties.path("assignedOn").asString());
+		assertEquals("2026-06-15", properties.path("waitedFor").asString());
 	}
 
 	@Test
@@ -130,7 +130,7 @@ class GeoJsonUtilsTest {
 		JsonNode properties = feature.path("properties");
 		assertEquals(Set.of("id", "status", "city", "lastVisitedOn", "assignedTo", "assignedOn", "waitedFor", "assignments", "lost"),
 				propertyNames(properties));
-		assertEquals(TerritoryUtils.NA, properties.path("assignedTo").asText());
+		assertEquals(TerritoryUtils.NA, properties.path("assignedTo").asString());
 		assertTrue(properties.path("assignments").isArray());
 		assertEquals(0, properties.path("assignments").size());
 	}
@@ -144,7 +144,7 @@ class GeoJsonUtilsTest {
 		JsonNode features = parse(GeoJsonUtils.convertToGeoJSON(List.of(withMap, withoutMap))).path("features");
 
 		// Seul le type MIME est lu : l'image elle-même n'est chargée que par GET /api/territoires/{id}/carte
-		assertEquals(withMap.getId().toString(), features.get(0).path("properties").path("territoryMapId").asText());
+		assertEquals(withMap.getId().toString(), features.get(0).path("properties").path("territoryMapId").asString());
 		assertFalse(features.get(1).path("properties").has("territoryMapId"));
 	}
 
@@ -170,7 +170,7 @@ class GeoJsonUtilsTest {
 		JsonNode features = parse(GeoJsonUtils.convertToGeoJSON(List.of(withNote, withoutNote))).path("features");
 
 		// La recherche de la liste des territoires porte aussi sur la note
-		assertEquals("Digicode 1234B", features.get(0).path("properties").path("note").asText());
+		assertEquals("Digicode 1234B", features.get(0).path("properties").path("note").asString());
 		assertFalse(features.get(1).path("properties").has("note"));
 	}
 
@@ -182,16 +182,16 @@ class GeoJsonUtilsTest {
 		JsonNode features = parse(GeoJsonUtils.convertToGeoJSON(List.of(first, second))).path("features");
 
 		assertEquals(2, features.size());
-		assertEquals(first.getId().toString(), features.get(0).path("properties").path("id").asText());
-		assertEquals(second.getId().toString(), features.get(1).path("properties").path("id").asText());
-		assertEquals("LATE", features.get(1).path("properties").path("status").asText());
+		assertEquals(first.getId().toString(), features.get(0).path("properties").path("id").asString());
+		assertEquals(second.getId().toString(), features.get(1).path("properties").path("id").asString());
+		assertEquals("LATE", features.get(1).path("properties").path("status").asString());
 	}
 
 	@Test
 	void convertToGeoJSON_territories_emptyList() throws Exception {
 		JsonNode root = parse(GeoJsonUtils.convertToGeoJSON(List.<Territory>of()));
 
-		assertEquals("FeatureCollection", root.path("type").asText());
+		assertEquals("FeatureCollection", root.path("type").asString());
 		assertTrue(root.path("features").isArray());
 		assertEquals(0, root.path("features").size());
 	}
@@ -205,33 +205,33 @@ class GeoJsonUtilsTest {
 
 		JsonNode root = parse(GeoJsonUtils.convertToGeoJSON(List.of(block1, block2), square(-1.123456789, 48.123456789)));
 
-		assertEquals("FeatureCollection", root.path("type").asText());
+		assertEquals("FeatureCollection", root.path("type").asString());
 		JsonNode features = root.path("features");
 		assertEquals(3, features.size());
 
 		// Les pâtés : Polygon, id du pâté et type BLOCK
 		JsonNode firstBlock = features.get(0);
-		assertEquals("Polygon", firstBlock.path("geometry").path("type").asText());
+		assertEquals("Polygon", firstBlock.path("geometry").path("type").asString());
 		JsonNode ring = firstBlock.path("geometry").path("coordinates").get(0);
 		assertEquals(5, ring.size());
 		assertPoint(ring.get(0), -1.123457, 48.123457);
 		assertEquals(ring.get(0), ring.get(4));
 		assertAtMostSixDecimals(firstBlock.path("geometry").path("coordinates"));
 		assertEquals(Set.of("id", "type"), propertyNames(firstBlock.path("properties")));
-		assertEquals(block1.getId().toString(), firstBlock.path("properties").path("id").asText());
-		assertEquals(GeoJsonUtils.BLOCK, firstBlock.path("properties").path("type").asText());
+		assertEquals(block1.getId().toString(), firstBlock.path("properties").path("id").asString());
+		assertEquals(GeoJsonUtils.BLOCK, firstBlock.path("properties").path("type").asString());
 
 		JsonNode secondBlock = features.get(1);
-		assertEquals("Polygon", secondBlock.path("geometry").path("type").asText());
+		assertEquals("Polygon", secondBlock.path("geometry").path("type").asString());
 		// Anneau extérieur + trou
 		assertEquals(2, secondBlock.path("geometry").path("coordinates").size());
-		assertEquals(block2.getId().toString(), secondBlock.path("properties").path("id").asText());
+		assertEquals(block2.getId().toString(), secondBlock.path("properties").path("id").asString());
 
 		// L'enveloppe concave en dernier : MultiPolygon, type CONCAVE_HULL, sans id (null donc omis)
 		JsonNode hull = features.get(2);
 		assertMultiPolygonSquare(hull.path("geometry"));
 		assertEquals(Set.of("type"), propertyNames(hull.path("properties")));
-		assertEquals(GeoJsonUtils.CONCAVE_HULL, hull.path("properties").path("type").asText());
+		assertEquals(GeoJsonUtils.CONCAVE_HULL, hull.path("properties").path("type").asString());
 	}
 
 	@Test
@@ -241,7 +241,7 @@ class GeoJsonUtilsTest {
 		JsonNode features = parse(GeoJsonUtils.convertToGeoJSON(List.of(block), null)).path("features");
 
 		assertEquals(1, features.size());
-		assertEquals(GeoJsonUtils.BLOCK, features.get(0).path("properties").path("type").asText());
+		assertEquals(GeoJsonUtils.BLOCK, features.get(0).path("properties").path("type").asString());
 	}
 
 	@Test
@@ -249,8 +249,8 @@ class GeoJsonUtilsTest {
 		JsonNode features = parse(GeoJsonUtils.convertToGeoJSON(List.of(), square(3, 47))).path("features");
 
 		assertEquals(1, features.size());
-		assertEquals("MultiPolygon", features.get(0).path("geometry").path("type").asText());
-		assertEquals(GeoJsonUtils.CONCAVE_HULL, features.get(0).path("properties").path("type").asText());
+		assertEquals("MultiPolygon", features.get(0).path("geometry").path("type").asString());
+		assertEquals(GeoJsonUtils.CONCAVE_HULL, features.get(0).path("properties").path("type").asString());
 	}
 
 	// ---------- convertToGeoJSONCampaign ----------
@@ -264,7 +264,7 @@ class GeoJsonUtilsTest {
 
 		JsonNode root = parse(GeoJsonUtils.convertToGeoJSONCampaign(List.of(done, remaining), List.of(remainingCopy)));
 
-		assertEquals("FeatureCollection", root.path("type").asText());
+		assertEquals("FeatureCollection", root.path("type").asString());
 		JsonNode features = root.path("features");
 		assertEquals(2, features.size());
 
@@ -272,15 +272,15 @@ class GeoJsonUtilsTest {
 		assertMultiPolygonSquare(doneFeature.path("geometry"));
 		JsonNode doneProperties = doneFeature.path("properties");
 		assertEquals(Set.of("id", "name", "type", "usedInCampaign"), propertyNames(doneProperties));
-		assertEquals(done.getId().toString(), doneProperties.path("id").asText());
-		assertEquals("Fait", doneProperties.path("name").asText());
-		assertEquals("HOUSE", doneProperties.path("type").asText());
+		assertEquals(done.getId().toString(), doneProperties.path("id").asString());
+		assertEquals("Fait", doneProperties.path("name").asString());
+		assertEquals("HOUSE", doneProperties.path("type").asString());
 		assertTrue(doneProperties.path("usedInCampaign").isBoolean());
 		assertTrue(doneProperties.path("usedInCampaign").booleanValue());
 
 		JsonNode remainingProperties = features.get(1).path("properties");
-		assertEquals(remaining.getId().toString(), remainingProperties.path("id").asText());
-		assertEquals("BUILDING", remainingProperties.path("type").asText());
+		assertEquals(remaining.getId().toString(), remainingProperties.path("id").asString());
+		assertEquals("BUILDING", remainingProperties.path("type").asString());
 		assertTrue(remainingProperties.path("usedInCampaign").isBoolean());
 		assertFalse(remainingProperties.path("usedInCampaign").booleanValue());
 	}
@@ -305,7 +305,7 @@ class GeoJsonUtilsTest {
 
 		JsonNode root = parse(GeoJsonUtils.convertToGeoJSONCoverage(List.of(visited, notVisited), Set.of(notVisited.getId())));
 
-		assertEquals("FeatureCollection", root.path("type").asText());
+		assertEquals("FeatureCollection", root.path("type").asString());
 		JsonNode features = root.path("features");
 		assertEquals(2, features.size());
 
@@ -313,15 +313,15 @@ class GeoJsonUtilsTest {
 		assertMultiPolygonSquare(visitedFeature.path("geometry"));
 		JsonNode visitedProperties = visitedFeature.path("properties");
 		assertEquals(Set.of("id", "name", "city", "type", "parcouru"), propertyNames(visitedProperties));
-		assertEquals(visited.getId().toString(), visitedProperties.path("id").asText());
-		assertEquals("Parcouru", visitedProperties.path("name").asText());
-		assertEquals("Rennes", visitedProperties.path("city").asText());
-		assertEquals("HOUSE", visitedProperties.path("type").asText());
+		assertEquals(visited.getId().toString(), visitedProperties.path("id").asString());
+		assertEquals("Parcouru", visitedProperties.path("name").asString());
+		assertEquals("Rennes", visitedProperties.path("city").asString());
+		assertEquals("HOUSE", visitedProperties.path("type").asString());
 		assertTrue(visitedProperties.path("parcouru").isBoolean());
 		assertTrue(visitedProperties.path("parcouru").booleanValue());
 
 		JsonNode notVisitedProperties = features.get(1).path("properties");
-		assertEquals(notVisited.getId().toString(), notVisitedProperties.path("id").asText());
+		assertEquals(notVisited.getId().toString(), notVisitedProperties.path("id").asString());
 		assertTrue(notVisitedProperties.path("parcouru").isBoolean());
 		assertFalse(notVisitedProperties.path("parcouru").booleanValue());
 	}
@@ -344,9 +344,7 @@ class GeoJsonUtilsTest {
 	}
 
 	private static Set<String> propertyNames(JsonNode node) {
-		Set<String> names = new HashSet<>();
-		node.fieldNames().forEachRemaining(names::add);
-		return names;
+		return new HashSet<>(node.propertyNames());
 	}
 
 	private Territory territory(String name, TerritoryStatus status, TerritoryType type, MultiPolygon concaveHull) {
@@ -398,7 +396,7 @@ class GeoJsonUtilsTest {
 
 	/** Vérifie un MultiPolygon issu de {@link #square(double, double)} avec le coin (-1.123456789, 48.123456789). */
 	private static void assertMultiPolygonSquare(JsonNode geometry) {
-		assertEquals("MultiPolygon", geometry.path("type").asText());
+		assertEquals("MultiPolygon", geometry.path("type").asString());
 		JsonNode coordinates = geometry.path("coordinates");
 		assertEquals(1, coordinates.size(), "un seul polygone");
 		assertEquals(1, coordinates.get(0).size(), "un seul anneau");

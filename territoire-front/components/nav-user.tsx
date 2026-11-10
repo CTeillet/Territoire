@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useIsClient } from "@/hooks/use-is-client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarMenuButton } from "./ui/sidebar";
 import {
@@ -18,15 +19,11 @@ import { logoutRequest } from "@/utils/auth-fetch";
 import { useRouter } from "next/navigation";
 
 function NavUser() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [passwordOpen, setPasswordOpen] = useState(false);
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
   const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Attendre que le composant soit monté avant d'afficher quoi que ce soit
   if (!mounted || !user || !user.username || !user.email) return null;
