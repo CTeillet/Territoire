@@ -138,7 +138,7 @@ public class CampaignService implements ICampaignService {
 
         // Get all available territories
         log.info("Récupération de tous les territoires disponibles");
-        List<Territory> availableTerritories = territoryRepository.findAll();
+        List<Territory> availableTerritories = territoryRepository.findByArchivedAtIsNull();
         log.info("{} territoires trouvés pour la campagne", availableTerritories.size());
         campaign.setTerritories(new ArrayList<>(availableTerritories));
 

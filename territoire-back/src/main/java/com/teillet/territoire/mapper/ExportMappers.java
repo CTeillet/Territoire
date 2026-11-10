@@ -62,6 +62,7 @@ public class ExportMappers {
 				city.getTerritories().stream()
 						.filter(Objects::nonNull)
 						.map(t -> toExportDto(t, start, end))
+						.filter(Objects::nonNull)
 						.sorted(Comparator.comparing(TerritoryExportDto::getName))
 						.toList();
 
@@ -82,6 +83,9 @@ public class ExportMappers {
 				.filter(entry -> entry.overlaps(start, end))
 				.map(ExportMappers::toExportDto)
 				.toList();
+
+		// Territoire archivé : au registre seulement les années où il a servi
+		if (t.getArchivedAt() != null && assignments.isEmpty()) return null;
 
 		TerritoryExportDto dto = new TerritoryExportDto();
 		dto.setName(t.getName());

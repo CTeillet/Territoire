@@ -22,6 +22,7 @@ import {
 import { PhysicalCardDialog } from "@/components/territory/id/physical-card-dialog";
 import { CardHistoryDialog } from "@/components/territory/id/card-history-dialog";
 import { canManageTerritoryCards } from "@/models/role";
+import { Notice } from "@/components/shared/notice";
 
 // Chargement dynamique de la carte (évite les erreurs SSR)
 const TerritoryIdMap = dynamic(
@@ -92,6 +93,16 @@ const TerritoryPage = () => {
       <div className="mx-auto max-w-5xl space-y-6">
         <BackLink href="/territoires" label="Retour aux territoires" />
 
+        {selectedTerritory.archivedAt && (
+          <Notice tone="warning" role="status">
+            Territoire archivé le{" "}
+            {new Date(selectedTerritory.archivedAt).toLocaleDateString("fr-FR")}{" "}
+            : il n&apos;apparaît plus dans les listes, les cartes ni les
+            statistiques. Il se restaure depuis Paramètres &gt; Données &gt;
+            Archives.
+          </Notice>
+        )}
+
         {/* Header du territoire */}
         <TerritoryHeader
           name={selectedTerritory.name}
@@ -103,6 +114,7 @@ const TerritoryPage = () => {
           territoryId={selectedTerritory.id}
           territoryMapId={selectedTerritory.territoryMapId}
           lost={selectedTerritory.lost}
+          hasHistory={(selectedTerritory.assignments?.length ?? 0) > 0}
         />
 
         {/* Carte du territoire (GeoJSON) */}

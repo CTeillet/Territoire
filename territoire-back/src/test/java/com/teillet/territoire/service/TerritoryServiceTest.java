@@ -148,7 +148,7 @@ class TerritoryServiceTest {
 		pendingTerritory.setStatus(TerritoryStatus.PENDING);
 		pendingTerritory.setAssignments(List.of(oldAssignment));
 
-		when(territoryRepository.findByStatus(TerritoryStatus.PENDING)).thenReturn(List.of(pendingTerritory));
+		when(territoryRepository.findByStatusAndArchivedAtIsNull(TerritoryStatus.PENDING)).thenReturn(List.of(pendingTerritory));
 		when(territoryRepository.save(any(Territory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		territoryService.releasePendingTerritories();
@@ -164,7 +164,7 @@ class TerritoryServiceTest {
 		returnedFiveMonthsAgo.setId(UUID.randomUUID());
 		returnedFiveMonthsAgo.setStatus(TerritoryStatus.PENDING);
 		returnedFiveMonthsAgo.setAssignments(List.of(Assignment.builder().returnDate(LocalDate.now().minusMonths(5)).build()));
-		when(territoryRepository.findByStatus(TerritoryStatus.PENDING)).thenReturn(List.of(returnedFiveMonthsAgo));
+		when(territoryRepository.findByStatusAndArchivedAtIsNull(TerritoryStatus.PENDING)).thenReturn(List.of(returnedFiveMonthsAgo));
 
 		territoryService.releasePendingTerritories();
 
@@ -197,7 +197,7 @@ class TerritoryServiceTest {
 				Assignment.builder().returnDate(null).build(),
 				Assignment.builder().returnDate(LocalDate.now().minusMonths(6)).build()));
 
-		when(territoryRepository.findByStatus(TerritoryStatus.PENDING))
+		when(territoryRepository.findByStatusAndArchivedAtIsNull(TerritoryStatus.PENDING))
 				.thenReturn(List.of(withoutAssignment, recentlyReturned, oldReturned));
 		when(territoryRepository.save(any(Territory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

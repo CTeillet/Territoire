@@ -20,6 +20,8 @@ public class TerritoryDto {
 	private String geojson;
 	private String note;
 	private boolean lost;
+	/** Date d'archivage (ISO) ; null pour un territoire en service. */
+	private String archivedAt;
 	private String lastVisitedOn;
 	private String assignedTo;
 	private String assignedOn;

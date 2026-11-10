@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Save, X } from "lucide-react";
 import { Person } from "@/models/person";
 import DeletePersonButton from "./delete-person-button";
+import { ArchivePersonButton } from "./archive-person-button";
 
 interface PersonActionsProps {
   person: Person;
@@ -38,6 +39,7 @@ const PersonActions = ({
         <Pencil aria-hidden="true" />
         Modifier
       </Button>
+      <ArchivePersonButton person={person} onArchived={onDeleted} />
       <DeletePersonButton person={person} onDeleted={onDeleted} showLabel />
     </>
   );

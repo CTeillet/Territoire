@@ -1,5 +1,6 @@
 package com.teillet.territoire.controller;
 
+import com.teillet.territoire.dto.ArchivedTerritoryDto;
 import com.teillet.territoire.dto.*;
 import com.teillet.territoire.exception.NotFoundException;
 import com.teillet.territoire.mapper.TerritoryMapper;
@@ -170,6 +171,29 @@ class TerritoryController {
 	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
 	public void deleteAddressNotToDo(@PathVariable UUID territoryId, @PathVariable UUID addressId) {
 		addressNotToDoService.deleteAddressNotToDo(territoryId, addressId);
+	}
+
+	/** Archive un territoire : il disparaît des listes et des statistiques, son historique reste. */
+	@PostMapping("/{territoryId}/archiver")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public ResponseEntity<Void> archiveTerritory(@PathVariable UUID territoryId) {
+		log.info("Archivage du territoire {}", territoryId);
+		territoryService.archiveTerritory(territoryId);
+		return ResponseEntity.noContent().build();
+	}
+
+	@PostMapping("/{territoryId}/restaurer")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public ResponseEntity<Void> restoreTerritory(@PathVariable UUID territoryId) {
+		log.info("Restauration du territoire {}", territoryId);
+		territoryService.restoreTerritory(territoryId);
+		return ResponseEntity.noContent().build();
+	}
+
+	@GetMapping("/archives")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('SUPERVISEUR')")
+	public List<ArchivedTerritoryDto> getArchivedTerritories() {
+		return territoryService.getArchivedTerritories();
 	}
 
 	@PutMapping("/verification-disponible")

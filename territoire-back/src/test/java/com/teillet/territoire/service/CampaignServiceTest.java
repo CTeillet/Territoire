@@ -115,7 +115,7 @@ class CampaignServiceTest {
 				.endDate(LocalDate.of(2024, 4, 1))
 				.build();
 
-		when(territoryRepository.findAll()).thenReturn(List.of(territory1, territory2));
+		when(territoryRepository.findByArchivedAtIsNull()).thenReturn(List.of(territory1, territory2));
 		when(campaignRepository.save(any(Campaign.class))).thenAnswer(invocation -> {
 			Campaign c = invocation.getArgument(0);
 			c.setId(UUID.randomUUID());

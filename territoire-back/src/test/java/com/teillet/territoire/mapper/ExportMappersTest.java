@@ -133,6 +133,23 @@ class ExportMappersTest {
 	}
 
 	@Test
+	void anArchivedTerritoryAppearsOnlyInTheYearsItWasUsed() {
+		Territory usedThisYear = territory("A-Utilise",
+				assignment(jean, LocalDate.of(2025, 10, 1), LocalDate.of(2025, 12, 1), ReturnSource.RESPONSABLE));
+		usedThisYear.setArchivedAt(java.time.Instant.parse("2026-01-15T10:00:00Z"));
+		Territory unusedThisYear = territory("A-Ancien",
+				assignment(jean, LocalDate.of(2023, 10, 1), LocalDate.of(2023, 12, 1), ReturnSource.RESPONSABLE));
+		unusedThisYear.setArchivedAt(java.time.Instant.parse("2024-01-15T10:00:00Z"));
+		City city = City.builder().name("Rennes")
+				.territories(new ArrayList<>(List.of(usedThisYear, unusedThisYear, territory("En-service")))).build();
+
+		List<String> names = ExportMappers.toExportDto(city, START, END).getTerritories().stream()
+				.map(TerritoryExportDto::getName).toList();
+
+		assertEquals(List.of("A-Utilise", "En-service"), names);
+	}
+
+	@Test
 	void missingDataGivesEmptyResults() {
 		assertTrue(ExportMappers.toExportDtos(null, START, END).isEmpty());
 		assertNull(ExportMappers.toExportDto((City) null, START, END));

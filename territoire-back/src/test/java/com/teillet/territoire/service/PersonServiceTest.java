@@ -33,11 +33,15 @@ class PersonServiceTest {
 	@Mock
 	private com.teillet.territoire.repository.PersonAccessRepository personAccessRepository;
 
+	@Mock
+	private com.teillet.territoire.repository.TerritoryRequestRepository territoryRequestRepository;
+
 	private PersonService personService;
 
 	@BeforeEach
 	void setUp() {
-		personService = new PersonService(personRepository, assignmentRepository, reminderRepository, personAccessRepository);
+		personService = new PersonService(personRepository, assignmentRepository, reminderRepository, personAccessRepository,
+				territoryRequestRepository);
 	}
 
 	@Test
@@ -54,7 +58,7 @@ class PersonServiceTest {
 		Person p1 = Person.builder().id(UUID.randomUUID()).firstName("John").lastName("Doe").build();
 		Person p2 = Person.builder().id(UUID.randomUUID()).firstName("Jane").lastName("Smith").build();
 
-		when(personRepository.findAll()).thenReturn(List.of(p1, p2));
+		when(personRepository.findByArchivedAtIsNull()).thenReturn(List.of(p1, p2));
 
 		List<Person> result = personService.getAllPersons();
 		assertEquals(2, result.size());

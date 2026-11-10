@@ -59,6 +59,14 @@ public class Territory {
 	@Column(nullable = false)
 	private boolean lost;
 
+	/**
+	 * Archivé : remplace la suppression d'un territoire qui a un historique d'attributions. Les listes, cartes,
+	 * statistiques et campagnes ne prennent que les territoires non archivés (requêtes de TerritoryRepository) ; ses
+	 * attributions restent dans l'historique des personnes et le registre des années où il a servi.
+	 */
+	@Column(name = "archived_at")
+	private java.time.Instant archivedAt;
+
 	@OneToMany(mappedBy = "territory", orphanRemoval = true)
 	@JsonManagedReference
 	@ToString.Exclude

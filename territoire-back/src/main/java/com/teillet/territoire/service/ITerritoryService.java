@@ -1,5 +1,6 @@
 package com.teillet.territoire.service;
 
+import com.teillet.territoire.dto.ArchivedTerritoryDto;
 import com.teillet.territoire.dto.*;
 import com.teillet.territoire.enums.TerritoryStatus;
 import com.teillet.territoire.model.Territory;
@@ -47,7 +48,15 @@ public interface ITerritoryService {
 	TerritoryDto updateLost(UUID id, boolean lost) throws IOException;
 
 	@Transactional
+	/** Suppression d'un territoire sans historique ; avec un historique, il faut l'archiver. */
 	void deleteTerritory(UUID id);
+
+	/** Archive un territoire (sans attribution en cours) : il disparaît des listes, son historique reste. */
+	void archiveTerritory(UUID id);
+
+	void restoreTerritory(UUID id);
+
+	List<ArchivedTerritoryDto> getArchivedTerritories();
 
     long countTerritoriesNotAssignedSince(LocalDate startDate, LocalDate endDate);
 
