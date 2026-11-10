@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import { hydrateRoot } from "react-dom/client";
 import { useSelector } from "react-redux";
 import PublicAccessLayout, {
   metadata as publicMetadata,
@@ -56,6 +58,39 @@ describe("Mises en page", () => {
     expect(
       screen.getByRole("button", { name: "Toggle Sidebar" })
     ).toBeInTheDocument();
+  });
+
+  it("ne rend la page qu'après l'hydratation : la session, inconnue du serveur, ne la fait plus échouer", async () => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    // Comme la page Paramètres : le serveur, sans session, rendrait d'autres onglets que le navigateur
+    const html = renderToString(
+      <AppLayout>
+        <p>Données</p>
+      </AppLayout>
+    );
+    expect(html).not.toContain("Données");
+
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    const recoverable = vi.fn();
+    await act(async () => {
+      hydrateRoot(
+        container,
+        <AppLayout>
+          <p>Accès numériques</p>
+        </AppLayout>,
+        { onRecoverableError: recoverable }
+      );
+    });
+
+    expect(within(container).getByText("Accès numériques")).toBeInTheDocument();
+    expect(recoverable).not.toHaveBeenCalled();
+    container.remove();
   });
 
   it("la mise en page racine déclare la langue, les polices et le manifeste PWA", () => {
