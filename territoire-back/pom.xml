@@ -65,10 +65,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-jackson2</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
@@ -161,7 +157,8 @@
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
+            <!-- Sérialisation des jetons par Gson : jjwt n'a pas de module Jackson 3 -->
+            <artifactId>jjwt-gson</artifactId>
             <version>0.13.0</version>
             <scope>runtime</scope>
         </dependency>

@@ -1,6 +1,6 @@
 package com.teillet.territoire.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.teillet.territoire.service.IWahaClient;
 import io.micrometer.core.instrument.binder.okhttp3.OkHttpObservationInterceptor;
 import io.micrometer.observation.ObservationRegistry;
