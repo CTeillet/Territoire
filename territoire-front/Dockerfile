@@ -19,6 +19,13 @@ ENV PORT=3000
 # Écoute sur toutes les interfaces (Docker définit sinon HOSTNAME à l'identifiant du conteneur)
 ENV HOSTNAME=0.0.0.0
 
+# Pas de gestionnaire de paquets en production : le serveur standalone n'utilise ni npm, ni corepack, ni yarn, livrés
+# avec l'image Node. Les retirer enlève aussi les failles de leurs propres dépendances, relevées par Trivy (undici,
+# brace-expansion...). apk upgrade applique les correctifs d'Alpine parus depuis la publication de l'image de base.
+RUN apk upgrade --no-cache \
+  && rm -rf /usr/local/lib/node_modules /opt/yarn-* \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
+
 # Exécution sans les droits root (utilisateur "node" fourni par l'image)
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
