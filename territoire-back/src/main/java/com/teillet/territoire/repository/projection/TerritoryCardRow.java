@@ -4,8 +4,8 @@ package com.teillet.territoire.repository.projection;
 public interface TerritoryCardRow {
     String getName();
     String getCityName();
-    /** Contour du territoire en EPSG:3857 (ST_AsBinary) ; null tant qu'aucun pâté n'est dessiné. */
-    byte[] getHullWkb();
+    /** Pâtés du territoire en EPSG:3857, réunis sans être fusionnés (ST_AsBinary) ; null tant qu'aucun n'est dessiné. */
+    byte[] getBlocksWkb();
     /** Nombre d'adresses à ne pas visiter. */
     Long getAddressesNotToDo();
 }
