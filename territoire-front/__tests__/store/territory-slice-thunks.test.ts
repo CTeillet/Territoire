@@ -155,6 +155,83 @@ describe("territory-slice : thunks et reducers", () => {
       );
     });
 
+    it("fetchTerritories en arrière-plan : remplace la liste sans indicateur de chargement, la garde en cas d'échec", async () => {
+      const store = newStore({ territoriesGeojson: collection("LATE") });
+
+      authFetch.mockResolvedValueOnce(ok(collection("PENDING")));
+      const refresh = store.dispatch(fetchTerritories({ background: true }));
+      expect(store.getState().territories.loading).toBe(false);
+      await refresh;
+      expect(
+        store.getState().territories.territoriesGeojson?.features[0].properties
+          .status
+      ).toBe("PENDING");
+
+      authFetch.mockResolvedValueOnce(failing());
+      await store.dispatch(fetchTerritories({ background: true }));
+      expect(
+        store.getState().territories.territoriesGeojson?.features
+      ).toHaveLength(1);
+      expect(store.getState().territories.error).toBeNull();
+    });
+
+    it("fetchTerritories en arrière-plan : laisse l'indicateur d'un chargement ordinaire en cours", async () => {
+      const store = newStore({ territoriesGeojson: collection() });
+      let answer: (response: Response) => void = () => {};
+      authFetch.mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          answer = resolve;
+        })
+      );
+      authFetch.mockResolvedValueOnce(ok(collection("PENDING")));
+
+      const load = store.dispatch(fetchTerritories());
+      await store.dispatch(fetchTerritories({ background: true }));
+      expect(store.getState().territories.loading).toBe(true);
+
+      answer(ok(collection("PENDING")));
+      await load;
+      expect(store.getState().territories.loading).toBe(false);
+    });
+
+    it("fetchTerritoryById : met à jour le territoire dans la liste, rendu depuis un autre appareil", async () => {
+      const store = newStore({
+        territoriesGeojson: {
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: { type: "Polygon", coordinates: [] },
+              properties: territory({
+                status: "LATE",
+                assignedTo: "Jean Dupont",
+                assignedOn: "2026-06-01",
+                waitedFor: "2026-10-01",
+                // La liste reçoit la ville en texte
+                city: "Rennes" as unknown as Territory["city"],
+              }),
+            },
+          ],
+        },
+      });
+      authFetch.mockResolvedValueOnce(
+        ok(territory({ status: "PENDING", lastVisitedOn: "2026-11-24" }))
+      );
+
+      await store.dispatch(fetchTerritoryById("t1"));
+
+      const listed =
+        store.getState().territories.territoriesGeojson?.features[0].properties;
+      expect(listed).toMatchObject({
+        status: "PENDING",
+        assignedTo: "N/A",
+        assignedOn: "N/A",
+        waitedFor: "N/A",
+        lastVisitedOn: "2026-11-24",
+        city: "Rennes",
+      });
+    });
+
     it("fetchTerritoryById : sélectionne le territoire ou signale l'erreur", async () => {
       const store = newStore();
       authFetch.mockResolvedValueOnce(ok(territory()));

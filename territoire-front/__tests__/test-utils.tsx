@@ -106,7 +106,8 @@ type Route = unknown | ((init?: RequestInit) => unknown);
 
 /**
  * Faux backend pour authFetch : clé « MÉTHODE /chemin » (le chemin peut être un préfixe, sans la query).
- * Une valeur Response est renvoyée telle quelle, une fonction est appelée avec l'init, sinon le corps JSON est renvoyé.
+ * Une valeur Response est renvoyée telle quelle, une fonction est appelée avec l'init (elle peut renvoyer une promesse :
+ * réponse qui se fait attendre), sinon le corps JSON est renvoyé.
  * Les routes inconnues répondent 404.
  */
 export function mockApi(routes: Record<string, Route>) {
@@ -132,7 +133,7 @@ export function mockApi(routes: Record<string, Route>) {
       const route = routes[key];
       const value =
         typeof route === "function"
-          ? (route as (i?: RequestInit) => unknown)(init)
+          ? await (route as (i?: RequestInit) => unknown)(init)
           : route;
       return value &&
         typeof value === "object" &&
