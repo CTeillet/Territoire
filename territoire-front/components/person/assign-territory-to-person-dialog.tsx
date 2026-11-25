@@ -68,7 +68,10 @@ export function AssignTerritoryToPersonDialog({
   const fullName = `${person.firstName} ${person.lastName}`;
 
   useEffect(() => {
-    if (open && !territoriesGeojson && !loading) dispatch(fetchTerritories());
+    if (!open) return;
+    // Liste déjà chargée : actualisée, un territoire a pu être attribué ou rendu depuis un autre appareil
+    if (territoriesGeojson) dispatch(fetchTerritories({ background: true }));
+    else if (!loading) dispatch(fetchTerritories());
     // Chargement à l'ouverture seulement
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
