@@ -88,22 +88,23 @@ describe("territory slice", () => {
 
   describe("reducers with async actions", () => {
     it("should handle fetchTerritories lifecycle", () => {
-      const pending = territoryReducer(initialState, {
-        type: fetchTerritories.pending.type,
-      });
+      const pending = territoryReducer(
+        initialState,
+        fetchTerritories.pending("r1", undefined)
+      );
       expect(pending.loading).toBe(true);
 
-      const fulfilled = territoryReducer(pending, {
-        type: fetchTerritories.fulfilled.type,
-        payload: dummyCollection,
-      });
+      const fulfilled = territoryReducer(
+        pending,
+        fetchTerritories.fulfilled(dummyCollection, "r1", undefined)
+      );
       expect(fulfilled.loading).toBe(false);
       expect(fulfilled.territoriesGeojson).toEqual(dummyCollection);
 
-      const rejected = territoryReducer(pending, {
-        type: fetchTerritories.rejected.type,
-        payload: "Erreur territoires",
-      });
+      const rejected = territoryReducer(
+        pending,
+        fetchTerritories.rejected(null, "r1", undefined, "Erreur territoires")
+      );
       expect(rejected.loading).toBe(false);
       expect(rejected.error).toBe("Erreur territoires");
     });

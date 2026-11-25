@@ -116,8 +116,15 @@ describe("Recherche rapide", () => {
     ).toBeInTheDocument();
   });
 
-  it("ne recharge pas les listes déjà connues", async () => {
-    renderWithStore(<QuickSearch />, "ADMIN", {
+  it("affiche tout de suite les listes connues et actualise les territoires, rendus depuis un autre appareil", async () => {
+    let answer: (body: unknown) => void = () => {};
+    api = mockApi({
+      "GET /api/territoires/geojson": () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    });
+    const { store } = renderWithStore(<QuickSearch />, "ADMIN", {
       territories: { territoriesGeojson: territories as never },
       persons: { persons: persons as never },
     });
@@ -125,9 +132,21 @@ describe("Recherche rapide", () => {
 
     await userEvent.type(searchBox(), "v-01");
     expect(
-      await within(dialog()).findByRole("option", { name: /V-01/ })
+      await within(dialog()).findByRole("option", { name: /V-01.*En retard/ })
     ).toBeInTheDocument();
-    expect(api).not.toHaveBeenCalled();
+    // Actualisation discrète : les pages derrière la recherche gardent leur tableau
+    expect(store.getState().territories.loading).toBe(false);
+
+    // V-01 rendu depuis le téléphone : il n'est plus en retard
+    act(() =>
+      answer({ ...territories, features: [feature("t3", "V-01", "PENDING")] })
+    );
+
+    expect(
+      await within(dialog()).findByRole("option", { name: /V-01.*En attente/ })
+    ).toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith("/api/territoires/geojson");
+    expect(api).not.toHaveBeenCalledWith("/api/personnes");
   });
 
   it("n'existe pas sans utilisateur connecté", async () => {

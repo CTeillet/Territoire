@@ -51,7 +51,8 @@ export function useQuickSearchShortcut() {
 
 /**
  * Recherche rapide (Ctrl+K ou ⌘K, ou les boutons « Rechercher ») : territoires, personnes et rubriques,
- * depuis n'importe quelle page. Les territoires et les personnes sont chargés à la première ouverture.
+ * depuis n'importe quelle page. Les territoires et les personnes sont chargés à la première ouverture ; les
+ * territoires sont ensuite actualisés à chaque ouverture.
  */
 export function QuickSearch() {
   const { isAuthenticated, user } = useAuth();
@@ -90,7 +91,10 @@ export function QuickSearch() {
 
   useEffect(() => {
     if (!open || !isAuthenticated) return;
-    if (!territories && !territoriesLoading) dispatch(fetchTerritories());
+    // Territoires déjà chargés : affichés tout de suite et actualisés, leur statut a pu changer depuis un autre
+    // appareil (territoire rendu depuis le téléphone, par exemple)
+    if (territories) dispatch(fetchTerritories({ background: true }));
+    else if (!territoriesLoading) dispatch(fetchTerritories());
     if (persons.length === 0) dispatch(fetchPersons());
     // Chargement à l'ouverture seulement, pas à chaque mise à jour des listes
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -67,6 +67,26 @@ const updateTerritoryEverywhere = (
   updateSelectedIfSame(state, affectedId, updater);
 };
 
+/**
+ * La fiche d'un territoire, rechargée, met à jour ce territoire dans la liste : celle-ci peut dater d'avant un retour
+ * ou une attribution faits depuis un autre appareil. Seuls les champs calculés de la même façon par le back pour les
+ * deux sont repris : la liste reçoit la ville en texte et les attributions sous une autre forme.
+ */
+const syncListedTerritory = (state: TerritoryState, fresh: Territory) => {
+  const listed = findFeatureById(state, fresh.id)?.properties;
+  if (!listed) return;
+  listed.name = fresh.name;
+  listed.status = fresh.status;
+  listed.type = fresh.type;
+  listed.note = fresh.note;
+  listed.lost = fresh.lost;
+  listed.territoryMapId = fresh.territoryMapId;
+  listed.lastVisitedOn = fresh.lastVisitedOn;
+  listed.assignedTo = fresh.assignedTo;
+  listed.assignedOn = fresh.assignedOn;
+  listed.waitedFor = fresh.waitedFor;
+};
+
 /** Remplace l'attribution de même identifiant, ou l'ajoute si elle n'est pas encore connue. */
 const upsertAssignment = (t: Territory, updated: Assignment) => {
   const assignments = Array.isArray(t.assignments) ? t.assignments : [];
@@ -318,9 +338,15 @@ export const makeTerritoryAvailable = createApiThunk(
     )) ?? territoryId
 );
 
+/**
+ * Liste de tous les territoires. `background` : actualisation d'une liste déjà chargée, sans l'indicateur `loading`
+ * (les pages remplaceraient leur tableau par le chargement) ; en cas d'échec, la liste connue reste affichée.
+ * Utile là où la liste sert telle quelle à l'ouverture (recherche rapide…) : elle peut dater d'avant un retour ou
+ * une attribution faits depuis un autre appareil.
+ */
 export const fetchTerritories = createApiThunk(
   "territories/fetchGeoJson",
-  (_: void, { rejectWithValue }) =>
+  (_options: { background?: boolean } | undefined, { rejectWithValue }) =>
     thunkApi(rejectWithValue).json<TerritoryCollection>(
       `${BASE_URL}/geojson`,
       "Erreur lors de la récupération des territoires (GeoJSON)"
@@ -404,15 +430,18 @@ const territorySlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Récupération des territoires en GeoJSON
-      .addCase(fetchTerritories.pending, (state) => {
+      .addCase(fetchTerritories.pending, (state, action) => {
+        if (action.meta.arg?.background) return;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchTerritories.fulfilled, (state, action) => {
         state.territoriesGeojson = action.payload;
-        state.loading = false;
+        // Un chargement ordinaire lancé entre-temps garde son indicateur jusqu'à sa propre réponse
+        if (!action.meta.arg?.background) state.loading = false;
       })
       .addCase(fetchTerritories.rejected, (state, action) => {
+        if (action.meta.arg?.background) return;
         state.loading = false;
         state.error = action.payload as string;
       })
@@ -461,6 +490,7 @@ const territorySlice = createSlice({
       .addCase(fetchTerritoryById.fulfilled, (state, action) => {
         state.selectedTerritory = action.payload;
         state.loading = false;
+        syncListedTerritory(state, action.payload);
       })
       .addCase(fetchTerritoryById.rejected, (state, action) => {
         state.loading = false;
