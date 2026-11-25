@@ -7,6 +7,8 @@ import LoginPage from "@/app/(app)/login/page";
 import CreateTerritoryModal from "@/components/territory/create-territory-modal";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
+import { currentSchoolYear } from "@/lib/school-year";
+import { formatLongDay } from "@/lib/dates";
 import {
   jsonResponse,
   mockApi,
@@ -732,39 +734,134 @@ describe("Création d'un territoire", () => {
 });
 
 describe("Territoires non parcourus", () => {
+  const thisYear = currentSchoolYear();
+  const lastYear = {
+    startYear: thisYear.startYear - 1,
+    endYear: thisYear.startYear,
+    label: `${thisYear.startYear - 1} - ${thisYear.startYear}`,
+    startDate: `${thisYear.startYear - 1}-09-01`,
+    endDate: `${thisYear.startYear}-08-31`,
+    current: false,
+  };
+  const NOT_VISITED_URL = "/api/territoires/statistiques/non-parcourus";
+  // Réponse du serveur pour la prochaine période demandée
+  let notVisitedIds: string[] = [];
+
+  const renderPage = () => {
+    const api = mockApi({
+      "GET /api/territoires/geojson": collection,
+      "GET /api/territoires/statistiques/periodes": [thisYear, lastYear],
+      [`GET ${NOT_VISITED_URL}`]: () => notVisitedIds,
+      "GET /api/personnes": [],
+    });
+    return { api, ...renderWithStore(<NonVisitedTerritoriesPage />) };
+  };
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
     localStorage.clear();
+    sessionStorage.clear();
     push.mockClear();
+    vi.mocked(XLSX.writeFile).mockClear();
+    // R-12 parcouru en 2020, A-01 en retard, C-05 jamais parcouru : sans attribution sur la période
+    notVisitedIds = ["t1", "t2", "t3"];
   });
 
-  it("ne liste que les territoires disponibles ou en attente non parcourus depuis septembre", async () => {
-    mockApi({
-      "GET /api/territoires/geojson": collection,
-      "GET /api/personnes": [],
-    });
-    renderWithStore(<NonVisitedTerritoriesPage />);
+  it("liste les territoires que le serveur dit non parcourus, jamais parcourus d'abord", async () => {
+    // Tri vide mémorisé par une visite précédente : ce n'est pas un choix, le tri par défaut s'applique
+    localStorage.setItem("tableSorting-non-visited-territories", "[]");
+    const { api } = renderPage();
 
     expect(await screen.findByText("R-12")).toBeInTheDocument();
-    expect(screen.getByText("C-05")).toBeInTheDocument();
-    // En retard ou attribué : exclus ; parcouru récemment : exclu
-    expect(screen.queryByText("A-01")).not.toBeInTheDocument();
-    expect(screen.queryByText("B-02")).not.toBeInTheDocument();
-    expect(screen.queryByText("D-09")).not.toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith(
+      `${NOT_VISITED_URL}?startDate=${thisYear.startDate}&endDate=${thisYear.endDate}`
+    );
+    // En retard : sorti entre-temps, il est en cours de parcours
+    expect(rowNames()).toEqual(["C-05", "R-12"]);
+    expect(screen.getByText("Jamais parcouru")).toBeInTheDocument();
+    const table = within(screen.getByRole("table"));
+    expect(table.getByText("1 janv. 2020")).toBeInTheDocument();
+    expect(screen.getByText(/^il y a \d+ ans$/)).toBeInTheDocument();
     expect(
       screen.getByText(/non parcourus depuis le 1er septembre/)
     ).toBeInTheDocument();
+    // La carte ne montre que les territoires de la liste
+    expect(screen.getByTestId("territory-map")).toHaveAttribute(
+      "data-names",
+      "R-12,C-05"
+    );
+  });
+
+  it("résume ce qu'il reste à parcourir, en tout, par ville et par type", async () => {
+    renderPage();
+    await screen.findByText("R-12");
+
+    expect(
+      screen.getByText(
+        `À parcourir avant le ${formatLongDay(thisYear.endDate)}`
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("2 sur 5")).toBeInTheDocument();
+    const progress = (name: string) =>
+      screen.getByRole("progressbar", {
+        name: `${name} : territoires parcourus`,
+      });
+    expect(progress("Tous les territoires")).toHaveAttribute(
+      "aria-valuetext",
+      "3 sur 5"
+    );
+    expect(progress("Rennes")).toHaveAttribute("aria-valuetext", "3 sur 4");
+    expect(progress("Cesson")).toHaveAttribute("aria-valuetext", "0 sur 1");
+    // C-05 n'a pas de type : il ne compte pas dans la répartition par type
+    expect(progress("Pavillon")).toHaveAttribute("aria-valuetext", "2 sur 3");
+    expect(progress("Immeuble")).toHaveAttribute("aria-valuetext", "1 sur 1");
+    expect(screen.getByText(/Tout parcouru/)).toBeInTheDocument();
+  });
+
+  it("change de période : les territoires sortis entre-temps restent dans la liste", async () => {
+    const { api } = renderPage();
+    await screen.findByText("R-12");
+
+    notVisitedIds = ["t2", "t4"];
+    await userEvent.click(screen.getByRole("combobox", { name: /Période/ }));
+    await userEvent.click(
+      await screen.findByRole("option", { name: lastYear.label })
+    );
+
+    expect(await screen.findByText("A-01")).toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith(
+      `${NOT_VISITED_URL}?startDate=${lastYear.startDate}&endDate=${lastYear.endDate}`
+    );
+    expect(rowNames()).toEqual(["A-01", "B-02"]);
+    expect(
+      screen.getByText(
+        new RegExp(`pendant la période scolaire ${lastYear.label}`)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(`Non parcourus en ${lastYear.label}`)
+    ).toBeInTheDocument();
+  });
+
+  it("exporte « Jamais parcouru » plutôt que « nouveau »", async () => {
+    const jsonToSheet = vi.spyOn(XLSX.utils, "json_to_sheet");
+    renderPage();
+    await screen.findByText("R-12");
+
+    await userEvent.click(screen.getByText("Exporter"));
+
+    await waitFor(() => expect(XLSX.writeFile).toHaveBeenCalled());
+    const rows = jsonToSheet.mock.calls[0][0] as Record<string, unknown>[];
+    expect(rows.map((row) => row["Parcouru pour la dernière fois le"])).toEqual(
+      ["Jamais parcouru", "2020-01-01"]
+    );
   });
 
   it("affiche l'état vide et redirige sans connexion", async () => {
-    mockApi({
-      "GET /api/territoires/geojson": {
-        type: "FeatureCollection",
-        features: [props("t4", "B-02", "ASSIGNED")],
-      },
-    });
-    const { unmount } = renderWithStore(<NonVisitedTerritoriesPage />);
+    // Seul non parcouru, A-01 est en retard : sorti entre-temps, il n'est plus à attribuer
+    notVisitedIds = ["t2"];
+    const { unmount } = renderPage();
     // Message propre à la page (elle reprenait celui des territoires en retard)
     expect(
       await screen.findByText("Aucun territoire non parcouru")
@@ -774,6 +871,27 @@ describe("Territoires non parcourus", () => {
     mockApi({});
     renderWithStore(<NonVisitedTerritoriesPage />, null);
     await waitFor(() => expect(push).toHaveBeenCalledWith("/login"));
+  });
+
+  it("signale un échec du chargement et permet de réessayer", async () => {
+    let fail = true;
+    mockApi({
+      "GET /api/territoires/geojson": collection,
+      "GET /api/territoires/statistiques/periodes": [thisYear],
+      [`GET ${NOT_VISITED_URL}`]: () =>
+        fail ? jsonResponse({ message: "Serveur indisponible" }, 500) : ["t1"],
+    });
+    renderWithStore(<NonVisitedTerritoriesPage />);
+
+    expect(
+      await screen.findByText(
+        "Impossible de charger les territoires non parcourus"
+      )
+    ).toBeInTheDocument();
+
+    fail = false;
+    await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    expect(await screen.findByText("R-12")).toBeInTheDocument();
   });
 });
 

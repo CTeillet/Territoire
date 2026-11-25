@@ -18,15 +18,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SchoolYearPeriod } from "@/models/school-year-period";
-import { Calendar, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
+import { SchoolYearPeriodSelect } from "@/components/shared/school-year-period-select";
 import {
   LoadingState,
   PageContainer,
@@ -63,14 +57,6 @@ const StatistiquesPage = () => {
 
   if (!isAuthenticated) return null;
 
-  const handlePeriodChange = (startYearStr: string) => {
-    const startYear = parseInt(startYearStr, 10);
-    const period = schoolYearPeriods.find((p) => p.startYear === startYear);
-    if (period) {
-      setSelectedPeriod(period);
-    }
-  };
-
   const formatDateFrench = (dateStr: string) => {
     if (!dateStr) return "";
     const [year, month, day] = dateStr.split("-");
@@ -83,39 +69,11 @@ const StatistiquesPage = () => {
         title="Statistiques"
         description="Consultez l'historique et les statistiques par période scolaire (du 1er septembre au 31 août)"
         actions={
-          <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-muted-foreground" />
-            <label
-              htmlFor="period-select"
-              className="text-sm font-medium whitespace-nowrap"
-            >
-              Période scolaire :
-            </label>
-            <Select
-              value={
-                selectedPeriod ? String(selectedPeriod.startYear) : undefined
-              }
-              onValueChange={handlePeriodChange}
-              disabled={schoolYearPeriods.length === 0}
-            >
-              <SelectTrigger
-                id="period-select"
-                className="w-full max-w-[200px] bg-background"
-              >
-                <SelectValue placeholder="Sélectionner une période" />
-              </SelectTrigger>
-              <SelectContent>
-                {schoolYearPeriods.map((period) => (
-                  <SelectItem
-                    key={period.startYear}
-                    value={String(period.startYear)}
-                  >
-                    {period.label} {period.current ? "(En cours)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <SchoolYearPeriodSelect
+            periods={schoolYearPeriods}
+            value={selectedPeriod}
+            onChange={setSelectedPeriod}
+          />
         }
       />
 

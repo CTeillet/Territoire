@@ -480,8 +480,46 @@ class TerritoryControllerIntegrationTest {
 
 	@Test
 	@WithMockUser(roles = "UTILISATEUR")
+	void testGetTerritoryIdsNotVisited_OnlyTerritoriesWithoutAssignmentDuringThePeriod() throws Exception {
+		Person person = personRepository.save(Person.builder().firstName("Marie").lastName("Petit").build());
+		Territory never = territoryRepository.save(createTestTerritory("Jamais", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		Territory before = territoryRepository.save(createTestTerritory("Avant", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		Territory during = territoryRepository.save(createTestTerritory("Pendant", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		Territory overlapping = territoryRepository.save(createTestTerritory("A cheval", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE));
+		Territory archived = createTestTerritory("Archivé", TerritoryType.HOUSE, TerritoryStatus.AVAILABLE);
+		archived.setArchivedAt(java.time.Instant.now());
+		territoryRepository.save(archived);
+
+		// Rendu avant la période : reste à parcourir
+		assignmentRepository.save(Assignment.builder().territory(before).person(person)
+				.assignmentDate(LocalDate.of(2024, 3, 1)).dueDate(LocalDate.of(2024, 7, 1))
+				.returnDate(LocalDate.of(2024, 5, 1)).build());
+		assignmentRepository.save(Assignment.builder().territory(during).person(person)
+				.assignmentDate(LocalDate.of(2024, 10, 1)).dueDate(LocalDate.of(2025, 2, 1))
+				.returnDate(LocalDate.of(2024, 11, 15)).build());
+		// Sorti avant la période, rendu pendant : parcouru
+		assignmentRepository.save(Assignment.builder().territory(overlapping).person(person)
+				.assignmentDate(LocalDate.of(2024, 8, 1)).dueDate(LocalDate.of(2024, 12, 1))
+				.returnDate(LocalDate.of(2024, 9, 10)).build());
+
+		String body = mockMvc.perform(get("/api/territoires/statistiques/non-parcourus")
+						.param("startDate", "2024-09-01")
+						.param("endDate", "2025-08-31"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(2))
+				.andReturn().getResponse().getContentAsString();
+
+		assertTrue(body.contains(never.getId().toString()));
+		assertTrue(body.contains(before.getId().toString()));
+	}
+
+	@Test
+	@WithMockUser(roles = "UTILISATEUR")
 	void testStatisticsEndpoints() throws Exception {
 		mockMvc.perform(get("/api/territoires/statistiques/non-assignes-depuis"))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/api/territoires/statistiques/non-parcourus"))
 				.andExpect(status().isOk());
 
 		mockMvc.perform(get("/api/territoires/statistiques/duree-moyenne-attribution/par-mois"))

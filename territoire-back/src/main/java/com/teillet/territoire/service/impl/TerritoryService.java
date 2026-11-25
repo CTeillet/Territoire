@@ -286,6 +286,11 @@ public class TerritoryService implements ITerritoryService {
 	}
 
 	@Override
+	public List<UUID> getTerritoryIdsNotAssignedBetween(LocalDate startDate, LocalDate endDate) {
+		return territoryRepository.findTerritoryIdsNotAssignedBetween(startDate, endDate);
+	}
+
+	@Override
 	public TerritoryStatusSummaryDto getStatusSummary() {
 		Map<TerritoryStatus, Long> counts = new EnumMap<>(TerritoryStatus.class);
 		for (Object[] row : territoryRepository.countGroupedByStatus()) {

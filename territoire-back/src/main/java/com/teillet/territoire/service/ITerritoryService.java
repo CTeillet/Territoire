@@ -60,6 +60,9 @@ public interface ITerritoryService {
 
     long countTerritoriesNotAssignedSince(LocalDate startDate, LocalDate endDate);
 
+    /** Territoires en service non parcourus sur la période : la même règle que le compte et la carte de couverture. */
+    List<UUID> getTerritoryIdsNotAssignedBetween(LocalDate startDate, LocalDate endDate);
+
     String getTerritoryCoverageGeoJson(LocalDate startDate, LocalDate endDate) throws IOException;
 
     List<AverageAssignmentDurationDto> getAverageAssignmentDurationByMonth(LocalDate startDate, LocalDate endDate);
