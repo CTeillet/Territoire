@@ -230,6 +230,23 @@ class TerritoryController {
 	}
 
 	/**
+	 * Identifiants des territoires non parcourus sur une période (page Territoires non parcourus), selon la même
+	 * règle que le compte du tableau de bord et la carte de couverture : aucune attribution pendant la période.
+	 * @param startDate Date de début de la période (optionnel, défaut : début de l'année scolaire en cours)
+	 * @param endDate Date de fin de la période (optionnel)
+	 */
+	@GetMapping("/statistiques/non-parcourus")
+	public List<UUID> getTerritoryIdsNotVisited(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+		if (startDate == null) {
+			int year = SchoolYearUtils.resolveStartYear(null);
+			startDate = SchoolYearUtils.getStartDate(year);
+		}
+		return territoryService.getTerritoryIdsNotAssignedBetween(startDate, endDate);
+	}
+
+	/**
 	 * Endpoint pour récupérer la durée moyenne d'attribution des territoires par mois
 	 * @return Liste des durées moyennes d'attribution par mois
 	 */

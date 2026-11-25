@@ -43,6 +43,7 @@ import { TYPE_TRANSLATIONS } from "@/models/territory-type";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NO_MATCH } from "@/lib/search";
 import { territorySearchRanks } from "@/lib/territory-search";
+import { lastVisitDate } from "@/lib/dates";
 
 interface DataTableProps {
   columns: ColumnDef<DataTableFeatures, Territory, unknown>[];
@@ -62,6 +63,8 @@ interface DataTableProps {
   onFilteredIdsChange?: (ids: string[] | null) => void;
   /** Début du nom du fichier exporté, complété par la date du jour. */
   exportFileName?: string;
+  /** Tri tant que l'utilisateur n'en a pas choisi un (ex. les plus anciens parcours d'abord). */
+  defaultSorting?: SortingState;
 }
 
 /**
@@ -98,6 +101,7 @@ export function DataTable<TValue>({
   restrictToIds = null,
   onFilteredIdsChange,
   exportFileName = "territoires",
+  defaultSorting = [],
 }: DataTableProps) {
   const isMobile = useIsMobile();
   const query = searchQuery.trim();
@@ -113,17 +117,21 @@ export function DataTable<TValue>({
       status: true,
       actions: true,
     });
+  // Tri mémorisé, sinon celui par défaut : un tri vide mémorisé n'est pas un choix (il l'est à la première visite)
   const [sorting, setSorting] = useState<SortingState>(() => {
     if (typeof window !== "undefined") {
       const storageKey = `tableSorting${tableId ? `-${tableId}` : ""}`;
       const stored = localStorage.getItem(storageKey);
       try {
-        return stored ? JSON.parse(stored) : [];
+        const parsed = stored ? JSON.parse(stored) : [];
+        return Array.isArray(parsed) && parsed.length > 0
+          ? parsed
+          : defaultSorting;
       } catch {
-        return [];
+        return defaultSorting;
       }
     }
-    return [];
+    return defaultSorting;
   });
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
     if (typeof window !== "undefined") {
@@ -272,6 +280,12 @@ export function DataTable<TValue>({
             cellValue = STATUS_TRANSLATIONS[
               cellValue as keyof typeof STATUS_TRANSLATIONS
             ] as unknown as TValue;
+          }
+
+          // Dernier parcours : la date, ou « Jamais parcouru » plutôt que « nouveau »
+          if (columnHeader === "lastVisitedOn") {
+            cellValue = (lastVisitDate(cellValue as string) ??
+              "Jamais parcouru") as unknown as TValue;
           }
 
           // Traduire la valeur de la colonne "type"

@@ -1,129 +1,188 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import "leaflet/dist/leaflet.css";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { fetchTerritories } from "@/store/slices/territory-slice";
+import {
+  fetchNotVisitedTerritoryIds,
+  fetchSchoolYearPeriods,
+} from "@/store/slices/territory-statistics-slice";
 import {
   EmptyState,
   LoadingState,
   PageContainer,
   PageHeader,
 } from "@/components/shared/page-layout";
+import { Button } from "@/components/ui/button";
+import { SchoolYearPeriodSelect } from "@/components/shared/school-year-period-select";
 import { DataTable } from "@/components/territory/territory-data-table";
 import { nonVisitedTerritoryColumns } from "@/components/territory/territory-data-columns";
+import { NotVisitedSummary } from "@/components/territory/not-visited-summary";
+import TerritoryMap from "@/components/territory/territory-map";
+import { SchoolYearPeriod } from "@/models/school-year-period";
+import { TerritoryCollection } from "@/models/territory";
+import { TerritoryStatus } from "@/models/territory-status";
+import { currentSchoolYear } from "@/lib/school-year";
+import { formatLongDay } from "@/lib/dates";
+import { compareNames } from "@/lib/utils";
+
+// Jamais parcourus d'abord, puis du plus ancien parcours au plus récent (à égalité, par nom : ordre des données)
+const DEFAULT_SORTING = [{ id: "lastVisitedOn", desc: false }];
+
+// Sorti entre-temps : le territoire est en cours de parcours, il quitte la liste de la période en cours
+const IN_CIRCULATION: TerritoryStatus[] = ["ASSIGNED", "LATE"];
 
 export default function NonVisitedTerritoriesPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const dispatch = useAppDispatch();
-  const territoriesData = useAppSelector(
-    (state) => state.territories.territoriesGeojson
+  const {
+    territoriesGeojson,
+    loading,
+    error: territoriesError,
+  } = useAppSelector((state) => state.territories);
+  const { schoolYearPeriods, notVisited, notVisitedError } = useAppSelector(
+    (state) => state.territoryStatistics
   );
-  const loading = useAppSelector((state) => state.territories.loading);
 
-  // Fetch territories from Redux store when component mounts
-  useEffect(() => {
-    try {
-      // Fetch territories using Redux
-      dispatch(fetchTerritories());
-    } catch (error) {
-      console.error("Error fetching territories:", error);
-      toast.error("Impossible de récupérer les territoires");
-    }
-  }, [dispatch]);
+  // Période choisie ; à défaut, l'année en cours (calculée comme le serveur en attendant la liste des périodes)
+  const [chosenPeriod, setChosenPeriod] = useState<SchoolYearPeriod | null>(
+    null
+  );
+  const period =
+    chosenPeriod ??
+    schoolYearPeriods.find((p) => p.current) ??
+    currentSchoolYear();
+  const periods = schoolYearPeriods.length > 0 ? schoolYearPeriods : [period];
 
-  // Filter non-visited territories from the Redux store
-  const nonVisitedTerritories = useMemo(() => {
-    if (!territoriesData?.features) {
-      return [];
-    }
+  // Territoires retenus par les filtres du tableau (null : tous), seuls affichés sur la carte
+  const [visibleIds, setVisibleIds] = useState<string[] | null>(null);
 
-    // Get current date to calculate reference date (September 1st of previous year)
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
-
-    // If we're before September, use September 1st of the year before last year
-    // Otherwise, use September 1st of last year
-    const referenceYear = currentMonth < 9 ? currentYear - 1 : currentYear;
-    const referenceDate = new Date(`${referenceYear}-09-01`);
-
-    return territoriesData.features
-      .map((f) => f.properties)
-      .filter((t) => {
-        const lastVisitedOn = t.lastVisitedOn;
-
-        // If lastVisitedOn is null, undefined, or not a valid date string, consider it not visited
-        // But only if the territory is not currently assigned or late
-        if (
-          (!lastVisitedOn ||
-            lastVisitedOn === "N/A" ||
-            lastVisitedOn === "nouveau") &&
-          t.status !== "ASSIGNED" &&
-          t.status !== "LATE"
-        ) {
-          return true;
-        }
-
-        // Parse the lastVisitedOn date and compare with reference date
-        try {
-          const lastVisitDate = new Date(lastVisitedOn);
-          // Only include territories that are AVAILABLE or PENDING and were last visited before the reference date
-          // Explicitly exclude ASSIGNED and LATE territories
-          return (
-            (t.status === "AVAILABLE" || t.status === "PENDING") &&
-            lastVisitDate < referenceDate
-          );
-        } catch {
-          // Only include if it's not assigned or late, even when we can't parse the date
-          return t.status !== "ASSIGNED" && t.status !== "LATE"; // Only include non-assigned and non-late territories when date parsing fails
-        }
-      });
-    // Filter territories that haven't been visited since the reference date
-  }, [territoriesData]);
-
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login");
     }
   }, [isAuthenticated, router]);
 
-  // Use the dedicated columns for non-visited territories
-  const columns = nonVisitedTerritoryColumns;
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    dispatch(fetchTerritories());
+    dispatch(fetchSchoolYearPeriods());
+  }, [dispatch, isAuthenticated]);
 
-  // Get current date to determine reference date for description
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth() + 1;
-  const referenceYear = currentMonth < 9 ? currentYear - 1 : currentYear;
+  const { startDate, endDate } = period;
+  const loadNotVisited = () =>
+    dispatch(fetchNotVisitedTerritoryIds({ startDate, endDate }));
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    dispatch(fetchNotVisitedTerritoryIds({ startDate, endDate }));
+  }, [dispatch, isAuthenticated, startDate, endDate]);
+
+  // Identifiants de la période affichée seulement : ceux d'une autre période ne valent plus
+  const notVisitedIds =
+    notVisited?.startDate === startDate && notVisited?.endDate === endDate
+      ? notVisited.ids
+      : null;
+
+  const territories = useMemo(
+    () => territoriesGeojson?.features.map((f) => f.properties) ?? [],
+    [territoriesGeojson]
+  );
+
+  const isCurrent = period.current;
+  const nonVisitedTerritories = useMemo(() => {
+    if (!notVisitedIds) return null;
+    const ids = new Set(notVisitedIds);
+    return territories
+      .filter(
+        (t) =>
+          ids.has(t.id) && !(isCurrent && IN_CIRCULATION.includes(t.status))
+      )
+      .sort((a, b) => compareNames(a.name, b.name));
+  }, [territories, notVisitedIds, isCurrent]);
+
+  const mapData = useMemo<TerritoryCollection | null>(() => {
+    if (!territoriesGeojson || !nonVisitedTerritories) return null;
+    const shown = new Set(visibleIds ?? nonVisitedTerritories.map((t) => t.id));
+    return {
+      ...territoriesGeojson,
+      features: territoriesGeojson.features.filter((f) =>
+        shown.has(f.properties.id)
+      ),
+    };
+  }, [territoriesGeojson, nonVisitedTerritories, visibleIds]);
+
+  const description = isCurrent
+    ? `Territoires non parcourus depuis le ${formatLongDay(startDate)}, à attribuer avant le ${formatLongDay(endDate)}`
+    : `Territoires non parcourus pendant la période scolaire ${period.label} (du ${formatLongDay(startDate)} au ${formatLongDay(endDate)})`;
+
+  const loadError =
+    (!territoriesGeojson && !loading && territoriesError) ||
+    (!notVisitedIds && notVisitedError);
+
+  const retry = () => {
+    if (!territoriesGeojson) dispatch(fetchTerritories());
+    loadNotVisited();
+  };
 
   return (
     <PageContainer>
       <PageHeader
         title="Territoires non parcourus"
-        description={`Liste des territoires non parcourus depuis le 1er septembre ${referenceYear}`}
+        description={description}
+        actions={
+          <SchoolYearPeriodSelect
+            periods={periods}
+            value={period}
+            onChange={setChosenPeriod}
+          />
+        }
       />
 
-      {loading ? (
+      {loadError ? (
+        <EmptyState
+          icon={AlertTriangle}
+          title="Impossible de charger les territoires non parcourus"
+          description={loadError}
+        >
+          <Button variant="outline" onClick={retry}>
+            Réessayer
+          </Button>
+        </EmptyState>
+      ) : // Rechargement des territoires : la liste déjà là reste affichée
+      !territoriesGeojson || !nonVisitedTerritories ? (
         <LoadingState message="Chargement des territoires..." />
       ) : nonVisitedTerritories.length === 0 ? (
         <EmptyState
           icon={CheckCircle2}
           title="Aucun territoire non parcouru"
-          description={`Tous les territoires ont été parcourus depuis le 1er septembre ${referenceYear}.`}
+          description={
+            isCurrent
+              ? `Tous les territoires ont été parcourus depuis le ${formatLongDay(startDate)}.`
+              : `Tous les territoires ont été parcourus pendant la période ${period.label}.`
+          }
         />
       ) : (
-        <DataTable
-          data={nonVisitedTerritories}
-          columns={columns}
-          tableId="non-visited-territories"
-          exportFileName="territoires-non-parcourus"
-        />
+        <>
+          <NotVisitedSummary
+            territories={territories}
+            notVisited={nonVisitedTerritories}
+            period={period}
+          />
+          {mapData && <TerritoryMap geoJsonData={mapData} fitToData />}
+          <DataTable
+            data={nonVisitedTerritories}
+            columns={nonVisitedTerritoryColumns}
+            tableId="non-visited-territories"
+            exportFileName="territoires-non-parcourus"
+            defaultSorting={DEFAULT_SORTING}
+            onFilteredIdsChange={setVisibleIds}
+          />
+        </>
       )}
     </PageContainer>
   );

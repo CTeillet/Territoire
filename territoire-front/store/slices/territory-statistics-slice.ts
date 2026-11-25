@@ -31,6 +31,12 @@ type TerritoryStatisticsState = {
   territoriesNotAssignedSince: number;
   territoryCoverageGeojson: TerritoryCoverageMap | null;
   loadingCoverageMap: boolean;
+  /** Territoires non parcourus d'une période (identifiants), avec la période qu'ils concernent. */
+  notVisited: { startDate?: string; endDate?: string; ids: string[] } | null;
+  loadingNotVisited: boolean;
+  notVisitedError: string | null;
+  /** Dernière demande envoyée : seule sa réponse compte quand on change vite de période. */
+  notVisitedRequestId: string | null;
   averageAssignmentDurationByMonth: AverageAssignmentDuration[];
   overallAverageAssignmentDuration: number | null;
   territoryDistributionByCity: TerritoryDistribution[];
@@ -47,6 +53,10 @@ const initialState: TerritoryStatisticsState = {
   territoriesNotAssignedSince: 0,
   territoryCoverageGeojson: null,
   loadingCoverageMap: false,
+  notVisited: null,
+  loadingNotVisited: false,
+  notVisitedError: null,
+  notVisitedRequestId: null,
   averageAssignmentDurationByMonth: [],
   overallAverageAssignmentDuration: null,
   territoryDistributionByCity: [],
@@ -90,6 +100,13 @@ export const fetchTerritoryCoverageMap = periodThunk<TerritoryCoverageMap>(
   "territories/fetchTerritoryCoverageMap",
   `${STATISTICS_URL}/carte-couverture`,
   "Erreur lors de la récupération de la carte de couverture des territoires"
+);
+
+/** Territoires sans attribution pendant la période : la règle du compte du tableau de bord et de la carte de couverture. */
+export const fetchNotVisitedTerritoryIds = periodThunk<string[]>(
+  "territories/fetchNotVisitedTerritoryIds",
+  `${STATISTICS_URL}/non-parcourus`,
+  "Erreur lors de la récupération des territoires non parcourus"
 );
 
 export const fetchAverageAssignmentDurationByMonth = periodThunk<
@@ -148,7 +165,13 @@ export const fetchSchoolYearPeriods = createApiThunk(
 /** Champs de l'état remplis par chaque statistique. */
 type ValueKey = Exclude<
   keyof TerritoryStatisticsState,
-  "loadingCoverageMap" | "statisticsLoading" | "error"
+  | "loadingCoverageMap"
+  | "statisticsLoading"
+  | "error"
+  | "notVisited"
+  | "loadingNotVisited"
+  | "notVisitedError"
+  | "notVisitedRequestId"
 >;
 
 const territoryStatisticsSlice = createSlice({
@@ -201,6 +224,30 @@ const territoryStatisticsSlice = createSlice({
       .addCase(fetchTerritoryCoverageMap.rejected, (state, action) => {
         state.loadingCoverageMap = false;
         state.error = action.payload as string;
+      });
+
+    // Territoires non parcourus : leur propre chargement, et seule la dernière période demandée s'affiche
+    builder
+      .addCase(fetchNotVisitedTerritoryIds.pending, (state, action) => {
+        state.notVisitedRequestId = action.meta.requestId;
+        state.loadingNotVisited = true;
+        state.notVisitedError = null;
+      })
+      .addCase(fetchNotVisitedTerritoryIds.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.notVisitedRequestId) return;
+        state.loadingNotVisited = false;
+        state.notVisited = {
+          startDate: action.meta.arg?.startDate,
+          endDate: action.meta.arg?.endDate,
+          ids: action.payload,
+        };
+      })
+      .addCase(fetchNotVisitedTerritoryIds.rejected, (state, action) => {
+        if (action.meta.requestId !== state.notVisitedRequestId) return;
+        state.loadingNotVisited = false;
+        state.notVisitedError =
+          action.payload ??
+          "Erreur lors de la récupération des territoires non parcourus";
       });
 
     track(fetchTerritoryStatusHistory, "territoryStatusHistory");

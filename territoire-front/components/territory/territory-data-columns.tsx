@@ -13,6 +13,8 @@ import { TerritoryDataActionButtons } from "@/components/shared/territory-data-a
 import { TerritoryNameLink } from "@/components/territory/territory-name-link";
 import { LostBadge } from "@/components/territory/lost-badge";
 import { TerritoryStatusBadge } from "@/components/territory/territory-status-badge";
+import { LastVisit } from "@/components/territory/last-visit";
+import { compareLastVisits } from "@/lib/dates";
 
 export const COLUMNS_ID_TRANSLATIONS = {
   actions: "Actions",
@@ -136,6 +138,13 @@ export const territoryDataColumns: ColumnDef<
         />
       );
     },
+    cell: ({ row }) => <LastVisit value={row.original.lastVisitedOn} />,
+    // Croissant : jamais parcourus d'abord, puis du plus ancien parcours au plus récent
+    sortFn: (rowA, rowB) =>
+      compareLastVisits(
+        rowA.original.lastVisitedOn,
+        rowB.original.lastVisitedOn
+      ),
   },
   {
     id: "assignedTo",
