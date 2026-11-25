@@ -2,11 +2,10 @@ import { Territory } from "@/models/territory";
 import { TerritoryType } from "@/models/territory-type";
 import { Assignment } from "@/models/assignment";
 import { compareNames } from "@/lib/utils";
+import { lastVisitDate } from "@/lib/dates";
 
 /** En deçà, un territoire que la personne a déjà eu passe après les autres. */
 export const RECENTLY_HAD_MONTHS = 24;
-
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
 
 export type TerritorySuggestion = {
   territory: Territory;
@@ -63,9 +62,7 @@ export function suggestTerritories(
     )
     .map((territory) => ({
       territory,
-      lastVisitedOn: ISO_DATE.test(territory.lastVisitedOn ?? "")
-        ? territory.lastVisitedOn.slice(0, 10)
-        : null,
+      lastVisitedOn: lastVisitDate(territory.lastVisitedOn),
       recentlyHadOn: lastHad.get(territory.id) ?? null,
     }))
     .sort(

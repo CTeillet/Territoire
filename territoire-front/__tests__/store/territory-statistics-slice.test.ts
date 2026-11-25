@@ -5,6 +5,7 @@ import territoryStatisticsReducer, {
   fetchAverageAssignmentDurationByMonth,
   fetchLatestAssignments,
   fetchOverallAverageAssignmentDuration,
+  fetchNotVisitedTerritoryIds,
   fetchSchoolYearPeriods,
   fetchTerritoriesNotAssignedSince,
   fetchTerritoryCoverageMap,
@@ -205,5 +206,52 @@ describe("territory-statistics-slice : thunks et reducers", () => {
         );
       }
     );
+  });
+
+  describe("territoires non parcourus", () => {
+    const url = "/api/territoires/statistiques/non-parcourus";
+    const thisYear = { startDate: "2026-09-01", endDate: "2027-08-31" };
+    const lastYear = { startDate: "2025-09-01", endDate: "2026-08-31" };
+
+    it("garde les identifiants avec la période demandée, et les erreurs à part", async () => {
+      const store = newStore();
+
+      authFetch.mockResolvedValueOnce(ok(["t1", "t2"]));
+      await store.dispatch(fetchNotVisitedTerritoryIds(thisYear));
+      expect(authFetch).toHaveBeenLastCalledWith(
+        `${url}?startDate=2026-09-01&endDate=2027-08-31`
+      );
+      let state = store.getState().territoryStatistics;
+      expect(state.notVisited).toEqual({ ...thisYear, ids: ["t1", "t2"] });
+      expect(state.loadingNotVisited).toBe(false);
+
+      authFetch.mockResolvedValueOnce(failing());
+      await store.dispatch(fetchNotVisitedTerritoryIds(lastYear));
+      state = store.getState().territoryStatistics;
+      expect(state.notVisitedError).toMatch(/territoires non parcourus/);
+      expect(state.loadingNotVisited).toBe(false);
+      // Le chargement commun aux autres statistiques n'est pas touché
+      expect(state.error).toBeNull();
+    });
+
+    it("n'affiche que la réponse de la dernière période demandée", async () => {
+      const store = newStore();
+      let answerThisYear: (response: Response) => void = () => {};
+      authFetch
+        .mockImplementationOnce(
+          () => new Promise<Response>((resolve) => (answerThisYear = resolve))
+        )
+        .mockResolvedValueOnce(ok(["t9"]));
+
+      // On change de période avant la réponse de la première
+      const first = store.dispatch(fetchNotVisitedTerritoryIds(thisYear));
+      await store.dispatch(fetchNotVisitedTerritoryIds(lastYear));
+      answerThisYear(ok(["t1"]));
+      await first;
+
+      const state = store.getState().territoryStatistics;
+      expect(state.notVisited).toEqual({ ...lastYear, ids: ["t9"] });
+      expect(state.loadingNotVisited).toBe(false);
+    });
   });
 });
