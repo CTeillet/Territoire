@@ -71,6 +71,72 @@ export function themeOf(layer: {
   return null;
 }
 
+/** Données des noms de rue du Plan IGN : abrégés (« AV DES MARRONNIERS ») jusqu'au zoom 17, en entier au-delà. */
+const STREET_NAMES_SOURCE = "toponyme_routier_odonyme_lin";
+/**
+ * Sur la carte imprimée (A6), le cadre du plan fait 14 cm pour 828 pixels CSS : les noms de rue du Plan IGN, en 10 et
+ * 11 pixels, n'y font que 1,7 mm. On les grossit et on les passe en semi-gras pour qu'ils se lisent, même en noir et
+ * blanc. Plus gros, ils se gêneraient : sur le plan large de S148, déjà trois noms de rue n'ont plus de place.
+ */
+const CARD_STREET_NAME_SCALE = 1.4;
+const CARD_STREET_NAME_FONT = ["Source Sans Pro Semibold"];
+/** Taille du texte quand le style n'en donne pas (valeur par défaut de MapLibre). */
+const DEFAULT_TEXT_SIZE = 16;
+
+/**
+ * Taille de texte multipliée, fixe ou par paliers de zoom (les deux formes du style Plan IGN) ; null si le style
+ * l'écrit autrement, en expression par exemple.
+ */
+function scaleTextSize(size: unknown, scale: number) {
+  if (size === undefined) return DEFAULT_TEXT_SIZE * scale;
+  if (typeof size === "number") return size * scale;
+  if (size !== null && typeof size === "object" && "stops" in size) {
+    const fn = size as { stops: [number, number][] };
+    return {
+      ...fn,
+      stops: fn.stops.map(([zoom, value]) => [zoom, value * scale]),
+    };
+  }
+  return null;
+}
+
+/**
+ * Noms de rue du plan de la carte physique, grossis et en semi-gras. Une rue courte (souvent celle qui longe le
+ * territoire) n'a pas toujours la place d'écrire son nom en grand : une copie à la taille d'origine, placée sous la
+ * couche grossie, le lui écrit en petit. MapLibre place d'abord les couches du dessus, et ne garde la copie que là
+ * où elle ne chevauche aucun nom déjà écrit.
+ */
+export function enlargeStreetNames(
+  style: StyleSpecification
+): StyleSpecification {
+  return {
+    ...style,
+    layers: style.layers.flatMap((layer: LayerSpecification) => {
+      if (
+        layer.type !== "symbol" ||
+        layer["source-layer"] !== STREET_NAMES_SOURCE
+      )
+        return [layer];
+      const size = scaleTextSize(
+        layer.layout?.["text-size"],
+        CARD_STREET_NAME_SCALE
+      );
+      const semibold = {
+        ...layer,
+        layout: { ...layer.layout, "text-font": CARD_STREET_NAME_FONT },
+      };
+      if (size === null) return [semibold];
+      return [
+        { ...semibold, id: `${layer.id} - repli` },
+        {
+          ...semibold,
+          layout: { ...semibold.layout, "text-size": size },
+        } as LayerSpecification,
+      ];
+    }),
+  };
+}
+
 /** Style Plan IGN sans les couches des thèmes cachés. */
 export function filterStyle(
   style: StyleSpecification,
@@ -126,7 +192,7 @@ export async function renderIgnPlan(
 
   const map = new maplibregl.Map({
     container,
-    style: filterStyle(style, shownThemes),
+    style: enlargeStreetNames(filterStyle(style, shownThemes)),
     bounds: [
       [layout.west, layout.south],
       [layout.east, layout.north],
